@@ -1,0 +1,42 @@
+{
+  "name": "@gami/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@gami/challenges": "workspace:*",
+    "@gami/config": "workspace:*",
+    "@gami/database": "workspace:*",
+    "@gami/leaderboards": "workspace:*",
+    "@gami/notifications": "workspace:*",
+    "@gami/progression": "workspace:*",
+    "@gami/queue": "workspace:*",
+    "@gami/rules": "workspace:*",
+    "@gami/types": "workspace:*",
+    "@gami/webhooks": "workspace:*",
+    "better-auth": "^1.6.27",
+    "bullmq": "^5.65.1",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.11.3",
+    "ioredis": "^5.8.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@gami/sdk": "workspace:*",
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

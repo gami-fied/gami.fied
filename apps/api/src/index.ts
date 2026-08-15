@@ -1,0 +1,168 @@
+import cors from '@fastify/cors';
+import { defaultConfig, validateProductionConfig } from '@gami/config';
+import { checkDatabaseHealth, runMigrations } from '@gami/database';
+import { checkRedisHealth } from '@gami/queue';
+import Fastify from 'fastify';
+import { achievementRoutes } from './achievements/index.js';
+import { apiKeyManagementRoutes } from './api-keys/index.js';
+import { auditLogRoutes } from './audit-logs/index.js';
+import { authRoutes } from './auth/index.js';
+import { challengeRoutes } from './challenges/index.js';
+import { eventRoutes } from './events/index.js';
+import { leaderboardRoutes } from './leaderboards/index.js';
+import { levelRoutes } from './levels/index.js';
+import { notificationRoutes } from './notifications/index.js';
+import { organizationRoutes } from './organizations/index.js';
+import { projectRoutes } from './projects/index.js';
+import { ruleRoutes } from './rules/index.js';
+import { systemObservabilityRoutes } from './system/index.js';
+import { processMetrics } from './system/metrics-collector.js';
+import { userRoutes } from './users/index.js';
+import { webhookRoutes } from './webhooks/index.js';
+import { xpRoutes } from './xp/index.js';
+
+export async function buildServer() {
+  const fastify = Fastify({
+    logger: {
+      level: process.env.NODE_ENV === 'test' ? 'silent' : 'info',
+    },
+    bodyLimit: 65536, // Enforce 64KB max request body limit across API
+  });
+
+  // Track low-cardinality HTTP metrics & duration histograms
+  fastify.addHook('onRequest', async (request) => {
+    (request as unknown as { startTime: number }).startTime = Date.now();
+  });
+
+  fastify.addHook('onResponse', async (request, reply) => {
+    const startTime = (request as unknown as { startTime?: number }).startTime || Date.now();
+    const durationMs = Date.now() - startTime;
+    const route = request.routeOptions?.url || request.url;
+    processMetrics.recordHttpRequest(request.method, route, reply.statusCode, durationMs);
+  });
+
+  // Register CORS for Dashboard and external clients
+  await fastify.register(cors, {
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Cookie'],
+  });
+
+  // Root route
+  fastify.get('/', async (_request, reply) => {
+    return reply.status(200).send({
+      name: 'Gami Community Engine API',
+      version: '0.1.0',
+      status: 'online',
+      health: '/health',
+      ready: '/ready',
+    });
+  });
+
+  // Lightweight process liveness health check (No auth, no external I/O)
+  fastify.get('/health', async (_request, reply) => {
+    return reply.status(200).send({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Deep dependency readiness check (Probes PostgreSQL & Redis ONLY)
+  fastify.get('/ready', async (_request, reply) => {
+    const [dbHealthy, redisHealthy] = await Promise.all([
+      checkDatabaseHealth(),
+      checkRedisHealth(),
+    ]);
+
+    if (!dbHealthy || !redisHealthy) {
+      return reply.status(503).send({
+        status: 'not_ready',
+        postgres: dbHealthy ? 'connected' : 'disconnected',
+        redis: redisHealthy ? 'connected' : 'disconnected',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return reply.status(200).send({
+      status: 'ready',
+      postgres: 'connected',
+      redis: 'connected',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Register Better Auth handler & auth endpoints
+  await fastify.register(authRoutes);
+
+  // Register Dashboard Organization endpoints
+  await fastify.register(organizationRoutes);
+
+  // Register Dashboard Project endpoints
+  await fastify.register(projectRoutes);
+
+  // Register API Key management endpoints
+  await fastify.register(apiKeyManagementRoutes);
+
+  // Register Event ingestion & inspection endpoints
+  await fastify.register(eventRoutes);
+
+  // Register Rules Engine Management & Preview endpoints
+  await fastify.register(ruleRoutes);
+
+  // Register Users API management endpoints
+  await fastify.register(userRoutes);
+
+  // Register XP System endpoints
+  await fastify.register(xpRoutes);
+
+  // Register Achievement System endpoints
+  await fastify.register(achievementRoutes);
+
+  // Register Level & Progression System endpoints
+  await fastify.register(levelRoutes);
+
+  // Register Leaderboard & Ranking System endpoints
+  await fastify.register(leaderboardRoutes);
+
+  // Register Challenges & Quests endpoints
+  await fastify.register(challengeRoutes);
+
+  // Register Notification System & In-App Outbox endpoints
+  await fastify.register(notificationRoutes);
+
+  // Register Webhooks & External Event Delivery endpoints
+  await fastify.register(webhookRoutes);
+
+  // Register Audit Logs endpoints
+  await fastify.register(auditLogRoutes);
+
+  // Register System Observability & Metrics endpoints
+  await fastify.register(systemObservabilityRoutes);
+
+  return fastify;
+}
+
+export const buildApp = buildServer;
+
+async function start() {
+  validateProductionConfig();
+
+  try {
+    await runMigrations();
+  } catch (err) {
+    console.error('[API] Migration failed during startup:', err);
+  }
+  const app = await buildServer();
+  try {
+    await app.listen({ port: defaultConfig.port, host: '0.0.0.0' });
+    app.log.info(`🚀 API server listening on http://0.0.0.0:${defaultConfig.port}`);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}

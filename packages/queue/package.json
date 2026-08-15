@@ -1,0 +1,27 @@
+{
+  "name": "@gami/queue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gami/config": "workspace:*",
+    "@gami/database": "workspace:*",
+    "bullmq": "^5.65.1",
+    "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/ioredis": "^5.0.0",
+    "@types/node": "^26.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

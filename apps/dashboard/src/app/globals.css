@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+/* Register next/font CSS vars as Tailwind v4 theme tokens */
+@theme {
+  --font-sans: var(--font-space-grotesk), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-space-mono), 'Courier New', monospace;
+}
+
+@layer base {
+  :root {
+    --color-bg: #09090b;
+    --color-card: #18181b;
+    --color-border: #27272a;
+    --color-primary: #f97316;
+  }
+
+  html,
+  body {
+    font-family:
+      var(--font-space-grotesk),
+      system-ui,
+      -apple-system,
+      sans-serif;
+    background-color: var(--color-bg);
+    color: #f4f4f5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-space-mono), 'Courier New', monospace;
+  }
+
+  /* Custom dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #09090b;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+}
+
+@layer utilities {
+  @keyframes count-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-count {
+    animation: count-up 0.4s ease-out forwards;
+  }
+}
