@@ -78,4 +78,23 @@ export type {
   AuditLogsListResponse,
   ReplayEventParams,
   SystemMetricsResponse,
+  NotificationPreferenceItem,
+  GetNotificationPreferencesParams,
+  UpdateNotificationPreferencesParams,
+  NotificationPreferencesResponse,
+  IntegrationRecord,
+  DiscordEmbedField,
+  DiscordEmbedTemplate,
+  CreateIntegrationParams,
+  UpdateIntegrationParams,
+  IntegrationDeliveryRecord,
+  ListIntegrationDeliveriesParams,
+  ListIntegrationDeliveriesResponse,
+  OrganizationRecord,
+  OrganizationMemberRecord,
+  InviteMemberParams,
+  OrganizationInvitationRecord,
+  ProjectMemberRecord,
 } from './types.js';
+export { IntegrationsResource } from './integrations.js';
+export { OrganizationsResource } from './organizations.js';

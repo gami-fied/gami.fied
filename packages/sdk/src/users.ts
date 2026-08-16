@@ -89,6 +89,7 @@ export class UsersResource {
       body: {
         externalId: params.externalId,
         name: params.name,
+        email: params.email,
         avatarUrl: params.avatarUrl,
         metadata: params.metadata || {},
       },
@@ -112,6 +113,7 @@ export class UsersResource {
       path: `/api/projects/${params.projectId}/users/${params.userId}`,
       body: {
         name: params.name,
+        email: params.email,
         avatarUrl: params.avatarUrl,
         metadata: params.metadata,
         active: params.active,

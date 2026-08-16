@@ -1,4 +1,7 @@
-import React, { ReactNode, useEffect } from 'react';
+'use client';
+
+import React, { ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './button';
 
@@ -9,9 +12,33 @@ export interface DialogProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
 }
 
-export function Dialog({ isOpen, onClose, title, description, children, footer }: DialogProps) {
+const maxWidthClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '4xl': 'max-w-4xl',
+};
+
+export function Dialog({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  maxWidth = 'lg',
+}: DialogProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -26,22 +53,24 @@ export function Dialog({ isOpen, onClose, title, description, children, footer }
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+  const content = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal Content */}
-      <div className="relative w-full max-w-4xl bg-zinc-900 border border-zinc-800 rounded-none shadow-2xl z-10 overflow-hidden transform transition-all my-8">
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-zinc-800/80">
+      {/* Modal Content Box */}
+      <div
+        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-zinc-900 border border-zinc-800 rounded-none shadow-2xl z-10 overflow-hidden transform transition-all my-auto`}
+      >
+        <div className="flex items-center justify-between p-5 pb-4 border-b border-zinc-800/80">
           <div>
-            <h3 className="text-lg font-semibold text-zinc-100 tracking-tight">{title}</h3>
+            <h3 className="text-base font-semibold text-zinc-100 tracking-tight">{title}</h3>
             {description && <p className="text-xs text-zinc-400 mt-1">{description}</p>}
           </div>
           <button
@@ -53,16 +82,18 @@ export function Dialog({ isOpen, onClose, title, description, children, footer }
           </button>
         </div>
 
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">{children}</div>
 
         {footer && (
-          <div className="p-6 pt-4 border-t border-zinc-800/80 bg-zinc-950/40 flex justify-end gap-3">
+          <div className="p-5 pt-3 border-t border-zinc-800/80 bg-zinc-950/40 flex justify-end gap-3">
             {footer}
           </div>
         )}
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
 
 export interface ConfirmDialogProps {
@@ -93,6 +124,7 @@ export function ConfirmDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
+      maxWidth="md"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>

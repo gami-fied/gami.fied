@@ -7,6 +7,7 @@ import { useLevels } from '@/hooks/use-levels';
 import { useUserChallenges } from '@/hooks/use-challenges';
 import { useXp } from '@/hooks/use-xp';
 import { useUsers } from '@/hooks/use-users';
+import { useNotificationPreferences } from '@/hooks/use-notification-preferences';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
@@ -44,12 +45,16 @@ import {
   CheckCircle2,
   Calendar,
   Key,
+  Bell,
+  Mail,
+  Loader2,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { User } from '@gami/types';
 
 export function UsersView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const projectId = selectedProject?.id || null;
   const toast = useToast();
 
@@ -77,6 +82,7 @@ export function UsersView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createExternalId, setCreateExternalId] = useState('');
   const [createName, setCreateName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
   const [createAvatarUrl, setCreateAvatarUrl] = useState('');
   const [createMetadata, setCreateMetadata] = useState('{}');
   const [creating, setCreating] = useState(false);
@@ -86,6 +92,7 @@ export function UsersView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [editMetadata, setEditMetadata] = useState('{}');
   const [editActive, setEditActive] = useState(true);
@@ -107,6 +114,19 @@ export function UsersView() {
   const { userProgress, fetchUserProgress } = useLevels(projectId);
   const { userChallenges } = useUserChallenges(projectId, selectedUserId);
   const { adjustXp } = useXp(projectId);
+
+  // Notification Preferences Hook
+  const {
+    preferences: userPrefs,
+    loading: prefLoading,
+    saving: prefSaving,
+    error: prefError,
+    successMsg: prefSuccess,
+    updatePreference,
+  } = useNotificationPreferences(projectId, selectedUserId);
+
+  const selectedUser = users.find((u) => u.id === selectedUserId);
+  const hasEmail = Boolean(selectedUser?.email && selectedUser.email.includes('@'));
 
   const handleOpenProfile = (user: User) => {
     setSelectedUserId(user.id);
@@ -153,6 +173,7 @@ export function UsersView() {
   const handleOpenCreateModal = () => {
     setCreateExternalId('');
     setCreateName('');
+    setCreateEmail('');
     setCreateAvatarUrl('');
     setCreateMetadata('{}');
     setCreateError(null);
@@ -183,6 +204,7 @@ export function UsersView() {
       const newUser = await createUser({
         externalId: createExternalId.trim(),
         name: createName.trim() || undefined,
+        email: createEmail.trim() || undefined,
         avatarUrl: createAvatarUrl.trim() || undefined,
         metadata: parsedMeta,
       });
@@ -203,6 +225,7 @@ export function UsersView() {
     if (e) e.stopPropagation();
     setEditingUser(user);
     setEditName(user.name || '');
+    setEditEmail(user.email || '');
     setEditAvatarUrl(user.avatarUrl || '');
     setEditMetadata(user.metadata ? JSON.stringify(user.metadata, null, 2) : '{}');
     setEditActive(user.active);
@@ -229,6 +252,7 @@ export function UsersView() {
     try {
       await updateUser(editingUser.id, {
         name: editName.trim() || undefined,
+        email: editEmail.trim() || undefined,
         avatarUrl: editAvatarUrl.trim() || undefined,
         metadata: parsedMeta,
         active: editActive,
@@ -252,13 +276,9 @@ export function UsersView() {
   const handleDeactivateConfirm = async () => {
     if (!deactivatingUser) return;
     setDeactivating(true);
-
     try {
       await deactivateUser(deactivatingUser.id);
-      toast.success(
-        'User Deactivated',
-        `User ${deactivatingUser.externalId} has been deactivated. Historical gamification data remains intact.`
-      );
+      toast.success('User Deactivated', `Deactivated account for ${deactivatingUser.externalId}`);
       setIsDeactivateOpen(false);
     } catch (err: unknown) {
       toast.error('Deactivation Failed', (err as Error).message || 'Failed to deactivate user');
@@ -267,37 +287,37 @@ export function UsersView() {
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
   };
-
-  if (!selectedProject) {
-    return (
-      <div className="p-12 text-center bg-zinc-900/40 rounded-none border border-zinc-800 space-y-3">
-        <ShieldAlert className="w-8 h-8 text-zinc-500 mx-auto" />
-        <h3 className="text-base font-semibold text-zinc-200">No Project Selected</h3>
-        <p className="text-xs text-zinc-400">Select a project to browse end-users.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            End-Users
-            {total > 0 && <Badge variant="orange">{total.toLocaleString()} users</Badge>}
+          <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
+            <Users className="w-6 h-6 text-orange-400" />
+            Project End-Users
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Manage end-user identities, profiles & gamification status for{' '}
-            <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+          <p className="text-xs text-zinc-400 font-mono mt-1">
+            Manage end-users, view gamification progress, award XP, and configure notification channel preferences.
           </p>
         </div>
 
-        <Button variant="primary" size="sm" onClick={handleOpenCreateModal}>
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!isAdminOrOwner}
+          title={!isAdminOrOwner ? 'Requires Admin or Owner role to create end-users' : undefined}
+          onClick={() => isAdminOrOwner && handleOpenCreateModal()}
+          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+        >
           <Plus className="w-4 h-4" />
           Create User
         </Button>
@@ -327,7 +347,7 @@ export function UsersView() {
           </CardTitle>
           <CardDescription>
             All registered project end-users. Click any row to inspect profile, XP, progression,
-            achievements & challenges.
+            notification preferences &amp; challenge progress.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -352,7 +372,7 @@ export function UsersView() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>External ID</TableHead>
-                    <TableHead>Internal Gami ID</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -388,7 +408,9 @@ export function UsersView() {
                       <TableCell className="font-mono text-xs text-orange-400 font-bold">
                         {user.externalId}
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-zinc-500">{user.id}</TableCell>
+                      <TableCell className="font-mono text-xs text-zinc-400">
+                        {user.email || <span className="text-zinc-600 italic">No email</span>}
+                      </TableCell>
                       <TableCell>
                         {user.active ? (
                           <Badge variant="emerald" className="text-[10px]">
@@ -409,9 +431,14 @@ export function UsersView() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
-                            onClick={(e) => handleOpenEditModal(user, e)}
-                            className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 hover:text-zinc-100 transition flex items-center gap-1"
-                            title="Edit user profile"
+                            disabled={!isAdminOrOwner}
+                            onClick={(e) => isAdminOrOwner && handleOpenEditModal(user, e)}
+                            className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
+                              isAdminOrOwner
+                                ? 'hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100'
+                                : 'opacity-40 cursor-not-allowed text-zinc-600'
+                            }`}
+                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit user' : 'Edit user profile'}
                           >
                             <Edit2 className="w-3 h-3 text-zinc-400" />
                             Edit
@@ -419,25 +446,36 @@ export function UsersView() {
 
                           {user.active ? (
                             <button
-                              onClick={(e) => handleOpenDeactivateDialog(user, e)}
-                              className="px-2 py-1 bg-zinc-900 hover:bg-rose-950/40 border border-zinc-800 hover:border-rose-800/60 text-xs text-rose-400 transition flex items-center gap-1"
-                              title="Deactivate user account"
+                              disabled={!isAdminOrOwner}
+                              onClick={(e) => isAdminOrOwner && handleOpenDeactivateDialog(user, e)}
+                              className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
+                                isAdminOrOwner
+                                  ? 'hover:bg-rose-950/40 hover:border-rose-800/60 text-rose-400'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-600'
+                              }`}
+                              title={!isAdminOrOwner ? 'Requires Admin or Owner role to deactivate user' : 'Deactivate user account'}
                             >
                               <UserX className="w-3 h-3" />
                               Deactivate
                             </button>
                           ) : (
                             <button
+                              disabled={!isAdminOrOwner}
                               onClick={async (e) => {
                                 e.stopPropagation();
+                                if (!isAdminOrOwner) return;
                                 await updateUser(user.id, { active: true });
                                 toast.success(
                                   'User Reactivated',
                                   `User ${user.externalId} is now active.`
                                 );
                               }}
-                              className="px-2 py-1 bg-zinc-900 hover:bg-emerald-950/40 border border-zinc-800 hover:border-emerald-800/60 text-xs text-emerald-400 transition flex items-center gap-1"
-                              title="Reactivate user account"
+                              className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
+                                isAdminOrOwner
+                                  ? 'hover:bg-emerald-950/40 hover:border-emerald-800/60 text-emerald-400'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-600'
+                              }`}
+                              title={!isAdminOrOwner ? 'Requires Admin or Owner role to reactivate user' : 'Reactivate user account'}
                             >
                               <UserCheck className="w-3 h-3" />
                               Reactivate
@@ -445,9 +483,14 @@ export function UsersView() {
                           )}
 
                           <button
-                            onClick={(e) => handleOpenGrantModal(user.id, e)}
-                            className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-orange-400 hover:text-orange-300 transition flex items-center gap-1"
-                            title="Grant XP to this user"
+                            disabled={!isAdminOrOwner}
+                            onClick={(e) => isAdminOrOwner && handleOpenGrantModal(user.id, e)}
+                            className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
+                              isAdminOrOwner
+                                ? 'hover:bg-zinc-800 text-orange-400 hover:text-orange-300'
+                                : 'opacity-40 cursor-not-allowed text-zinc-600'
+                            }`}
+                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to grant XP' : 'Grant XP to this user'}
                           >
                             <Gift className="w-3 h-3" />
                             Grant XP
@@ -461,8 +504,8 @@ export function UsersView() {
               <TablePagination
                 page={page}
                 limit={25}
-                hasMore={page * 25 < total}
-                onPageChange={setPage}
+                hasMore={total > page * 25}
+                onPageChange={handlePageChange}
               />
             </>
           )}
@@ -474,9 +517,9 @@ export function UsersView() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Create End-User"
-        description="Manually provision a project end-user identity record."
+        description="Register a new end-user account directly in this project."
       >
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
+        <form onSubmit={handleCreateSubmit} className="space-y-4 font-mono">
           {createError && (
             <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
               {createError}
@@ -496,6 +539,14 @@ export function UsersView() {
             placeholder="e.g. Jane Doe"
             value={createName}
             onChange={(e) => setCreateName(e.target.value)}
+          />
+
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="e.g. jane.doe@example.com"
+            value={createEmail}
+            onChange={(e) => setCreateEmail(e.target.value)}
           />
 
           <Input
@@ -536,7 +587,7 @@ export function UsersView() {
         title="Edit User Profile"
         description={editingUser ? `External ID: ${editingUser.externalId}` : 'Update profile data'}
       >
-        <form onSubmit={handleEditSubmit} className="space-y-4">
+        <form onSubmit={handleEditSubmit} className="space-y-4 font-mono">
           {editError && (
             <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
               {editError}
@@ -548,6 +599,14 @@ export function UsersView() {
             placeholder="e.g. Jane Doe"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
+          />
+
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="e.g. jane.doe@example.com"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
           />
 
           <Input
@@ -605,7 +664,7 @@ export function UsersView() {
             : 'Deactivate User'
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-4 font-mono">
           <div className="p-3 bg-amber-950/40 border border-amber-800/60 text-amber-200 text-xs space-y-1">
             <span className="font-bold block text-amber-400">
               Historical Data Preservation Notice
@@ -647,7 +706,7 @@ export function UsersView() {
         title="Grant XP to User"
         description={`Target User ID: ${grantUserId}`}
       >
-        <form onSubmit={handleGrantSubmit} className="space-y-4">
+        <form onSubmit={handleGrantSubmit} className="space-y-4 font-mono">
           {grantError && (
             <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
               {grantError}
@@ -701,12 +760,12 @@ export function UsersView() {
         }
       >
         {profileLoading ? (
-          <div className="py-12 flex items-center justify-center gap-3 text-zinc-400 text-sm">
+          <div className="py-12 flex items-center justify-center gap-3 text-zinc-400 text-sm font-mono">
             <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
             Loading profile...
           </div>
         ) : profileError ? (
-          <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
+          <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs font-mono">
             {profileError}
           </div>
         ) : userRank?.entry ? (
@@ -729,7 +788,7 @@ export function UsersView() {
                 <div className="flex items-center justify-center mb-1">
                   <Coins className="w-4 h-4 text-orange-400" />
                 </div>
-                <div className="text-xl font-black text-orange-400">
+                <div className="text-xl font-black text-orange-400 font-mono">
                   {userRank.entry.xp.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5 font-mono">
@@ -741,7 +800,7 @@ export function UsersView() {
                   <TrendingUp className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-xl font-black text-amber-400 font-mono">#{userRank.rank}</div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5 font-mono">
                   of {userRank.totalUsers} users
                 </div>
               </div>
@@ -749,27 +808,143 @@ export function UsersView() {
                 <div className="flex items-center justify-center mb-1">
                   <Trophy className="w-4 h-4 text-purple-400" />
                 </div>
-                <div className="text-xl font-black text-purple-400">
+                <div className="text-xl font-black text-purple-400 font-mono">
                   {userRank.entry.levelName ? (
                     <span className="text-sm">{userRank.entry.levelName}</span>
                   ) : (
                     'L1'
                   )}
                 </div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5 font-mono">
                   Level
                 </div>
+              </div>
+            </div>
+
+            {/* Notification Preferences Channel Matrix */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 font-mono">
+                  <Bell className="w-3.5 h-3.5 text-emerald-400" />
+                  Notification Preferences
+                </h4>
+                {prefSaving && (
+                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                  </span>
+                )}
+                {prefSuccess && (
+                  <span className="text-[10px] text-emerald-400 font-mono">
+                    ✓ Saved
+                  </span>
+                )}
+              </div>
+
+              {prefError && (
+                <div className="p-2.5 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs font-mono">
+                  {prefError}
+                </div>
+              )}
+
+              <div className="bg-zinc-950/80 p-4 rounded-none border border-zinc-800 space-y-3 font-mono">
+                {prefLoading ? (
+                  <div className="py-4 flex items-center justify-center gap-2 text-zinc-400 text-xs">
+                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    Loading preferences...
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-800 text-[10px] uppercase text-zinc-400">
+                            <th className="py-2 pr-4 font-bold">Notification Type</th>
+                            <th className="py-2 px-4 text-center font-bold">In-App</th>
+                            <th className="py-2 pl-4 text-center font-bold">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800/60">
+                          {[
+                            { type: 'xp_awarded', label: 'XP Awarded' },
+                            { type: 'achievement_unlocked', label: 'Achievement Unlocked' },
+                            { type: 'level_up', label: 'Level Up' },
+                            { type: 'challenge_completed', label: 'Challenge Completed' },
+                          ].map(({ type, label }) => {
+                            const inAppItem = userPrefs.find(
+                              (p) => p.channel === 'in_app' && p.notificationType === type
+                            );
+                            const emailItem = userPrefs.find(
+                              (p) => p.channel === 'email' && p.notificationType === type
+                            );
+
+                            const inAppEnabled = inAppItem ? inAppItem.enabled : true;
+                            const emailEnabled = emailItem ? emailItem.enabled : false;
+
+                            return (
+                              <tr key={type} className="hover:bg-zinc-900/40">
+                                <td className="py-2.5 pr-4 text-zinc-200 font-medium">{label}</td>
+
+                                {/* In-App Toggle */}
+                                <td className="py-2.5 px-4 text-center">
+                                  <label className="inline-flex items-center cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={inAppEnabled}
+                                      onChange={(e) =>
+                                        updatePreference('in_app', type as any, e.target.checked)
+                                      }
+                                      className="sr-only peer"
+                                    />
+                                    <div className="w-8 h-4 bg-zinc-800 peer-focus:outline-none rounded-none peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-none after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                                  </label>
+                                </td>
+
+                                {/* Email Toggle */}
+                                <td className="py-2.5 pl-4 text-center">
+                                  <label
+                                    className={`inline-flex items-center ${
+                                      hasEmail ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      disabled={!hasEmail}
+                                      checked={hasEmail && emailEnabled}
+                                      onChange={(e) =>
+                                        hasEmail &&
+                                        updatePreference('email', type as any, e.target.checked)
+                                      }
+                                      className="sr-only peer"
+                                    />
+                                    <div className="w-8 h-4 bg-zinc-800 peer-focus:outline-none rounded-none peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-none after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                                  </label>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {!hasEmail && (
+                      <div className="p-2.5 bg-amber-950/30 border border-amber-800/50 text-amber-300 text-[11px] font-mono flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>Add an email address to this user to enable email notifications.</span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
             {/* Level Progress */}
             {userProgress && (
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 font-mono">
                   <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
                   Progression Status
                 </h4>
-                <div className="bg-zinc-950/80 p-4 rounded-none border border-zinc-800 space-y-3">
+                <div className="bg-zinc-950/80 p-4 rounded-none border border-zinc-800 space-y-3 font-mono">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-amber-400">
                       Level {userProgress.level.number} — {userProgress.level.name}
@@ -798,11 +973,11 @@ export function UsersView() {
             {/* Challenge Progress */}
             {userChallenges && userChallenges.challenges.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 font-mono">
                   <Target className="w-3.5 h-3.5 text-orange-400" />
                   Challenge Progress ({userChallenges.challenges.length})
                 </h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-2 max-h-48 overflow-y-auto font-mono">
                   {userChallenges.challenges.map((ch) => (
                     <motion.div
                       key={ch.challengeId}

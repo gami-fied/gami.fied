@@ -16,3 +16,7 @@ export * from './challenge-reward-outbox.js';
 export * from './notifications.js';
 export * from './webhooks.js';
 export * from './audit-logs.js';
+export * from './notification-preferences.js';
+export * from './email-notification-outbox.js';
+export * from './integrations.js';
+export * from './server-configs.js';

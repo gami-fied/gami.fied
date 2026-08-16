@@ -3,9 +3,11 @@ import { AuditLogsResource } from './audit-logs.js';
 import { ChallengesResource } from './challenges.js';
 import { EventsResource } from './events.js';
 import { HttpClient } from './http.js';
+import { IntegrationsResource } from './integrations.js';
 import { LeaderboardsResource } from './leaderboards.js';
 import { LevelsResource } from './levels.js';
 import { NotificationsResource } from './notifications.js';
+import { OrganizationsResource } from './organizations.js';
 import { SystemResource } from './system.js';
 import type { GamiConfig } from './types.js';
 import { UsersResource } from './users.js';
@@ -24,6 +26,8 @@ export class Gami {
   public readonly challenges: ChallengesResource;
   public readonly notifications: NotificationsResource;
   public readonly webhooks: WebhooksResource;
+  public readonly integrations: IntegrationsResource;
+  public readonly organizations: OrganizationsResource;
   public readonly auditLogs: AuditLogsResource;
   public readonly system: SystemResource;
 
@@ -39,6 +43,8 @@ export class Gami {
     this.challenges = new ChallengesResource(this.http);
     this.notifications = new NotificationsResource(this.http);
     this.webhooks = new WebhooksResource(this.http);
+    this.integrations = new IntegrationsResource(this.http);
+    this.organizations = new OrganizationsResource(this.http);
     this.auditLogs = new AuditLogsResource(this.http);
     this.system = new SystemResource(this.http);
   }

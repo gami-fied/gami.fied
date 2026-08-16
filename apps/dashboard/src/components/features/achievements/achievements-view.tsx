@@ -13,7 +13,8 @@ import { useToast } from '@/components/ui/toast';
 import { Trophy, Plus, Search, Award } from 'lucide-react';
 
 export function AchievementsView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const toast = useToast();
   const {
     achievements,
@@ -113,7 +114,14 @@ export function AchievementsView() {
           </p>
         </div>
 
-        <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!isAdminOrOwner}
+          title={!isAdminOrOwner ? 'Requires Admin or Owner role to create achievements' : undefined}
+          onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
+          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+        >
           <Plus className="w-4 h-4" />
           Create Achievement
         </Button>
@@ -289,12 +297,14 @@ export function AchievementsView() {
                 <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center justify-between">
                   <span className="text-[11px] font-mono text-zinc-500">{a.id}</span>
                   <button
-                    onClick={() => handleToggleDisable(a)}
+                    disabled={!isAdminOrOwner}
+                    title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle achievement' : undefined}
+                    onClick={() => isAdminOrOwner && handleToggleDisable(a)}
                     className={`text-xs font-semibold px-2.5 py-1 rounded-none transition ${
                       a.enabled
                         ? 'bg-rose-950/40 text-rose-400 hover:bg-rose-900/60'
                         : 'bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/60'
-                    }`}
+                    } ${!isAdminOrOwner ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     {a.enabled ? 'Soft Disable' : 'Enable'}
                   </button>
@@ -312,7 +322,14 @@ export function AchievementsView() {
                   Define achievements that can be granted to end-users automatically by the Rules
                   Engine.
                 </p>
-                <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!isAdminOrOwner}
+                  title={!isAdminOrOwner ? 'Requires Admin or Owner role to create achievements' : undefined}
+                  onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
+                  className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+                >
                   Create First Achievement
                 </Button>
               </div>

@@ -18,9 +18,11 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed.ts",
+    "admin:promote": "tsx src/scripts/promote-admin.ts",
     "test": "vitest run"
   },
   "dependencies": {
+    "@gami/config": "workspace:*",
     "better-auth": "^1.6.27",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"

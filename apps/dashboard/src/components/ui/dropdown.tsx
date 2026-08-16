@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+export type DropdownVariant = 'orange' | 'emerald' | 'cyan' | 'rose';
+
 export interface DropdownOption {
   value: string;
   label: string;
@@ -23,7 +25,49 @@ export interface DropdownProps {
   onActionClick?: () => void;
   className?: string;
   disabled?: boolean;
+  theme?: DropdownVariant;
+  variant?: DropdownVariant;
 }
+
+const variantStyles: Record<
+  DropdownVariant,
+  {
+    focusRing: string;
+    arrowActive: string;
+    selectedOption: string;
+    checkIcon: string;
+    actionButton: string;
+  }
+> = {
+  orange: {
+    focusRing: 'focus:ring-orange-500',
+    arrowActive: 'text-orange-400',
+    selectedOption: 'bg-orange-500/15 text-orange-400 font-semibold',
+    checkIcon: 'text-orange-400',
+    actionButton: 'text-orange-400 hover:bg-orange-950/40',
+  },
+  emerald: {
+    focusRing: 'focus:ring-emerald-500',
+    arrowActive: 'text-emerald-400',
+    selectedOption: 'bg-emerald-500/15 text-emerald-400 font-semibold',
+    checkIcon: 'text-emerald-400',
+    actionButton: 'text-emerald-400 hover:bg-emerald-950/40',
+  },
+  cyan: {
+    focusRing: 'focus:ring-cyan-500',
+    arrowActive: 'text-cyan-400',
+    selectedOption: 'bg-cyan-500/15 text-cyan-400 font-semibold',
+    checkIcon: 'text-cyan-400',
+    actionButton: 'text-cyan-400 hover:bg-cyan-950/40',
+  },
+  rose: {
+    focusRing: 'focus:ring-rose-500',
+    arrowActive: 'text-rose-400',
+    selectedOption: 'bg-rose-500/15 text-rose-400 font-semibold',
+    checkIcon: 'text-rose-400',
+    actionButton: 'text-rose-400 hover:bg-rose-950/40',
+  },
+};
 
 export function Dropdown({
   options,
@@ -35,7 +79,12 @@ export function Dropdown({
   onActionClick,
   className,
   disabled = false,
+  theme,
+  variant,
 }: DropdownProps) {
+  const activeVariant: DropdownVariant = theme || variant || 'orange';
+  const styles = variantStyles[activeVariant] || variantStyles.orange;
+
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +111,10 @@ export function Dropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 text-xs font-medium rounded-none px-3 py-2 transition focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed select-none"
+        className={clsx(
+          'w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 text-xs font-medium rounded-none px-3 py-2 transition focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed select-none',
+          styles.focusRing
+        )}
       >
         <span className="truncate flex items-center gap-2">
           {selectedOption?.icon}
@@ -74,7 +126,7 @@ export function Dropdown({
         </span>
         <ChevronDown
           className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ${
-            isOpen ? 'rotate-180 text-orange-400' : ''
+            isOpen ? `rotate-180 ${styles.arrowActive}` : ''
           }`}
         />
       </button>
@@ -102,20 +154,22 @@ export function Dropdown({
                     className={clsx(
                       'w-full flex items-center justify-between px-3 py-2 text-xs rounded-none transition text-left font-medium',
                       isSelected
-                        ? 'bg-orange-500/15 text-orange-400 font-semibold'
+                        ? styles.selectedOption
                         : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
                     )}
                   >
-                    <span className="flex items-center gap-2 truncate">
-                      {opt.icon}
-                      <span>{opt.label}</span>
-                      {opt.sublabel && (
-                        <span className="text-[10px] text-zinc-500 font-normal">
-                          ({opt.sublabel})
-                        </span>
-                      )}
-                    </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-orange-400 shrink-0" />}
+                    <div className="flex items-center gap-2 min-w-0 flex-1 py-0.5">
+                      {opt.icon && <span className="shrink-0">{opt.icon}</span>}
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="truncate text-zinc-100 font-medium leading-tight">{opt.label}</span>
+                        {opt.sublabel && (
+                          <span className="truncate text-[10px] text-zinc-400 font-normal leading-tight mt-0.5">
+                            {opt.sublabel}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {isSelected && <Check className={clsx('w-3.5 h-3.5 shrink-0 ml-2', styles.checkIcon)} />}
                   </button>
                 );
               })}
@@ -135,7 +189,10 @@ export function Dropdown({
                     setIsOpen(false);
                     onActionClick();
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-orange-400 hover:bg-orange-950/40 rounded-none transition text-left"
+                  className={clsx(
+                    'w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-none transition text-left',
+                    styles.actionButton
+                  )}
                 >
                   <span>{actionLabel}</span>
                 </button>

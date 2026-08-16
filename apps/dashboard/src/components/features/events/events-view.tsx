@@ -38,8 +38,9 @@ import { formatRelativeTime } from '@/hooks/use-relative-time';
 const AUTO_REFRESH_INTERVAL = 30_000; // 30 seconds
 
 export function EventsView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
   const projectId = selectedProject?.id || null;
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
 
   const { events, loading, error, page, hasMore, fetchEvents } = useEvents(projectId);
   const toast = useToast();
@@ -208,7 +209,14 @@ export function EventsView() {
         </div>
         <div className="flex items-center gap-2">
           {/* Send Test Event Playground Button */}
-          <Button variant="primary" size="sm" onClick={() => setIsEmitOpen(true)}>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!isAdminOrOwner}
+            title={!isAdminOrOwner ? 'Requires Admin or Owner role to ingest test events' : undefined}
+            onClick={() => isAdminOrOwner && setIsEmitOpen(true)}
+            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+          >
             <Send className="w-3.5 h-3.5" />
             Send Test Event
           </Button>

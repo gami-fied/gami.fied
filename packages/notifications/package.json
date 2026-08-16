@@ -20,9 +20,12 @@
   "dependencies": {
     "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
-    "@gami/progression": "workspace:*"
+    "@gami/progression": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "nodemailer": "^9.0.5"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }

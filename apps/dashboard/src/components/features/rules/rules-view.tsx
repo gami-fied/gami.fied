@@ -37,8 +37,9 @@ import { evaluateRule } from '@gami/rules';
 import { motion } from 'motion/react';
 
 export function RulesView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
   const projectId = selectedProject?.id || null;
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
 
   const { rules, loading, error, createRule, updateRule, deleteRule, fetchRules } =
     useRules(projectId);
@@ -380,7 +381,10 @@ export function RulesView() {
           <Button
             variant="primary"
             size="sm"
+            disabled={!isAdminOrOwner}
+            title={!isAdminOrOwner ? 'Requires Admin or Owner role to create rules' : undefined}
             onClick={() => {
+              if (!isAdminOrOwner) return;
               setName('');
               setDescription('');
               setTrigger('');
@@ -390,6 +394,7 @@ export function RulesView() {
               setEditingRule(null);
               setIsCreateOpen(true);
             }}
+            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
           >
             <Plus className="w-4 h-4" />
             Create Rule
@@ -474,12 +479,14 @@ export function RulesView() {
                       </TableCell>
                       <TableCell>
                         <button
-                          onClick={() => handleToggleEnabled(rule)}
+                          disabled={!isAdminOrOwner}
+                          title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle rule status' : undefined}
+                          onClick={() => isAdminOrOwner && handleToggleEnabled(rule)}
                           className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border transition ${
                             rule.enabled
                               ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50'
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                          }`}
+                          } ${!isAdminOrOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {rule.enabled ? 'ACTIVE' : 'DISABLED'}
                         </button>
@@ -487,19 +494,30 @@ export function RulesView() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
+                            disabled={!isAdminOrOwner}
                             onClick={() => {
+                              if (!isAdminOrOwner) return;
                               setEditingRule(rule);
                               setIsCreateOpen(true);
                             }}
-                            className="p-1.5 text-zinc-400 hover:text-zinc-200 transition"
-                            title="Edit Rule"
+                            className={`p-1.5 transition ${
+                              isAdminOrOwner
+                                ? 'text-zinc-400 hover:text-zinc-200'
+                                : 'opacity-30 cursor-not-allowed text-zinc-600'
+                            }`}
+                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit rule' : 'Edit Rule'}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => setDeletingRuleId(rule.id)}
-                            className="p-1.5 text-zinc-400 hover:text-rose-400 transition"
-                            title="Delete Rule"
+                            disabled={!isAdminOrOwner}
+                            onClick={() => isAdminOrOwner && setDeletingRuleId(rule.id)}
+                            className={`p-1.5 transition ${
+                              isAdminOrOwner
+                                ? 'text-zinc-400 hover:text-rose-400'
+                                : 'opacity-30 cursor-not-allowed text-zinc-600'
+                            }`}
+                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to delete rule' : 'Delete Rule'}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

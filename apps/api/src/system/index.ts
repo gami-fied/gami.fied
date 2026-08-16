@@ -2,6 +2,7 @@ import {
   challengeRewardOutbox,
   checkDatabaseHealth,
   db,
+  emailNotificationOutbox,
   eventOutbox,
   events,
   notificationOutbox,
@@ -35,10 +36,12 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
         [eventPendingRow],
         [croPendingRow],
         [notifPendingRow],
+        [emailPendingRow],
         [whPendingRow],
         [staleEventsRow],
         [staleCroRow],
         [staleNotifRow],
+        [staleEmailRow],
         [staleWhRow],
       ] = await Promise.all([
         db
@@ -54,6 +57,10 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
           .select({ count: sql<number>`count(*)::int` })
           .from(notificationOutbox)
           .where(and(eq(notificationOutbox.projectId, projectId), eq(notificationOutbox.status, 'pending'))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(emailNotificationOutbox)
+          .where(and(eq(emailNotificationOutbox.projectId, projectId), eq(emailNotificationOutbox.status, 'pending'))),
         db
           .select({ count: sql<number>`count(*)::int` })
           .from(webhookOutbox)
@@ -73,6 +80,10 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
           .where(and(eq(notificationOutbox.projectId, projectId), eq(notificationOutbox.status, 'processing'), lte(notificationOutbox.processingAt, cutoff))),
         db
           .select({ count: sql<number>`count(*)::int` })
+          .from(emailNotificationOutbox)
+          .where(and(eq(emailNotificationOutbox.projectId, projectId), eq(emailNotificationOutbox.status, 'processing'), lte(emailNotificationOutbox.processingAt, cutoff))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
           .from(webhookOutbox)
           .where(and(eq(webhookOutbox.projectId, projectId), eq(webhookOutbox.status, 'processing'), lte(webhookOutbox.processingAt, cutoff))),
       ]);
@@ -81,6 +92,7 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
         (staleEventsRow?.count || 0) +
         (staleCroRow?.count || 0) +
         (staleNotifRow?.count || 0) +
+        (staleEmailRow?.count || 0) +
         (staleWhRow?.count || 0);
 
       // 2. Dependency Health & BullMQ queue state
@@ -108,6 +120,7 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
           eventOutboxPending: eventPendingRow?.count || 0,
           challengeRewardOutboxPending: croPendingRow?.count || 0,
           notificationOutboxPending: notifPendingRow?.count || 0,
+          emailNotificationOutboxPending: emailPendingRow?.count || 0,
           webhookOutboxPending: whPendingRow?.count || 0,
           staleProcessingRecords: totalStaleProcessing,
         },

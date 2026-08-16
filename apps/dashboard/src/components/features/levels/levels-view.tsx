@@ -21,7 +21,8 @@ import { useToast } from '@/components/ui/toast';
 import { TrendingUp, Plus, Award, Layers, Search, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export function LevelsView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const {
     levels,
     summary,
@@ -177,7 +178,14 @@ export function LevelsView() {
           </p>
         </div>
 
-        <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!isAdminOrOwner}
+          title={!isAdminOrOwner ? 'Requires Admin or Owner role to add level thresholds' : undefined}
+          onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
+          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+        >
           <Plus className="w-4 h-4" />
           Add Level Threshold
         </Button>
@@ -384,22 +392,40 @@ export function LevelsView() {
                   </TableCell>
                   <TableCell className="text-right space-x-3">
                     <button
-                      onClick={() => handleOpenEdit(lvl)}
-                      className="text-xs text-zinc-300 hover:text-white hover:underline font-semibold"
+                      disabled={!isAdminOrOwner}
+                      title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit level' : undefined}
+                      onClick={() => isAdminOrOwner && handleOpenEdit(lvl)}
+                      className={`text-xs font-semibold ${
+                        isAdminOrOwner
+                          ? 'text-zinc-300 hover:text-white hover:underline'
+                          : 'opacity-40 cursor-not-allowed text-zinc-600'
+                      }`}
                     >
                       Edit
                     </button>
                     {lvl.enabled ? (
                       <button
-                        onClick={() => handleDisable(lvl)}
-                        className="text-xs text-rose-400 hover:underline font-semibold"
+                        disabled={!isAdminOrOwner}
+                        title={!isAdminOrOwner ? 'Requires Admin or Owner role to disable level' : undefined}
+                        onClick={() => isAdminOrOwner && handleDisable(lvl)}
+                        className={`text-xs font-semibold ${
+                          isAdminOrOwner
+                            ? 'text-rose-400 hover:underline'
+                            : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        }`}
                       >
                         Disable
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleEnable(lvl)}
-                        className="text-xs text-emerald-400 hover:underline font-semibold"
+                        disabled={!isAdminOrOwner}
+                        title={!isAdminOrOwner ? 'Requires Admin or Owner role to enable level' : undefined}
+                        onClick={() => isAdminOrOwner && handleEnable(lvl)}
+                        className={`text-xs font-semibold ${
+                          isAdminOrOwner
+                            ? 'text-emerald-400 hover:underline'
+                            : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        }`}
                       >
                         Enable
                       </button>

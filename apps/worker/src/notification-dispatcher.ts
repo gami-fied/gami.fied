@@ -23,27 +23,27 @@ export async function dispatchPendingNotifications(
   const now = forceNow || new Date();
   const staleThreshold = new Date(now.getTime() - STALE_PROCESSING_THRESHOLD_MS);
 
-  return await db.transaction(async (tx) => {
-    // 1. Reclaim stale processing records (crash recovery)
-    const recoveredRecords = await tx
-      .update(notificationOutbox)
-      .set({
-        status: 'pending',
-        processingAt: sql`NULL`,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(notificationOutbox.status, 'processing'),
-          lt(notificationOutbox.processingAt, staleThreshold)
-        )
+  // 1. Reclaim stale processing records (crash recovery)
+  const recoveredRecords = await db
+    .update(notificationOutbox)
+    .set({
+      status: 'pending',
+      processingAt: sql`NULL`,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(notificationOutbox.status, 'processing'),
+        lt(notificationOutbox.processingAt, staleThreshold)
       )
-      .returning({ id: notificationOutbox.id });
+    )
+    .returning({ id: notificationOutbox.id });
 
-    const recoveredCount = recoveredRecords.length;
+  const recoveredCount = recoveredRecords.length;
 
-    // 2. Select pending / retryable outbox entries with SELECT ... FOR UPDATE SKIP LOCKED
-    const candidateRecords = await tx
+  // 2. Select & lock candidate records atomically
+  const candidateRecords = await db.transaction(async (tx) => {
+    return await tx
       .select()
       .from(notificationOutbox)
       .where(
@@ -60,92 +60,92 @@ export async function dispatchPendingNotifications(
       )
       .limit(limit)
       .for('update', { skipLocked: true });
+  });
 
-    let completedCount = 0;
-    let failedCount = 0;
+  let completedCount = 0;
+  let failedCount = 0;
 
-    for (const record of candidateRecords) {
-      try {
-        // Mark as processing with timestamp
-        await tx
+  for (const record of candidateRecords) {
+    try {
+      // Mark as processing with timestamp
+      await db
+        .update(notificationOutbox)
+        .set({
+          status: 'processing',
+          processingAt: now,
+          updatedAt: now,
+        })
+        .where(eq(notificationOutbox.id, record.id));
+
+      // In-app delivery verification: verify notification exists in database
+      const [targetNotification] = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.id, record.notificationId),
+            eq(notifications.projectId, record.projectId)
+          )
+        );
+
+      if (!targetNotification) {
+        throw new Error(
+          `Notification ${record.notificationId} not found for project ${record.projectId}`
+        );
+      }
+
+      // Complete outbox entry atomically
+      await db
+        .update(notificationOutbox)
+        .set({
+          status: 'completed',
+          processingAt: null,
+          updatedAt: now,
+        })
+        .where(eq(notificationOutbox.id, record.id));
+
+      completedCount++;
+    } catch (err: unknown) {
+      failedCount++;
+      const errorMsg = (err as Error).message || 'Failed to dispatch notification';
+      const nextAttempts = record.attempts + 1;
+
+      if (nextAttempts >= MAX_NOTIFICATION_OUTBOX_ATTEMPTS) {
+        // Bounded retry exceeded -> mark failed
+        await db
           .update(notificationOutbox)
           .set({
-            status: 'processing',
-            processingAt: now,
-            updatedAt: now,
-          })
-          .where(eq(notificationOutbox.id, record.id));
-
-        // In-app delivery verification: verify notification exists in database
-        const [targetNotification] = await tx
-          .select()
-          .from(notifications)
-          .where(
-            and(
-              eq(notifications.id, record.notificationId),
-              eq(notifications.projectId, record.projectId)
-            )
-          );
-
-        if (!targetNotification) {
-          throw new Error(
-            `Notification ${record.notificationId} not found for project ${record.projectId}`
-          );
-        }
-
-        // Complete outbox entry atomically
-        await tx
-          .update(notificationOutbox)
-          .set({
-            status: 'completed',
+            status: 'failed',
+            attempts: nextAttempts,
             processingAt: null,
+            lastError: `Max retries (${MAX_NOTIFICATION_OUTBOX_ATTEMPTS}) exceeded: ${errorMsg}`,
             updatedAt: now,
           })
           .where(eq(notificationOutbox.id, record.id));
+      } else {
+        // Calculate exponential backoff: min(5 min, 1s * 2^attempts)
+        const backoffMs = Math.min(300000, 1000 * Math.pow(2, nextAttempts));
+        const nextAvailable = new Date(now.getTime() + backoffMs);
 
-        completedCount++;
-      } catch (err: unknown) {
-        failedCount++;
-        const errorMsg = (err as Error).message || 'Failed to dispatch notification';
-        const nextAttempts = record.attempts + 1;
-
-        if (nextAttempts >= MAX_NOTIFICATION_OUTBOX_ATTEMPTS) {
-          // Bounded retry exceeded -> mark failed
-          await tx
-            .update(notificationOutbox)
-            .set({
-              status: 'failed',
-              attempts: nextAttempts,
-              processingAt: null,
-              lastError: `Max retries (${MAX_NOTIFICATION_OUTBOX_ATTEMPTS}) exceeded: ${errorMsg}`,
-              updatedAt: now,
-            })
-            .where(eq(notificationOutbox.id, record.id));
-        } else {
-          // Calculate exponential backoff: min(5 min, 1s * 2^attempts)
-          const backoffMs = Math.min(300000, 1000 * Math.pow(2, nextAttempts));
-          const nextAvailable = new Date(now.getTime() + backoffMs);
-
-          await tx
-            .update(notificationOutbox)
-            .set({
-              status: 'pending',
-              attempts: nextAttempts,
-              processingAt: null,
-              availableAt: nextAvailable,
-              lastError: errorMsg,
-              updatedAt: now,
-            })
-            .where(eq(notificationOutbox.id, record.id));
-        }
+        await db
+          .update(notificationOutbox)
+          .set({
+            status: 'pending',
+            attempts: nextAttempts,
+            processingAt: null,
+            availableAt: nextAvailable,
+            lastError: errorMsg,
+            updatedAt: now,
+          })
+          .where(eq(notificationOutbox.id, record.id));
       }
     }
+  }
 
-    return {
-      processedCount: candidateRecords.length,
-      completedCount,
-      failedCount,
-      recoveredCount,
-    };
-  });
+  return {
+    processedCount: candidateRecords.length,
+    completedCount,
+    failedCount,
+    recoveredCount,
+  };
 }

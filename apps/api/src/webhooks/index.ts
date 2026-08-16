@@ -442,7 +442,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // 8. GET /api/projects/:projectId/webhooks/:webhookId/deliveries (List delivery history - Member+)
+  // 8. GET /api/projects/:projectId/webhooks/:webhookId/deliveries (List delivery history - Owner/Admin)
   fastify.get<{
     Params: { projectId: string; webhookId: string };
     Querystring: { page?: string; limit?: string; status?: string; eventType?: string };
@@ -450,6 +450,10 @@ export async function webhookRoutes(fastify: FastifyInstance) {
     const { projectId, webhookId } = request.params;
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
+
+    if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+    }
 
     const page = Math.max(1, parseInt(request.query.page || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '25', 10)));

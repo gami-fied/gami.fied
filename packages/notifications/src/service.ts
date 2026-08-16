@@ -1,5 +1,17 @@
 import { randomUUID } from 'crypto';
-import { db, notificationOutbox, notifications, NotificationRecord } from '@gami/database';
+import {
+  db,
+  emailNotificationOutbox,
+  endUsers,
+  integrationDeliveries,
+  integrations,
+  notificationOutbox,
+  notificationPreferences,
+  notifications,
+  NotificationRecord,
+} from '@gami/database';
+import { and, eq } from 'drizzle-orm';
+import { renderEmailTemplate } from './email/templates.js';
 import { generateNotificationText } from './templates.js';
 import { CreateNotificationIntentParams, NotificationType } from './types.js';
 
@@ -67,16 +79,110 @@ export async function createNotificationIntent<T extends NotificationType>(
     })
     .returning();
 
-  // 5. If new notification created, insert into notification_outbox in same transaction
+  // 5. If new notification created, evaluate channel delivery preferences and insert outbox intents atomically
   if (inserted) {
-    await tx.insert(notificationOutbox).values({
-      id: outboxId,
-      projectId: params.projectId,
-      notificationId: inserted.id,
-      status: 'pending',
-      attempts: 0,
-      availableAt: new Date(),
-    });
+    // Query notification preferences for this user and type
+    const prefRows = await tx
+      .select()
+      .from(notificationPreferences)
+      .where(
+        and(
+          eq(notificationPreferences.projectId, params.projectId),
+          eq(notificationPreferences.userId, params.userId),
+          eq(notificationPreferences.notificationType, params.type)
+        )
+      );
+
+    const inAppPref = prefRows.find((p) => p.channel === 'in_app');
+    const emailPref = prefRows.find((p) => p.channel === 'email');
+
+    // Default rules: In-App is enabled by default (true), Email is disabled by default (false) unless explicitly enabled
+    const inAppEnabled = inAppPref ? inAppPref.enabled : true;
+    const emailEnabled = emailPref ? emailPref.enabled : false;
+
+    // A) In-App Delivery Intent
+    if (inAppEnabled) {
+      await tx.insert(notificationOutbox).values({
+        id: outboxId,
+        projectId: params.projectId,
+        notificationId: inserted.id,
+        status: 'pending',
+        attempts: 0,
+        availableAt: new Date(),
+      });
+    }
+
+    // B) Email Delivery Intent
+    if (emailEnabled) {
+      const [userRow] = await tx
+        .select({ email: endUsers.email })
+        .from(endUsers)
+        .where(and(eq(endUsers.projectId, params.projectId), eq(endUsers.id, params.userId)));
+
+      if (userRow && userRow.email && userRow.email.includes('@')) {
+        const { subject, htmlBody, textBody } = renderEmailTemplate(
+          params.type,
+          params.data as unknown as Record<string, unknown>
+        );
+
+        const emailOutboxId = `eob_${randomUUID()}`;
+        await tx
+          .insert(emailNotificationOutbox)
+          .values({
+            id: emailOutboxId,
+            projectId: params.projectId,
+            notificationId: inserted.id,
+            userId: params.userId,
+            recipientEmail: userRow.email,
+            subject,
+            htmlBody,
+            textBody,
+            status: 'pending',
+            attempts: 0,
+            availableAt: new Date(),
+          })
+          .onConflictDoNothing();
+      }
+    }
+
+    // C) External Integration Delivery Intents (e.g. Discord)
+    try {
+      const activeIntegrations = await tx
+        .select()
+        .from(integrations)
+        .where(
+          and(
+            eq(integrations.projectId, params.projectId),
+            eq(integrations.enabled, true),
+            eq(integrations.status, 'active')
+          )
+        );
+
+      for (const intg of activeIntegrations) {
+        const cfg = (intg.config as Record<string, unknown>) || {};
+        const enabledEvents = Array.isArray(cfg.enabledEvents)
+          ? (cfg.enabledEvents as string[])
+          : [];
+
+        if (enabledEvents.length === 0 || enabledEvents.includes(params.type)) {
+          const deliveryId = `idel_${randomUUID()}`;
+          await tx
+            .insert(integrationDeliveries)
+            .values({
+              id: deliveryId,
+              integrationId: intg.id,
+              projectId: params.projectId,
+              notificationId: inserted.id,
+              eventId: null,
+              eventType: params.type,
+              status: 'pending',
+              attempts: 0,
+              availableAt: new Date(),
+            })
+            .onConflictDoNothing();
+        }
+      }
+    } catch {}
 
     return { status: 'created', notification: inserted };
   }

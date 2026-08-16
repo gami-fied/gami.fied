@@ -9,12 +9,14 @@ import { requireProjectAccess } from '../authorization/index.js';
 const createUserSchema = z.object({
   externalId: z.string().min(1).max(128),
   name: z.string().max(128).optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
   avatarUrl: z.string().url().max(512).optional().nullable().or(z.literal('')),
   metadata: z.record(z.unknown()).optional().default({}),
 });
 
 const updateUserSchema = z.object({
   name: z.string().max(128).optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
   avatarUrl: z.string().url().max(512).optional().nullable().or(z.literal('')),
   metadata: z.record(z.unknown()).optional(),
   active: z.boolean().optional(),
@@ -129,7 +131,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { externalId, name, avatarUrl, metadata } = parseResult.data;
+    const { externalId, name, email, avatarUrl, metadata } = parseResult.data;
 
     // Check unique externalId constraint
     const [existing] = await db
@@ -153,6 +155,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         projectId,
         externalId,
         name: name || null,
+        email: email || null,
         avatarUrl: avatarUrl || null,
         metadata: metadata || {},
         active: true,
@@ -171,6 +174,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       data: {
         externalId: newUser.externalId,
         name: newUser.name,
+        email: newUser.email,
         avatarUrl: newUser.avatarUrl,
         metadata: newUser.metadata,
       },
@@ -211,13 +215,14 @@ export async function userRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { name, avatarUrl, metadata, active } = parseResult.data;
+    const { name, email, avatarUrl, metadata, active } = parseResult.data;
 
     const updateData: Partial<typeof endUsers.$inferInsert> = {
       updatedAt: new Date(),
     };
 
     if (name !== undefined) updateData.name = name || null;
+    if (email !== undefined) updateData.email = email || null;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null;
     if (metadata !== undefined) updateData.metadata = metadata;
     if (active !== undefined) updateData.active = active;

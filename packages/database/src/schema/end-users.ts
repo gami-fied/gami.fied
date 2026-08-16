@@ -10,6 +10,7 @@ export const endUsers = pgTable(
       .references(() => projects.id, { onDelete: 'cascade' }),
     externalId: text('external_id').notNull(),
     name: text('name'),
+    email: text('email'),
     avatarUrl: text('avatar_url'),
     metadata: jsonb('metadata'),
     active: boolean('active').default(true).notNull(),
@@ -21,6 +22,7 @@ export const endUsers = pgTable(
     index('end_users_project_id_idx').on(table.projectId),
     index('end_users_project_created_idx').on(table.projectId, table.createdAt),
     index('end_users_project_name_idx').on(table.projectId, table.name),
+    index('end_users_project_email_idx').on(table.projectId, table.email),
   ]
 );
 

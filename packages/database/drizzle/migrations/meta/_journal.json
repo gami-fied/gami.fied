@@ -113,6 +113,48 @@
       "when": 1786655000000,
       "tag": "0015_observability",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786656000000,
+      "tag": "0016_email_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786657000000,
+      "tag": "0017_platform_admin_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1786658000000,
+      "tag": "0018_integrations_framework",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786659000000,
+      "tag": "0019_organization_invitations",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786660000000,
+      "tag": "0020_nullable_email_outbox_fks",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786661000000,
+      "tag": "0021_invitation_project_ids",
+      "breakpoints": true
     }
   ]
 }

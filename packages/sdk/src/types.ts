@@ -58,6 +58,7 @@ export interface UserRecord {
   projectId: string;
   externalId: string;
   name: string | null;
+  email?: string | null;
   avatarUrl: string | null;
   metadata: Record<string, unknown> | null;
   active: boolean;
@@ -86,6 +87,7 @@ export interface CreateUserParams {
   projectId: string;
   externalId: string;
   name?: string;
+  email?: string | null;
   avatarUrl?: string;
   metadata?: Record<string, unknown>;
 }
@@ -94,6 +96,7 @@ export interface UpdateUserParams {
   projectId: string;
   userId: string;
   name?: string;
+  email?: string | null;
   avatarUrl?: string;
   metadata?: Record<string, unknown>;
   active?: boolean;
@@ -618,3 +621,225 @@ export interface SystemMetricsResponse {
   };
   process: Record<string, unknown>;
 }
+
+export interface NotificationPreferenceItem {
+  id?: string | null;
+  projectId: string;
+  userId: string;
+  channel: 'in_app' | 'email';
+  notificationType: 'xp_awarded' | 'achievement_unlocked' | 'level_up' | 'challenge_completed';
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GetNotificationPreferencesParams {
+  projectId: string;
+  userId: string;
+}
+
+export interface UpdateNotificationPreferencesParams {
+  projectId: string;
+  userId: string;
+  preferences: Array<{
+    channel: 'in_app' | 'email';
+    notificationType: 'xp_awarded' | 'achievement_unlocked' | 'level_up' | 'challenge_completed';
+    enabled: boolean;
+  }>;
+}
+
+export interface NotificationPreferencesResponse {
+  projectId: string;
+  userId: string;
+  preferences: NotificationPreferenceItem[];
+}
+
+// ---------------------------------------------------------------------------
+// External Integrations API Types
+// ---------------------------------------------------------------------------
+
+export interface IntegrationRecord {
+  id: string;
+  projectId: string;
+  provider: 'discord' | 'slack' | 'teams' | string;
+  name: string;
+  status: 'active' | 'disabled' | 'error';
+  enabled: boolean;
+  lastTestedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+  config: {
+    guildId?: string | null;
+    channelId?: string | null;
+    guildName?: string | null;
+    channelName?: string | null;
+    enabledEvents?: string[];
+    configured: boolean;
+  };
+}
+
+export interface CreateIntegrationParams {
+  name: string;
+  provider: string;
+  webhookUrl?: string;
+  enabledEvents?: string[];
+  config?: Record<string, unknown>;
+}
+
+export interface UpdateIntegrationParams {
+  name?: string;
+  enabled?: boolean;
+  enabledEvents?: string[];
+  webhookUrl?: string;
+}
+
+export interface IntegrationDeliveryRecord {
+  id: string;
+  integrationId: string;
+  projectId: string;
+  notificationId: string | null;
+  eventId: string | null;
+  eventType: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  attempts: number;
+  availableAt: string;
+  processingAt: string | null;
+  completedAt: string | null;
+  replayedAt: string | null;
+  lastError: string | null;
+  externalMessageId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListIntegrationDeliveriesParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface ListIntegrationDeliveriesResponse {
+  deliveries: IntegrationDeliveryRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface DiscordEmbedField {
+  name: string;
+  value: string;
+  inline?: boolean;
+}
+
+export interface DiscordEmbedTemplate {
+  title?: string;
+  description?: string;
+  url?: string;
+  color?: number | string;
+  authorName?: string;
+  footerText?: string;
+  thumbnailUrl?: string;
+  imageUrl?: string;
+  fields?: DiscordEmbedField[];
+}
+
+export interface GetTemplatesResponse {
+  enabledEvents: string[];
+  customTemplates: Record<string, DiscordEmbedTemplate>;
+  defaultTemplates: Record<string, DiscordEmbedTemplate>;
+  placeholders: Record<string, Array<{ key: string; description: string }>>;
+}
+
+export interface UpdateTemplatesParams {
+  enabledEvents?: string[];
+  customTemplates?: Record<string, DiscordEmbedTemplate>;
+}
+
+export interface PreviewTemplateParams {
+  eventType: string;
+  template?: DiscordEmbedTemplate;
+}
+
+export interface PreviewTemplateResponse {
+  payload: {
+    embeds: Array<{
+      title?: string;
+      description?: string;
+      url?: string;
+      color?: number;
+      author?: { name: string };
+      footer?: { text: string };
+      thumbnail?: { url: string };
+      image?: { url: string };
+      fields?: Array<{ name: string; value: string; inline?: boolean }>;
+      timestamp?: string;
+    }>;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Organization & Team Management API Types
+// ---------------------------------------------------------------------------
+
+export interface OrganizationRecord {
+  id: string;
+  name: string;
+  slug: string;
+  status: 'active' | 'suspended';
+  role?: 'owner' | 'admin' | 'member';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganizationMemberRecord {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member';
+  createdAt: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+}
+
+export interface InviteMemberParams {
+  email: string;
+  role?: 'admin' | 'member';
+}
+
+export interface OrganizationInvitationRecord {
+  id: string;
+  organizationId: string;
+  organizationName?: string;
+  organizationSlug?: string;
+  email: string;
+  role: 'admin' | 'member';
+  status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
+  expiresAt: string;
+  inviterId: string;
+  inviterName?: string;
+  inviterEmail?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  acceptedAt?: string | null;
+  revokedAt?: string | null;
+  invitationUrl?: string;
+  isExpired?: boolean;
+}
+
+export interface ProjectMemberRecord {
+  id: string;
+  projectId: string;
+  userId: string;
+  role: string;
+  createdAt: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+}
+
+

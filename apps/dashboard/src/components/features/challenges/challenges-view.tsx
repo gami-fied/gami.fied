@@ -37,7 +37,8 @@ import {
 import { motion } from 'motion/react';
 
 export function ChallengesView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const projectId = selectedProject?.id || null;
 
   const { challenges, loading, error, refresh } = useChallenges(projectId);
@@ -260,7 +261,13 @@ export function ChallengesView() {
           </div>
 
           {activeTab === 'management' && (
-            <Button size="sm" onClick={openCreateModal}>
+            <Button
+              size="sm"
+              disabled={!isAdminOrOwner}
+              title={!isAdminOrOwner ? 'Requires Admin or Owner role to create challenges' : undefined}
+              onClick={() => isAdminOrOwner && openCreateModal()}
+              className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+            >
               <Plus className="w-4 h-4" />
               Create Challenge
             </Button>
@@ -427,18 +434,23 @@ export function ChallengesView() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEditModal(ch)}
-                            title="Edit Challenge"
+                            disabled={!isAdminOrOwner}
+                            onClick={() => isAdminOrOwner && openEditModal(ch)}
+                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit challenge' : 'Edit Challenge'}
+                            className={!isAdminOrOwner ? 'opacity-30 cursor-not-allowed text-zinc-600' : undefined}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => toggleDisable(ch)}
-                            title={ch.enabled ? 'Disable' : 'Enable'}
+                            disabled={!isAdminOrOwner}
+                            onClick={() => isAdminOrOwner && toggleDisable(ch)}
+                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle challenge' : (ch.enabled ? 'Disable' : 'Enable')}
                             className={
-                              ch.enabled
+                              !isAdminOrOwner
+                                ? 'opacity-30 cursor-not-allowed text-zinc-600'
+                                : ch.enabled
                                 ? 'text-rose-400 hover:text-rose-300'
                                 : 'text-emerald-400 hover:text-emerald-300'
                             }

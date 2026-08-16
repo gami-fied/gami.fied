@@ -15,7 +15,8 @@
     "infra:status": "docker compose ps",
     "db:generate": "pnpm --filter @gami/database db:generate",
     "db:migrate": "pnpm --filter @gami/database db:migrate",
-    "db:seed": "pnpm --filter @gami/database db:seed"
+    "db:seed": "pnpm --filter @gami/database db:seed",
+    "admin:promote": "pnpm --filter @gami/database admin:promote"
   },
   "packageManager": "pnpm@11.18.0",
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { projects } from './projects.js';
 
 export const apiKeys = pgTable(
@@ -11,6 +11,8 @@ export const apiKeys = pgTable(
     name: text('name').notNull(),
     keyPrefix: text('key_prefix').notNull(),
     keyHash: text('key_hash').notNull(),
+    scopes: jsonb('scopes').default(['*']).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true, mode: 'date' }),

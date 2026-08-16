@@ -1,13 +1,17 @@
 import {
   challengeRewardOutbox,
   db,
+  emailNotificationOutbox,
   eventOutbox,
+  integrationDeliveries,
   notificationOutbox,
   webhookOutbox,
 } from '@gami/database';
 import { dispatchPendingOutboxEvents, getQueueConfig } from '@gami/queue';
 import { and, eq, lte } from 'drizzle-orm';
 import { dispatchPendingChallengeRewards } from './challenge-processor.js';
+import { dispatchPendingEmailNotifications } from './email-notification-dispatcher.js';
+import { dispatchPendingIntegrations } from './integration-dispatcher.js';
 import { dispatchPendingNotifications } from './notification-dispatcher.js';
 import { dispatchPendingWebhooks } from './webhook-dispatcher.js';
 
@@ -16,20 +20,24 @@ let isPolling = false;
 
 /**
  * Reclaims records stuck in 'processing' status > 5 minutes back to 'pending'
- * across all 4 outbox tables (event_outbox, challenge_reward_outbox, notification_outbox, webhook_outbox).
+ * across all outbox tables including integration_deliveries.
  */
 export async function reclaimStaleOutboxRecords(staleThresholdMs = 5 * 60 * 1000): Promise<{
   staleEventsCount: number;
   staleChallengeRewardsCount: number;
   staleNotificationsCount: number;
+  staleEmailNotificationsCount: number;
   staleWebhooksCount: number;
+  staleIntegrationsCount: number;
 }> {
   const cutoff = new Date(Date.now() - staleThresholdMs);
 
   let staleEventsCount = 0;
   let staleChallengeRewardsCount = 0;
   let staleNotificationsCount = 0;
+  let staleEmailNotificationsCount = 0;
   let staleWebhooksCount = 0;
+  let staleIntegrationsCount = 0;
 
   try {
     const resEvents = await db
@@ -53,12 +61,26 @@ export async function reclaimStaleOutboxRecords(staleThresholdMs = 5 * 60 * 1000
       .returning({ id: notificationOutbox.id });
     staleNotificationsCount = resNotif.length;
 
+    const resEmail = await db
+      .update(emailNotificationOutbox)
+      .set({ status: 'pending', processingAt: null, updatedAt: new Date() })
+      .where(and(eq(emailNotificationOutbox.status, 'processing'), lte(emailNotificationOutbox.processingAt, cutoff)))
+      .returning({ id: emailNotificationOutbox.id });
+    staleEmailNotificationsCount = resEmail.length;
+
     const resWh = await db
       .update(webhookOutbox)
       .set({ status: 'pending', processingAt: null, updatedAt: new Date() })
       .where(and(eq(webhookOutbox.status, 'processing'), lte(webhookOutbox.processingAt, cutoff)))
       .returning({ id: webhookOutbox.id });
     staleWebhooksCount = resWh.length;
+
+    const resIntg = await db
+      .update(integrationDeliveries)
+      .set({ status: 'pending', processingAt: null, updatedAt: new Date() })
+      .where(and(eq(integrationDeliveries.status, 'processing'), lte(integrationDeliveries.processingAt, cutoff)))
+      .returning({ id: integrationDeliveries.id });
+    staleIntegrationsCount = resIntg.length;
   } catch (err: unknown) {
     console.error('[OutboxPoller] Error reclaiming stale outbox records:', (err as Error).message || err);
   }
@@ -67,7 +89,9 @@ export async function reclaimStaleOutboxRecords(staleThresholdMs = 5 * 60 * 1000
     staleEventsCount,
     staleChallengeRewardsCount,
     staleNotificationsCount,
+    staleEmailNotificationsCount,
     staleWebhooksCount,
+    staleIntegrationsCount,
   };
 }
 
@@ -78,14 +102,18 @@ export async function pollOutboxIteration(batchLimit = 50): Promise<{
   publishedEventsCount: number;
   completedChallengeRewardsCount: number;
   completedNotificationsCount: number;
+  completedEmailNotificationsCount: number;
   deliveredWebhooksCount: number;
+  completedIntegrationsCount: number;
 }> {
   if (isPolling) {
     return {
       publishedEventsCount: 0,
       completedChallengeRewardsCount: 0,
       completedNotificationsCount: 0,
+      completedEmailNotificationsCount: 0,
       deliveredWebhooksCount: 0,
+      completedIntegrationsCount: 0,
     };
   }
   isPolling = true;
@@ -93,7 +121,9 @@ export async function pollOutboxIteration(batchLimit = 50): Promise<{
   let publishedEventsCount = 0;
   let completedChallengeRewardsCount = 0;
   let completedNotificationsCount = 0;
+  let completedEmailNotificationsCount = 0;
   let deliveredWebhooksCount = 0;
+  let completedIntegrationsCount = 0;
 
   try {
     // 0. Periodically reclaim stale processing records
@@ -146,7 +176,23 @@ export async function pollOutboxIteration(batchLimit = 50): Promise<{
   }
 
   try {
-    // 4. Dispatch pending external webhooks
+    // 4. Dispatch pending email notifications
+    const emailStats = await dispatchPendingEmailNotifications(batchLimit);
+    completedEmailNotificationsCount = emailStats.completedCount;
+    if (emailStats.completedCount > 0) {
+      console.log(
+        `[OutboxPoller] Successfully dispatched ${emailStats.completedCount} email notification(s).`
+      );
+    }
+  } catch (err: unknown) {
+    console.error(
+      '[OutboxPoller] Error during email notification outbox dispatch iteration:',
+      (err as Error).message || err
+    );
+  }
+
+  try {
+    // 5. Dispatch pending external webhooks
     const whStats = await dispatchPendingWebhooks(batchLimit);
     deliveredWebhooksCount = whStats.deliveredCount;
     if (whStats.deliveredCount > 0) {
@@ -159,6 +205,22 @@ export async function pollOutboxIteration(batchLimit = 50): Promise<{
       '[OutboxPoller] Error during webhook outbox dispatch iteration:',
       (err as Error).message || err
     );
+  }
+
+  try {
+    // 6. Dispatch pending external integration deliveries (e.g. Discord)
+    const intgStats = await dispatchPendingIntegrations(batchLimit);
+    completedIntegrationsCount = intgStats.completed;
+    if (intgStats.completed > 0) {
+      console.log(
+        `[OutboxPoller] Successfully completed ${intgStats.completed} integration delivery(ies).`
+      );
+    }
+  } catch (err: unknown) {
+    console.error(
+      '[OutboxPoller] Error during integration delivery dispatch iteration:',
+      (err as Error).message || err
+    );
   } finally {
     isPolling = false;
   }
@@ -167,7 +229,9 @@ export async function pollOutboxIteration(batchLimit = 50): Promise<{
     publishedEventsCount,
     completedChallengeRewardsCount,
     completedNotificationsCount,
+    completedEmailNotificationsCount,
     deliveredWebhooksCount,
+    completedIntegrationsCount,
   };
 }
 
@@ -179,33 +243,23 @@ export function startOutboxPoller(intervalMs?: number, batchLimit = 50): void {
     return;
   }
 
-  const cfg = getQueueConfig();
-  const pollInterval = intervalMs ?? cfg.outboxPollIntervalMs ?? 1000;
+  const queueConfig = getQueueConfig() as unknown as Record<string, unknown>;
+  const effectiveInterval = intervalMs || (queueConfig.pollIntervalMs as number) || 2000;
 
-  console.log(
-    `🚀 [OutboxPoller] Starting background outbox dispatcher poller (interval: ${pollInterval}ms, batchSize: ${batchLimit})...`
-  );
+  pollerTimer = setInterval(async () => {
+    await pollOutboxIteration(batchLimit);
+  }, effectiveInterval);
 
-  // Immediate first tick
-  pollOutboxIteration(batchLimit).catch((err) => {
-    console.error('[OutboxPoller] Error in initial outbox dispatch tick:', err);
-  });
-
-  // Recurring polling interval
-  pollerTimer = setInterval(() => {
-    pollOutboxIteration(batchLimit).catch((err) => {
-      console.error('[OutboxPoller] Error in recurring outbox dispatch tick:', err);
-    });
-  }, pollInterval);
+  console.log(`[OutboxPoller] Outbox polling started (interval: ${effectiveInterval}ms).`);
 }
 
 /**
- * Gracefully stops the background outbox polling loop during worker shutdown.
+ * Stops the background outbox polling loop gracefully.
  */
 export function stopOutboxPoller(): void {
   if (pollerTimer) {
     clearInterval(pollerTimer);
     pollerTimer = null;
-    console.log('[OutboxPoller] Background outbox poller stopped.');
+    console.log('[OutboxPoller] Outbox polling stopped.');
   }
 }

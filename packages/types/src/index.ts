@@ -9,6 +9,7 @@ export interface User {
   projectId: string;
   externalId: string;
   name: string | null;
+  email?: string | null;
   avatarUrl: string | null;
   metadata: Record<string, unknown> | null;
   active: boolean;
@@ -26,12 +27,14 @@ export interface UserListResponse {
 export interface CreateUserInput {
   externalId: string;
   name?: string;
+  email?: string | null;
   avatarUrl?: string;
   metadata?: Record<string, unknown>;
 }
 
 export interface UpdateUserInput {
   name?: string;
+  email?: string | null;
   avatarUrl?: string;
   metadata?: Record<string, unknown>;
   active?: boolean;

@@ -18,6 +18,7 @@
     "@gami/challenges": "workspace:*",
     "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
+    "@gami/integrations": "workspace:*",
     "@gami/leaderboards": "workspace:*",
     "@gami/notifications": "workspace:*",
     "@gami/progression": "workspace:*",

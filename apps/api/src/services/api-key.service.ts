@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { apiKeys, db, projects } from '@gami/database';
-import { eq, and, isNull } from 'drizzle-orm';
+import { apiKeys, db, organizations, projects } from '@gami/database';
+import { and, eq, isNull } from 'drizzle-orm';
 
 export interface GeneratedApiKey {
   id: string;
@@ -8,6 +8,8 @@ export interface GeneratedApiKey {
   name: string;
   keyPrefix: string;
   rawSecret: string;
+  scopes: string[];
+  expiresAt?: Date | null;
   createdAt: Date;
 }
 
@@ -15,7 +17,12 @@ export function hashApiKey(rawSecret: string): string {
   return crypto.createHash('sha256').update(rawSecret).digest('hex');
 }
 
-export async function createApiKey(projectId: string, name: string): Promise<GeneratedApiKey> {
+export async function createApiKey(
+  projectId: string,
+  name: string,
+  scopes: string[] = ['*'],
+  expiresAt?: Date | null
+): Promise<GeneratedApiKey> {
   const secretBytes = crypto.randomBytes(32).toString('hex');
   const rawSecret = `gami_live_${secretBytes}`;
   const keyPrefix = rawSecret.substring(0, 18);
@@ -31,6 +38,8 @@ export async function createApiKey(projectId: string, name: string): Promise<Gen
       name,
       keyPrefix,
       keyHash,
+      scopes,
+      expiresAt: expiresAt || null,
     })
     .returning();
 
@@ -44,6 +53,8 @@ export async function createApiKey(projectId: string, name: string): Promise<Gen
     name: newKey.name,
     keyPrefix: newKey.keyPrefix,
     rawSecret,
+    scopes: (newKey.scopes as string[]) || ['*'],
+    expiresAt: newKey.expiresAt,
     createdAt: newKey.createdAt,
   };
 }
@@ -64,7 +75,12 @@ export async function authenticateApiKey(rawSecret: string) {
     return null;
   }
 
-  // Update last_used_at async
+  // Check expiration
+  if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
+    return null;
+  }
+
+  // Asynchronously update last_used_at
   db.update(apiKeys)
     .set({ lastUsedAt: new Date() })
     .where(eq(apiKeys.id, keyRecord.id))
@@ -78,5 +94,11 @@ export async function authenticateApiKey(rawSecret: string) {
     return null;
   }
 
-  return { key: keyRecord, project };
+  // Verify Organization status
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, project.organizationId));
+  if (!org || org.status === 'suspended') {
+    return { key: keyRecord, project, isSuspended: true };
+  }
+
+  return { key: keyRecord, project, isSuspended: false };
 }

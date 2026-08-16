@@ -49,6 +49,13 @@ export async function eventRoutes(fastify: FastifyInstance) {
       });
     }
 
+    if (authResult.isSuspended) {
+      return reply.status(403).send({
+        error: 'Forbidden',
+        message: 'Organization account is suspended',
+      });
+    }
+
     const { project } = authResult;
 
     // Rate Limiting (Fail-Open)

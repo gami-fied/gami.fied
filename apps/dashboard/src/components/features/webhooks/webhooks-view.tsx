@@ -124,7 +124,7 @@ function ActionsMenu({
         <>
           {/* backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 bg-zinc-950 border border-zinc-700 shadow-xl min-w-[160px] flex flex-col">
+          <div className="fixed right-16 mt-1 z-50 bg-zinc-950 border border-zinc-700 shadow-xl min-w-[160px] flex flex-col">
             <button
               onClick={() => { setOpen(false); onHistory(); }}
               className="px-3 py-2 text-left text-[11px] font-mono text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
@@ -191,7 +191,8 @@ function ConfirmDialog({
 }
 
 export function WebhooksView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const {
     endpoints,
     loading,
@@ -422,8 +423,14 @@ export function WebhooksView() {
           </p>
         </div>
         <button
-          onClick={handleOpenCreate}
-          className="shrink-0 bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors uppercase tracking-wider"
+          disabled={!isAdminOrOwner}
+          title={!isAdminOrOwner ? 'Requires Admin or Owner role to create webhooks' : undefined}
+          onClick={() => isAdminOrOwner && handleOpenCreate()}
+          className={`shrink-0 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+            isAdminOrOwner
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              : 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-50'
+          }`}
         >
           + Add Endpoint
         </button>
@@ -513,13 +520,14 @@ export function WebhooksView() {
                   {/* Status toggle */}
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => updateEndpoint(ep.id, { active: !ep.active })}
+                      disabled={!isAdminOrOwner}
+                      title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle webhook' : (ep.active ? 'Click to disable' : 'Click to enable')}
+                      onClick={() => isAdminOrOwner && updateEndpoint(ep.id, { active: !ep.active })}
                       className={`px-2 py-0.5 text-[10px] border uppercase tracking-wider font-bold whitespace-nowrap transition ${
                         ep.active
                           ? 'border-emerald-700 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40'
                           : 'border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-600'
-                      }`}
-                      title={ep.active ? 'Click to disable' : 'Click to enable'}
+                      } ${!isAdminOrOwner ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       {ep.active ? '● ACTIVE' : '○ OFF'}
                     </button>
@@ -541,15 +549,23 @@ export function WebhooksView() {
                     <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                       {/* Primary: Test */}
                       <button
-                        onClick={() => handleTestWebhook(ep)}
-                        className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] uppercase border border-zinc-700 tracking-wider transition"
+                        disabled={!isAdminOrOwner}
+                        onClick={() => isAdminOrOwner && handleTestWebhook(ep)}
+                        title={!isAdminOrOwner ? 'Requires Admin or Owner role to test webhook' : undefined}
+                        className={`px-2.5 py-1 bg-zinc-800 text-[10px] uppercase border border-zinc-700 tracking-wider transition ${
+                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        }`}
                       >
                         Test
                       </button>
                       {/* Primary: Edit */}
                       <button
-                        onClick={() => handleOpenEdit(ep)}
-                        className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] uppercase border border-zinc-700 tracking-wider transition"
+                        disabled={!isAdminOrOwner}
+                        onClick={() => isAdminOrOwner && handleOpenEdit(ep)}
+                        title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit webhook' : undefined}
+                        className={`px-2.5 py-1 bg-zinc-800 text-[10px] uppercase border border-zinc-700 tracking-wider transition ${
+                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        }`}
                       >
                         Edit
                       </button>

@@ -1,60 +1,28 @@
-# Notifications API Guide (`gami.notifications`)
+# Multi-Channel Notification Architecture
 
-Manage in-app notifications generated for end users.
+Gami provides an extensible, channel-aware notification delivery pipeline designed to deliver gamification achievements, level ups, challenge completions, and XP awards to end-users across multiple channels without modifying core gamification logic.
 
----
-
-## 1. List User Notifications (`gami.notifications.list`)
-
-```typescript
-const notifs = await gami.notifications.list({
-  projectId: 'prj_123',
-  userId: 'usr_101',
-  unreadOnly: false,
-  page: 1,
-  limit: 20,
-});
-
-console.log(`Unread Count: ${notifs.unreadCount}`);
-notifs.notifications.forEach((n) => {
-  console.log(`[${n.type}] ${n.title}: ${n.message}`);
-});
+```
+Gamification Event (e.g. event.ingested)
+        ↓
+Rules Engine Evaluation
+        ↓
+Canonical Notification Intent (notifications table)
+        ↓
+Notification Preferences Evaluation ((projectId, userId, channel, notificationType))
+        ├── In-App Channel (enabled by default) → notification_outbox → In-App Center API
+        └── Email Channel (requires user email) → email_notification_outbox → Worker Dispatcher → SMTP Provider
 ```
 
----
+## Core Guarantees
 
-## 2. Get Unread Count (`gami.notifications.getUnreadCount`)
+1. **Single Canonical Notification Record**:
+   - Every notification produces exactly one canonical record in `notifications`.
+   - Channels are represented by dedicated outbox tables (`notification_outbox` for In-App, `email_notification_outbox` for Email).
+   - Adding future channels (Discord, Slack, Push) requires adding a new outbox/dispatcher without altering canonical notification generation.
 
-```typescript
-const { unreadCount } = await gami.notifications.getUnreadCount({
-  projectId: 'prj_123',
-  userId: 'usr_101',
-});
+2. **Fault Isolation**:
+   - Failed email outbox intent creation, missing recipient email addresses, or SMTP transport errors will **never** roll back XP awards, achievements, level progression, challenge completions, or canonical notifications.
 
-console.log(`Unread Notifications: ${unreadCount}`);
-```
-
----
-
-## 3. Mark Single Notification Read (`gami.notifications.markAsRead`)
-
-```typescript
-await gami.notifications.markAsRead({
-  projectId: 'prj_123',
-  userId: 'usr_101',
-  notificationId: 'ntf_99182',
-});
-```
-
----
-
-## 4. Mark All Read (`gami.notifications.markAllAsRead`)
-
-```typescript
-const res = await gami.notifications.markAllAsRead({
-  projectId: 'prj_123',
-  userId: 'usr_101',
-});
-
-console.log(`Marked ${res.count} notifications as read.`);
-```
+3. **Multi-Worker Safety**:
+   - `email_notification_outbox` uses `SELECT ... FOR UPDATE SKIP LOCKED` for atomic worker dispatch across concurrent background instances.

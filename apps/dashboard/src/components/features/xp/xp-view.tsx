@@ -25,7 +25,8 @@ function generateIdempotencyKey(): string {
 }
 
 export function XpView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
+  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const { summary, ledger, userBalance, loadingLedger, fetchXpSummary, fetchUserLedger, adjustXp } =
     useXp(selectedProject?.id || null);
 
@@ -357,8 +358,10 @@ export function XpView() {
                 <Button
                   type="submit"
                   variant={adjAmount >= 0 ? 'primary' : 'danger'}
+                  disabled={!isAdminOrOwner || submittingAdj}
+                  title={!isAdminOrOwner ? 'Requires Admin or Owner role to adjust XP' : undefined}
                   isLoading={submittingAdj}
-                  className="w-full"
+                  className={`w-full ${!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : ''}`}
                 >
                   {adjAmount >= 0 ? (
                     <PlusCircle className="w-4 h-4" />

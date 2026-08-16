@@ -6,10 +6,12 @@ import type { FastifyInstance } from 'fastify';
 import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
 
 export interface CreateAuditLogParams {
-  projectId: string;
+  organizationId?: string | null;
+  projectId?: string | null;
   actorType: 'user' | 'system' | 'api_key';
   actorId: string;
   action: string;
+  severity?: 'info' | 'warning' | 'critical';
   resourceType: string;
   resourceId: string;
   metadata?: Record<string, unknown>;
@@ -23,16 +25,28 @@ export async function createAuditLog(
   client: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0],
   params: CreateAuditLogParams
 ): Promise<void> {
-  const { projectId, actorType, actorId, action, resourceType, resourceId, metadata } = params;
+  const {
+    organizationId,
+    projectId,
+    actorType,
+    actorId,
+    action,
+    severity = 'info',
+    resourceType,
+    resourceId,
+    metadata,
+  } = params;
   const auditId = `aud_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
   const safeMetadata = redactSensitiveData(metadata || {});
 
   await client.insert(auditLogs).values({
     id: auditId,
-    projectId,
+    organizationId: organizationId || null,
+    projectId: projectId || null,
     actorType,
     actorId,
     action,
+    severity,
     resourceType,
     resourceId,
     metadata: safeMetadata,
@@ -65,28 +79,18 @@ export async function auditLogRoutes(fastify: FastifyInstance) {
     if (!orgAuth) return;
 
     const page = Math.max(1, parseInt(request.query.page || '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '20', 10)));
+    const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '25', 10)));
     const offset = (page - 1) * limit;
 
     const { action, resourceType, actorId, startDate, endDate } = request.query;
 
     const conditions = [eq(auditLogs.projectId, projectId)];
 
-    if (action) {
-      conditions.push(eq(auditLogs.action, action));
-    }
-    if (resourceType) {
-      conditions.push(eq(auditLogs.resourceType, resourceType));
-    }
-    if (actorId) {
-      conditions.push(eq(auditLogs.actorId, actorId));
-    }
-    if (startDate) {
-      conditions.push(gte(auditLogs.createdAt, new Date(startDate)));
-    }
-    if (endDate) {
-      conditions.push(lte(auditLogs.createdAt, new Date(endDate)));
-    }
+    if (action) conditions.push(eq(auditLogs.action, action));
+    if (resourceType) conditions.push(eq(auditLogs.resourceType, resourceType));
+    if (actorId) conditions.push(eq(auditLogs.actorId, actorId));
+    if (startDate) conditions.push(gte(auditLogs.createdAt, new Date(startDate)));
+    if (endDate) conditions.push(lte(auditLogs.createdAt, new Date(endDate)));
 
     const whereClause = and(...conditions);
 
@@ -105,14 +109,8 @@ export async function auditLogRoutes(fastify: FastifyInstance) {
       .limit(limit)
       .offset(offset);
 
-    // Apply redaction shield to safety-check returned payload
-    const safeLogs = logs.map((log) => ({
-      ...log,
-      metadata: redactSensitiveData(log.metadata),
-    }));
-
     return reply.send({
-      auditLogs: safeLogs,
+      auditLogs: logs,
       pagination: {
         page,
         limit,

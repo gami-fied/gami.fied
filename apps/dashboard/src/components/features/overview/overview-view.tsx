@@ -9,11 +9,11 @@ import { useRules } from '@/hooks/use-rules';
 import { useApiKeys } from '@/hooks/use-api-keys';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, ArrowRight, CheckCircle2, Circle, Code2 } from 'lucide-react';
+import { ShieldAlert, ArrowRight, CheckCircle2, Circle, Code2, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 
 export function OverviewView() {
-  const { selectedProject } = useDashboard();
+  const { selectedProject, selectedOrg, session } = useDashboard();
   const { summary: xpSummary, fetchXpSummary } = useXp(selectedProject?.id || null);
   const { summary: achSummary, fetchAchievements } = useAchievements(selectedProject?.id || null);
   const { summary: progSummary, fetchLevelsData } = useLevels(selectedProject?.id || null);
@@ -39,12 +39,17 @@ export function OverviewView() {
 
   if (!selectedProject) {
     return (
-      <div className="p-12 text-center bg-zinc-900/40 rounded-none border border-zinc-800 space-y-3">
-        <ShieldAlert className="w-8 h-8 text-zinc-500 mx-auto" />
-        <h3 className="text-base font-semibold text-zinc-200">No Project Selected</h3>
-        <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-          Select or create a project from the top bar to inspect your gamification control center.
-        </p>
+      <div className="p-8 text-center bg-zinc-950 border border-zinc-800 space-y-4 max-w-lg mx-auto my-12 font-mono">
+        <div className="w-12 h-12 bg-amber-950/40 border border-amber-800/80 text-amber-400 flex items-center justify-center mx-auto">
+          <FolderKanban className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-zinc-100 uppercase tracking-wide">No Projects Assigned</h3>
+          <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+            You have not been assigned to any project in <span className="text-orange-400 font-bold">{selectedOrg?.name || 'this organization'}</span> yet.
+            Please contact your organization Admin or Owner to request access to specific projects.
+          </p>
+        </div>
       </div>
     );
   }

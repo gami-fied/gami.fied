@@ -98,7 +98,7 @@ export function ApiKeysView() {
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">API Keys Management</h1>
           <p className="text-xs text-zinc-400 mt-1">
             API keys used for authenticating public event ingestion endpoints (`/v1/events`) for{' '}
-            <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+            <span className="text-emerald-400 font-semibold">{selectedProject.name}</span>
           </p>
         </div>
 

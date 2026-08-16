@@ -91,4 +91,46 @@ export class NotificationsResource {
       path: `/api/projects/${params.projectId}/users/${params.userId}/notifications/read-all`,
     });
   }
+
+  /**
+   * Get user notification channel preferences.
+   * Calls GET /api/projects/:projectId/users/:userId/notification-preferences
+   */
+  public async getPreferences(params: {
+    projectId: string;
+    userId: string;
+  }): Promise<import('./types.js').NotificationPreferencesResponse> {
+    if (!params.projectId) {
+      throw new Error('projectId is required for gami.notifications.getPreferences()');
+    }
+    if (!params.userId) {
+      throw new Error('userId is required for gami.notifications.getPreferences()');
+    }
+
+    return this.http.request<import('./types.js').NotificationPreferencesResponse>({
+      method: 'GET',
+      path: `/api/projects/${params.projectId}/users/${params.userId}/notification-preferences`,
+    });
+  }
+
+  /**
+   * Update user notification channel preferences.
+   * Calls PATCH /api/projects/:projectId/users/:userId/notification-preferences
+   */
+  public async updatePreferences(
+    params: import('./types.js').UpdateNotificationPreferencesParams
+  ): Promise<import('./types.js').NotificationPreferencesResponse> {
+    if (!params.projectId) {
+      throw new Error('projectId is required for gami.notifications.updatePreferences()');
+    }
+    if (!params.userId) {
+      throw new Error('userId is required for gami.notifications.updatePreferences()');
+    }
+
+    return this.http.request<import('./types.js').NotificationPreferencesResponse>({
+      method: 'PATCH',
+      path: `/api/projects/${params.projectId}/users/${params.userId}/notification-preferences`,
+      body: { preferences: params.preferences },
+    });
+  }
 }

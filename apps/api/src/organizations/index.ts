@@ -2,6 +2,10 @@ import { db, member, organizations } from '@gami/database';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireAuth, requireOrgMember, requireOrgRole } from '../authorization/index.js';
+import { organizationMembersRoutes } from './members.js';
+import { organizationInvitationsRoutes } from './invitations.js';
+import { organizationOwnershipRoutes } from './ownership.js';
+import { projectMembersRoutes } from '../projects/members.js';
 
 export async function organizationRoutes(fastify: FastifyInstance) {
   // Create organization
@@ -136,4 +140,10 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     await db.delete(organizations).where(eq(organizations.id, orgId));
     return reply.send({ success: true, message: 'Organization deleted' });
   });
+
+  // Sub-routes: Members, Invitations, Ownership Transfer, Project Members
+  await fastify.register(organizationMembersRoutes);
+  await fastify.register(organizationInvitationsRoutes);
+  await fastify.register(organizationOwnershipRoutes);
+  await fastify.register(projectMembersRoutes);
 }

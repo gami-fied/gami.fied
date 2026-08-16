@@ -4,6 +4,15 @@ import { checkDatabaseHealth, runMigrations } from '@gami/database';
 import { checkRedisHealth } from '@gami/queue';
 import Fastify from 'fastify';
 import { achievementRoutes } from './achievements/index.js';
+import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
+import { adminBootstrapRoutes } from './admin/bootstrap/index.js';
+import { adminConfigRoutes } from './admin/config/index.js';
+import { adminOrganizationRoutes } from './admin/organizations/index.js';
+import { adminSecurityRoutes } from './admin/security/index.js';
+import { adminSessionRoutes } from './admin/sessions/index.js';
+import { adminSmtpRoutes } from './admin/smtp/index.js';
+import { adminStorageRoutes } from './admin/storage/index.js';
+import { adminSystemRoutes } from './admin/system/index.js';
 import { apiKeyManagementRoutes } from './api-keys/index.js';
 import { auditLogRoutes } from './audit-logs/index.js';
 import { authRoutes } from './auth/index.js';
@@ -11,12 +20,15 @@ import { challengeRoutes } from './challenges/index.js';
 import { eventRoutes } from './events/index.js';
 import { leaderboardRoutes } from './leaderboards/index.js';
 import { levelRoutes } from './levels/index.js';
+import { emailDeliveryRoutes } from './notifications/deliveries/index.js';
 import { notificationRoutes } from './notifications/index.js';
+import { notificationPreferenceRoutes } from './notifications/preferences/index.js';
 import { organizationRoutes } from './organizations/index.js';
 import { projectRoutes } from './projects/index.js';
 import { ruleRoutes } from './rules/index.js';
 import { systemObservabilityRoutes } from './system/index.js';
 import { processMetrics } from './system/metrics-collector.js';
+import { integrationRoutes } from './integrations/index.js';
 import { userRoutes } from './users/index.js';
 import { webhookRoutes } from './webhooks/index.js';
 import { xpRoutes } from './xp/index.js';
@@ -131,8 +143,28 @@ export async function buildServer() {
   // Register Notification System & In-App Outbox endpoints
   await fastify.register(notificationRoutes);
 
+  // Register Notification Preference endpoints
+  await fastify.register(notificationPreferenceRoutes);
+
+  // Register Email Deliveries endpoints
+  await fastify.register(emailDeliveryRoutes);
+
+  // Register Platform Admin endpoints (/api/admin/*)
+  await fastify.register(adminBootstrapRoutes);
+  await fastify.register(adminSystemRoutes);
+  await fastify.register(adminOrganizationRoutes);
+  await fastify.register(adminConfigRoutes);
+  await fastify.register(adminSecurityRoutes);
+  await fastify.register(adminAuditLogRoutes);
+  await fastify.register(adminSessionRoutes);
+  await fastify.register(adminSmtpRoutes);
+  await fastify.register(adminStorageRoutes);
+
   // Register Webhooks & External Event Delivery endpoints
   await fastify.register(webhookRoutes);
+
+  // Register External Integration Framework endpoints (Discord, etc.)
+  await fastify.register(integrationRoutes);
 
   // Register Audit Logs endpoints
   await fastify.register(auditLogRoutes);
