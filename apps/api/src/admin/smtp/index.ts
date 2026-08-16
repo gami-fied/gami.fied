@@ -9,7 +9,7 @@ import { requirePlatformAdmin } from '../../authorization/index.js';
 
 const smtpConfigSchema = z.object({
   host: z.string().min(1, 'Host is required'),
-  port: z.number().int().positive().default(587),
+  port: z.coerce.number().int().positive().default(587),
   user: z.string().optional().default(''),
   password: z.string().optional().default(''),
   fromEmail: z.string().email('Invalid from email address'),
@@ -68,9 +68,12 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
 
     const parseResult = smtpConfigSchema.safeParse(request.body);
     if (!parseResult.success) {
+      const issueMsgs = parseResult.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join(', ');
       return reply.status(400).send({
         error: 'Bad Request',
-        message: 'Invalid SMTP configuration parameters',
+        message: `Invalid SMTP configuration parameters (${issueMsgs})`,
         details: parseResult.error.format(),
       });
     }

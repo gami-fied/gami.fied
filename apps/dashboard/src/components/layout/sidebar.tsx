@@ -100,7 +100,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       label: 'OPERATIONS',
       theme: 'cyan',
       items: [
-        { name: 'System Health', href: '/dashboard/system', icon: Server },
+        { name: 'Delivery Health', href: '/dashboard/system', icon: Server },
         { name: 'Audit Logs', href: '/dashboard/audit-logs', icon: History },
         { name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon },
       ],
@@ -259,17 +259,23 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       {/* User Footer */}
       <div className="p-3 border-t border-zinc-800/60 shrink-0">
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-          <div className="w-8 h-8 rounded-none bg-zinc-800 border-2 border-orange-500/40 flex items-center justify-center text-xs font-mono font-bold text-orange-400 shrink-0">
-            {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 'G'}
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-zinc-200 truncate">
-                {session?.user?.name || 'Dashboard User'}
-              </p>
-              <p className="text-[10px] text-zinc-500 truncate font-mono">{session?.user?.email}</p>
+          <Link
+            href="/dashboard/profile"
+            className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-80 transition"
+            title="Edit Profile & Preferences"
+          >
+            <div className="w-8 h-8 rounded-none bg-zinc-800 border-2 border-orange-500/40 flex items-center justify-center text-xs font-mono font-bold text-orange-400 shrink-0 group-hover:border-orange-400">
+              {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 'G'}
             </div>
-          )}
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-zinc-200 group-hover:text-orange-400 transition truncate">
+                  {session?.user?.name || 'Dashboard User'}
+                </p>
+                <p className="text-[10px] text-zinc-500 truncate font-mono">{session?.user?.email}</p>
+              </div>
+            )}
+          </Link>
           {!isCollapsed && (
             <button
               onClick={logout}

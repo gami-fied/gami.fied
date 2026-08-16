@@ -41,7 +41,10 @@ export async function organizationRoutes(fastify: FastifyInstance) {
         role: 'owner',
       });
 
-      return reply.status(201).send(newOrg);
+      return reply.status(201).send({
+        ...newOrg,
+        role: 'owner',
+      });
     } catch (err: unknown) {
       const error = err as { code?: string };
       if (error.code === '23505') {

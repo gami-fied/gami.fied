@@ -8,6 +8,7 @@ export const users = pgTable('users', {
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
   isPlatformAdmin: boolean('is_platform_admin').default(false).notNull(),
+  subscribedToSystemEmails: boolean('subscribed_to_system_emails').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });

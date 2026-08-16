@@ -31,6 +31,12 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Temporary files
+# Temporary files and test artifacts
 .tmp/
 scratch/
+coverage/
+.nyc_output/
+.gemini/
+.brain/
+*.log
+

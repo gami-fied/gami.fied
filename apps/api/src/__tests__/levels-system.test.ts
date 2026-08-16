@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { db, endUsers, member, userXpBalances, xpLedger } from '@gami/database';
+import { db, endUsers, member, projectMembers, userXpBalances, xpLedger } from '@gami/database';
 import { calculateLevel, getLevelsCrossed, validateLevelDefinitions } from '@gami/progression';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -71,6 +71,13 @@ describe('Milestone 9 - Levels & Progression System Suite', () => {
     await db.insert(member).values({
       id: `mem_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       organizationId: orgId,
+      userId: memberData.user.id,
+      role: 'member',
+    });
+
+    await db.insert(projectMembers).values({
+      id: `pm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      projectId: projAId,
       userId: memberData.user.id,
       role: 'member',
     });

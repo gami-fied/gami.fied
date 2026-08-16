@@ -1,25 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSmtpConfig } from '@/hooks/use-smtp';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Checklist, ChecklistItem } from '@/components/ui/checklist';
+import { Mail, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
 
 export function SmtpSettingsView() {
   const { status, loading, error, successMsg, saveConfig, sendTestEmail } = useSmtpConfig();
 
-  const [host, setHost] = useState(status?.host || '');
-  const [port, setPort] = useState(status?.port || 587);
-  const [user, setUser] = useState(status?.user || '');
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState(587);
+  const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
-  const [fromEmail, setFromEmail] = useState(status?.fromEmail || '');
-  const [fromName, setFromName] = useState(status?.fromName || 'Gami Engine');
-  const [secure, setSecure] = useState(status?.secure || false);
+  const [fromEmail, setFromEmail] = useState('');
+  const [fromName, setFromName] = useState('Gami Engine');
+  const [secure, setSecure] = useState(false);
 
   const [testEmailAddress, setTestEmailAddress] = useState('');
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
 
-  // Sync state when status finishes loading initial values
+  // Synchronize local form state whenever status is fetched or updated from backend
+  useEffect(() => {
+    if (status) {
+      setHost(status.host || '');
+      setPort(status.port || 587);
+      setUser(status.user || '');
+      setFromEmail(status.fromEmail || '');
+      setFromName(status.fromName || 'Gami Engine');
+      setSecure(Boolean(status.secure));
+    }
+  }, [status]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     await saveConfig({
@@ -45,178 +62,187 @@ export function SmtpSettingsView() {
     }
   };
 
+  const tlsChecklistItems: ChecklistItem<string>[] = [
+    {
+      value: 'enable_tls',
+      label: 'Enable TLS / Implicit SSL Connection',
+      description: 'Encrypt SMTP socket transport (Required for Port 465, optional for Port 587 STARTTLS).',
+      badge: secure ? 'TLS Active' : 'STARTTLS / Plain',
+    },
+  ];
+
   return (
     <div className="space-y-6 font-mono text-zinc-100 max-w-4xl">
       {/* Header */}
       <div className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-        <h1 className="text-xl font-bold tracking-tight text-white uppercase">Server SMTP &amp; Email Settings</h1>
+        <div className="flex items-center gap-2">
+          <Mail className="w-5 h-5 text-cyan-400" />
+          <h1 className="text-xl font-bold tracking-tight text-white uppercase">Server SMTP &amp; Email Settings</h1>
+        </div>
         <p className="text-xs text-zinc-400">
           Configure server-wide SMTP email delivery settings for Gami notifications. Secrets encrypted at rest.
         </p>
       </div>
 
       {error && (
-        <div className="border border-rose-800 bg-rose-950/40 p-4 text-xs text-rose-400 font-mono">
-          {error}
+        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="border border-cyan-800 bg-cyan-950/40 p-4 text-xs text-cyan-400 font-mono">
-          {successMsg}
+        <div className="p-4 bg-cyan-950/40 border border-cyan-800 text-cyan-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+          <span>{successMsg}</span>
         </div>
       )}
 
       {/* SMTP Connection Status Card */}
-      <div className="border border-zinc-800 bg-zinc-950 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">SMTP Server Status</div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 border px-2.5 py-0.5 text-xs uppercase font-bold tracking-wider ${
-                status?.configured
-                  ? 'border-cyan-700 bg-cyan-950/40 text-cyan-400'
-                  : 'border-amber-700 bg-amber-950/40 text-amber-400'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 ${status?.configured ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`}
-              />
-              {status?.configured ? 'SMTP Configured' : 'SMTP Not Configured'}
-            </span>
-            {status?.passwordConfigured && (
-              <span className="text-[10px] text-zinc-400 border border-zinc-800 bg-zinc-900 px-2 py-0.5">
-                🔒 Password Encrypted
-              </span>
+      <Card>
+        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">SMTP Server Status</div>
+            <div className="flex items-center gap-2">
+              <Badge variant={status?.configured ? 'cyan' : 'amber'}>
+                {status?.configured ? 'SMTP Configured' : 'SMTP Not Configured'}
+              </Badge>
+              {status?.passwordConfigured && (
+                <span className="text-[10px] text-zinc-400 border border-zinc-800 bg-zinc-900 px-2 py-0.5">
+                  🔒 Password Encrypted
+                </span>
+              )}
+            </div>
+            {status?.updatedAt && (
+              <div className="text-[11px] text-zinc-500">
+                Last updated: {formatRelativeTime(status.updatedAt)}
+              </div>
             )}
           </div>
-          {status?.updatedAt && (
-            <div className="text-[11px] text-zinc-500">
-              Last updated: {formatRelativeTime(status.updatedAt)}
-            </div>
-          )}
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setIsTestModalOpen(true)}
-          disabled={!status?.configured}
-          className="shrink-0 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-200 border border-zinc-700 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition"
-        >
-          ✉ Send Test Email
-        </button>
-      </div>
+          <Button
+            type="button"
+            onClick={() => setIsTestModalOpen(true)}
+            disabled={!status?.configured}
+            variant="cyan"
+            className="shrink-0 flex items-center gap-2"
+          >
+            <Send className="w-3.5 h-3.5" />
+            Send Test Email
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* SMTP Configuration Form */}
-      <form onSubmit={handleSave} className="border border-zinc-800 bg-zinc-950 p-6 space-y-4 font-mono">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-white border-b border-zinc-800 pb-3">
-          SMTP Server Credentials
-        </h2>
+      <form onSubmit={handleSave} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-bold uppercase tracking-wide text-white">
+              SMTP Server Credentials
+            </CardTitle>
+            <CardDescription>Configure SMTP mail server host, port, credentials, and sender headers.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  SMTP Host *
+                </label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g. smtp.mailtrap.io or smtp.gmail.com"
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                />
+              </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-              SMTP Host *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. smtp.mailtrap.io or smtp.gmail.com"
-              value={host || status?.host || ''}
-              onChange={(e) => setHost(e.target.value)}
-              className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </div>
+              <div>
+                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  SMTP Port *
+                </label>
+                <Input
+                  type="number"
+                  required
+                  placeholder="587 or 465"
+                  value={port}
+                  onChange={(e) => setPort(Number(e.target.value))}
+                />
+              </div>
 
-          <div>
-            <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-              SMTP Port *
-            </label>
-            <input
-              type="number"
-              required
-              placeholder="587 or 465"
-              value={port || status?.port || 587}
-              onChange={(e) => setPort(Number(e.target.value))}
-              className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </div>
+              <div>
+                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  SMTP Username
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Username or API Key ID"
+                  value={user}
+                  onChange={(e) => setUser(e.target.value)}
+                />
+              </div>
 
-          <div>
-            <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-              SMTP Username
-            </label>
-            <input
-              type="text"
-              placeholder="Username or API Key ID"
-              value={user || status?.user || ''}
-              onChange={(e) => setUser(e.target.value)}
-              className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </div>
+              <div>
+                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  SMTP Password / Secret
+                </label>
+                <Input
+                  type="password"
+                  placeholder={status?.passwordConfigured ? '•••••••••••• (Leave blank to keep unchanged)' : 'Enter SMTP password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
 
-          <div>
-            <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-              SMTP Password / Secret
-            </label>
-            <input
-              type="password"
-              placeholder={status?.passwordConfigured ? '•••••••••••• (Leave blank to keep unchanged)' : 'Enter SMTP password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </div>
+              <div>
+                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  Sender Email Address (From Email) *
+                </label>
+                <Input
+                  type="email"
+                  required
+                  placeholder="e.g. notifications@mycompany.com"
+                  value={fromEmail}
+                  onChange={(e) => setFromEmail(e.target.value)}
+                />
+              </div>
 
-          <div>
-            <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-              Sender Email Address (From Email) *
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="e.g. notifications@mycompany.com"
-              value={fromEmail || status?.fromEmail || ''}
-              onChange={(e) => setFromEmail(e.target.value)}
-              className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </div>
+              <div>
+                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  Sender Name (From Name)
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Gami Engine"
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-              Sender Name (From Name)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Gami Engine"
-              value={fromName || status?.fromName || 'Gami Engine'}
-              onChange={(e) => setFromName(e.target.value)}
-              className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
-            />
-          </div>
-        </div>
+            {/* Custom Checklist UI Component for TLS Toggle */}
+            <div className="pt-2">
+              <Checklist
+                title="TRANSPORT SECURITY POLICY"
+                items={tlsChecklistItems}
+                selectedValues={secure ? ['enable_tls'] : []}
+                onChange={(selected) => setSecure(selected.includes('enable_tls'))}
+                showSelectAll={false}
+                showSearch={false}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex items-center gap-2 pt-2">
-          <input
-            type="checkbox"
-            id="smtp-secure"
-            checked={secure}
-            onChange={(e) => setSecure(e.target.checked)}
-            className="w-4 h-4 rounded-none accent-cyan-500 bg-zinc-900 border-zinc-800"
-          />
-          <label htmlFor="smtp-secure" className="text-xs text-zinc-300">
-            Enable TLS / Secure Connection (Required for Port 465)
-          </label>
-        </div>
-
-        <div className="pt-4 border-t border-zinc-800 flex justify-end">
-          <button
+        <div className="flex justify-end">
+          <Button
             type="submit"
             disabled={loading}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-2 text-xs uppercase tracking-wider transition disabled:opacity-40"
+            variant="cyan"
+            className="px-6"
           >
-            {loading ? 'Saving...' : 'Save Configuration'}
-          </button>
+            {loading ? 'Saving Configuration...' : 'Save SMTP Configuration'}
+          </Button>
         </div>
       </form>
 
@@ -242,31 +268,30 @@ export function SmtpSettingsView() {
                 <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
                   Recipient Email Address *
                 </label>
-                <input
+                <Input
                   type="email"
                   required
                   placeholder="admin@example.com"
                   value={testEmailAddress}
                   onChange={(e) => setTestEmailAddress(e.target.value)}
-                  className="w-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white focus:border-cyan-500 focus:outline-none"
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => setIsTestModalOpen(false)}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 text-xs uppercase"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={sendingTest || !testEmailAddress}
-                  className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold px-4 py-2 text-xs uppercase"
+                  variant="cyan"
                 >
-                  {sendingTest ? 'Sending...' : 'Send Test'}
-                </button>
+                  {sendingTest ? 'Sending...' : 'Send Test Email'}
+                </Button>
               </div>
             </form>
           </div>

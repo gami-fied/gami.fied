@@ -1,5 +1,7 @@
 import { auth } from '@gami/database';
 import type { FastifyInstance } from 'fastify';
+import { sendOtpEmailToUser } from './otp.js';
+import { ServerConfigService } from '../services/server-config.service.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.all('/api/auth/*', async (request, reply) => {
@@ -34,6 +36,25 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
 
     const response = await auth.handler(webReq);
+
+    // If sign-up via email succeeded, check if Platform Email OTP Verification is enabled
+    if (
+      request.method === 'POST' &&
+      url.pathname.endsWith('/sign-up/email') &&
+      response.status === 200
+    ) {
+      try {
+        const securityCfg = await ServerConfigService.getConfig<Record<string, unknown>>('security');
+        if (securityCfg && securityCfg.requireEmailOtpVerification) {
+          const reqBody = request.body as { email?: string } | undefined;
+          if (reqBody && reqBody.email) {
+            await sendOtpEmailToUser(reqBody.email);
+          }
+        }
+      } catch (err) {
+        console.error('[Auth] Error triggering auto OTP dispatch on sign-up:', err);
+      }
+    }
 
     reply.status(response.status);
     response.headers.forEach((value: string, key: string) => {

@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { KeyRound, ShieldAlert, UserX } from 'lucide-react';
+import { KeyRound, UserX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface ActiveSession {
   id: string;
@@ -75,11 +77,11 @@ export default function AdminSessionsPage() {
   };
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6 font-mono text-zinc-100">
       <div className="border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
           <KeyRound className="w-5 h-5 text-rose-400" />
-          Active Administrative & User Sessions
+          Active Administrative &amp; User Sessions
         </h1>
         <p className="text-xs text-zinc-400 mt-1">
           Monitor active user sessions, inspect IP addresses/user agents, and execute emergency session revocations.
@@ -126,13 +128,9 @@ export default function AdminSessionsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {sess.isPlatformAdmin ? (
-                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold bg-rose-950/80 border border-rose-800 text-rose-400">
-                          Platform Admin
-                        </span>
+                        <Badge variant="rose">Platform Admin</Badge>
                       ) : (
-                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold bg-zinc-900 border border-zinc-800 text-zinc-400">
-                          Standard User
-                        </span>
+                        <Badge variant="zinc">Standard User</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 text-zinc-400">{sess.ipAddress || '127.0.0.1'}</td>
@@ -143,13 +141,16 @@ export default function AdminSessionsPage() {
                       {new Date(sess.expiresAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <Button
                         onClick={() => handleRevokeAllUserSessions(sess.userId, sess.userName)}
                         disabled={revokingUserId === sess.userId}
-                        className="px-3 py-1 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs uppercase font-semibold transition"
+                        variant="rose"
+                        size="sm"
+                        className="flex items-center gap-1.5 ml-auto"
                       >
+                        <UserX className="w-3.5 h-3.5" />
                         {revokingUserId === sess.userId ? 'Revoking...' : 'Revoke All Sessions'}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))

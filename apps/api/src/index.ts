@@ -7,6 +7,7 @@ import { achievementRoutes } from './achievements/index.js';
 import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
 import { adminBootstrapRoutes } from './admin/bootstrap/index.js';
 import { adminConfigRoutes } from './admin/config/index.js';
+import { adminDiagnosticsRoutes } from './admin/diagnostics/index.js';
 import { adminOrganizationRoutes } from './admin/organizations/index.js';
 import { adminSecurityRoutes } from './admin/security/index.js';
 import { adminSessionRoutes } from './admin/sessions/index.js';
@@ -16,6 +17,8 @@ import { adminSystemRoutes } from './admin/system/index.js';
 import { apiKeyManagementRoutes } from './api-keys/index.js';
 import { auditLogRoutes } from './audit-logs/index.js';
 import { authRoutes } from './auth/index.js';
+import { otpRoutes } from './auth/otp.js';
+import { userProfileRoutes } from './user/profile.js';
 import { challengeRoutes } from './challenges/index.js';
 import { eventRoutes } from './events/index.js';
 import { leaderboardRoutes } from './leaderboards/index.js';
@@ -24,6 +27,7 @@ import { emailDeliveryRoutes } from './notifications/deliveries/index.js';
 import { notificationRoutes } from './notifications/index.js';
 import { notificationPreferenceRoutes } from './notifications/preferences/index.js';
 import { organizationRoutes } from './organizations/index.js';
+import { projectOnboardingRoutes } from './projects/onboarding.js';
 import { projectRoutes } from './projects/index.js';
 import { ruleRoutes } from './rules/index.js';
 import { systemObservabilityRoutes } from './system/index.js';
@@ -159,6 +163,7 @@ export async function buildServer() {
   await fastify.register(adminSessionRoutes);
   await fastify.register(adminSmtpRoutes);
   await fastify.register(adminStorageRoutes);
+  await fastify.register(adminDiagnosticsRoutes);
 
   // Register Webhooks & External Event Delivery endpoints
   await fastify.register(webhookRoutes);
@@ -172,6 +177,13 @@ export async function buildServer() {
   // Register System Observability & Metrics endpoints
   await fastify.register(systemObservabilityRoutes);
 
+  // Register Project Onboarding Checklist backend endpoint
+  await fastify.register(projectOnboardingRoutes);
+
+  // Register Email OTP Verification & User Profile endpoints
+  await fastify.register(otpRoutes);
+  await fastify.register(userProfileRoutes);
+
   return fastify;
 }
 
@@ -183,12 +195,21 @@ async function start() {
   try {
     await runMigrations();
   } catch (err) {
-    console.error('[API] Migration failed during startup:', err);
+    console.error('[API] Migration check during startup:', err);
   }
   const app = await buildServer();
   try {
     await app.listen({ port: defaultConfig.port, host: '0.0.0.0' });
     app.log.info(`🚀 API server listening on http://0.0.0.0:${defaultConfig.port}`);
+
+    const handleShutdown = async (signal: string) => {
+      app.log.info(`[API] Received ${signal}, closing Fastify server gracefully...`);
+      await app.close();
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+    process.on('SIGINT', () => handleShutdown('SIGINT'));
   } catch (err) {
     app.log.error(err);
     process.exit(1);

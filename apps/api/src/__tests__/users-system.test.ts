@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { db, endUsers, member, runMigrations, userXpBalances } from '@gami/database';
+import { db, endUsers, member, projectMembers, runMigrations, userXpBalances } from '@gami/database';
 import { Gami } from '@gami/sdk';
 import { eq, and } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -80,6 +80,13 @@ describe('Milestone 15 — Users API & User Management System Test Suite', () =>
     });
     const prjA = JSON.parse(prjARes.payload);
     projIdA = prjA.id;
+
+    await db.insert(projectMembers).values({
+      id: `pm_${randomUUID()}`,
+      projectId: projIdA,
+      userId: memberSignupObj.user.id,
+      role: 'member',
+    });
 
     const prjBRes = await app.inject({
       method: 'POST',

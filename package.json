@@ -1,7 +1,16 @@
 {
   "name": "gami-community-root",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gami-fied/gami.fied.git"
+  },
+  "homepage": "https://github.com/gami-fied/gami.fied#readme",
+  "bugs": {
+    "url": "https://github.com/gami-fied/gami.fied/issues"
+  },
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",

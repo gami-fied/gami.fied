@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge';
 import { Loader2 } from 'lucide-react';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'cyan' | 'orange' | 'rose' | 'emerald';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
@@ -34,6 +34,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'bg-transparent hover:bg-zinc-800/60 text-zinc-200 border border-zinc-700 focus:ring-zinc-500 active:scale-[0.98]',
       ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white focus:ring-zinc-500',
       danger: 'bg-rose-600 hover:bg-rose-500 text-white focus:ring-rose-500 active:scale-[0.98]',
+      cyan: 'bg-cyan-600 hover:bg-cyan-500 text-white focus:ring-cyan-500 active:scale-[0.98]',
+      orange: 'bg-orange-600 hover:bg-orange-500 text-white focus:ring-orange-500 active:scale-[0.98]',
+      rose: 'bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 focus:ring-rose-500 active:scale-[0.98]',
+      emerald: 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 focus:ring-emerald-500 active:scale-[0.98]',
     };
 
     const sizes = {

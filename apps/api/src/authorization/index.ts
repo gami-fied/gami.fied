@@ -29,6 +29,8 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   return session;
 }
 
+export { requireAuth as requireAuthSession };
+
 export async function getOrgMembership(userId: string, organizationId: string) {
   const [m] = await db
     .select()
@@ -114,19 +116,13 @@ export async function checkUserProjectAccess(
     return { allowed: true, membership };
   }
 
-  // 4. Regular Org Member -> Check project_members table
-  const allProjectMembers = await db
+  // 4. Regular Org Member -> Must be explicitly assigned in project_members table
+  const [pmRow] = await db
     .select()
     .from(projectMembers)
-    .where(eq(projectMembers.projectId, projectId));
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)));
 
-  // If no explicit project members exist, or if user is assigned -> Allowed
-  if (allProjectMembers.length === 0) {
-    return { allowed: true, membership };
-  }
-
-  const isAssigned = allProjectMembers.some((pm) => pm.userId === userId);
-  if (isAssigned) {
+  if (pmRow) {
     return { allowed: true, membership };
   }
 

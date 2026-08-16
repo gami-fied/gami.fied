@@ -1,21 +1,19 @@
 import {
   challengeRewardOutbox,
-  checkDatabaseHealth,
   db,
   emailNotificationOutbox,
   eventOutbox,
   events,
+  integrationDeliveries,
   notificationOutbox,
   webhookOutbox,
 } from '@gami/database';
-import { checkRedisHealth, getBullMQQueueMetrics, getWorkerHeartbeatStatus } from '@gami/queue';
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, count, eq, lte, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
-import { processMetrics } from './metrics-collector.js';
+import { requireProjectAccess } from '../authorization/index.js';
 
 export async function systemObservabilityRoutes(fastify: FastifyInstance) {
-  // Get System Health & Operational Metrics (Owner/Admin)
+  // Get Project Delivery Health & Operational Metrics (Project Scoped Only)
   fastify.get<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/system/metrics',
     async (request, reply) => {
@@ -23,27 +21,27 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
-
       const cutoff = new Date(Date.now() - 5 * 60 * 1000);
 
-      // 1. Authoritative DB Outbox metrics queries (calculated directly from PostgreSQL)
+      // Project-specific metrics queries ONLY (no global DB/Redis/Worker/HTTP stats)
       const [
+        [eventCountRow],
         [eventPendingRow],
         [croPendingRow],
         [notifPendingRow],
         [emailPendingRow],
         [whPendingRow],
+        [whDeliveredRow],
+        [whFailedRow],
+        [integDeliveredRow],
+        [integFailedRow],
         [staleEventsRow],
         [staleCroRow],
         [staleNotifRow],
         [staleEmailRow],
         [staleWhRow],
       ] = await Promise.all([
+        db.select({ count: count() }).from(events).where(eq(events.projectId, projectId)),
         db
           .select({ count: sql<number>`count(*)::int` })
           .from(eventOutbox)
@@ -65,6 +63,22 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
           .select({ count: sql<number>`count(*)::int` })
           .from(webhookOutbox)
           .where(and(eq(webhookOutbox.projectId, projectId), eq(webhookOutbox.status, 'pending'))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(webhookOutbox)
+          .where(and(eq(webhookOutbox.projectId, projectId), eq(webhookOutbox.status, 'delivered'))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(webhookOutbox)
+          .where(and(eq(webhookOutbox.projectId, projectId), eq(webhookOutbox.status, 'failed'))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(integrationDeliveries)
+          .where(and(eq(integrationDeliveries.projectId, projectId), eq(integrationDeliveries.status, 'delivered'))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(integrationDeliveries)
+          .where(and(eq(integrationDeliveries.projectId, projectId), eq(integrationDeliveries.status, 'failed'))),
         db
           .select({ count: sql<number>`count(*)::int` })
           .from(eventOutbox)
@@ -95,27 +109,11 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
         (staleEmailRow?.count || 0) +
         (staleWhRow?.count || 0);
 
-      // 2. Dependency Health & BullMQ queue state
-      const [dbHealthy, redisHealthy, workerStatus, queueMetrics] = await Promise.all([
-        checkDatabaseHealth(),
-        checkRedisHealth(),
-        getWorkerHeartbeatStatus(),
-        getBullMQQueueMetrics(),
-      ]);
-
-      const processSnapshot = processMetrics.getSnapshot();
-
       return reply.send({
         projectId,
+        projectName: authResult.project.name,
         timestamp: new Date().toISOString(),
-        health: {
-          api: 'healthy',
-          postgres: dbHealthy ? 'healthy' : 'unhealthy',
-          redis: redisHealthy ? 'healthy' : 'unhealthy',
-          worker: workerStatus.status,
-          workerAlive: workerStatus.alive,
-          workerHeartbeat: workerStatus.heartbeat,
-        },
+        eventsIngested: eventCountRow?.count || 0,
         outbox: {
           eventOutboxPending: eventPendingRow?.count || 0,
           challengeRewardOutboxPending: croPendingRow?.count || 0,
@@ -124,8 +122,15 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
           webhookOutboxPending: whPendingRow?.count || 0,
           staleProcessingRecords: totalStaleProcessing,
         },
-        queue: queueMetrics,
-        process: processSnapshot,
+        webhookStats: {
+          delivered: whDeliveredRow?.count || 0,
+          failed: whFailedRow?.count || 0,
+          pending: whPendingRow?.count || 0,
+        },
+        integrationStats: {
+          delivered: integDeliveredRow?.count || 0,
+          failed: integFailedRow?.count || 0,
+        },
       });
     }
   );

@@ -1,4 +1,4 @@
-import { db, levels, member, projects } from '@gami/database';
+import { db, levels, member, projects, projectMembers } from '@gami/database';
 import { getDefaultLevelDefinitions } from '@gami/progression';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -85,10 +85,32 @@ export async function projectRoutes(fastify: FastifyInstance) {
           .select()
           .from(projects)
           .where(eq(projects.organizationId, targetOrgId));
-        return reply.send(prjs);
+
+        const isPlatformAdmin = Boolean(
+          (authResult.session?.user as any)?.role === 'admin' ||
+            (authResult.session?.user as any)?.isPlatformAdmin
+        );
+
+        // Platform Admin or Org Owner/Admin -> Full access to all org projects
+        if (
+          isPlatformAdmin ||
+          ['owner', 'admin'].includes(authResult.membership.role)
+        ) {
+          return reply.send(prjs);
+        }
+
+        // Regular Member -> Must only return projects explicitly assigned in project_members table
+        const userAssignments = await db
+          .select({ projectId: projectMembers.projectId })
+          .from(projectMembers)
+          .where(eq(projectMembers.userId, authResult.session.user.id));
+
+        const assignedProjectIds = new Set(userAssignments.map((a) => a.projectId));
+        const filteredPrjs = prjs.filter((p) => assignedProjectIds.has(p.id));
+        return reply.send(filteredPrjs);
       }
 
-      // If no org specified, return projects for all orgs caller belongs to
+      // If no org specified, return projects for all orgs caller belongs to with role filtering
       const userMemberships = await db
         .select()
         .from(member)
@@ -98,10 +120,30 @@ export async function projectRoutes(fastify: FastifyInstance) {
         return reply.send([]);
       }
 
+      const adminOrgIds = new Set(
+        userMemberships
+          .filter((m) => ['owner', 'admin'].includes(m.role))
+          .map((m) => m.organizationId)
+      );
+
+      const userAssignments = await db
+        .select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(eq(projectMembers.userId, session.user.id));
+      const assignedProjectIds = new Set(userAssignments.map((a) => a.projectId));
+
       const orgIds = userMemberships.map((m) => m.organizationId);
       const prjs = await db.select().from(projects).where(inArray(projects.organizationId, orgIds));
 
-      return reply.send(prjs);
+      if ((session.user as any).isPlatformAdmin) {
+        return reply.send(prjs);
+      }
+
+      const filteredPrjs = prjs.filter(
+        (p) => adminOrgIds.has(p.organizationId) || assignedProjectIds.has(p.id)
+      );
+
+      return reply.send(filteredPrjs);
     }
   );
 

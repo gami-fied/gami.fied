@@ -197,7 +197,7 @@ describe('Milestone 19 — Platform Administration, Security & Configuration Man
       payload: {
         category: 'smtp',
         payload: {
-          host: 'smtp.sendgrid.net',
+          host: 'smtp.mailtrap.io',
           port: 587,
           fromEmail: 'noreply@gami.io',
           password: rawSecretPassword,

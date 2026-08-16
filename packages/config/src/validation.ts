@@ -25,16 +25,19 @@ export function validateProductionConfig(env: Record<string, string | undefined>
     throw new Error('[Config] Insecure default BETTER_AUTH_SECRET detected in production configuration');
   }
 
-  const webhookMasterKey = env.WEBHOOK_MASTER_KEY;
-  if (!webhookMasterKey) {
-    throw new Error('[Config] Missing required production configuration: WEBHOOK_MASTER_KEY');
+  const encryptionMasterKey = env.ENCRYPTION_MASTER_KEY || env.WEBHOOK_MASTER_KEY;
+  if (!encryptionMasterKey) {
+    throw new Error('[Config] Missing required production configuration: ENCRYPTION_MASTER_KEY');
   }
-  if (webhookMasterKey === 'gami_webhook_master_encryption_key_32bytes!!') {
-    throw new Error('[Config] Insecure default WEBHOOK_MASTER_KEY detected in production configuration');
+  if (
+    encryptionMasterKey === 'gami_webhook_master_encryption_key_32bytes!!' ||
+    encryptionMasterKey === 'gami_master_encryption_key_32bytes!!'
+  ) {
+    throw new Error('[Config] Insecure default ENCRYPTION_MASTER_KEY detected in production configuration');
   }
 
-  const redisHost = env.REDIS_HOST;
-  if (!redisHost) {
-    throw new Error('[Config] Missing required production configuration: REDIS_HOST');
+  const redisConn = env.REDIS_URL || env.REDIS_HOST;
+  if (!redisConn) {
+    throw new Error('[Config] Missing required production configuration: REDIS_URL or REDIS_HOST');
   }
 }

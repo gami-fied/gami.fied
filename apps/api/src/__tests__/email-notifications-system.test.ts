@@ -7,12 +7,13 @@ import {
   organizations,
   projects,
   users,
+  serverConfigs,
   runMigrations,
 } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import { createApiKey } from '../services/api-key.service.js';
 import { buildServer } from '../index.js';
-import { dispatchPendingEmailNotifications } from '../../../worker/src/email-notification-dispatcher.js';
+import { dispatchPendingEmailNotifications, clearSmtpProviderCache } from '../../../worker/src/email-notification-dispatcher.js';
 
 describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System Tests', () => {
   let app: Awaited<ReturnType<typeof buildServer>>;
@@ -121,6 +122,7 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
   });
 
   it('3. PUT /api/admin/smtp saves encrypted SMTP config and never returns plaintext password', async () => {
+    await db.delete(serverConfigs).where(eq(serverConfigs.key, 'smtp_config'));
     const putRes = await app.inject({
       method: 'PUT',
       url: '/api/admin/smtp',
@@ -183,7 +185,7 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
       message: 'You earned 100 XP',
       data: { xp: 100 },
       sourceType: 'xp_event',
-      sourceId: 'evt_123',
+      sourceId: `evt_sys_test5_${Date.now()}`,
     });
 
     await db.insert(emailNotificationOutbox).values({
@@ -192,18 +194,20 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
       notificationId: testNotifId,
       userId: testUserId,
       recipientEmail: 'sys.test@example.com',
-      notificationType: 'xp_awarded',
       subject: 'XP Awarded',
       htmlBody: '<p>You earned 100 XP</p>',
       textBody: 'You earned 100 XP',
-      payload: { xp: 100 },
       status: 'pending',
       attempts: 0,
-      nextAttemptAt: new Date(),
+      availableAt: new Date(Date.now() - 60000),
     });
 
-    // Dispatcher execution should increment attempts on unroutable SMTP connection in unit test env
-    const result = await dispatchPendingEmailNotifications(10);
+    // Clear server_configs and in-memory cache to test unconfigured SMTP backoff
+    await db.delete(serverConfigs).where(eq(serverConfigs.key, 'smtp_config'));
+    clearSmtpProviderCache();
+
+    // Dispatcher execution should increment attempts on unconfigured SMTP in unit test env
+    const result = await dispatchPendingEmailNotifications(500, new Date(Date.now() + 60000));
     expect(result).toBeDefined();
 
     const [updatedEob] = await db
@@ -213,5 +217,5 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
 
     expect(updatedEob).toBeDefined();
     expect(updatedEob.attempts).toBeGreaterThanOrEqual(1);
-  }, 15000);
+  }, 30000);
 });

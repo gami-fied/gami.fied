@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 
-const DEFAULT_MASTER_KEY = process.env.WEBHOOK_MASTER_KEY || 'gami_webhook_master_encryption_key_32bytes!!';
+const DEFAULT_MASTER_KEY =
+  process.env.ENCRYPTION_MASTER_KEY ||
+  process.env.WEBHOOK_MASTER_KEY ||
+  'gami_webhook_master_encryption_key_32bytes!!';
 
 /**
  * Generates a cryptographically secure raw secret for a webhook endpoint.

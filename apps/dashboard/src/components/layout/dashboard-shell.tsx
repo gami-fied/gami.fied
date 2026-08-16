@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useDashboard } from '../features/context/dashboard-context';
 import { Sidebar } from './sidebar';
 import { Topbar } from './topbar';
@@ -43,6 +43,7 @@ const ADMIN_RESTRICTED_ROUTES: Record<string, { title: string; description: stri
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     isPending,
     session,
@@ -56,6 +57,28 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Platform Email OTP Verification Enforcement
+  useEffect(() => {
+    async function checkOtpRequirement() {
+      try {
+        const res = await fetch('/api/auth/otp/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.requireEmailOtpVerification && !data.emailVerified) {
+            if (pathname !== '/verify-email') {
+              router.push('/verify-email');
+            }
+          }
+        }
+      } catch {
+        // Ignore fallback
+      }
+    }
+    if (session) {
+      checkOtpRequirement();
+    }
+  }, [session, pathname, router]);
 
   if (isPending || loadingOrgs) {
     return (

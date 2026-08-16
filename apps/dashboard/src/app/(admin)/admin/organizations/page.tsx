@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2, Search, AlertOctagon, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Building2, Search, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
 
 interface AdminOrg {
   id: string;
@@ -18,6 +22,7 @@ export default function AdminOrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,15 +85,24 @@ export default function AdminOrganizationsPage() {
     }
   };
 
-  const filteredOrgs = orgs.filter(
-    (o) =>
+  const statusOptions: DropdownOption[] = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'active', label: 'Active Only' },
+    { value: 'suspended', label: 'Suspended Only' },
+  ];
+
+  const filteredOrgs = orgs.filter((o) => {
+    const matchesSearch =
       o.name.toLowerCase().includes(search.toLowerCase()) ||
-      o.slug.toLowerCase().includes(search.toLowerCase())
-  );
+      o.slug.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      statusFilter === 'all' || o.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
-    <div className="space-y-6 font-mono">
-      <div className="border-b border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 font-mono text-zinc-100">
+      <div className="border-b border-zinc-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
             <Building2 className="w-5 h-5 text-rose-400" />
@@ -99,15 +113,26 @@ export default function AdminOrganizationsPage() {
           </p>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
-          <input
-            type="text"
-            placeholder="Search organizations..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 px-3 py-1.5 pl-9 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
-          />
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-full sm:w-48">
+            <Dropdown
+              theme="rose"
+              options={statusOptions}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+            <Input
+              type="text"
+              placeholder="Search organizations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
       </div>
 
@@ -151,33 +176,30 @@ export default function AdminOrganizationsPage() {
                     <td className="px-4 py-3 text-zinc-300">{org.memberCount}</td>
                     <td className="px-4 py-3">
                       {org.status === 'suspended' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] uppercase font-bold bg-rose-950/80 border border-rose-800 text-rose-400">
-                          <AlertOctagon className="w-3 h-3" />
+                        <Badge variant="rose">
+                          <AlertOctagon className="w-3 h-3 mr-1" />
                           Suspended
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] uppercase font-bold bg-emerald-950/80 border border-emerald-800 text-emerald-400">
-                          <CheckCircle2 className="w-3 h-3" />
+                        <Badge variant="emerald">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
                           Active
-                        </span>
+                        </Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <Button
                         onClick={() => handleToggleStatus(org)}
                         disabled={updatingId === org.id}
-                        className={`px-3 py-1 text-xs uppercase font-semibold transition border ${
-                          org.status === 'active'
-                            ? 'bg-rose-950/60 hover:bg-rose-900 border-rose-800 text-rose-300'
-                            : 'bg-emerald-950/60 hover:bg-emerald-900 border-emerald-800 text-emerald-300'
-                        }`}
+                        variant={org.status === 'active' ? 'rose' : 'emerald'}
+                        size="sm"
                       >
                         {updatingId === org.id
                           ? 'Updating...'
                           : org.status === 'active'
                           ? 'Suspend Org'
                           : 'Reactivate Org'}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))

@@ -14,6 +14,7 @@ import { checkRedisHealth, getBullMQQueueMetrics, getWorkerHeartbeatStatus } fro
 import { count, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requirePlatformAdmin } from '../../authorization/index.js';
+import { processMetrics } from '../../system/metrics-collector.js';
 
 export async function adminSystemRoutes(fastify: FastifyInstance) {
   fastify.get('/api/admin/system', async (request, reply) => {
@@ -60,13 +61,17 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
         .where(eq(webhookOutbox.status, 'pending')),
     ]);
 
+    const processSnapshot = processMetrics.getSnapshot();
+
     return reply.send({
       version: '0.1.0',
       environment: process.env.NODE_ENV || 'development',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       health: {
+        api: 'healthy',
         database: dbHealthy ? 'healthy' : 'unhealthy',
+        postgres: dbHealthy ? 'healthy' : 'unhealthy',
         redis: redisHealthy ? 'healthy' : 'unhealthy',
         worker: workerStatus.status,
         workerAlive: workerStatus.alive,
@@ -83,8 +88,10 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
         emailPending: emailPendingRow?.count || 0,
         notificationPending: notifPendingRow?.count || 0,
         webhookPending: webhookPendingRow?.count || 0,
+        staleProcessingRecords: 0,
       },
       queue: queueMetrics,
+      process: processSnapshot,
     });
   });
 }

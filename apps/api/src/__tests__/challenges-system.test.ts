@@ -10,6 +10,7 @@ import {
   member,
   organizations,
   projects,
+  projectMembers,
   runMigrations,
   userAchievements,
   userChallengeProgress,
@@ -119,6 +120,13 @@ describe('Milestone 12 - Challenges & Quests E2E Integration Suite', () => {
         slug: `ch-beta-${randomUUID()}`,
       },
     ]);
+
+    await db.insert(projectMembers).values({
+      id: `pm_ch_${randomUUID()}`,
+      projectId: projectIdA,
+      userId: dbMemberUser.id,
+      role: 'member',
+    });
 
     // 4. Create Achievements in Project A
     await db.insert(achievements).values({

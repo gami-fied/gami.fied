@@ -153,7 +153,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     });
 
     if (res.ok) {
-      const newOrg: Organization = await res.json();
+      const data = await res.json();
+      const newOrg: Organization = {
+        ...data,
+        role: data.role || 'owner',
+      };
       setOrganizations((prev) => [...prev, newOrg]);
       setSelectedOrg(newOrg);
       setProjects([]);

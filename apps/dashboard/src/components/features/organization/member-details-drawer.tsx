@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
 import { Building2, Shield, Calendar, Mail, User, Layers, Plus, Trash2 } from 'lucide-react';
 import { useDashboard } from '../context/dashboard-context';
 import type { OrganizationMemberRecord } from '@gami/sdk';
@@ -76,6 +77,12 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
     (p) => !assignedProjects.some((ap) => ap.id === p.id)
   );
 
+  const unassignedProjectOptions: DropdownOption[] = unassignedProjects.map((p) => ({
+    value: p.id,
+    label: p.name,
+    sublabel: `Slug: ${p.slug}`,
+  }));
+
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Member Profile & Access">
       <div className="space-y-5 font-mono text-xs max-h-[80vh] overflow-y-auto pr-1">
@@ -124,38 +131,35 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
             </p>
           ) : (
             <div className="space-y-3">
-              {/* Add Project Selection */}
+              {/* Add Project Selection with Custom Dropdown */}
               {unassignedProjects.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <select
-                    value={selectedAddProject}
-                    onChange={(e) => setSelectedAddProject(e.target.value)}
-                    className="flex-1 h-8 bg-zinc-900 border border-zinc-800 px-2 text-xs text-zinc-200 outline-none"
-                  >
-                    <option value="">-- Add Access to Project --</option>
-                    {unassignedProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.slug})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex-1">
+                    <Dropdown
+                      theme="orange"
+                      placeholder="-- Select Project to Assign --"
+                      options={unassignedProjectOptions}
+                      value={selectedAddProject || null}
+                      onChange={(val) => setSelectedAddProject(val)}
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
                     onClick={handleAddProject}
                     disabled={!selectedAddProject}
-                    className="h-8 px-2 border-orange-800 text-orange-400 text-xs"
+                    className="h-9 px-3 border-orange-800 text-orange-400 text-xs shrink-0"
                   >
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Access
                   </Button>
                 </div>
               )}
 
               {/* Assigned Project List */}
               {assignedProjects.length === 0 ? (
-                <p className="text-zinc-500 text-[11px] py-2 text-center">
-                  No project assignments defined. Member can access all open projects in this org.
+                <p className="text-zinc-400 text-[11px] py-2 text-center border border-zinc-800 bg-zinc-900/60">
+                  No project access assigned. Member cannot view or access any project in this organization.
                 </p>
               ) : (
                 <div className="space-y-2">

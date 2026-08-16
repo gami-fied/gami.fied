@@ -1,108 +1,141 @@
-# Getting Started with Gami TypeScript SDK (`@gami/sdk`)
+# Getting Started & Quickstart
 
-This guide walks you through integrating Gami into your application in 8 simple steps using `@gami/sdk`.
-
----
-
-## 1. Create or Select a Gami Project
-
-Log into your Gami Admin Dashboard (`http://localhost:3000`) and select or create a project.
-Note down your **Project ID** (e.g. `prj_12345678`).
+This guide covers setting up **Gami Community Edition** locally, starting infrastructure services, running database migrations, and integrating your application using `@gami/sdk`.
 
 ---
 
-## 2. Generate an API Key
+## 1. Prerequisites
 
-1. Navigate to **API Keys** (`/dashboard/api-keys`).
-2. Click **Create API Key**.
-3. Copy your live API secret key (starts with `gami_live_...`).
+Ensure your system meets the following requirements:
 
-> [!WARNING]
-> Store your API Key securely in server-side environment variables (e.g. `.env`). **Never expose your Gami API Key in browser or client-side code.**
+- **Node.js**: v22.0.0 or higher
+- **pnpm**: v10.0.0 or higher (`npm i -g pnpm`)
+- **Docker & Docker Compose**: Installed and running locally
+- **PostgreSQL**: v17 (provided via Docker Compose)
+- **Redis**: v7 (provided via Docker Compose)
 
 ---
 
-## 3. Install `@gami/sdk`
+## 2. Installation & Infrastructure Spinup
+
+### Clone Repository
+
+```bash
+git clone https://github.com/gami-fied/gami.fied.git
+cd gami.fied
+pnpm install
+```
+
+### Start Database & Cache Containers
+
+```bash
+# Start PostgreSQL (port 5432) and Redis (port 6379)
+pnpm infra:up
+
+# Check container health status
+pnpm infra:status
+```
+
+### Run Database Migrations
+
+Apply the database schema and 22 initial Drizzle migrations to PostgreSQL:
+
+```bash
+pnpm --filter @gami/database migrate
+```
+
+---
+
+## 3. Running Applications in Development
+
+Start all workspace applications concurrently:
+
+```bash
+pnpm dev
+```
+
+This starts:
+- 🌐 **Dashboard UI**: `http://localhost:3000`
+- ⚙️ **API Server**: `http://localhost:3001`
+- 🔄 **Worker Process**: Background Queue & Outbox Poller
+
+### Individual Application Commands
+
+```bash
+pnpm --filter @gami/api dev       # Start API server only
+pnpm --filter @gami/worker dev    # Start worker process only
+pnpm --filter @gami/dashboard dev # Start dashboard UI only
+```
+
+---
+
+## 4. Bootstrapping Initial Admin Account
+
+When Gami is launched for the first time:
+
+1. Open `http://localhost:3000/sign-up` in your browser.
+2. Register a new user account.
+3. If no Platform Admin exists yet, you can claim the Platform Admin role via the initial bootstrap endpoint or using the emergency CLI tool:
+
+```bash
+# Promote an existing user to Platform Administrator directly via CLI
+pnpm --filter @gami/api admin:promote --email admin@example.com
+```
+
+---
+
+## 5. Integrating with `@gami/sdk`
+
+Gami provides an isomorphic TypeScript SDK (`@gami/sdk`) that works in Node.js, Next.js, Express, and backend services.
+
+### Installation
 
 ```bash
 pnpm add @gami/sdk
-# or npm install @gami/sdk
-# or yarn add @gami/sdk
 ```
 
----
-
-## 4. Initialize the Client
+### Initializing Client
 
 ```typescript
-import { Gami } from '@gami/sdk';
+import { GamiClient } from '@gami/sdk';
 
-const gami = new Gami({
-  apiKey: process.env.GAMI_API_KEY!,
-  baseUrl: process.env.GAMI_API_URL || 'http://localhost:3001',
+const gami = new GamiClient({
+  baseUrl: 'http://localhost:3001',
+  apiKey: 'gami_live_your_project_api_key', // Obtain from Dashboard -> API Keys
 });
 ```
 
----
-
-## 5. Track Your First Event
-
-Track incoming user events from your backend API endpoints:
+### Event Ingestion & Gamification Trigger
 
 ```typescript
-const result = await gami.events.track({
-  projectId: 'prj_12345678',
-  userId: 'usr_player_101',
-  type: 'order_completed',
-  properties: {
-    amount: 149.99,
-    tier: 'pro',
-  },
+// Ingest a user activity event
+const response = await gami.ingestEvent({
+  userId: 'usr_1001',
+  eventType: 'lesson_completed',
+  data: { lessonId: 'les_42', score: 95 },
 });
 
-console.log('Event tracked:', result.eventId);
+console.log('Event Ingested:', response.eventId);
 ```
 
----
-
-## 6. Configure a Gamification Rule in the Dashboard
-
-1. Navigate to **Rules** (`/dashboard/rules`).
-2. Click **Create Rule**.
-3. Set **Trigger Event** to `order_completed`.
-4. Set **Action**: `Award 100 XP`.
-5. Click **Save Rule**.
-
----
-
-## 7. Trigger the Event & Worker Pipeline
-
-When your application emits `order_completed` via `gami.events.track()`, Gami's durable outbox and background workers automatically evaluate the rule and award XP to the user.
-
----
-
-## 8. Query XP, Level Progression & Notifications
-
-Fetch the updated user progress directly using the SDK:
+### Fetching User XP & Progression
 
 ```typescript
-// Fetch user XP balance
-const balance = await gami.xp.getBalance({
-  projectId: 'prj_12345678',
-  userId: 'usr_player_101',
+const userXp = await gami.getUserXp('usr_1001');
+
+console.log(`Current Balance: ${userXp.balance} XP`);
+console.log(`Current Level: ${userXp.level.currentLevel} (${userXp.level.name})`);
+console.log(`Progress to Next Level: ${userXp.level.progressPercent}%`);
+```
+
+### Fetching Leaderboards
+
+```typescript
+const leaderboard = await gami.getLeaderboard('leaderboard_global_xp', {
+  limit: 10,
 });
 
-// Fetch user level progress
-const progress = await gami.levels.getUserProgress({
-  projectId: 'prj_12345678',
-  userId: 'usr_player_101',
+leaderboard.entries.forEach((entry, idx) => {
+  console.log(`#${entry.rank} - User: ${entry.userId} (${entry.score} pts)`);
 });
-
-// Fetch in-app notifications
-const notifications = await gami.notifications.list({
-  projectId: 'prj_12345678',
-  userId: 'usr_player_101',
-});
-
-console.log(`User ${progress.userId} is Level ${progress.currentLevel} (${balance.totalXp} XP)`);
 ```

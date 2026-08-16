@@ -1,20 +1,80 @@
 'use client';
 
-import { useDashboard } from '../context/dashboard-context';
-import { useSystemMetrics } from '@/hooks/use-system';
+import React, { useEffect, useState, useCallback } from 'react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { Shield, Server, RefreshCw } from 'lucide-react';
+
+interface PlatformMetrics {
+  version: string;
+  environment: string;
+  uptime: number;
+  timestamp: string;
+  health: {
+    api: string;
+    database: string;
+    postgres: string;
+    redis: string;
+    worker: string;
+    workerAlive: boolean;
+    workerHeartbeat: {
+      workerId: string;
+      timestamp: string;
+      status: string;
+      lastProcessedAt: string | null;
+      processedCount: number;
+    } | null;
+  };
+  counts: {
+    organizations: number;
+    projects: number;
+    endUsers: number;
+    eventsIngested: number;
+  };
+  outboxes: {
+    eventPending: number;
+    emailPending: number;
+    notificationPending: number;
+    webhookPending: number;
+  };
+  queue: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  };
+  process: {
+    httpRouteStats: Record<string, { requests: number; errors: number; totalDurationMs: number }>;
+  };
+}
 
 export function SystemView() {
-  const { selectedProject } = useDashboard();
-  const { metrics, loading, error, refresh } = useSystemMetrics(selectedProject?.id || null);
+  const [metrics, setMetrics] = useState<PlatformMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!selectedProject) {
-    return (
-      <div className="p-8 text-center font-mono text-zinc-400">
-        Please select a project to view system health & observability metrics.
-      </div>
-    );
-  }
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/system');
+      if (res.ok) {
+        setMetrics(await res.json());
+        setError(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setError(err.message || 'Failed to fetch platform metrics');
+      }
+    } catch {
+      setError('Network error fetching platform metrics');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 5000);
+    return () => clearInterval(interval);
+  }, [fetchMetrics]);
 
   const getStatusBadge = (status: string, isHealthy: boolean) => {
     return (
@@ -36,17 +96,25 @@ export function SystemView() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white uppercase">System Health & Observability</h1>
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-rose-400" />
+            <h1 className="text-xl font-bold tracking-tight text-white uppercase">
+              Platform System Health &amp; Infrastructure
+            </h1>
+          </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Real-time infrastructure health, worker Redis heartbeats, BullMQ metrics, and authoritative outbox queues for{' '}
-            <span className="text-emerald-400">{selectedProject.name}</span>.
+            Platform-wide PostgreSQL status, Redis health, BullMQ queue stats, worker heartbeats, and HTTP traffic latency.
           </p>
         </div>
         <button
-          onClick={() => refresh()}
-          className="shrink-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition"
+          onClick={() => {
+            setLoading(true);
+            fetchMetrics();
+          }}
+          className="shrink-0 flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition text-zinc-300 hover:text-white"
         >
-          ↻ Refresh Metrics
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          Refresh Metrics
         </button>
       </div>
 
@@ -80,7 +148,7 @@ export function SystemView() {
 
         {/* Redis */}
         <div className="border border-zinc-800 bg-zinc-950 p-4 space-y-2">
-          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Cache & Queue</div>
+          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Cache &amp; Queue</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">Redis</span>
             {getStatusBadge(metrics?.health.redis || 'checking', metrics?.health.redis === 'healthy')}
@@ -114,7 +182,7 @@ export function SystemView() {
         <div className="border border-zinc-800 bg-zinc-950 p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
             <h2 className="text-sm font-bold uppercase tracking-wide text-white">
-              📦 Authoritative Outbox Queues (PostgreSQL)
+              📦 Global Outbox Queues (PostgreSQL)
             </h2>
             <span className="text-[10px] text-zinc-500 italic">Database Computed</span>
           </div>
@@ -122,40 +190,31 @@ export function SystemView() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="border border-zinc-800 bg-zinc-900/60 p-3">
               <div className="text-lg font-black text-amber-400">
-                {metrics?.outbox.eventOutboxPending ?? 0}
+                {metrics?.outboxes.eventPending ?? 0}
               </div>
               <div className="text-[10px] text-zinc-400 uppercase mt-1">Events Pending</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-3">
-              <div className="text-lg font-black text-blue-400">
-                {metrics?.outbox.challengeRewardOutboxPending ?? 0}
-              </div>
-              <div className="text-[10px] text-zinc-400 uppercase mt-1">Rewards Pending</div>
-            </div>
-
-            <div className="border border-zinc-800 bg-zinc-900/60 p-3">
               <div className="text-lg font-black text-purple-400">
-                {metrics?.outbox.notificationOutboxPending ?? 0}
+                {metrics?.outboxes.notificationPending ?? 0}
               </div>
               <div className="text-[10px] text-zinc-400 uppercase mt-1">Notifs Pending</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-3">
               <div className="text-lg font-black text-emerald-400">
-                {metrics?.outbox.webhookOutboxPending ?? 0}
+                {metrics?.outboxes.emailPending ?? 0}
+              </div>
+              <div className="text-[10px] text-zinc-400 uppercase mt-1">Emails Pending</div>
+            </div>
+
+            <div className="border border-zinc-800 bg-zinc-900/60 p-3">
+              <div className="text-lg font-black text-cyan-400">
+                {metrics?.outboxes.webhookPending ?? 0}
               </div>
               <div className="text-[10px] text-zinc-400 uppercase mt-1">Webhooks Pending</div>
             </div>
-          </div>
-
-          <div className="border border-zinc-800 bg-zinc-900/40 p-3 flex items-center justify-between">
-            <span className="text-xs text-zinc-300">Stale Processing Records (&gt; 5 min):</span>
-            <span className={`text-xs font-bold font-mono ${
-              (metrics?.outbox.staleProcessingRecords ?? 0) > 0 ? 'text-amber-400' : 'text-emerald-400'
-            }`}>
-              {metrics?.outbox.staleProcessingRecords ?? 0} records
-            </span>
           </div>
         </div>
 
@@ -210,7 +269,7 @@ export function SystemView() {
         </div>
       </div>
 
-      {/* HTTP Request Metrics (Low Cardinality) */}
+      {/* HTTP Request Metrics */}
       <div className="border border-zinc-800 bg-zinc-950 p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
           <h2 className="text-sm font-bold uppercase tracking-wide text-white">

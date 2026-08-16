@@ -1,0 +1,146 @@
+name: gami-production
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gami-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gami_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-gami}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-gami} -d $${POSTGRES_DB:-gami_prod}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - gami-prod-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: gami-redis-prod
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - gami-prod-network
+
+  migration:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: gami-migration-prod
+    command: ["pnpm", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gami-prod-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: gami-api-prod
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3001}:3001'
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3001
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3001}
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3001/ready || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - gami-prod-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: gami-worker-prod
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NODE_ENV: production
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
+      OUTBOX_POLL_INTERVAL_MS: 1000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - gami-prod-network
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      args:
+        API_URL: http://api:3001
+    container_name: gami-dashboard-prod
+    restart: unless-stopped
+    ports:
+      - '${DASHBOARD_PORT:-3000}:3000'
+    environment:
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - gami-prod-network
+
+volumes:
+  postgres_prod_data:
+    name: gami_postgres_prod_data
+  redis_prod_data:
+    name: gami_redis_prod_data
+
+networks:
+  gami-prod-network:
+    name: gami_prod_network
+    driver: bridge

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useXp } from '@/hooks/use-xp';
 import { useAchievements } from '@/hooks/use-achievements';
@@ -9,16 +9,44 @@ import { useRules } from '@/hooks/use-rules';
 import { useApiKeys } from '@/hooks/use-api-keys';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, ArrowRight, CheckCircle2, Circle, Code2, FolderKanban } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Circle, Code2, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 
+interface OnboardingStep {
+  id: string;
+  label: string;
+  description: string;
+  completed: boolean;
+  href: string;
+}
+
+interface OnboardingData {
+  totalSteps: number;
+  completedCount: number;
+  progressPercentage: number;
+  steps: OnboardingStep[];
+}
+
 export function OverviewView() {
-  const { selectedProject, selectedOrg, session } = useDashboard();
+  const { selectedProject, selectedOrg } = useDashboard();
   const { summary: xpSummary, fetchXpSummary } = useXp(selectedProject?.id || null);
   const { summary: achSummary, fetchAchievements } = useAchievements(selectedProject?.id || null);
   const { summary: progSummary, fetchLevelsData } = useLevels(selectedProject?.id || null);
   const { rules, fetchRules } = useRules(selectedProject?.id || null);
-  const { apiKeys, fetchApiKeys } = useApiKeys(selectedProject?.id || null);
+
+  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
+
+  const fetchOnboarding = useCallback(async () => {
+    if (!selectedProject) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProject.id}/onboarding`);
+      if (res.ok) {
+        setOnboardingData(await res.json());
+      }
+    } catch {
+      // Ignore fallback
+    }
+  }, [selectedProject]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -26,7 +54,7 @@ export function OverviewView() {
       fetchAchievements();
       fetchLevelsData();
       fetchRules();
-      fetchApiKeys();
+      fetchOnboarding();
     }
   }, [
     selectedProject,
@@ -34,7 +62,7 @@ export function OverviewView() {
     fetchAchievements,
     fetchLevelsData,
     fetchRules,
-    fetchApiKeys,
+    fetchOnboarding,
   ]);
 
   if (!selectedProject) {
@@ -55,49 +83,14 @@ export function OverviewView() {
   }
 
   const activeRulesCount = rules.filter((r) => r.enabled).length;
-  const hasApiKey = apiKeys.some((k) => !k.revokedAt);
 
-  // Setup checklist items
-  const checklistItems = [
-    {
-      label: 'Generate an API Key',
-      done: hasApiKey,
-      href: '/dashboard/api-keys',
-      description: 'Needed to send events from your app',
-    },
-    {
-      label: 'Create Level Thresholds',
-      done: (progSummary?.configuredLevelCount || 0) > 0,
-      href: '/dashboard/levels',
-      description: 'Define your XP progression ladder',
-    },
-    {
-      label: 'Create an Achievement',
-      done: (achSummary?.totalAchievements || 0) > 0,
-      href: '/dashboard/achievements',
-      description: 'Badges users can earn for actions',
-    },
-    {
-      label: 'Create a Rule',
-      done: rules.length > 0,
-      href: '/dashboard/rules',
-      description: 'Trigger XP & badge awards on events',
-    },
-    {
-      label: 'Receive Your First Event',
-      done: (xpSummary?.totalTransactions || 0) > 0,
-      href: '/dashboard/events',
-      description: 'Send a test event from your app or API',
-    },
-  ];
-  const completedSteps = checklistItems.filter((i) => i.done).length;
-  const setupComplete = completedSteps === checklistItems.length;
+  const isComplete = onboardingData ? onboardingData.completedCount === onboardingData.totalSteps : false;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 font-mono">
       {/* Page Heading */}
       <div>
-        <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Project Overview</h1>
+        <h1 className="text-xl font-bold text-zinc-100 tracking-tight uppercase">Project Overview</h1>
         <p className="text-xs text-zinc-400 mt-1">
           Gamification metrics and progression distribution for{' '}
           <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
@@ -191,61 +184,61 @@ export function OverviewView() {
         </div>
       </div>
 
-      {/* Setup Checklist */}
-      {!setupComplete && (
+      {/* Backend-Driven Setup Checklist */}
+      {onboardingData && !isComplete && (
         <Card className="border-orange-800/50 bg-gradient-to-b from-orange-950/20 to-zinc-900/80">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                  Getting Started Checklist
+                <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2 uppercase tracking-wider">
+                  Backend-Driven Setup Checklist
                   <Badge variant="orange">
-                    {completedSteps}/{checklistItems.length}
+                    {onboardingData.completedCount}/{onboardingData.totalSteps}
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Complete these steps to fully set up your gamification project
+                  Real-time database detection for Gami setup lifecycle steps
                 </CardDescription>
               </div>
-              <div className="text-xs font-semibold text-orange-400">
-                {Math.round((completedSteps / checklistItems.length) * 100)}% complete
+              <div className="text-xs font-semibold text-orange-400 font-mono">
+                {onboardingData.progressPercentage}% complete
               </div>
             </div>
             {/* Progress bar */}
             <div className="w-full bg-zinc-800 rounded-none h-2.5 mt-2 overflow-hidden border border-zinc-800 p-0.5">
               <div
                 className="bg-orange-500 h-full rounded-none transition-all duration-500"
-                style={{ width: `${(completedSteps / checklistItems.length) * 100}%` }}
+                style={{ width: `${onboardingData.progressPercentage}%` }}
               />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {checklistItems.map((item) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {onboardingData.steps.map((step) => (
                 <Link
-                  key={item.label}
-                  href={item.href}
+                  key={step.id}
+                  href={step.href}
                   className={`flex items-center gap-3 p-3 rounded-none border transition group ${
-                    item.done
+                    step.completed
                       ? 'bg-emerald-950/20 border-emerald-800/40 cursor-default'
                       : 'bg-zinc-950/40 border-zinc-800 hover:border-orange-500/50 hover:bg-zinc-900'
                   }`}
-                  onClick={item.done ? (e) => e.preventDefault() : undefined}
+                  onClick={step.completed ? (e) => e.preventDefault() : undefined}
                 >
-                  {item.done ? (
+                  {step.completed ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   ) : (
                     <Circle className="w-4 h-4 text-zinc-600 shrink-0 group-hover:text-orange-400 transition" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`text-xs font-semibold ${item.done ? 'text-emerald-400 line-through' : 'text-zinc-200 group-hover:text-orange-300 transition'}`}
+                      className={`text-xs font-semibold ${step.completed ? 'text-emerald-400 line-through' : 'text-zinc-200 group-hover:text-orange-300 transition'}`}
                     >
-                      {item.label}
+                      {step.label}
                     </p>
-                    <p className="text-[11px] text-zinc-500">{item.description}</p>
+                    <p className="text-[11px] text-zinc-500 truncate">{step.description}</p>
                   </div>
-                  {!item.done && (
+                  {!step.completed && (
                     <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-orange-400 transition shrink-0" />
                   )}
                 </Link>
@@ -258,7 +251,7 @@ export function OverviewView() {
       {/* Quick Actions Shortcuts */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-bold text-zinc-100">Quick Actions</CardTitle>
+          <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider">Quick Actions</CardTitle>
           <CardDescription>Direct navigation shortcuts to key project systems</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -283,7 +276,7 @@ export function OverviewView() {
               <p className="text-xs font-bold text-zinc-200 group-hover:text-emerald-400 transition">
                 Manage Rules Engine
               </p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Configure event triggers & actions</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Configure event triggers &amp; actions</p>
             </div>
             <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 transition" />
           </Link>
@@ -316,7 +309,7 @@ export function OverviewView() {
             <Badge variant="orange">v0.1.0 Ready</Badge>
           </div>
           <CardDescription>
-            Integrate gamification events, XP, achievements, levels & leaderboards directly in your
+            Integrate gamification events, XP, achievements, levels &amp; leaderboards directly in your
             server-side Node.js / TypeScript apps.
           </CardDescription>
         </CardHeader>
@@ -357,7 +350,7 @@ export function OverviewView() {
       {progSummary && progSummary.distribution.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100">
+            <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
               End-User Level Distribution
             </CardTitle>
             <CardDescription>

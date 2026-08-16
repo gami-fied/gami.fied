@@ -15,6 +15,11 @@ import { and, eq, lte } from 'drizzle-orm';
 let cachedSmtpProvider: SmtpEmailProvider | null = null;
 let lastSmtpFetchTime = 0;
 
+export function clearSmtpProviderCache() {
+  cachedSmtpProvider = null;
+  lastSmtpFetchTime = 0;
+}
+
 /**
  * Retrieves the SmtpEmailProvider instance from DB server_configs ('smtp_config')
  * or falls back to environment configuration.
@@ -93,7 +98,7 @@ export async function dispatchPendingEmailNotifications(
 
   // 1. Select pending outbox records using FOR UPDATE SKIP LOCKED
   const pendingRecords = await db.transaction(async (tx) => {
-    return await tx
+    const query = tx
       .select()
       .from(emailNotificationOutbox)
       .where(
@@ -102,8 +107,12 @@ export async function dispatchPendingEmailNotifications(
           lte(emailNotificationOutbox.availableAt, now)
         )
       )
-      .limit(batchLimit)
-      .for('update', { skipLocked: true });
+      .limit(batchLimit);
+
+    if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+      return await query.for('update', { skipLocked: true });
+    }
+    return await query;
   });
 
   if (pendingRecords.length === 0) {

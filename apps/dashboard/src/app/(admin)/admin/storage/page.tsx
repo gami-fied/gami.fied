@@ -16,6 +16,8 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
+import { Button } from '@/components/ui/button';
 
 interface TableMetric {
   id: string;
@@ -30,6 +32,13 @@ interface StorageMetrics {
   databaseSizeBytes: number;
   tables: Record<string, TableMetric>;
 }
+
+const retentionOptions: DropdownOption[] = [
+  { value: '0', label: 'All Completed Logs' },
+  { value: '7', label: 'Older than 7 Days' },
+  { value: '30', label: 'Older than 30 Days' },
+  { value: '90', label: 'Older than 90 Days' },
+];
 
 export default function AdminStoragePage() {
   const [metrics, setMetrics] = useState<StorageMetrics | null>(null);
@@ -150,7 +159,7 @@ export default function AdminStoragePage() {
           <div className="flex items-center gap-2">
             <Database className="w-5 h-5 text-rose-400" />
             <h1 className="text-xl font-bold uppercase tracking-wider text-white">
-              Database Storage & Maintenance
+              Database Storage &amp; Maintenance
             </h1>
           </div>
           <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
@@ -159,15 +168,16 @@ export default function AdminStoragePage() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <button
+          <Button
             onClick={fetchMetrics}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs uppercase tracking-wider transition disabled:opacity-50"
+            variant="outline"
+            className="flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh Metrics
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
               setConfirmTarget({
                 id: 'all_completed_logs',
@@ -176,11 +186,12 @@ export default function AdminStoragePage() {
               })
             }
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/80 border border-rose-800 text-rose-300 hover:bg-rose-900 text-xs font-bold uppercase tracking-wider transition"
+            variant="rose"
+            className="flex items-center gap-1.5 font-bold"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Purge All Completed Logs
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -232,7 +243,7 @@ export default function AdminStoragePage() {
             {calculateTotalRows().toLocaleString()} <span className="text-xs font-normal text-zinc-400">rows</span>
           </div>
           <p className="text-[11px] text-zinc-500">
-            Combined total records stored across outboxes, delivery logs & audit history.
+            Combined total records stored across outboxes, delivery logs &amp; audit history.
           </p>
         </div>
 
@@ -253,12 +264,12 @@ export default function AdminStoragePage() {
       {/* Storage Service Breakdown Grid */}
       <div className="space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 border-b border-zinc-800/80 pb-2">
-          Monitored Storage Tables & Maintenance Actions
+          Monitored Storage Tables &amp; Maintenance Actions
         </h2>
 
         {loading ? (
           <div className="p-12 text-center text-xs text-zinc-400 bg-zinc-950 border border-zinc-800">
-            Loading storage & table metrics...
+            Loading storage &amp; table metrics...
           </div>
         ) : !metrics?.tables ? (
           <div className="p-8 text-center text-xs text-zinc-500 bg-zinc-950 border border-zinc-800">
@@ -308,28 +319,26 @@ export default function AdminStoragePage() {
                     </div>
                   </div>
 
-                  {/* Actions & Retention Selector */}
-                  <div className="space-y-2 pt-3 border-t border-zinc-800/80">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-zinc-400 uppercase tracking-wider">Prune Filter:</span>
-                      <select
-                        value={selectedRetention}
-                        onChange={(e) =>
+                  {/* Actions & Custom Dropdown Component for Retention Selection */}
+                  <div className="space-y-3 pt-3 border-t border-zinc-800/80">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                        Retention Filter:
+                      </span>
+                      <Dropdown
+                        theme="rose"
+                        options={retentionOptions}
+                        value={String(selectedRetention)}
+                        onChange={(val) =>
                           setRetentionMap((prev) => ({
                             ...prev,
-                            [key]: parseInt(e.target.value, 10),
+                            [key]: parseInt(val, 10),
                           }))
                         }
-                        className="bg-zinc-900 border border-zinc-800 text-zinc-200 text-[11px] px-2 py-1 focus:outline-none focus:border-rose-500"
-                      >
-                        <option value={0}>All Completed Logs</option>
-                        <option value={7}>Older than 7 Days</option>
-                        <option value={30}>Older than 30 Days</option>
-                        <option value={90}>Older than 90 Days</option>
-                      </select>
+                      />
                     </div>
 
-                    <button
+                    <Button
                       onClick={() =>
                         setConfirmTarget({
                           id: key,
@@ -338,11 +347,12 @@ export default function AdminStoragePage() {
                         })
                       }
                       disabled={table.totalRows === 0}
-                      className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-zinc-900 border border-zinc-700 hover:bg-rose-950/60 hover:border-rose-800 text-zinc-200 hover:text-rose-300 text-xs font-semibold uppercase tracking-wider transition disabled:opacity-40"
+                      variant="outline"
+                      className="w-full flex items-center justify-center gap-1.5 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-800"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                       Clean Table Logs
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );

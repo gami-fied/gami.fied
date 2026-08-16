@@ -1,20 +1,21 @@
 import { db, serverConfigs } from '@gami/database';
-import { decryptSecret, encryptSecret } from '@gami/webhooks';
+import { encryptSecret } from '@gami/webhooks';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
 
 export const smtpConfigSchema = z.object({
-  host: z.string().min(1),
-  port: z.number().int().positive().default(587),
+  host: z.string().min(1, 'Host is required'),
+  port: z.coerce.number().int().positive().default(587),
   user: z.string().optional().default(''),
   encryptedPassword: z.string().optional().default(''),
-  fromEmail: z.string().email(),
+  fromEmail: z.string().email('Invalid from email address'),
   fromName: z.string().optional().default('Gami Engine'),
   secure: z.boolean().optional().default(false),
 });
 
 export const securityConfigSchema = z.object({
+  requireEmailOtpVerification: z.boolean().default(false),
   sessionExpirationMinutes: z.number().int().min(1).max(10080).default(1440),
   maxSessionLifetimeHours: z.number().int().min(1).max(720).default(168),
   loginRateLimit: z.number().int().min(1).max(1000).default(60),
@@ -126,22 +127,41 @@ export class ServerConfigService {
       throw new Error(`Invalid or unallowlisted server configuration category: "${category}"`);
     }
 
-    // Process raw password field into encryptedPassword if provided
+    // Process raw password field into encryptedPassword if provided, or preserve existing
     const processedPayload = { ...payload };
     if (processedPayload.password && typeof processedPayload.password === 'string') {
       processedPayload.encryptedPassword = encryptSecret(processedPayload.password as string);
       delete processedPayload.password;
+    } else {
+      delete processedPayload.password;
+      const existing = await this.getConfig<Record<string, unknown>>(category);
+      if (existing && existing.encryptedPassword) {
+        processedPayload.encryptedPassword = existing.encryptedPassword;
+      }
+    }
+
+    if (category === 'security' && processedPayload.requireEmailOtpVerification === true) {
+      const smtpCfg = await this.getConfig<Record<string, unknown>>('smtp');
+      const hasSmtp =
+        Boolean(process.env.SMTP_HOST && process.env.SMTP_HOST !== 'localhost') ||
+        Boolean(smtpCfg && smtpCfg.host && typeof smtpCfg.host === 'string' && (smtpCfg.host as string).trim().length > 0);
+      if (!hasSmtp) {
+        throw new Error('SMTP server must be configured before enabling Email OTP Verification.');
+      }
     }
 
     const parseResult = schema.safeParse(processedPayload);
     if (!parseResult.success) {
-      throw new Error(`Invalid configuration payload for category "${category}": ${parseResult.error.message}`);
+      const issueMsgs = parseResult.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join(', ');
+      throw new Error(`Invalid configuration payload for category "${category}": ${issueMsgs}`);
     }
 
     const validatedData = parseResult.data as Record<string, unknown>;
     const key = `${category}_config`;
 
-    const [upserted] = await db
+    await db
       .insert(serverConfigs)
       .values({
         key,
@@ -154,8 +174,7 @@ export class ServerConfigService {
           value: validatedData,
           updatedAt: new Date(),
         },
-      })
-      .returning();
+      });
 
     // Log security audit event
     try {
