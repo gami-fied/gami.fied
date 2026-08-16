@@ -10,7 +10,7 @@ import {
   runMigrations,
   users,
 } from '@gami/database';
-import { Gami } from '@gami/sdk';
+import { Gami } from '@gami.fied/sdk';
 import { createHash, randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

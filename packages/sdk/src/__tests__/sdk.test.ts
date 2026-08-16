@@ -9,7 +9,7 @@ import {
   GamiServerError,
 } from '../errors.js';
 
-describe('@gami/sdk - Client & Unit Test Suite', () => {
+describe('@gami.fied/sdk - Client & Unit Test Suite', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {

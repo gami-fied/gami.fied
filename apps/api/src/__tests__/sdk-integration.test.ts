@@ -1,11 +1,11 @@
 import { randomUUID } from 'crypto';
 import { runMigrations } from '@gami/database';
-import { Gami } from '@gami/sdk';
+import { Gami } from '@gami.fied/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
 import { createApiKey } from '../services/api-key.service.js';
 
-describe('@gami/sdk - Live API Integration Test Suite', () => {
+describe('@gami.fied/sdk - Live API Integration Test Suite', () => {
   let app: Awaited<ReturnType<typeof buildServer>>;
   let baseUrl: string;
   let projId: string;

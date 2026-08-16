@@ -1,8 +1,8 @@
-# Gami Technical Documentation & Sitemap
+# Gami.Fied Technical Documentation & Sitemap
 
-Welcome to the official technical documentation for **Gami Community Edition**.
+Welcome to the official technical documentation for **Gami.Fied Community Edition**.
 
-Gami is an open-source, self-hostable gamification engine and infrastructure platform built with Fastify, Next.js, PostgreSQL, Redis, and TypeScript.
+Gami.Fied is an open-source, self-hostable gamification engine and infrastructure platform built with Fastify, Next.js, PostgreSQL, Redis, and TypeScript.
 
 ---
 
@@ -10,7 +10,7 @@ Gami is an open-source, self-hostable gamification engine and infrastructure pla
 
 | Guide | Description |
 | :--- | :--- |
-| 🚀 [**Getting Started**](./getting-started.md) | Prerequisites, repository installation, local Docker setup, and `@gami/sdk` integration. |
+| 🚀 [**Getting Started**](./getting-started.md) | Prerequisites, repository installation, local Docker setup, and `@gami.fied/sdk` integration. |
 | 🔒 [**Authentication & Security**](./authentication-and-security.md) | Better Auth sessions, RBAC permissions, API Key management, Email OTP verification, and AES-256-GCM vault encryption. |
 | 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Event Ingestion API, Rules Evaluation Engine, XP Ledgers, Level Progression Curves, Achievements, Quests/Challenges, and Leaderboards. |
 | 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-App Notifications, Transactional SMTP Email Outbox, HMAC-signed Webhooks, and Discord Embed Integrations. |
@@ -30,7 +30,7 @@ gami-fied/
 │   └── dashboard/    # @gami/dashboard - Next.js 16 Control Console (Port 3000)
 ├── packages/
 │   ├── database/     # PostgreSQL Schema, Drizzle ORM & 22 Database Migrations
-│   ├── sdk/          # Isomorphic TypeScript SDK (@gami/sdk)
+│   ├── sdk/          # Isomorphic TypeScript SDK (@gami.fied/sdk)
 │   ├── rules/        # Event Evaluation Engine
 │   ├── progression/  # XP Calculations & Level Curves
 │   ├── challenges/   # Challenge Completion Processor

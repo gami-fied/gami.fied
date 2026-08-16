@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
 import { Building2, Shield, Calendar, Mail, User, Layers, Plus, Trash2 } from 'lucide-react';
 import { useDashboard } from '../context/dashboard-context';
-import type { OrganizationMemberRecord } from '@gami/sdk';
+import type { OrganizationMemberRecord } from '@gami.fied/sdk';
 
 interface MemberDetailsDrawerProps {
   member: OrganizationMemberRecord | null;

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { db, endUsers, member, projectMembers, runMigrations, userXpBalances } from '@gami/database';
-import { Gami } from '@gami/sdk';
+import { Gami } from '@gami.fied/sdk';
 import { eq, and } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';

@@ -17,7 +17,7 @@
 - 🎯 **Quests & Challenges**: Multi-step challenge progression with idempotent reward outbox processing.
 - 🔔 **Multi-Channel Delivery**: In-app notifications, transactional SMTP emails, webhooks (with HMAC SHA-256 signatures), and Discord embeds.
 - 🛡️ **Enterprise Security & Isolation**: Multi-tenant organization/project scoping, RBAC permissions, encrypted vault secrets (AES-256-GCM), and platform admin controls.
-- 💻 **Isomorphic TypeScript SDK**: Official `@gami/sdk` with automatic retries, strict typing, and zero runtime dependencies.
+- 💻 **Isomorphic TypeScript SDK**: Official `@gami.fied/sdk` with automatic retries, strict typing, and zero runtime dependencies.
 
 ---
 
@@ -31,7 +31,7 @@ gami-fied/
 │   └── dashboard/    # Next.js 16 (App Router) control console (@gami/dashboard)
 ├── packages/
 │   ├── database/     # PostgreSQL schema, Drizzle ORM models & migrations
-│   ├── sdk/          # Isomorphic TypeScript Client (@gami/sdk)
+│   ├── sdk/          # Isomorphic TypeScript Client (@gami.fied/sdk)
 │   ├── rules/        # Event rules evaluation engine
 │   ├── progression/  # XP calculation & level curves engine
 │   ├── challenges/   # Challenge completion logic
@@ -93,18 +93,19 @@ This starts:
 
 ---
 
-## SDK Integration Example
+## SDK Quickstart
 
-Install `@gami/sdk` in your application:
+Install `@gami.fied/sdk` in your application:
 
 ```bash
-pnpm add @gami/sdk
+pnpm add @gami.fied/sdk
+# or npm install @gami.fied/sdk
 ```
 
-Initialize the client and ingest events:
+Initialize the client and record an event:
 
 ```typescript
-import { GamiClient } from '@gami/sdk';
+import { GamiClient } from '@gami.fied/sdk';
 
 const gami = new GamiClient({
   baseUrl: 'http://localhost:3001',

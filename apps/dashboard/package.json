@@ -16,7 +16,7 @@
     "@gami/config": "workspace:*",
     "@gami/leaderboards": "workspace:*",
     "@gami/rules": "workspace:*",
-    "@gami/sdk": "workspace:*",
+    "@gami.fied/sdk": "workspace:*",
     "@gami/types": "workspace:*",
     "@gami/ui": "workspace:*",
     "@gami/webhooks": "workspace:*",

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import http from 'http';
 import { db, runMigrations, webhookEndpoints, webhookOutbox } from '@gami/database';
-import { Gami } from '@gami/sdk';
+import { Gami } from '@gami.fied/sdk';
 import { verifyHmacSignature } from '@gami/webhooks';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

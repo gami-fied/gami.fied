@@ -30,7 +30,7 @@ import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { Input, Textarea } from '@/components/ui/input';
 import { Checklist, ChecklistItem } from '@/components/ui/checklist';
-import type { DiscordEmbedField, DiscordEmbedTemplate, IntegrationDeliveryRecord, IntegrationRecord } from '@gami/sdk';
+import type { DiscordEmbedField, DiscordEmbedTemplate, IntegrationDeliveryRecord, IntegrationRecord } from '@gami.fied/sdk';
 
 const EVENT_CHECKLIST_ITEMS: ChecklistItem<string>[] = [
   {

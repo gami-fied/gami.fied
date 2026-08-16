@@ -5,7 +5,7 @@ import { useDashboard } from '../context/dashboard-context';
 import { useWebhooks } from '@/hooks/use-webhooks';
 import { Checklist, ChecklistItem } from '@/components/ui/checklist';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
-import type { SdkWebhookEventType, WebhookDeliveryRecord, WebhookEndpointRecord } from '@gami/sdk';
+import type { SdkWebhookEventType, WebhookDeliveryRecord, WebhookEndpointRecord } from '@gami.fied/sdk';
 
 const WEBHOOK_EVENT_ITEMS: ChecklistItem<SdkWebhookEventType>[] = [
   {

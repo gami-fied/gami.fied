@@ -17,7 +17,7 @@ import { useDashboard } from '../context/dashboard-context';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { InviteModal } from './invite-modal';
-import type { OrganizationInvitationRecord } from '@gami/sdk';
+import type { OrganizationInvitationRecord } from '@gami.fied/sdk';
 
 export function InvitationsView() {
   const { selectedOrg } = useDashboard();

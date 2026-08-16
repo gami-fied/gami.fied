@@ -90,7 +90,7 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
-      '@gami/sdk':
+      '@gami.fied/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       '@types/node':
@@ -108,6 +108,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@gami.fied/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@gami/challenges':
         specifier: workspace:*
         version: link:../../packages/challenges
@@ -120,9 +123,6 @@ importers:
       '@gami/rules':
         specifier: workspace:*
         version: link:../../packages/rules
-      '@gami/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
       '@gami/types':
         specifier: workspace:*
         version: link:../../packages/types

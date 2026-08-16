@@ -6,7 +6,7 @@ import type {
   UpdateWebhookParams,
   WebhookDeliveryRecord,
   WebhookEndpointRecord,
-} from '@gami/sdk';
+} from '@gami.fied/sdk';
 
 export function useWebhooks(projectId: string | null) {
   const [endpoints, setEndpoints] = useState<WebhookEndpointRecord[]>([]);

@@ -303,7 +303,7 @@ export function OverviewView() {
             <div className="flex items-center gap-2">
               <Code2 className="w-5 h-5 text-orange-400" />
               <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider font-mono">
-                TypeScript / JS SDK Integration (@gami/sdk)
+                TypeScript / JS SDK Integration (@gami.fied/sdk)
               </CardTitle>
             </div>
             <Badge variant="orange">v0.1.0 Ready</Badge>
@@ -321,7 +321,7 @@ export function OverviewView() {
                 1. Install Package
               </span>
               <pre className="p-2 bg-zinc-900 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto rounded-none">
-                pnpm add @gami/sdk
+                pnpm add @gami.fied/sdk
               </pre>
             </div>
 
@@ -331,7 +331,7 @@ export function OverviewView() {
                 2. Initialize Client
               </span>
               <pre className="p-2 bg-zinc-900 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto rounded-none">
-                {`import { Gami } from '@gami/sdk';\nconst gami = new Gami({ apiKey: process.env.GAMI_API_KEY! });`}
+                {`import { Gami } from '@gami.fied/sdk';\nconst gami = new Gami({ apiKey: process.env.GAMI_API_KEY! });`}
               </pre>
             </div>
           </div>

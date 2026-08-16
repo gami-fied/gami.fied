@@ -23,7 +23,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Dropdown } from '@/components/ui/dropdown';
 import { InviteModal } from './invite-modal';
 import { MemberDetailsDrawer } from './member-details-drawer';
-import type { OrganizationMemberRecord } from '@gami/sdk';
+import type { OrganizationMemberRecord } from '@gami.fied/sdk';
 
 export function MembersView() {
   const { selectedOrg, session } = useDashboard();

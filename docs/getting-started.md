@@ -1,6 +1,6 @@
 # Getting Started & Quickstart
 
-This guide covers setting up **Gami Community Edition** locally, starting infrastructure services, running database migrations, and integrating your application using `@gami/sdk`.
+This guide covers setting up **Gami.Fied Community Edition** locally, starting infrastructure services, running database migrations, and integrating your application using `@gami.fied/sdk`.
 
 ---
 
@@ -84,20 +84,20 @@ pnpm --filter @gami/api admin:promote --email admin@example.com
 
 ---
 
-## 5. Integrating with `@gami/sdk`
+## 5. Integrating with `@gami.fied/sdk`
 
-Gami provides an isomorphic TypeScript SDK (`@gami/sdk`) that works in Node.js, Next.js, Express, and backend services.
+Gami.Fied provides an isomorphic TypeScript SDK (`@gami.fied/sdk`) that works in Node.js, Next.js, Express, and backend services.
 
 ### Installation
 
 ```bash
-pnpm add @gami/sdk
+pnpm add @gami.fied/sdk
 ```
 
 ### Initializing Client
 
 ```typescript
-import { GamiClient } from '@gami/sdk';
+import { GamiClient } from '@gami.fied/sdk';
 
 const gami = new GamiClient({
   baseUrl: 'http://localhost:3001',
