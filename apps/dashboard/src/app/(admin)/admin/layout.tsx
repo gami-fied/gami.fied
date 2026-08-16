@@ -196,7 +196,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <div>
             <span className="text-sm font-bold uppercase tracking-wider text-white">
-              Gami Platform Administration
+              Gami.Fied Platform Administration
             </span>
             <span className="ml-2.5 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 border border-rose-800 bg-rose-950/40 text-rose-400">
               Platform Admin Scope

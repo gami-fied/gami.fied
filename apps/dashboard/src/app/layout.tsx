@@ -18,7 +18,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Gami-fied Dashboard',
+  title: 'Gami.Fied Dashboard',
   description: 'Gamification Infrastructure Control Center',
 };
 

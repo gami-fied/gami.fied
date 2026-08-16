@@ -167,10 +167,10 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
           {!isCollapsed && (
             <div className="overflow-hidden">
               <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap block leading-none font-mono">
-                Gami-fied
+                Gami.Fied
               </span>
               <span className="text-[10px] text-orange-400 font-semibold tracking-widest uppercase whitespace-nowrap block mt-0.5 font-mono">
-                Game Engine
+                Community Engine
               </span>
             </div>
           )}

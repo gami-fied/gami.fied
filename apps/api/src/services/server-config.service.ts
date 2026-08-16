@@ -10,7 +10,7 @@ export const smtpConfigSchema = z.object({
   user: z.string().optional().default(''),
   encryptedPassword: z.string().optional().default(''),
   fromEmail: z.string().email('Invalid from email address'),
-  fromName: z.string().optional().default('Gami Engine'),
+  fromName: z.string().optional().default('Gami.Fied Engine'),
   secure: z.boolean().optional().default(false),
 });
 

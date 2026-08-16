@@ -81,7 +81,7 @@ export function OnboardingFlow() {
               <Sparkles className="w-6 h-6" />
             </div>
             <CardTitle className="text-xl font-bold tracking-tight text-zinc-100 font-mono">
-              {step === 'create-org' ? 'Welcome to Gami Community' : 'Create Your First Project'}
+              {step === 'create-org' ? 'Welcome to Gami.Fied Community' : 'Create Your First Project'}
             </CardTitle>
             <CardDescription className="text-xs text-zinc-400 max-w-sm mx-auto mt-1">
               {step === 'create-org'

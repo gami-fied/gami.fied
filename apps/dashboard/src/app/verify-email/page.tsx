@@ -192,7 +192,7 @@ export default function VerifyEmailPage() {
         </Card>
 
         <div className="text-center text-[10px] text-zinc-600">
-          Gami Engine Security &amp; Identity Verification Subsystem
+          Gami.Fied Engine Security &amp; Identity Verification Subsystem
         </div>
       </div>
     </div>

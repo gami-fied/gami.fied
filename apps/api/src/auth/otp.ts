@@ -69,7 +69,7 @@ export async function sendOtpEmailToUser(email: string): Promise<{ otpCode: stri
 
       await provider.sendEmail({
         to: targetEmail,
-        subject: `🔐 [Gami Platform] Your Account Verification OTP Code: ${otpCode}`,
+        subject: `🔐 [Gami.Fied Platform] Your Account Verification OTP Code: ${otpCode}`,
         html: `
           <div style="font-family: monospace; background-color: #09090b; color: #f4f4f5; padding: 24px; border: 1px solid #27272a;">
             <h2 style="color: #f97316; margin-top: 0;">ACCOUNT VERIFICATION OTP</h2>
@@ -80,7 +80,7 @@ export async function sendOtpEmailToUser(email: string): Promise<{ otpCode: stri
             <p style="font-size: 12px; color: #71717a;">This security code expires in 15 minutes. Transactional email security notice: Security &amp; OTP verification emails are mandatory and cannot be unsubscribed.</p>
           </div>
         `,
-        text: `Your Gami Engine OTP verification code is: ${otpCode}. Expires in 15 minutes.`,
+        text: `Your Gami.Fied Engine OTP verification code is: ${otpCode}. Expires in 15 minutes.`,
       });
     } catch (err) {
       console.error('[OTP] Error dispatching SMTP OTP email:', err);

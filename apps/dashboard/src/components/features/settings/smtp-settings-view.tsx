@@ -18,7 +18,7 @@ export function SmtpSettingsView() {
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
   const [fromEmail, setFromEmail] = useState('');
-  const [fromName, setFromName] = useState('Gami Engine');
+  const [fromName, setFromName] = useState('Gami.Fied Engine');
   const [secure, setSecure] = useState(false);
 
   const [testEmailAddress, setTestEmailAddress] = useState('');
@@ -32,7 +32,7 @@ export function SmtpSettingsView() {
       setPort(status.port || 587);
       setUser(status.user || '');
       setFromEmail(status.fromEmail || '');
-      setFromName(status.fromName || 'Gami Engine');
+      setFromName(status.fromName || 'Gami.Fied Engine');
       setSecure(Boolean(status.secure));
     }
   }, [status]);

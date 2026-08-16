@@ -227,13 +227,13 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
     try {
       await provider.sendEmail({
         to: recipientEmail,
-        subject: '⚡ [Gami Engine] SMTP Connection Verification Test',
+        subject: '⚡ [Gami.Fied Engine] SMTP Connection Verification Test',
         html: `<div style="font-family: monospace; padding: 20px; background: #18181b; color: #f4f4f5; border: 1px solid #27272a;">
-          <h2 style="color: #10b981; margin-top: 0;">⚡ Gami SMTP Connection Verification Test</h2>
-          <p>Your Gami Engine SMTP notification server configuration is working correctly!</p>
+          <h2 style="color: #10b981; margin-top: 0;">⚡ Gami.Fied SMTP Connection Verification Test</h2>
+          <p>Your Gami.Fied Engine SMTP notification server configuration is working correctly!</p>
           <p style="color: #71717a; font-size: 11px;">Timestamp: ${new Date().toISOString()}</p>
         </div>`,
-        text: `[Gami Engine] SMTP Connection Verification Test\n\nYour Gami Engine SMTP notification server configuration is working correctly!\nTimestamp: ${new Date().toISOString()}`,
+        text: `[Gami.Fied Engine] SMTP Connection Verification Test\n\nYour Gami.Fied Engine SMTP notification server configuration is working correctly!\nTimestamp: ${new Date().toISOString()}`,
       });
 
       try {

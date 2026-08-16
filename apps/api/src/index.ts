@@ -68,7 +68,7 @@ export async function buildServer() {
   // Root route
   fastify.get('/', async (_request, reply) => {
     return reply.status(200).send({
-      name: 'Gami Community Engine API',
+      name: 'Gami.Fied Community Engine API',
       version: '0.1.0',
       status: 'online',
       health: '/health',
