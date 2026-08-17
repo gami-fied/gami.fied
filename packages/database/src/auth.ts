@@ -4,11 +4,23 @@ import { organization } from 'better-auth/plugins';
 import { db } from './client.js';
 import * as schema from './schema/index.js';
 
+const trustedOrigins = Array.from(
+  new Set(
+    [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env['NEXT_PUBLIC_APP_URL'],
+      process.env['BETTER_AUTH_URL'],
+      ...(process.env['TRUSTED_ORIGINS'] ? process.env['TRUSTED_ORIGINS'].split(',').map((s) => s.trim()) : []),
+    ].filter(Boolean) as string[]
+  )
+);
+
 export const auth = betterAuth({
   secret:
     process.env['BETTER_AUTH_SECRET'] || 'super-secret-auth-key-123456789-default-key-for-dev',
   baseURL: process.env['BETTER_AUTH_URL'] || 'http://localhost:3001',
-  trustedOrigins: ['http://localhost:3000', 'http://localhost:3001'],
+  trustedOrigins,
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {
