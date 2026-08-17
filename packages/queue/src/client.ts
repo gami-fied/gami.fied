@@ -7,14 +7,21 @@ let eventQueue: Queue | null = null;
 
 export function getRedisConnection(): Redis {
   if (!redisClient) {
-    const cfg = getQueueConfig();
-    redisClient = new Redis({
-      host: cfg.redisHost,
-      port: cfg.redisPort,
-      password: cfg.redisPassword,
-      maxRetriesPerRequest: null,
-      enableOfflineQueue: false, // Fail fast if Redis is down for fail-open rate limiting
-    });
+    if (process.env['REDIS_URL']) {
+      redisClient = new Redis(process.env['REDIS_URL'], {
+        maxRetriesPerRequest: null,
+        enableOfflineQueue: false,
+      });
+    } else {
+      const cfg = getQueueConfig();
+      redisClient = new Redis({
+        host: cfg.redisHost,
+        port: cfg.redisPort,
+        password: cfg.redisPassword,
+        maxRetriesPerRequest: null,
+        enableOfflineQueue: false, // Fail fast if Redis is down for fail-open rate limiting
+      });
+    }
   }
   return redisClient;
 }

@@ -14,10 +14,25 @@ export function getQueueConfig(): QueueConfig {
   const isTest = process.env['NODE_ENV'] === 'test' || Boolean(process.env['VITEST']);
   const defaultQueueName = isTest ? 'gami-events-test' : 'gami-events';
 
+  let redisHost = process.env['REDIS_HOST'] || 'localhost';
+  let redisPort = Number(process.env['REDIS_PORT']) || 6379;
+  let redisPassword = process.env['REDIS_PASSWORD'] || undefined;
+
+  if (process.env['REDIS_URL']) {
+    try {
+      const parsed = new URL(process.env['REDIS_URL']);
+      redisHost = parsed.hostname || redisHost;
+      if (parsed.port) redisPort = Number(parsed.port);
+      if (parsed.password) redisPassword = decodeURIComponent(parsed.password);
+    } catch {
+      // Fallback to individual variables if URL parsing fails
+    }
+  }
+
   return {
-    redisHost: process.env['REDIS_HOST'] || 'localhost',
-    redisPort: Number(process.env['REDIS_PORT']) || 6379,
-    redisPassword: process.env['REDIS_PASSWORD'] || undefined,
+    redisHost,
+    redisPort,
+    redisPassword,
     queueName: process.env['BULLMQ_QUEUE_NAME'] || defaultQueueName,
     attempts: Number(process.env['BULLMQ_ATTEMPTS']) || 3,
     backoffDelay: Number(process.env['BULLMQ_BACKOFF_DELAY']) || 1000,
