@@ -13,7 +13,7 @@ export async function runMigrations() {
   console.log('[database] Migrations applied successfully.');
 }
 
-if (process.argv[1]?.endsWith('migrate.ts')) {
+if (process.argv[1]?.includes('migrate')) {
   runMigrations()
     .then(() => closeDatabaseConnection())
     .catch((err) => {

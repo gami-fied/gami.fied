@@ -7,7 +7,7 @@ FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @gami/worker build
+RUN pnpm build
 
 FROM base AS runner
 WORKDIR /app

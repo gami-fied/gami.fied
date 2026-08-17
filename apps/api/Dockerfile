@@ -7,7 +7,7 @@ FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @gami/api build
+RUN pnpm build
 
 FROM base AS runner
 WORKDIR /app
@@ -19,6 +19,6 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app /app
 
 USER nodejs
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["node", "apps/api/dist/index.js"]

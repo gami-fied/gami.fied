@@ -41,6 +41,21 @@ services:
     networks:
       - gami-network
 
+  migration:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: gami-migration
+    command: ["pnpm", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD:-gami_dev_password}@postgres:5432/${POSTGRES_DB:-gami_community}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gami-network
+
   api:
     build:
       context: .
@@ -63,6 +78,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     networks:
       - gami-network
 
@@ -84,6 +101,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
       api:
         condition: service_started
     networks:

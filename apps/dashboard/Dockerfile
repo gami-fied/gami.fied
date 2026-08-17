@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile
 # It must be passed at build time because next.config.mjs is evaluated during `next build`.
 ARG API_URL=http://api:3001
 ENV API_URL=${API_URL}
-RUN pnpm --filter @gami/dashboard build
+RUN pnpm build
 
 FROM base AS runner
 WORKDIR /app
