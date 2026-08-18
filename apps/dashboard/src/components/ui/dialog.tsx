@@ -12,7 +12,7 @@ export interface DialogProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
 const maxWidthClasses = {
@@ -21,6 +21,7 @@ const maxWidthClasses = {
   lg: 'max-w-lg',
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
   '4xl': 'max-w-4xl',
 };
 
@@ -31,7 +32,7 @@ export function Dialog({
   description,
   children,
   footer,
-  maxWidth = 'lg',
+  maxWidth = '3xl',
 }: DialogProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -124,7 +125,7 @@ export function ConfirmDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      maxWidth="md"
+      maxWidth="lg"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>
