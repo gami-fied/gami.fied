@@ -75,6 +75,7 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3001}
       ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      PLATFORM_BOOTSTRAP_SECRET: ${PLATFORM_BOOTSTRAP_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,7 +129,6 @@ services:
       PORT: 3000
       API_URL: http://api:3001
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
-      PLATFORM_BOOTSTRAP_SECRET: ${PLATFORM_BOOTSTRAP_SECRET:-your-secure-bootstrap-secret-token}
       NODE_ENV: production
     depends_on:
       api:
