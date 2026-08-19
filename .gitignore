@@ -8,6 +8,8 @@ dist/
 out/
 build/
 .turbo/
+*.tsbuildinfo
+.vitest/
 
 # Environment files
 .env
@@ -15,6 +17,11 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
+
+# Runtime storage & platform backup artifacts
+storage/
+*.enc
 
 # Logs
 *.log
@@ -30,6 +37,7 @@ pnpm-debug.log*
 *.swo
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Temporary files and test artifacts
 .tmp/
@@ -38,5 +46,3 @@ coverage/
 .nyc_output/
 .gemini/
 .brain/
-*.log
-
