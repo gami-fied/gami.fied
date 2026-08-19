@@ -7,10 +7,8 @@ import { ToastProvider } from '@/components/ui/toast';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      <DashboardProvider>
-        <DashboardShell>{children}</DashboardShell>
-      </DashboardProvider>
-    </ToastProvider>
+    <DashboardProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </DashboardProvider>
   );
 }

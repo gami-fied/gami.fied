@@ -34,9 +34,9 @@ export class GamiError extends Error {
 export class GamiAuthenticationError extends GamiError {
   constructor(
     message = 'Authentication failed. Check your API key.',
-    options?: { requestId?: string; details?: unknown }
+    options?: { code?: string; requestId?: string; details?: unknown }
   ) {
-    super(message, { status: 401, code: 'UNAUTHORIZED', ...options });
+    super(message, { status: 401, code: options?.code || 'UNAUTHORIZED', ...options });
     this.name = 'GamiAuthenticationError';
     Object.setPrototypeOf(this, new.target.prototype);
   }
@@ -45,9 +45,9 @@ export class GamiAuthenticationError extends GamiError {
 export class GamiAuthorizationError extends GamiError {
   constructor(
     message = 'Forbidden. Insufficient permissions for this resource.',
-    options?: { requestId?: string; details?: unknown }
+    options?: { code?: string; requestId?: string; details?: unknown }
   ) {
-    super(message, { status: 403, code: 'FORBIDDEN', ...options });
+    super(message, { status: 403, code: options?.code || 'FORBIDDEN', ...options });
     this.name = 'GamiAuthorizationError';
     Object.setPrototypeOf(this, new.target.prototype);
   }
@@ -56,9 +56,9 @@ export class GamiAuthorizationError extends GamiError {
 export class GamiValidationError extends GamiError {
   constructor(
     message = 'Validation failed for request parameters.',
-    options?: { status?: number; requestId?: string; details?: unknown }
+    options?: { status?: number; code?: string; requestId?: string; details?: unknown }
   ) {
-    super(message, { status: options?.status || 400, code: 'BAD_REQUEST', ...options });
+    super(message, { status: options?.status || 400, code: options?.code || 'BAD_REQUEST', ...options });
     this.name = 'GamiValidationError';
     Object.setPrototypeOf(this, new.target.prototype);
   }
@@ -67,9 +67,9 @@ export class GamiValidationError extends GamiError {
 export class GamiNotFoundError extends GamiError {
   constructor(
     message = 'Resource not found.',
-    options?: { requestId?: string; details?: unknown }
+    options?: { code?: string; requestId?: string; details?: unknown }
   ) {
-    super(message, { status: 404, code: 'NOT_FOUND', ...options });
+    super(message, { status: 404, code: options?.code || 'NOT_FOUND', ...options });
     this.name = 'GamiNotFoundError';
     Object.setPrototypeOf(this, new.target.prototype);
   }

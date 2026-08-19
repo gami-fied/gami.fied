@@ -32,27 +32,44 @@ export async function eventRoutes(fastify: FastifyInstance) {
       });
     }
 
+    const reqId = (request as unknown as { requestId?: string }).requestId || 'req_event_ingest';
+
     // Authenticate API Key
     const rawApiKey = request.headers['x-api-key'] as string;
     if (!rawApiKey) {
       return reply.status(401).send({
-        error: 'Unauthorized',
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Missing x-api-key authentication header',
+          requestId: reqId,
+        },
         message: 'Missing x-api-key authentication header',
+        code: 'UNAUTHORIZED',
       });
     }
 
     const authResult = await authenticateApiKey(rawApiKey);
     if (!authResult) {
       return reply.status(401).send({
-        error: 'Unauthorized',
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or revoked API key',
+          requestId: reqId,
+        },
         message: 'Invalid or revoked API key',
+        code: 'UNAUTHORIZED',
       });
     }
 
     if (authResult.isSuspended) {
       return reply.status(403).send({
-        error: 'Forbidden',
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Organization account is suspended',
+          requestId: reqId,
+        },
         message: 'Organization account is suspended',
+        code: 'FORBIDDEN',
       });
     }
 
@@ -66,26 +83,85 @@ export async function eventRoutes(fastify: FastifyInstance) {
     const parseResult = eventIngestionSchema.safeParse(request.body);
     if (!parseResult.success) {
       return reply.status(400).send({
-        error: 'Bad Request',
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Invalid event request schema',
+          details: parseResult.error.format(),
+        },
         message: 'Invalid event request schema',
+        code: 'BAD_REQUEST',
         details: parseResult.error.format(),
       });
     }
 
+    const headerIdempotencyKey = request.headers['idempotency-key'] as string | undefined;
     const {
       event: eventType,
       user_id: externalUserId,
       payload,
       occurred_at: occurredAt,
-      idempotency_key: idempotencyKey,
+      idempotency_key: bodyIdempotencyKey,
     } = parseResult.data;
+
+    const rawKey = headerIdempotencyKey || bodyIdempotencyKey;
+    const idempotencyKey = rawKey ? rawKey.trim() : undefined;
+
+    if (idempotencyKey !== undefined) {
+      if (idempotencyKey.length === 0 || idempotencyKey.length > 128) {
+        return reply.status(400).send({
+          error: {
+            code: 'BAD_REQUEST',
+            message: 'Idempotency-Key must be between 1 and 128 characters',
+          },
+          message: 'Idempotency-Key must be between 1 and 128 characters',
+          code: 'BAD_REQUEST',
+        });
+      }
+    }
 
     // Verify Payload JSON Size
     if (JSON.stringify(payload).length > 65536) {
       return reply.status(413).send({
-        error: 'Payload Too Large',
+        error: {
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'JSON payload size exceeds 64KB limit',
+        },
         message: 'JSON payload size exceeds 64KB limit',
+        code: 'PAYLOAD_TOO_LARGE',
       });
+    }
+
+    // Pre-check for existing idempotent request & payload collision
+    if (idempotencyKey) {
+      const [existingEvent] = await db
+        .select()
+        .from(events)
+        .where(and(eq(events.projectId, project.id), eq(events.idempotencyKey, idempotencyKey)));
+
+      if (existingEvent) {
+        const existingPayloadStr = JSON.stringify(existingEvent.payload || {});
+        const incomingPayloadStr = JSON.stringify(payload || {});
+        const isPayloadMatch =
+          existingEvent.type === eventType && existingPayloadStr === incomingPayloadStr;
+
+        if (!isPayloadMatch) {
+          return reply.status(409).send({
+            error: {
+              code: 'IDEMPOTENCY_KEY_MISMATCH',
+              message:
+                'The Idempotency-Key has already been used with a different request payload.',
+            },
+            message: 'The Idempotency-Key has already been used with a different request payload.',
+            code: 'IDEMPOTENCY_KEY_MISMATCH',
+          });
+        }
+
+        return reply.status(202).send({
+          id: existingEvent.id,
+          status: 'accepted',
+          duplicate: true,
+        });
+      }
     }
 
     // Concurrency-Safe End-User Resolution & Deactivation Check
@@ -99,8 +175,12 @@ export async function eventRoutes(fastify: FastifyInstance) {
       if (existingUser) {
         if (!existingUser.active) {
           return reply.status(403).send({
-            error: 'Forbidden',
+            error: {
+              code: 'FORBIDDEN',
+              message: 'User account is deactivated in this project',
+            },
             message: 'User account is deactivated in this project',
+            code: 'FORBIDDEN',
           });
         }
         internalUserId = existingUser.id;
@@ -124,8 +204,12 @@ export async function eventRoutes(fastify: FastifyInstance) {
         if (resolvedUser) {
           if (!resolvedUser.active) {
             return reply.status(403).send({
-              error: 'Forbidden',
+              error: {
+                code: 'FORBIDDEN',
+                message: 'User account is deactivated in this project',
+              },
               message: 'User account is deactivated in this project',
+              code: 'FORBIDDEN',
             });
           }
           internalUserId = resolvedUser.id;
@@ -156,6 +240,11 @@ export async function eventRoutes(fastify: FastifyInstance) {
             );
 
           if (existing) {
+            const existingPayloadStr = JSON.stringify(existing.payload || {});
+            const incomingPayloadStr = JSON.stringify(payload || {});
+            if (existing.type !== eventType || existingPayloadStr !== incomingPayloadStr) {
+              throw new Error('IDEMPOTENCY_KEY_MISMATCH');
+            }
             return {
               id: existing.id,
               status: 'accepted',
@@ -196,6 +285,18 @@ export async function eventRoutes(fastify: FastifyInstance) {
 
       return reply.status(202).send(result);
     } catch (err: unknown) {
+      if ((err as Error)?.message === 'IDEMPOTENCY_KEY_MISMATCH') {
+        return reply.status(409).send({
+          error: {
+            code: 'IDEMPOTENCY_KEY_MISMATCH',
+            message:
+              'The Idempotency-Key has already been used with a different request payload.',
+          },
+          message: 'The Idempotency-Key has already been used with a different request payload.',
+          code: 'IDEMPOTENCY_KEY_MISMATCH',
+        });
+      }
+
       const error = err as { code?: string };
       if (error.code === '23505' && idempotencyKey) {
         const [existingEvent] = await db
@@ -204,6 +305,21 @@ export async function eventRoutes(fastify: FastifyInstance) {
           .where(and(eq(events.projectId, project.id), eq(events.idempotencyKey, idempotencyKey)));
 
         if (existingEvent) {
+          const existingPayloadStr = JSON.stringify(existingEvent.payload || {});
+          const incomingPayloadStr = JSON.stringify(payload || {});
+          if (existingEvent.type !== eventType || existingPayloadStr !== incomingPayloadStr) {
+            return reply.status(409).send({
+              error: {
+                code: 'IDEMPOTENCY_KEY_MISMATCH',
+                message:
+                  'The Idempotency-Key has already been used with a different request payload.',
+              },
+              message:
+                'The Idempotency-Key has already been used with a different request payload.',
+              code: 'IDEMPOTENCY_KEY_MISMATCH',
+            });
+          }
+
           return reply.status(202).send({
             id: existingEvent.id,
             status: 'accepted',

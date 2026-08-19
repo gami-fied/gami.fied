@@ -3,3 +3,5 @@ export * from './health.js';
 export * from './schema/index.js';
 export * from './auth.js';
 export * from './migrate.js';
+export * from './analytics.js';
+

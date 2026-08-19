@@ -20,3 +20,5 @@ export * from './notification-preferences.js';
 export * from './email-notification-outbox.js';
 export * from './integrations.js';
 export * from './server-configs.js';
+export * from './platform-backups.js';
+

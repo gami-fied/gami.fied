@@ -842,4 +842,71 @@ export interface ProjectMemberRecord {
   image: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Analytics API Types
+// ---------------------------------------------------------------------------
+
+export type AnalyticsDateRangePreset = '24h' | '7d' | '30d' | '90d' | 'custom';
+
+export interface AnalyticsQueryOptions {
+  range?: AnalyticsDateRangePreset;
+  startDate?: string;
+  endDate?: string;
+  type?: 'overview' | 'users' | 'events' | 'xp' | 'achievements' | 'challenges';
+}
+
+export interface AnalyticsOverviewResponse {
+  projectId: string;
+  dateRange: { preset: AnalyticsDateRangePreset; startDate: string; endDate: string };
+  totalUsers: number;
+  activeUsers: number;
+  eventsProcessed: number;
+  xpAwarded: number;
+  achievementsUnlocked: number;
+  challengesCompleted: number;
+}
+
+export interface AnalyticsUsersResponse {
+  projectId: string;
+  dateRange: { preset: AnalyticsDateRangePreset; startDate: string; endDate: string };
+  totalUsers: number;
+  newUsers: number;
+  activeUsers: number;
+  userGrowthOverTime: Array<{ date: string; count: number }>;
+}
+
+export interface AnalyticsEventsResponse {
+  projectId: string;
+  dateRange: { preset: AnalyticsDateRangePreset; startDate: string; endDate: string };
+  totalEvents: number;
+  eventVolumeOverTime: Array<{ date: string; count: number }>;
+  topEventTypes: Array<{ type: string; count: number }>;
+}
+
+export interface AnalyticsGamificationResponse {
+  projectId: string;
+  dateRange: { preset: AnalyticsDateRangePreset; startDate: string; endDate: string };
+  totalXpAwarded: number;
+  avgXpPerUser: number;
+  xpAwardedOverTime: Array<{ date: string; totalXp: number }>;
+  topAchievements: Array<{ id: string; name: string; unlockedCount: number }>;
+  challenges: { started: number; completed: number; completionRatePercent: number };
+  topTriggeredRules: Array<{ id: string; name: string; trigger: string; executionCount: number }>;
+}
+
+export interface AnalyticsNotificationsResponse {
+  projectId: string;
+  dateRange: { preset: AnalyticsDateRangePreset; startDate: string; endDate: string };
+  inAppNotificationsGenerated: number;
+  outbox: { pending: number; completed: number; failed: number };
+}
+
+export interface AnalyticsIntegrationsResponse {
+  projectId: string;
+  dateRange: { preset: AnalyticsDateRangePreset; startDate: string; endDate: string };
+  webhooks: { delivered: number; failed: number };
+  integrations: { delivered: number; failed: number };
+}
+
+
 

@@ -1,5 +1,6 @@
 {
-  "name": "gami-community-root",
+  "name": "gami-fied",
+  "version": "1.0.0-rc.1",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -25,7 +26,13 @@
     "db:generate": "pnpm --filter @gami/database db:generate",
     "db:migrate": "pnpm --filter @gami/database db:migrate",
     "db:seed": "pnpm --filter @gami/database db:seed",
-    "admin:promote": "pnpm --filter @gami/database admin:promote"
+    "admin:promote": "pnpm --filter @gami/database admin:promote",
+    "backup:create": "tsx scripts/backup-cli.ts create",
+    "backup:list": "tsx scripts/backup-cli.ts list",
+    "backup:verify": "tsx scripts/backup-cli.ts verify",
+    "backup:restore": "tsx scripts/backup-cli.ts restore",
+    "org:export": "tsx scripts/org-data-cli.ts export",
+    "org:import": "tsx scripts/org-data-cli.ts import"
   },
   "packageManager": "pnpm@11.18.0",
   "devDependencies": {

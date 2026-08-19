@@ -138,7 +138,12 @@ export class HttpClient {
         }
 
         // Parse Error Response Body
-        let errorData: { error?: string; message?: string; details?: unknown } = {};
+        let errorData: {
+          error?: string | { code?: string; message?: string; requestId?: string; details?: unknown };
+          message?: string;
+          code?: string;
+          details?: unknown;
+        } = {};
         try {
           const errText = await response.text();
           if (errText) {
@@ -148,34 +153,52 @@ export class HttpClient {
           // Non-JSON response
         }
 
+        const nestedObj =
+          typeof errorData.error === 'object' && errorData.error !== null ? errorData.error : undefined;
+
         const requestId =
-          response.headers.get('x-request-id') || response.headers.get('request-id') || undefined;
+          response.headers.get('x-request-id') ||
+          response.headers.get('request-id') ||
+          nestedObj?.requestId ||
+          undefined;
+
+        const errorCode = nestedObj?.code || errorData.code;
 
         const rawMsg =
+          nestedObj?.message ||
           errorData.message ||
-          errorData.error ||
+          (typeof errorData.error === 'string' ? errorData.error : undefined) ||
           `HTTP request failed with status ${response.status}`;
         const cleanMsg = sanitizeMessage(rawMsg);
+
+        const details = nestedObj?.details || errorData.details;
 
         // Map HTTP Status to Typed SDK Error Class
         let sdkError: GamiError;
         if (response.status === 401) {
           sdkError = new GamiAuthenticationError(cleanMsg, {
             requestId,
-            details: errorData.details,
+            code: errorCode || 'UNAUTHORIZED',
+            details,
           });
         } else if (response.status === 403) {
           sdkError = new GamiAuthorizationError(cleanMsg, {
             requestId,
-            details: errorData.details,
+            code: errorCode || 'FORBIDDEN',
+            details,
           });
         } else if (response.status === 404) {
-          sdkError = new GamiNotFoundError(cleanMsg, { requestId, details: errorData.details });
+          sdkError = new GamiNotFoundError(cleanMsg, {
+            requestId,
+            code: errorCode || 'NOT_FOUND',
+            details,
+          });
         } else if (response.status === 400 || response.status === 422) {
           sdkError = new GamiValidationError(cleanMsg, {
             status: response.status,
             requestId,
-            details: errorData.details,
+            code: errorCode || 'BAD_REQUEST',
+            details,
           });
         } else if (response.status === 429) {
           const retryHeader = response.headers.get('retry-after');

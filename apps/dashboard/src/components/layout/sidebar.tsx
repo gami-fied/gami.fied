@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useDashboard } from '../features/context/dashboard-context';
 import {
   LayoutDashboard,
+  BarChart3,
   Activity,
   Zap,
   Coins,
@@ -24,7 +25,11 @@ import {
   Blocks,
   Server,
   History,
+  Code2 as Code2Icon,
+  FileText as FileTextIcon,
   Settings as SettingsIcon,
+  Database,
+  FolderLock,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -63,6 +68,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       label: 'GAMIFICATION',
       theme: 'orange',
       items: [
+        { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
         { name: 'Events', href: '/dashboard/events', icon: Activity },
         { name: 'Rules', href: '/dashboard/rules', icon: Zap },
         { name: 'XP', href: '/dashboard/xp', icon: Coins },
@@ -85,12 +91,15 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       items: [
         { name: 'Members', href: '/dashboard/organization/members', icon: Users },
         { name: 'Invitations', href: '/dashboard/organization/invitations', icon: UserPlus },
+        { name: 'Data Management', href: '/dashboard/organization/data', icon: FolderLock },
       ],
     },
     {
       label: 'DEVELOPER',
       theme: 'emerald',
       items: [
+        { name: 'Developer Hub', href: '/dashboard/developer', icon: Code2Icon },
+        { name: 'API Docs', href: '/dashboard/developer/docs', icon: FileTextIcon },
         { name: 'API Keys', href: '/dashboard/api-keys', icon: KeyRound },
         { name: 'Webhooks', href: '/dashboard/webhooks', icon: Webhook },
         { name: 'Integrations', href: '/dashboard/integrations', icon: Blocks },
@@ -196,7 +205,9 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
             {group.items.map((item) => {
               const isActive =
                 !item.disabled &&
-                (item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href));
+                (item.href === '/dashboard' || item.href === '/dashboard/developer'
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href));
               const Icon = item.icon;
               const themeStyles = getActiveStyles(group.theme);
 

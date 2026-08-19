@@ -1,4 +1,5 @@
 import { AchievementsResource } from './achievements.js';
+import { AnalyticsResource } from './analytics.js';
 import { AuditLogsResource } from './audit-logs.js';
 import { ChallengesResource } from './challenges.js';
 import { EventsResource } from './events.js';
@@ -30,6 +31,7 @@ export class Gami {
   public readonly organizations: OrganizationsResource;
   public readonly auditLogs: AuditLogsResource;
   public readonly system: SystemResource;
+  public readonly analytics: AnalyticsResource;
 
   constructor(config: GamiConfig) {
     this.http = new HttpClient(config);
@@ -47,5 +49,7 @@ export class Gami {
     this.organizations = new OrganizationsResource(this.http);
     this.auditLogs = new AuditLogsResource(this.http);
     this.system = new SystemResource(this.http);
+    this.analytics = new AnalyticsResource(this.http);
   }
 }
+

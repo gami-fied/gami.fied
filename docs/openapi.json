@@ -1,0 +1,172 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gami.Fied Community Edition API",
+    "version": "0.1.0",
+    "description": "Canonical developer and project-scoped API reference for Gami.Fied Community Engine."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Default Local Engine Instance"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Project Server-Side API Key (starts with gami_live_)"
+      },
+      "IdempotencyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "description": "Client-generated unique key for exact-once event ingestion"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": ["error", "message", "code"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "requestId"],
+            "properties": {
+              "code": { "type": "string", "example": "BAD_REQUEST" },
+              "message": { "type": "string", "example": "Invalid event request schema" },
+              "requestId": { "type": "string", "example": "req_1724001122_a1b2c3d4" },
+              "details": { "type": "object" }
+            }
+          },
+          "message": { "type": "string", "example": "Invalid event request schema" },
+          "code": { "type": "string", "example": "BAD_REQUEST" }
+        }
+      },
+      "EventIngestionRequest": {
+        "type": "object",
+        "required": ["event"],
+        "properties": {
+          "event": { "type": "string", "maxLength": 128, "example": "purchase" },
+          "user_id": { "type": "string", "maxLength": 128, "example": "user_123" },
+          "payload": { "type": "object", "example": { "amount": 4999, "currency": "USD" } },
+          "occurred_at": { "type": "string", "format": "date-time" },
+          "idempotency_key": { "type": "string", "maxLength": 128 }
+        }
+      },
+      "EventIngestionResponse": {
+        "type": "object",
+        "required": ["id", "status", "duplicate"],
+        "properties": {
+          "id": { "type": "string", "example": "evt_1724001122_a1b2c3d4" },
+          "status": { "type": "string", "example": "accepted" },
+          "duplicate": { "type": "boolean", "example": false }
+        }
+      },
+      "ProjectMetricsResponse": {
+        "type": "object",
+        "required": ["projectId", "projectName", "timestamp", "eventsIngested"],
+        "properties": {
+          "projectId": { "type": "string", "example": "prj_123" },
+          "projectName": { "type": "string", "example": "My Game Project" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "eventsIngested": { "type": "integer", "example": 42 },
+          "requests": {
+            "type": "object",
+            "properties": {
+              "received": { "type": "integer" },
+              "successful": { "type": "integer" },
+              "failed": { "type": "integer" },
+              "rateLimited": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Liveness Health Check",
+        "security": [],
+        "responses": {
+          "200": { "description": "Engine process is healthy" }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Readiness Dependency Probe",
+        "security": [],
+        "responses": {
+          "200": { "description": "PostgreSQL & Redis connected" },
+          "503": { "description": "Dependency unreachable" }
+        }
+      }
+    },
+    "/v1/events": {
+      "post": {
+        "summary": "Public Event Ingestion Endpoint",
+        "description": "Ingests a gamification event. Returns 202 Accepted upon enqueueing to the outbox for async processing.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": { "type": "string", "maxLength": 128 },
+            "required": false,
+            "description": "Canonical client-generated key for exact-once event execution."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventIngestionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Event accepted into outbox queue",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventIngestionResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid event schema or header" },
+          "401": { "description": "Missing or invalid API key" },
+          "403": { "description": "Organization suspended or user deactivated" },
+          "409": { "description": "Idempotency key reused with different payload" },
+          "413": { "description": "Payload exceeds 64KB size limit" },
+          "429": { "description": "Rate limit exceeded" }
+        }
+      }
+    },
+    "/api/projects/{projectId}/metrics": {
+      "get": {
+        "summary": "Project API Usage Metrics",
+        "parameters": [
+          { "in": "path", "name": "projectId", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project API metrics summary",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProjectMetricsResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

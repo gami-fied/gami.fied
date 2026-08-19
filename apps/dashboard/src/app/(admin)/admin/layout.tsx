@@ -75,6 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Overview', href: '/admin', icon: Server },
     { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
+    { name: 'Platform Backups', href: '/admin/backups', icon: Database },
     { name: 'Security', href: '/admin/security', icon: Lock },
     { name: 'Server Settings', href: '/admin/settings', icon: Settings },
     { name: 'Storage & Cleanup', href: '/admin/storage', icon: Database },

@@ -47,6 +47,45 @@ export class EventsResource {
   }
 
   /**
+   * Alias for track() providing developer-friendly property naming.
+   *
+   * @example
+   * ```ts
+   * await gami.events.ingest({
+   *   projectId: 'prj_123',
+   *   externalId: 'user_123',
+   *   event: 'purchase',
+   *   payload: { amount: 4999 }
+   * });
+   * ```
+   */
+  public async ingest(params: {
+    projectId: string;
+    externalId?: string;
+    userId?: string;
+    event?: string;
+    type?: string;
+    payload?: Record<string, unknown>;
+    properties?: Record<string, unknown>;
+    occurredAt?: string | Date;
+    idempotencyKey?: string;
+  }): Promise<EventIngestionResponse> {
+    const eventName = params.event || params.type;
+    if (!eventName) {
+      throw new Error('event (or type) is required for gami.events.ingest()');
+    }
+    return this.track({
+      projectId: params.projectId,
+      externalId: params.externalId,
+      userId: params.userId,
+      type: eventName,
+      properties: params.payload || params.properties,
+      occurredAt: params.occurredAt,
+      idempotencyKey: params.idempotencyKey,
+    });
+  }
+
+  /**
    * Replay an event for evaluation (Owner/Admin).
    * Calls POST /api/projects/:projectId/events/:eventId/replay
    */

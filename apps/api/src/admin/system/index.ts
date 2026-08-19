@@ -62,6 +62,9 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
     ]);
 
     const processSnapshot = processMetrics.getSnapshot();
+    const { listPlatformBackups } = await import('../backups/backup-service.js');
+    const allBackups = await listPlatformBackups();
+    const lastBackup = allBackups[0] || null;
 
     return reply.send({
       version: '0.1.0',
@@ -76,6 +79,13 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
         worker: workerStatus.status,
         workerAlive: workerStatus.alive,
         workerHeartbeat: workerStatus.heartbeat,
+        backupStatus: lastBackup ? lastBackup.status : 'none',
+      },
+      backups: {
+        totalCount: allBackups.length,
+        lastBackupAt: lastBackup?.createdAt || null,
+        lastBackupStatus: lastBackup?.status || null,
+        lastVerificationStatus: lastBackup?.verificationStatus || null,
       },
       counts: {
         organizations: orgCountRow?.count || 0,

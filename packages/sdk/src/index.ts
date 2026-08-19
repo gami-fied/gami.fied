@@ -95,6 +95,16 @@ export type {
   InviteMemberParams,
   OrganizationInvitationRecord,
   ProjectMemberRecord,
+  AnalyticsDateRangePreset,
+  AnalyticsQueryOptions,
+  AnalyticsOverviewResponse,
+  AnalyticsUsersResponse,
+  AnalyticsEventsResponse,
+  AnalyticsGamificationResponse,
+  AnalyticsNotificationsResponse,
+  AnalyticsIntegrationsResponse,
 } from './types.js';
+export { AnalyticsResource } from './analytics.js';
 export { IntegrationsResource } from './integrations.js';
 export { OrganizationsResource } from './organizations.js';
+

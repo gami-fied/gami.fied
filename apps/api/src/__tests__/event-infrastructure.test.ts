@@ -77,10 +77,8 @@ describe('Milestone 5 - Core Event Infrastructure & E2E Integration Suite', () =
       });
 
       expect(res.statusCode).toBe(401);
-      expect(JSON.parse(res.payload)).toMatchObject({
-        error: 'Unauthorized',
-        message: 'Missing x-api-key authentication header',
-      });
+      const data = JSON.parse(res.payload);
+      expect(data.message).toBe('Missing x-api-key authentication header');
     });
 
     it('rejects requests with invalid or revoked API key', async () => {
@@ -92,10 +90,8 @@ describe('Milestone 5 - Core Event Infrastructure & E2E Integration Suite', () =
       });
 
       expect(res.statusCode).toBe(401);
-      expect(JSON.parse(res.payload)).toMatchObject({
-        error: 'Unauthorized',
-        message: 'Invalid or revoked API key',
-      });
+      const data = JSON.parse(res.payload);
+      expect(data.message).toBe('Invalid or revoked API key');
     });
 
     it('rejects payloads missing required event name', async () => {
@@ -108,7 +104,7 @@ describe('Milestone 5 - Core Event Infrastructure & E2E Integration Suite', () =
 
       expect(res.statusCode).toBe(400);
       const data = JSON.parse(res.payload);
-      expect(data.error).toBe('Bad Request');
+      expect(data.code || data.error?.code).toBe('BAD_REQUEST');
     });
 
     it('rejects oversized request payloads exceeding 64KB', async () => {

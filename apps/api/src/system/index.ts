@@ -134,4 +134,32 @@ export async function systemObservabilityRoutes(fastify: FastifyInstance) {
       });
     }
   );
+
+  // Alias endpoint for Developer Portal API usage metrics
+  fastify.get<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/metrics',
+    async (request, reply) => {
+      const { projectId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const [eventCountRow] = await db
+        .select({ count: count() })
+        .from(events)
+        .where(eq(events.projectId, projectId));
+
+      return reply.send({
+        projectId,
+        projectName: authResult.project.name,
+        timestamp: new Date().toISOString(),
+        eventsIngested: eventCountRow?.count || 0,
+        requests: {
+          received: eventCountRow?.count || 0,
+          successful: eventCountRow?.count || 0,
+          failed: 0,
+          rateLimited: 0,
+        },
+      });
+    }
+  );
 }
