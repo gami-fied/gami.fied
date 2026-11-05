@@ -26,8 +26,6 @@ interface OpenApiSpec {
   >;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 // Shown only until the real spec loads, so this page can't drift from the API.
 const DEFAULT_SPEC: OpenApiSpec = {
   openapi: '3.1.0',
@@ -42,7 +40,7 @@ export default function ApiDocsPage() {
 
   const fetchSpec = () => {
     setLoading(true);
-    fetch(`${API_URL}/openapi.json`)
+    fetch('/openapi.json')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.paths) {
@@ -90,7 +88,7 @@ export default function ApiDocsPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <a
-            href={`${API_URL}/openapi.json`}
+            href="/openapi.json"
             target="_blank"
             rel="noreferrer"
             className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold flex items-center gap-2 transition"

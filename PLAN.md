@@ -26,7 +26,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 2 | Core engine correctness | 32 / 32 | Done |
 | 3 | Make every promise true | 22 / 26 | In progress, 4 partly done |
 | 4 | Developer experience | 9 / 16 | In progress, 3 partly done |
-| 5 | Dashboard UI and UX | 0 / 36 | Not started |
+| 5 | Dashboard UI and UX | 13 / 37 | In progress, 3 partly done |
 | 6 | Scale and operations | 0 / 13 | Not started |
 | 7 | New product features | 0 / 26 | Not started |
 | 8 | Launch and community | 0 / 11 | Not started |
@@ -339,26 +339,26 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 5.1 Foundations
 
-- [ ] **UX-01** `P1` Project selection is lost on refresh. There is no `localStorage` or URL state, so a user always lands on the first org and project. Put org and project in the URL, for example `/o/:org/p/:project/rules`. This also fixes deep links.
-- [ ] **UX-02** `P1` Confirmed live: unknown URLs show the default Next.js 404. Add `error.tsx`, `not-found.tsx`, `loading.tsx` and `global-error.tsx`. None exist, so a render error shows a blank or default page.
+- [~] **UX-01** `P1` Project selection is lost on refresh. There is no `localStorage` or URL state, so a user always lands on the first org and project. Put org and project in the URL, for example `/o/:org/p/:project/rules`. This also fixes deep links. The selection now survives a refresh through `localStorage`. Left: org and project in the URL for deep links.
+- [x] **UX-02** `P1` Confirmed live: unknown URLs show the default Next.js 404. Add `error.tsx`, `not-found.tsx`, `loading.tsx` and `global-error.tsx`. None exist, so a render error shows a blank or default page.
 - [ ] **UX-03** `P1` Errors are silently hidden. There are 83 `catch {}` blocks, and failed reads often look like empty data. Show a clear error with a retry on every screen.
 - [ ] **UX-04** `P1` Adopt TanStack Query or SWR. There are 129 hand-written `fetch` calls in 45 files, with no caching, deduping or shared error handling.
 - [ ] **UX-05** `P2` Add a typed API client, reusing types from the SDK.
 - [ ] **UX-06** `P2` Split the largest views: integrations (1,272 lines), users (1,022), webhooks (872), rules (838).
 - [ ] **UX-07** `P2` Move auth checks into Next middleware, so protected pages stop flashing a loading screen before redirecting.
-- [ ] **UX-08** `P2` Fix the platform admin check. `isPlatformAdmin` is read from the session, but Better Auth is not configured to expose it, so admins without an org role are treated as members in the shell.
+- [x] **UX-08** `P2` Fix the platform admin check. `isPlatformAdmin` is read from the session, but Better Auth is not configured to expose it, so admins without an org role are treated as members in the shell.
 
 ### 5.2 Consistency
 
-- [ ] **UX-09** `P1` Replace native `alert()` and `confirm()`, used more than 20 times, with the existing `Dialog` and toast components.
-- [ ] **UX-10** `P1` Confirmed live: an organization owner sees a red "Platform administrator authorization required" banner above the form. Move `/dashboard/settings`, which shows platform SMTP config, to admin. It should hold project and org settings. Its access-denied copy already describes those.
+- [x] **UX-09** `P1` Replace native `alert()` and `confirm()`, used more than 20 times, with the existing `Dialog` and toast components.
+- [x] **UX-10** `P1` Confirmed live: an organization owner sees a red "Platform administrator authorization required" banner above the form. Move `/dashboard/settings`, which shows platform SMTP config, to admin. It should hold project and org settings. Its access-denied copy already describes those.
 - [ ] **UX-11** `P2` Define design tokens for colour, spacing and type, and use them everywhere. Colours are currently ad hoc across orange, emerald, amber, cyan, rose and purple.
 - [ ] **UX-12** `P2` Fix typography. Space Grotesk is loaded, but the shell forces `font-mono` everywhere, with heavy use of uppercase and very small text. Use sans for UI and mono for code and IDs.
 - [ ] **UX-13** `P2` Standardise corners and modal patterns. Corners mix `rounded-none` and other radii, and 7 files build their own overlays with `fixed inset-0`.
-- [ ] **UX-14** `P2` Align terms. For example "Leaderboard" and "Leaderboards", "Delivery Health" and "System", "Challenges" and "Quests", plus the name in DEC-2.
-- [ ] **UX-15** `P2` Remove references to things that do not exist: Slack in access copy, "streak challenges" in onboarding, and the "7-Day Streak" rule preset, which waits for a `streak_maintained` event that nothing emits.
-- [ ] **UX-16** `P2` Hide or properly gate the "Data Management" link for plain members, who pass the client guard and then hit a server refusal.
-- [ ] **UX-17** `P3` Remove the dead `registration` tab state in admin settings, or build that tab (TRUTH-02 needs it).
+- [~] **UX-14** `P2` Align terms. For example "Leaderboard" and "Leaderboards", "Delivery Health" and "System", "Challenges" and "Quests", plus the name in DEC-2. Leaderboard and Challenges are aligned, and "Gami Engine" and "Gami Dashboard" are now Gami.Fied. Left: "Delivery Health" and "System".
+- [x] **UX-15** `P2` Remove references to things that do not exist: Slack in access copy, "streak challenges" in onboarding, and the "7-Day Streak" rule preset, which waits for a `streak_maintained` event that nothing emits.
+- [x] **UX-16** `P2` Hide or properly gate the "Data Management" link for plain members, who pass the client guard and then hit a server refusal.
+- [x] **UX-17** `P3` Remove the dead `registration` tab state in admin settings, or build that tab (TRUTH-02 needs it).
 
 ### 5.3 Accessibility and responsiveness
 
@@ -371,18 +371,19 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 5.4 Missing workflows
 
-- [ ] **UX-24** `P1` Add project and organization settings: rename and delete, with typed confirmation. The API supports this, but no UI exists.
-- [ ] **UX-25** `P1` Add a forgot-password page (SEC-05), password strength hints, and account deletion.
+- [x] **UX-24** `P1` Add project and organization settings: rename and delete, with typed confirmation. The API supports this, but no UI exists. Done on `/dashboard/settings`, including the end-user token allowlist.
+- [x] **UX-25** `P1` Add a forgot-password page (SEC-05), password strength hints, and account deletion. Done, with a password hint on sign-up. Account deletion is refused while the user owns an organization.
 - [ ] **UX-26** `P1` Build a first-run wizard that ends with a real event producing real XP, using a template rule, and live code samples with the user's own key and URL.
 - [ ] **UX-27** `P2` Add a project template gallery such as Learning app, Fitness, Community, or SaaS onboarding.
 - [ ] **UX-28** `P2` Improve the rule builder with a preview against real recent events and a "why did this not fire?" trace.
 - [ ] **UX-29** `P2` Add a user timeline showing events, rules fired, XP, badges and deliveries on one screen.
 - [ ] **UX-30** `P2` Add global search (Cmd+K), and bulk actions on users.
-- [ ] **UX-32** `P2` The rule test panel reads `actionsExecuted`, but the evaluator returns `actions`, so matched rules never list their actions. `[code]`
-- [ ] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. The API keys page also says "No API keys" while loading. Show skeletons until data arrives. `[ran]`
-- [ ] **UX-34** `P2` At phone width the top bar cuts off the project switcher. `[ran]`
-- [ ] **UX-35** `P2` Show the failed-events list from `events/dead-letter` with a replay button, and show the `warnings` returned when saving a rule. `[code]`
-- [ ] **UX-36** `P2` Add admin screens for the registration, rate limit, notification, webhook, integration and retention settings, plus password rules. They work through `PATCH /api/admin/config`, which replaces a whole category, so a partial save resets the rest to defaults. `[code]`
+- [x] **UX-32** `P2` The rule test panel reads `actionsExecuted`, but the evaluator returns `actions`, so matched rules never list their actions. `[code]`
+- [x] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. The API keys page also says "No API keys" while loading. Show skeletons until data arrives. `[ran]`
+- [x] **UX-34** `P2` At phone width the top bar cuts off the project switcher. `[ran]`
+- [x] **UX-35** `P2` Show the failed-events list from `events/dead-letter` with a replay button, and show the `warnings` returned when saving a rule. `[code]`
+- [~] **UX-36** `P2` Add admin screens for the registration, rate limit, notification, webhook, integration and retention settings, plus password rules. They work through `PATCH /api/admin/config`, which replaces a whole category, so a partial save resets the rest to defaults. `[code]` Screens are on the admin settings page, and password rules are on the security page. A save now keeps fields it does not send. The demo user is not a platform admin, so these were not checked in a browser.
+- [ ] **UX-37** `P2` The top bar notification bell was removed. It called an end-user route with the dashboard user's ID, so it returned 404 on every page. Build dashboard notifications if they are wanted, for example for disabled webhooks. `[ran]`
 - [ ] **UX-31** `P3` Add polish: better empty states with next steps, unsaved-change warnings, and skeletons that match their content.
 
 ---

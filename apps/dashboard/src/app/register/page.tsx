@@ -116,6 +116,9 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <p className="text-xs text-zinc-400 mt-1">
+                Use at least 8 characters. A longer password is stronger.
+              </p>
 
               <Button type="submit" variant="primary" isLoading={loading} className="w-full">
                 <UserPlus className="w-4 h-4" />

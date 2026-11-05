@@ -92,7 +92,9 @@ export class ServerConfigService {
     }
 
     // Process raw password field into encryptedPassword if provided, or preserve existing
-    const processedPayload = { ...payload };
+    // A save changes the fields it sends and keeps the rest of the category.
+    const saved = category === 'smtp' ? {} : await this.getConfig<Record<string, unknown>>(category);
+    const processedPayload = { ...saved, ...payload };
     if (processedPayload.password && typeof processedPayload.password === 'string') {
       processedPayload.encryptedPassword = encryptSecret(processedPayload.password as string);
       delete processedPayload.password;

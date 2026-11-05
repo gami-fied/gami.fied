@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/confirm';
+import { authClient } from '@/lib/auth-client';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -22,6 +24,25 @@ interface UserProfileData {
 }
 
 export function ProfileView() {
+  const [deletePassword, setDeletePassword] = useState('');
+  const confirmAction = useConfirm();
+
+  const handleDeleteAccount = async () => {
+    const confirmed = await confirmAction({
+      title: 'Delete your account?',
+      message: "This can't be undone.",
+      confirmText: 'Delete Account',
+    });
+    if (!confirmed) return;
+
+    const result = await authClient.deleteUser({ password: deletePassword });
+    if (result.error) {
+      setError(result.error.message || 'Could not delete your account');
+      return;
+    }
+    window.location.href = '/login';
+  };
+
   const { session } = useDashboard();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [name, setName] = useState('');
@@ -264,6 +285,39 @@ export function ProfileView() {
           </Button>
         </div>
       </form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
+            Delete Account
+          </CardTitle>
+          <CardDescription>
+            This permanently removes your account. Transfer or delete any organizations you own
+            first.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label htmlFor="delete-password" className="block text-sm text-zinc-300 mb-1">
+            Enter your password to confirm
+          </label>
+          <div className="flex gap-3">
+            <Input
+              id="delete-password"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="danger"
+              disabled={!deletePassword}
+              onClick={handleDeleteAccount}
+            >
+              Delete Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

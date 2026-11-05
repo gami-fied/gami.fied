@@ -227,7 +227,7 @@ export function ChallengesView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
-            Challenges & Quests
+            Challenges
             <Badge variant="orange">Milestone 12</Badge>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">

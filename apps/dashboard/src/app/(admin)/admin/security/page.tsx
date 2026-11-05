@@ -211,6 +211,36 @@ export default function AdminSecurityPage() {
                     }
                   />
                 </div>
+                <div>
+                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                    Minimum Password Length
+                  </label>
+                  <Input
+                    type="number"
+                    min="6"
+                    max="128"
+                    value={form.passwordMinLength}
+                    onChange={(e) =>
+                      setForm({ ...form, passwordMinLength: parseInt(e.target.value, 10) || 8 })
+                    }
+                  />
+                  <label className="mt-2 flex items-center gap-2 text-xs text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={form.requireNumbers}
+                      onChange={(e) => setForm({ ...form, requireNumbers: e.target.checked })}
+                    />
+                    Require a number
+                  </label>
+                  <label className="mt-1 flex items-center gap-2 text-xs text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={form.requireSpecialChars}
+                      onChange={(e) => setForm({ ...form, requireSpecialChars: e.target.checked })}
+                    />
+                    Require a special character
+                  </label>
+                </div>
               </div>
             </CardContent>
           </Card>

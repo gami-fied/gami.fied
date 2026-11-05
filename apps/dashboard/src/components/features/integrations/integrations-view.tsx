@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import {
   Blocks,
@@ -11,13 +13,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   MessageSquare,
-  Activity,
   History,
   Sliders,
   RotateCcw,
   Sparkles,
   Code,
-  ShieldCheck,
   PlusCircle,
   Eye,
   Check,
@@ -146,6 +146,8 @@ const DEFAULT_TEMPLATES: Record<string, DiscordEmbedTemplate> = {
 };
 
 export function IntegrationsView() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const { selectedProject, selectedOrg } = useDashboard();
   const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const [integrations, setIntegrations] = useState<IntegrationRecord[]>([]);
@@ -251,14 +253,14 @@ export function IntegrationsView() {
         method: 'POST',
       });
       if (res.ok) {
-        alert('Test notification successfully sent to Discord!');
+        toast.success('Test notification successfully sent to Discord!');
         await fetchIntegrations();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Test Failed: ${err.message || 'Failed to send test notification'}`);
+        toast.error(`Test Failed: ${err.message || 'Failed to send test notification'}`);
       }
     } catch {
-      alert('Network error testing Discord integration');
+      toast.error('Network error testing Discord integration');
     }
   };
 
@@ -274,13 +276,13 @@ export function IntegrationsView() {
         await fetchIntegrations();
       }
     } catch {
-      alert(`Network error toggling integration status`);
+      toast.error(`Network error toggling integration status`);
     }
   };
 
   const handleDeleteIntegration = async (intg: IntegrationRecord) => {
     if (!selectedProject) return;
-    if (!confirm(`Are you sure you want to disconnect integration "${intg.name}"?`)) return;
+    if (!await confirmAction({ message: `Are you sure you want to disconnect integration "${intg.name}"?` })) return;
 
     try {
       const res = await fetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}`, {
@@ -290,7 +292,7 @@ export function IntegrationsView() {
         await fetchIntegrations();
       }
     } catch {
-      alert('Network error deleting integration');
+      toast.error('Network error deleting integration');
     }
   };
 
@@ -307,7 +309,7 @@ export function IntegrationsView() {
         setDeliveries(data.deliveries || []);
       }
     } catch {
-      alert('Network error loading deliveries');
+      toast.error('Network error loading deliveries');
     } finally {
       setDeliveriesLoading(false);
     }
@@ -321,11 +323,11 @@ export function IntegrationsView() {
         { method: 'POST' }
       );
       if (res.ok) {
-        alert('Replay delivery intent queued successfully!');
+        toast.success('Replay delivery intent queued successfully!');
         await openDeliveriesModal(activeDeliveryModal);
       }
     } catch {
-      alert('Network error replaying delivery');
+      toast.error('Network error replaying delivery');
     }
   };
 
@@ -345,7 +347,7 @@ export function IntegrationsView() {
         setCustomTemplates(data.customTemplates || {});
       }
     } catch {
-      alert('Error fetching integration templates');
+      toast.error('Error fetching integration templates');
     }
   };
 
@@ -418,7 +420,7 @@ export function IntegrationsView() {
         }
       }
     } catch {
-      alert('Network error loading saved templates');
+      toast.error('Network error loading saved templates');
     }
   };
 
@@ -732,56 +734,6 @@ export function IntegrationsView() {
               <Plus className="w-3.5 h-3.5 mr-1" /> Connect Discord
             </Button>
           </Card>
-
-          {/* Slack (Coming Soon) */}
-          <Card className="p-4 bg-zinc-950/50 border-zinc-900 flex flex-col justify-between space-y-4 opacity-75">
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-zinc-900 border border-zinc-800 text-zinc-500 flex items-center justify-center">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-300">Slack</h3>
-                    <span className="text-[10px] text-zinc-500 font-semibold uppercase">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
-                Post Gami gamification activity feeds and team leaderboards into Slack channels.
-              </p>
-            </div>
-            <Button disabled variant="secondary" size="sm" className="w-full text-xs opacity-50 cursor-not-allowed">
-              Coming Soon
-            </Button>
-          </Card>
-
-          {/* Microsoft Teams (Coming Soon) */}
-          <Card className="p-4 bg-zinc-950/50 border-zinc-900 flex flex-col justify-between space-y-4 opacity-75">
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-zinc-900 border border-zinc-800 text-zinc-500 flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-300">Microsoft Teams</h3>
-                    <span className="text-[10px] text-zinc-500 font-semibold uppercase">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
-                Send adaptive cards and achievement announcements directly to Microsoft Teams channels.
-              </p>
-            </div>
-            <Button disabled variant="secondary" size="sm" className="w-full text-xs opacity-50 cursor-not-allowed">
-              Coming Soon
-            </Button>
-          </Card>
         </div>
       </div>
 
@@ -981,7 +933,7 @@ export function IntegrationsView() {
                         type="text"
                         value={getActiveTemplate().footerText || ''}
                         onChange={(e) => handleUpdateCurrentTemplateField('footerText', e.target.value)}
-                        placeholder="Gami Engine"
+                        placeholder="Gami.Fied"
                       />
                     </div>
                   </div>

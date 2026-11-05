@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import { KeyRound, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,8 @@ interface ActiveSession {
 }
 
 export default function AdminSessionsPage() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +52,7 @@ export default function AdminSessionsPage() {
 
   const handleRevokeAllUserSessions = async (userId: string, userName: string) => {
     if (
-      !confirm(
-        `Are you sure you want to revoke ALL active sessions for user "${userName}" (${userId})?\n\nThey will be immediately logged out.`
-      )
+      !await confirmAction({ message: `Are you sure you want to revoke ALL active sessions for user "${userName}" (${userId})?\n\nThey will be immediately logged out.` })
     ) {
       return;
     }
@@ -67,10 +69,10 @@ export default function AdminSessionsPage() {
         await fetchSessions();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.message || 'Failed to revoke user sessions');
+        toast.error(err.message || 'Failed to revoke user sessions');
       }
     } catch {
-      alert('Network error revoking user sessions');
+      toast.error('Network error revoking user sessions');
     } finally {
       setRevokingUserId(null);
     }

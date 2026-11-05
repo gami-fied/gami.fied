@@ -13,7 +13,7 @@ const smtpConfigSchema = z.object({
   user: z.string().optional().default(''),
   password: z.string().optional().default(''),
   fromEmail: z.string().email('Invalid from email address'),
-  fromName: z.string().optional().default('Gami Engine'),
+  fromName: z.string().optional().default('Gami.Fied'),
   secure: z.boolean().optional().default(false),
 });
 
@@ -53,7 +53,7 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
       port: cfg.port || 587,
       user: cfg.user || null,
       fromEmail: cfg.fromEmail || null,
-      fromName: cfg.fromName || 'Gami Engine',
+      fromName: cfg.fromName || 'Gami.Fied',
       secure: Boolean(cfg.secure),
       passwordConfigured: Boolean(cfg.encryptedPassword),
       password: '[REDACTED]',

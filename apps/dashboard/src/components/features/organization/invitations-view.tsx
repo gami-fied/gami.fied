@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import {
   UserPlus,
@@ -20,6 +22,8 @@ import { InviteModal } from './invite-modal';
 import type { OrganizationInvitationRecord } from '@gami.fied/sdk';
 
 export function InvitationsView() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const { selectedOrg } = useDashboard();
   const [invitations, setInvitations] = useState<OrganizationInvitationRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,17 +69,17 @@ export function InvitationsView() {
         const data = await res.json();
         if (data.invitationUrl) {
           navigator.clipboard.writeText(data.invitationUrl);
-          alert(`Invitation resent! New acceptance URL copied to clipboard: ${data.invitationUrl}`);
+          toast.success(`Invitation resent! New acceptance URL copied to clipboard: ${data.invitationUrl}`);
         } else {
-          alert('Invitation resent successfully!');
+          toast.success('Invitation resent successfully!');
         }
         await fetchInvitations();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Resend failed: ${err.message || 'Error resending invitation'}`);
+        toast.error(`Resend failed: ${err.message || 'Error resending invitation'}`);
       }
     } catch {
-      alert('Network error resending invitation');
+      toast.error('Network error resending invitation');
     } finally {
       setResendingId(null);
     }
@@ -83,7 +87,7 @@ export function InvitationsView() {
 
   const handleRevoke = async (invId: string, email: string) => {
     if (!selectedOrg) return;
-    if (!confirm(`Are you sure you want to revoke the invitation for ${email}?`)) return;
+    if (!await confirmAction({ message: `Are you sure you want to revoke the invitation for ${email}?` })) return;
 
     setRevokingId(invId);
     try {
@@ -94,10 +98,10 @@ export function InvitationsView() {
         await fetchInvitations();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Revoke failed: ${err.message || 'Error revoking invitation'}`);
+        toast.error(`Revoke failed: ${err.message || 'Error revoking invitation'}`);
       }
     } catch {
-      alert('Network error revoking invitation');
+      toast.error('Network error revoking invitation');
     } finally {
       setRevokingId(null);
     }

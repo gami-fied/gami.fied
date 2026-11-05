@@ -16,6 +16,7 @@ export interface Project {
   organizationId: string;
   name: string;
   slug: string;
+  allowedOrigins?: string[];
 }
 
 interface DashboardContextType {
@@ -38,6 +39,9 @@ interface DashboardContextType {
   loadingProjects: boolean;
 }
 
+const ORG_STORAGE_KEY = 'gami.selectedOrgId';
+const PROJECT_STORAGE_KEY = 'gami.selectedProjectId';
+
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
@@ -59,6 +63,15 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   selectedOrgIdRef.current = selectedOrg?.id || null;
   selectedProjectIdRef.current = selectedProject?.id || null;
+
+  // Remembered per browser, so a refresh returns to the same workspace.
+  useEffect(() => {
+    if (selectedOrg) localStorage.setItem(ORG_STORAGE_KEY, selectedOrg.id);
+  }, [selectedOrg]);
+
+  useEffect(() => {
+    if (selectedProject) localStorage.setItem(PROJECT_STORAGE_KEY, selectedProject.id);
+  }, [selectedProject]);
 
   // Unauthenticated user redirect protection
   useEffect(() => {
@@ -85,7 +98,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setOrganizations(data);
 
         if (data.length > 0) {
-          const currentId = selectedOrgIdRef.current;
+          const currentId = selectedOrgIdRef.current ?? localStorage.getItem(ORG_STORAGE_KEY);
           const matchingOrg = currentId ? data.find((o) => o.id === currentId) : null;
           const targetOrg = matchingOrg || data[0] || null;
 
@@ -122,7 +135,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setProjects(data);
 
         if (data.length > 0) {
-          const currentId = selectedProjectIdRef.current;
+          const currentId =
+            selectedProjectIdRef.current ?? localStorage.getItem(PROJECT_STORAGE_KEY);
           const matchingProject = currentId ? data.find((p) => p.id === currentId) : null;
           const targetProject = matchingProject || data[0] || null;
 

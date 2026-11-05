@@ -8,7 +8,7 @@ export class SmtpEmailProvider implements EmailProvider {
 
   constructor(config: SmtpConfig) {
     this.fromEmail = config.fromEmail;
-    this.fromName = config.fromName || 'Gami Engine';
+    this.fromName = config.fromName || 'Gami.Fied';
 
     this.transporter = nodemailer.createTransport({
       host: config.host,
@@ -63,7 +63,7 @@ export function getSmtpProviderFromConfig(customConfig?: SmtpConfig): SmtpEmailP
   const envUser = process.env.SMTP_USER;
   const envPass = process.env.SMTP_PASSWORD;
   const envFromEmail = process.env.SMTP_FROM_EMAIL;
-  const envFromName = process.env.SMTP_FROM_NAME || 'Gami Engine';
+  const envFromName = process.env.SMTP_FROM_NAME || 'Gami.Fied';
   const envSecure = process.env.SMTP_SECURE === 'true' || envPort === 465;
 
   if (envHost && envFromEmail) {

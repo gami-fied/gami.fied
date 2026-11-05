@@ -15,6 +15,10 @@ const ADMIN_RESTRICTED_ROUTES: Record<string, { title: string; description: stri
     title: 'Organization Pending Invitations',
     description: 'Viewing and managing pending team invitations requires Admin or Owner role in this organization.',
   },
+  '/dashboard/organization/data': {
+    title: 'Data Management',
+    description: 'Exporting and importing organization data requires Admin or Owner role.',
+  },
   '/dashboard/api-keys': {
     title: 'Project API Keys',
     description: 'Managing project API keys and secret tokens requires Admin or Owner role.',
@@ -25,7 +29,7 @@ const ADMIN_RESTRICTED_ROUTES: Record<string, { title: string; description: stri
   },
   '/dashboard/integrations': {
     title: 'External Integrations & Channels',
-    description: 'Connecting external providers (Discord, Slack), editing embed templates, and replaying deliveries requires Admin or Owner role.',
+    description: 'Connecting Discord, editing embed templates, and replaying deliveries requires Admin or Owner role.',
   },
   '/dashboard/system': {
     title: 'System Health & Operations',

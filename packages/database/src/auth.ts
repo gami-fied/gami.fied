@@ -1,4 +1,6 @@
 import { betterAuth } from 'better-auth';
+import { APIError } from 'better-auth/api';
+import { and, eq } from 'drizzle-orm';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import { db } from './client.js';
@@ -52,6 +54,26 @@ export const auth = betterAuth({
       invitation: schema.invitation,
     },
   }),
+  user: {
+    // Lets the dashboard see the flag. It can only be set by the bootstrap and admin tools.
+    additionalFields: {
+      isPlatformAdmin: { type: 'boolean', required: false, input: false },
+    },
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user) => {
+        const owned = await db
+          .select({ organizationId: schema.member.organizationId })
+          .from(schema.member)
+          .where(and(eq(schema.member.userId, user.id), eq(schema.member.role, 'owner')));
+        if (owned.length > 0) {
+          throw new APIError('BAD_REQUEST', {
+            message: 'Transfer or delete the organizations you own before deleting your account.',
+          });
+        }
+      },
+    },
+  },
   session: {
     // The lifetime is fixed at sign-in, so the admin limit is a real limit.
     disableSessionRefresh: true,

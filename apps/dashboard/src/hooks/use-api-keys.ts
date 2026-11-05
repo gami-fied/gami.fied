@@ -21,7 +21,7 @@ export interface GeneratedApiKey {
 
 export function useApiKeys(projectId: string | null) {
   const [apiKeys, setApiKeys] = useState<ApiKeyRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchApiKeys = useCallback(async () => {

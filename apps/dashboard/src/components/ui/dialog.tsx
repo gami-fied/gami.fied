@@ -141,7 +141,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      <p className="text-sm text-zinc-300 leading-relaxed">{message}</p>
+      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{message}</p>
     </Dialog>
   );
 }

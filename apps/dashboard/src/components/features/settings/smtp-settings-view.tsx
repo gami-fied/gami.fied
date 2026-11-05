@@ -213,7 +213,7 @@ export function SmtpSettingsView() {
                 </label>
                 <Input
                   type="text"
-                  placeholder="e.g. Gami Engine"
+                  placeholder="e.g. Gami.Fied"
                   value={fromName}
                   onChange={(e) => setFromName(e.target.value)}
                 />

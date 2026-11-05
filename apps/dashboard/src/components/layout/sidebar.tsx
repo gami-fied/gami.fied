@@ -73,7 +73,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { name: 'XP', href: '/dashboard/xp', icon: Coins },
         { name: 'Achievements', href: '/dashboard/achievements', icon: Trophy },
         { name: 'Levels & Progression', href: '/dashboard/levels', icon: TrendingUp },
-        { name: 'Leaderboards', href: '/dashboard/leaderboard', icon: Medal },
+        { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Medal },
         { name: 'Challenges', href: '/dashboard/challenges', icon: Target },
       ],
     },
@@ -123,7 +123,8 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       }
 
       const items = group.items.filter((item) => {
-        if (!isAdminOrOwner && item.href === '/dashboard/organization/invitations') {
+        const adminOnly = ['/dashboard/organization/invitations', '/dashboard/organization/data'];
+        if (!isAdminOrOwner && adminOnly.includes(item.href)) {
           return false;
         }
         return true;

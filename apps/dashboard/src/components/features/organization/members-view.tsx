@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import {
   Users,
@@ -26,6 +28,8 @@ import { MemberDetailsDrawer } from './member-details-drawer';
 import type { OrganizationMemberRecord } from '@gami.fied/sdk';
 
 export function MembersView() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const { selectedOrg, session } = useDashboard();
   const [members, setMembers] = useState<OrganizationMemberRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,10 +102,10 @@ export function MembersView() {
         await fetchMembers();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Role change failed: ${err.message || 'Error updating role'}`);
+        toast.error(`Role change failed: ${err.message || 'Error updating role'}`);
       }
     } catch {
-      alert('Network error updating member role');
+      toast.error('Network error updating member role');
     } finally {
       setRoleSaving(false);
     }
@@ -118,14 +122,14 @@ export function MembersView() {
       });
       if (res.ok) {
         setTransferMember(null);
-        alert(`Ownership transferred to ${transferMember.email}! You are now an Admin.`);
+        toast.success(`Ownership transferred to ${transferMember.email}! You are now an Admin.`);
         window.location.reload();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Ownership transfer failed: ${err.message || 'Error transferring ownership'}`);
+        toast.error(`Ownership transfer failed: ${err.message || 'Error transferring ownership'}`);
       }
     } catch {
-      alert('Network error transferring ownership');
+      toast.error('Network error transferring ownership');
     } finally {
       setTransferSaving(false);
     }
@@ -133,7 +137,7 @@ export function MembersView() {
 
   const handleRemoveMember = async (mem: OrganizationMemberRecord) => {
     if (!selectedOrg) return;
-    if (!confirm(`Are you sure you want to remove ${mem.name || mem.email} from the organization?`)) return;
+    if (!await confirmAction({ message: `Are you sure you want to remove ${mem.name || mem.email} from the organization?` })) return;
 
     try {
       const res = await fetch(`/api/organizations/${selectedOrg.id}/members/${mem.userId}`, {
@@ -143,10 +147,10 @@ export function MembersView() {
         await fetchMembers();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Remove failed: ${err.message || 'Error removing member'}`);
+        toast.error(`Remove failed: ${err.message || 'Error removing member'}`);
       }
     } catch {
-      alert('Network error removing member');
+      toast.error('Network error removing member');
     }
   };
 

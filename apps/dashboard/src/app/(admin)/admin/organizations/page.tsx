@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import { Building2, Search, AlertOctagon, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,8 @@ interface AdminOrg {
 }
 
 export default function AdminOrganizationsPage() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [orgs, setOrgs] = useState<AdminOrg[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +57,11 @@ export default function AdminOrganizationsPage() {
     const actionName = nextStatus === 'suspended' ? 'suspend' : 'reactivate';
 
     if (
-      !confirm(
-        `Are you sure you want to ${actionName} organization "${org.name}"?\n\n${
+      !await confirmAction({ message: `Are you sure you want to ${actionName} organization "${org.name}"?\n\n${
           nextStatus === 'suspended'
             ? 'All project API requests and event ingestions for this organization will be BLOCKED immediately.'
             : 'Normal API access for this organization will be restored immediately.'
-        }`
-      )
+        }` })
     ) {
       return;
     }
@@ -76,10 +78,10 @@ export default function AdminOrganizationsPage() {
         await fetchOrgs();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.message || `Failed to ${actionName} organization`);
+        toast.error(err.message || `Failed to ${actionName} organization`);
       }
     } catch {
-      alert(`Network error trying to ${actionName} organization`);
+      toast.error(`Network error trying to ${actionName} organization`);
     } finally {
       setUpdatingId(null);
     }

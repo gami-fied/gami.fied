@@ -44,7 +44,7 @@ const EXPIRY_OPTIONS = [
 export function ApiKeysView() {
   const { selectedProject } = useDashboard();
   const toast = useToast();
-  const { apiKeys, error, fetchApiKeys, createApiKey, revokeApiKey, rotateApiKey } = useApiKeys(
+  const { apiKeys, loading, error, fetchApiKeys, createApiKey, revokeApiKey, rotateApiKey } = useApiKeys(
     selectedProject?.id || null
   );
 
@@ -230,7 +230,7 @@ export function ApiKeysView() {
                 );
               })}
 
-              {apiKeys.length === 0 && (
+              {!loading && apiKeys.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="py-8 text-center text-zinc-500 text-xs">
                     No API keys generated yet. Generate your first API key to authenticate event

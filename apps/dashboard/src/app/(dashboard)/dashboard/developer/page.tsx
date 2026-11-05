@@ -116,7 +116,7 @@ export default function DeveloperPage() {
             <Activity className="w-4 h-4 text-orange-400" />
           </div>
           <div className="text-xl font-mono font-bold text-white">
-            {metrics ? metrics.eventsIngested.toLocaleString() : '0'}
+            {metrics ? metrics.eventsIngested.toLocaleString() : '—'}
           </div>
         </div>
 
@@ -126,7 +126,7 @@ export default function DeveloperPage() {
             <Terminal className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-xl font-mono font-bold text-white">
-            {metrics ? metrics.requests.received.toLocaleString() : '0'}
+            {metrics ? metrics.requests.received.toLocaleString() : '—'}
           </div>
         </div>
 

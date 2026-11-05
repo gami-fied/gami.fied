@@ -1,5 +1,6 @@
 'use client';
 
+import { FailedEventsPanel } from './failed-events-panel';
 import React, { useEffect, useState, useRef } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useEvents, EventRecord } from '@/hooks/use-events';
@@ -110,10 +111,6 @@ export function EventsView() {
       setEmitPayloadJson(
         JSON.stringify({ amount: 149.99, currency: 'USD', items_count: 3 }, null, 2)
       );
-    } else if (presetName === 'streak') {
-      setEmitType('streak_maintained');
-      setEmitUserId('usr_101');
-      setEmitPayloadJson(JSON.stringify({ days: 7, bonus_multiplier: 1.5 }, null, 2));
     }
   };
 
@@ -198,6 +195,8 @@ export function EventsView() {
 
   return (
     <div className="space-y-6">
+      {selectedProject && <FailedEventsPanel projectId={selectedProject.id} />}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -400,13 +399,6 @@ export function EventsView() {
                 className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
               >
                 Order Completed
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset('streak')}
-                className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
-              >
-                Streak Maintained
               </button>
             </div>
           </div>

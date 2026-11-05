@@ -1,11 +1,12 @@
 'use client';
 
 import { SmtpSettingsView } from '@/components/features/settings/smtp-settings-view';
-import { Settings, Mail } from 'lucide-react';
+import { PlatformSettingsForm } from '@/components/features/settings/platform-settings-form';
+import { Settings, Mail, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AdminSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'smtp' | 'registration'>('smtp');
+  const [activeTab, setActiveTab] = useState<'smtp' | 'platform'>('smtp');
 
   return (
     <div className="space-y-6 font-mono">
@@ -31,9 +32,21 @@ export default function AdminSettingsPage() {
           <Mail className="w-4 h-4" />
           SMTP Server Configuration
         </button>
+        <button
+          onClick={() => setActiveTab('platform')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs uppercase font-bold border-b-2 transition ${
+            activeTab === 'platform'
+              ? 'border-rose-500 text-rose-400 bg-rose-950/20'
+              : 'border-transparent text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Platform Settings
+        </button>
       </div>
 
       {activeTab === 'smtp' && <SmtpSettingsView />}
+      {activeTab === 'platform' && <PlatformSettingsForm />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { TableSkeleton } from '@/components/ui/skeleton';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '@/components/features/context/dashboard-context';
 import { Dropdown } from '@/components/ui/dropdown';
@@ -125,6 +126,8 @@ export default function AnalyticsPage() {
     }
     window.open(`/api/projects/${selectedProject.id}/analytics/export?${queryParams.toString()}`, '_blank');
   };
+
+  if (loading && !overview) return <TableSkeleton rows={8} />;
 
   return (
     <div className="space-y-6">

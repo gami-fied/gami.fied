@@ -1,5 +1,6 @@
 'use client';
 
+import { useToast } from '@/components/ui/toast';
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useRules, RuleRecord } from '@/hooks/use-rules';
@@ -61,11 +62,12 @@ interface RuleTestResult {
   ruleName?: string;
   trigger?: string;
   matched?: boolean;
-  actionsExecuted?: StoredAction[];
+  actions?: StoredAction[];
   [key: string]: unknown;
 }
 
 export function RulesView() {
+  const toast = useToast();
   const { selectedProject, selectedOrg } = useDashboard();
   const projectId = selectedProject?.id || null;
   const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
@@ -243,20 +245,6 @@ export function RulesView() {
         { id: `c_1_${Date.now()}`, field: 'payload.amount', operator: 'greater_than', value: '50' },
       ]);
       setVisualActions([createActionObj('award_xp', 250)]);
-    } else if (presetKey === 'streak') {
-      setName('7-Day Streak Reward');
-      setTrigger('streak_maintained');
-      setDescription('Awards 500 XP when user maintains a 7-day activity streak');
-      setMatchMode('all');
-      setVisualConditions([
-        {
-          id: `c_1_${Date.now()}`,
-          field: 'payload.days',
-          operator: 'greater_than_or_equal',
-          value: '7',
-        },
-      ]);
-      setVisualActions([createActionObj('award_xp', 500)]);
     }
   };
 
@@ -289,8 +277,9 @@ export function RulesView() {
         actionsObj = JSON.parse(rawActionsJson);
       }
 
+      let saved: { warnings?: string[] } | null;
       if (editingRule) {
-        await updateRule(editingRule.id, {
+        saved = await updateRule(editingRule.id, {
           name,
           description,
           trigger,
@@ -299,7 +288,7 @@ export function RulesView() {
         });
         setEditingRule(null);
       } else {
-        await createRule({
+        saved = await createRule({
           name,
           description,
           trigger,
@@ -308,6 +297,7 @@ export function RulesView() {
         });
         setIsCreateOpen(false);
       }
+      saved?.warnings?.forEach((warning) => toast.warning('Rule saved with a warning', warning));
     } catch (err: unknown) {
       setFormError((err as Error).message || 'Failed to save rule definition');
     } finally {
@@ -651,8 +641,8 @@ export function RulesView() {
                                 Actions Executed:
                               </span>
                               <div className="flex flex-wrap gap-1.5">
-                                {Array.isArray(res.actionsExecuted) &&
-                                  res.actionsExecuted.map((act, i) => (
+                                {Array.isArray(res.actions) &&
+                                  res.actions.map((act, i) => (
                                     <Badge key={i} variant="emerald" className="text-[10px]">
                                       {act.type === 'award_xp'
                                         ? `+${act.params?.amount || act.amount} XP`
@@ -717,13 +707,6 @@ export function RulesView() {
                 className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
               >
                 Order Reward (+250 XP)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset('streak')}
-                className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
-              >
-                7-Day Streak (+500 XP)
               </button>
             </div>
           </div>
