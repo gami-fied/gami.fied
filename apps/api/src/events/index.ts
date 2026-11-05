@@ -1,11 +1,12 @@
 import crypto from 'crypto';
 import { db, eventOutbox, events } from '@gami/database';
-import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
-import type { FastifyInstance } from 'fastify';
+import { eq, and, count, desc, gte, lte, sql } from 'drizzle-orm';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
 import { hasScope } from '../authorization/permissions.js';
 import { checkRateLimit } from '../middleware/rate-limiter.js';
+import { waitForEventRewards } from '../public/event-rewards.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { ingestEvent } from '../services/event-ingestion.js';
 
@@ -39,76 +40,34 @@ const IDEMPOTENCY_MISMATCH_MESSAGE =
   'The Idempotency-Key has already been used with a different request payload.';
 const USER_DEACTIVATED_MESSAGE = 'User account is deactivated in this project';
 
+async function authorizeIngestion(request: FastifyRequest, reply: FastifyReply) {
+  const deny = (status: number, code: string, message: string) => {
+    reply.status(status).send({ code, message });
+    return null;
+  };
+
+  const rawApiKey = request.headers['x-api-key'] as string | undefined;
+  if (!rawApiKey) return deny(401, 'UNAUTHORIZED', 'Missing x-api-key authentication header');
+
+  const authResult = await authenticateApiKey(rawApiKey);
+  if (!authResult) return deny(401, 'UNAUTHORIZED', 'Invalid or revoked API key');
+  if (authResult.isSuspended) {
+    return deny(403, 'FORBIDDEN', 'Organization account is suspended');
+  }
+  if (!hasScope((authResult.key.scopes as string[]) ?? [], 'events:write')) {
+    return deny(403, 'FORBIDDEN', 'API key lacks required scope "events:write"');
+  }
+
+  return (await checkRateLimit(request, reply, authResult.project.id)) ? authResult.project : null;
+}
+
+const batchIngestionSchema = z.object({ events: z.array(eventIngestionSchema).min(1).max(100) });
+
 export async function eventRoutes(fastify: FastifyInstance) {
   // Public Event Ingestion Endpoint (Requires x-api-key)
   fastify.post('/v1/events', async (request, reply) => {
-    // 64KB body size limit validation
-    const contentLength = Number(request.headers['content-length'] || 0);
-    if (contentLength > 65536) {
-      return reply.status(413).send({
-        error: 'Payload Too Large',
-        message: 'Event payload exceeds maximum limit of 64KB',
-      });
-    }
-
-    const reqId = (request as unknown as { requestId?: string }).requestId || 'req_event_ingest';
-
-    // Authenticate API Key
-    const rawApiKey = request.headers['x-api-key'] as string;
-    if (!rawApiKey) {
-      return reply.status(401).send({
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Missing x-api-key authentication header',
-          requestId: reqId,
-        },
-        message: 'Missing x-api-key authentication header',
-        code: 'UNAUTHORIZED',
-      });
-    }
-
-    const authResult = await authenticateApiKey(rawApiKey);
-    if (!authResult) {
-      return reply.status(401).send({
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or revoked API key',
-          requestId: reqId,
-        },
-        message: 'Invalid or revoked API key',
-        code: 'UNAUTHORIZED',
-      });
-    }
-
-    if (authResult.isSuspended) {
-      return reply.status(403).send({
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Organization account is suspended',
-          requestId: reqId,
-        },
-        message: 'Organization account is suspended',
-        code: 'FORBIDDEN',
-      });
-    }
-
-    if (!hasScope((authResult.key.scopes as string[]) ?? [], 'events:write')) {
-      return reply.status(403).send({
-        error: {
-          code: 'FORBIDDEN',
-          message: 'API key lacks required scope "events:write"',
-          requestId: reqId,
-        },
-        message: 'API key lacks required scope "events:write"',
-        code: 'FORBIDDEN',
-      });
-    }
-
-    const { project } = authResult;
-
-    // Rate Limiting (Fail-Open)
-    const isAllowed = await checkRateLimit(request, reply, project.id);
-    if (!isAllowed) return;
+    const project = await authorizeIngestion(request, reply);
+    if (!project) return reply;
 
     // Validate Request Body
     const parseResult = eventIngestionSchema.safeParse(request.body);
@@ -187,9 +146,62 @@ export async function eventRoutes(fastify: FastifyInstance) {
       });
     }
 
-    return reply
-      .status(202)
-      .send({ id: result.id, status: 'accepted', duplicate: result.duplicate });
+    const accepted = { id: result.id, status: 'accepted', duplicate: result.duplicate };
+    if ((request.query as { wait?: string }).wait !== 'true') {
+      return reply.status(202).send(accepted);
+    }
+
+    const [stored] = await db
+      .select({ userId: events.userId })
+      .from(events)
+      .where(eq(events.id, result.id));
+    const rewards = await waitForEventRewards({
+      id: result.id,
+      projectId: project.id,
+      type: eventType,
+      userId: stored?.userId ?? null,
+    });
+    return reply.status(202).send({ ...accepted, rewards });
+  });
+
+  // Up to 100 events. Each one succeeds or fails alone, so a retry only needs the failed ones.
+  fastify.post('/v1/events/batch', { bodyLimit: 1024 * 1024 }, async (request, reply) => {
+    const project = await authorizeIngestion(request, reply);
+    if (!project) return reply;
+
+    const parsed = batchIngestionSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'BAD_REQUEST',
+        message: 'Invalid batch request',
+        details: parsed.error.format(),
+      });
+    }
+
+    const results = [];
+    for (const [index, item] of parsed.data.events.entries()) {
+      try {
+        const result = await ingestEvent({
+          projectId: project.id,
+          eventType: item.event,
+          externalUserId: item.user_id,
+          payload: item.payload,
+          occurredAt: item.occurred_at,
+          idempotencyKey: item.idempotency_key?.trim() || undefined,
+        });
+        results.push(
+          result.outcome === 'accepted'
+            ? { index, status: 'accepted', id: result.id, duplicate: result.duplicate }
+            : { index, status: 'rejected', code: result.outcome.toUpperCase() }
+        );
+      } catch (err: unknown) {
+        request.log.error({ err }, 'Batch event ingestion failed');
+        results.push({ index, status: 'failed', code: 'INTERNAL_SERVER_ERROR' });
+      }
+    }
+
+    const accepted = results.filter((result) => result.status === 'accepted').length;
+    return reply.status(207).send({ accepted, rejected: results.length - accepted, results });
   });
 
   // Dashboard Control Center: Authenticated Test Event Ingestion (Session Cookie Auth)
@@ -305,12 +317,14 @@ export async function eventRoutes(fastify: FastifyInstance) {
       .limit(limit)
       .offset(offset);
 
+    const [{ total } = { total: 0 }] = await db
+      .select({ total: count() })
+      .from(events)
+      .where(and(...conditions));
+
     return reply.send({
       data: eventList,
-      pagination: {
-        page,
-        limit,
-      },
+      pagination: { page, limit, total, hasMore: offset + eventList.length < total },
     });
   });
 

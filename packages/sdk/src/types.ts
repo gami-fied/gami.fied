@@ -8,8 +8,12 @@ export interface RetryConfig {
 }
 
 export interface GamiConfig {
-  /** Server-side Gami API key (starts with gami_live_) */
-  apiKey: string;
+  /** Server-side Gami API key (starts with gami_live_). Never put this in browser code. */
+  apiKey?: string;
+  /** Short-lived token for one end user, created by your backend. Safe in a browser. */
+  endUserToken?: string;
+  /** Allows an API key in a browser. Anyone visiting the page can read it, so avoid this. */
+  dangerouslyAllowBrowser?: boolean;
   /** Base URL for the Gami API server (default: http://localhost:3001) */
   baseUrl?: string;
   /** Timeout in milliseconds for API requests (default: 10000ms) */
@@ -25,8 +29,8 @@ export interface GamiConfig {
 // ---------------------------------------------------------------------------
 
 export interface TrackEventParams {
-  /** Project ID scope */
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   /** Target user ID (or use externalId if resolving external user) */
   userId?: string;
   /** External User ID for auto-resolution */
@@ -65,24 +69,28 @@ export interface UserRecord {
 }
 
 export interface ListUsersParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   page?: number;
   limit?: number;
   search?: string;
 }
 
 export interface GetUserParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
 }
 
 export interface GetUserByExternalIdParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   externalId: string;
 }
 
 export interface CreateUserParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   externalId: string;
   name?: string;
   email?: string | null;
@@ -91,7 +99,8 @@ export interface CreateUserParams {
 }
 
 export interface UpdateUserParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
   name?: string;
   email?: string | null;
@@ -101,7 +110,8 @@ export interface UpdateUserParams {
 }
 
 export interface DeleteUserParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
 }
 
@@ -117,7 +127,8 @@ export interface UserListResponse {
 // ---------------------------------------------------------------------------
 
 export interface GetXpParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
 }
 
@@ -128,7 +139,8 @@ export interface XpBalanceResponse {
 }
 
 export interface GetXpLedgerParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
   page?: number;
   limit?: number;
@@ -158,7 +170,8 @@ export interface XpLedgerResponse {
 }
 
 export interface AdjustXpParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
   amount: number;
   reason: string;
@@ -184,16 +197,19 @@ export interface XpSummaryResponse {
 // ---------------------------------------------------------------------------
 
 export interface ListAchievementsParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
 }
 
 export interface GetAchievementParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   achievementId: string;
 }
 
 export interface ListUserAchievementsParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
 }
 
@@ -233,11 +249,13 @@ export interface AchievementSummaryResponse {
 // ---------------------------------------------------------------------------
 
 export interface ListLevelsParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
 }
 
 export interface GetUserProgressParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
 }
 
@@ -256,7 +274,8 @@ export interface LevelRecord {
 }
 
 export interface CreateLevelParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   level: number;
   name: string;
   description?: string;
@@ -266,7 +285,8 @@ export interface CreateLevelParams {
 }
 
 export interface UpdateLevelParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   levelId: string;
   level?: number;
   name?: string;
@@ -303,7 +323,8 @@ export interface LevelSummaryResponse {
 export type LeaderboardPeriod = 'all_time' | 'daily' | 'weekly' | 'monthly';
 
 export interface ListLeaderboardParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   period?: LeaderboardPeriod;
   page?: number;
   limit?: number;
@@ -331,7 +352,8 @@ export interface ListLeaderboardResponse {
 }
 
 export interface GetUserRankParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
   period?: LeaderboardPeriod;
 }
@@ -350,16 +372,19 @@ export interface UserRankResponse {
 // ---------------------------------------------------------------------------
 
 export interface ListChallengesParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
 }
 
 export interface GetChallengeParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   challengeId: string;
 }
 
 export interface ListUserChallengesParams {
-  projectId: string;
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
   userId: string;
 }
 

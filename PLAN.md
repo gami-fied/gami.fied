@@ -25,7 +25,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 1 | Security and tenant safety | 19 / 23 | In progress, 3 partly done, 1 moved to FEAT-17 |
 | 2 | Core engine correctness | 32 / 32 | Done |
 | 3 | Make every promise true | 22 / 26 | In progress, 4 partly done |
-| 4 | Developer experience | 0 / 16 | Not started |
+| 4 | Developer experience | 9 / 16 | In progress, 3 partly done |
 | 5 | Dashboard UI and UX | 0 / 36 | Not started |
 | 6 | Scale and operations | 0 / 13 | Not started |
 | 7 | New product features | 0 / 26 | Not started |
@@ -36,7 +36,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 These change the work in later phases, so settle them early.
 
 - [ ] **DEC-1: SDK licence.** The SDK is AGPL-3.0-only. Many companies will not put an AGPL client library in a proprietary app, and that blocks adoption. Recommendation: MIT or Apache-2.0 for the SDK and any UI packages, keep AGPL on the server. Needs the rights of every contributor.
-- [ ] **DEC-2: Product name.** The repo mixes "Gami", "Gami.Fied", "Gami Engine" and "gami.fied". Pick one and do a trademark check.
+- [x] **DEC-2: Product name.** The repo mixes "Gami", "Gami.Fied", "Gami Engine" and "gami.fied". Pick one and do a trademark check. Decided: **Gami.Fied**, on `gami.fied.cc`. Left: replace the other spellings.
 - [ ] **DEC-3: Default branch.** Local work is on `master`, the main branch is `main`, and both exist on `origin`. Keep one.
 - [ ] **DEC-4: Target customer.** Recommendation: developers of consumer, edtech, fitness and community apps who want to own their data. This decides whether streaks, rewards and React components come before enterprise work such as SSO.
 - [ ] **DEC-5: Business model.** Community only, open core, or a hosted cloud. The `edition: 'community'` field implies more editions are planned.
@@ -308,24 +308,24 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 4.1 Public API
 
-- [ ] **DX-01** `P1` Accept external user IDs everywhere. Developers know their own ID, but most routes need internal `usr_...` IDs. `getBalance` with an external ID silently returns 0 XP. `[code]`
-- [ ] **DX-02** `P1` Define a real versioned public API. Only `/v1/events` and data routes use `/v1`, while the SDK calls internal `/api/projects/...`, so dashboard refactors can break clients. `[ran]`
-- [ ] **DX-03** `P1` Scope API keys to their project implicitly. `projectId` is required on every SDK call, even though the key already identifies it. `[code]`
-- [ ] **DX-04** `P1` Return one error format. Routes return at least three shapes, and the limiter and some validators do not include `requestId`. Remove duplicated top-level fields in a major version. `[code]`
-- [ ] **DX-05** `P2` Standardise pagination with cursors and totals. Events return no total, the XP ledger returns both `entries` and `data`, and some lists return bare arrays. `[code]`
-- [ ] **DX-06** `P2` Validate all bodies with Zod. Levels and API keys use unchecked casts. `[code]`
-- [ ] **DX-07** `P1` Generate OpenAPI from route schemas. [docs/openapi.json](docs/openapi.json) documents only 4 paths, and the dashboard docs page has its own hardcoded copy. `[ran]`
-- [ ] **DX-08** `P2` Return awarded XP, badges and level changes from event ingestion through an optional synchronous evaluate mode, so apps can show rewards immediately. Trophy-style instant feedback is a major usability win. `[code]`
-- [ ] **DX-09** `P2` Add batch ingestion at `POST /v1/events/batch`. `[code]`
+- [x] **DX-01** `P1` Accept external user IDs everywhere. Developers know their own ID, but most routes need internal `usr_...` IDs. `getBalance` with an external ID silently returns 0 XP. `[code]` Done: all `/users/:userId` routes accept either ID, and responses always use the internal one.
+- [x] **DX-02** `P1` Define a real versioned public API. Only `/v1/events` and data routes use `/v1`, while the SDK calls internal `/api/projects/...`, so dashboard refactors can break clients. `[ran]` Done: `apps/api/src/public/routes.ts` is the public surface. `/api/projects` routes stay as the internal API, and the SDK uses them only when given a `projectId`.
+- [x] **DX-03** `P1` Scope API keys to their project implicitly. `projectId` is required on every SDK call, even though the key already identifies it. `[code]` Done for users, XP, levels, leaderboards, achievements, challenges and events. Other SDK resources still need `projectId`.
+- [x] **DX-04** `P1` Return one error format. Routes return at least three shapes, and the limiter and some validators do not include `requestId`. Remove duplicated top-level fields in a major version. `[code]` Done with a response hook, which keeps the top-level `message` and `code`.
+- [~] **DX-05** `P2` Standardise pagination with cursors and totals. Events return no total, the XP ledger returns both `entries` and `data`, and some lists return bare arrays. `[code]` Events now return `total` and `hasMore`. Left: cursors, and the same shape on other lists.
+- [x] **DX-06** `P2` Validate all bodies with Zod. Levels and API keys use unchecked casts. `[code]`
+- [~] **DX-07** `P1` Generate OpenAPI from route schemas. [docs/openapi.json](docs/openapi.json) documents only 4 paths, and the dashboard docs page has its own hardcoded copy. `[ran]` The spec is now generated from the public route table, a test keeps it in step, and the dashboard page loads it. Left: request and response schemas for most routes.
+- [x] **DX-08** `P2` Return awarded XP, badges and level changes from event ingestion through an optional synchronous evaluate mode, so apps can show rewards immediately. Trophy-style instant feedback is a major usability win. `[code]` Done with `?wait=true`, which waits up to 5 seconds for the worker rather than running rules in the API.
+- [x] **DX-09** `P2` Add batch ingestion at `POST /v1/events/batch`. `[code]`
 
 ### 4.2 Client-side access
 
-- [ ] **DX-10** `P1` Add short-lived end-user tokens signed by the customer's backend. Today the SDK is called isomorphic, but in a browser it would expose a key with admin power. Warn about this in the docs now. `[code]`
-- [ ] **DX-11** `P1` Make CORS configurable per project with an allowlist. `[code]`
+- [x] **DX-10** `P1` Add short-lived end-user tokens signed by the customer's backend. Today the SDK is called isomorphic, but in a browser it would expose a key with admin power. Warn about this in the docs now. `[code]` Done: `POST /v1/end-user-tokens`, `/v1/me/*` and `gami.me`. Tokens are read-only and limited to one user.
+- [x] **DX-11** `P1` Make CORS configurable per project with an allowlist. `[code]` Done: `allowedOrigins` on each project. An empty list allows any site, because tokens are limited to one user.
 
 ### 4.3 SDKs and tooling
 
-- [ ] **DX-12** `P1` Add a server-only check to the SDK and resolve DEC-1. `[code]`
+- [~] **DX-12** `P1` Add a server-only check to the SDK and resolve DEC-1. `[code]` The SDK now refuses an API key in a browser unless `dangerouslyAllowBrowser` is set. Left: DEC-1.
 - [ ] **DX-13** `P2` Keep SDK types generated from OpenAPI so they cannot drift. `[code]`
 - [ ] **DX-14** `P2` Publish Python, then Go and PHP SDKs. `[code]`
 - [ ] **DX-15** `P2` Add a CLI for key setup, sending test events, and syncing rules from version-controlled files. `[code]`

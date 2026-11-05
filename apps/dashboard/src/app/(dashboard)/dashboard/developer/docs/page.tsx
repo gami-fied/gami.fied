@@ -26,77 +26,13 @@ interface OpenApiSpec {
   >;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Shown only until the real spec loads, so this page can't drift from the API.
 const DEFAULT_SPEC: OpenApiSpec = {
   openapi: '3.1.0',
-  info: {
-    title: 'Gami.Fied Community Edition API',
-    version: '0.1.0',
-    description: 'Canonical developer and project-scoped API reference for Gami.Fied Community Engine.',
-  },
-  servers: [{ url: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001' }],
-  paths: {
-    '/v1/events': {
-      post: {
-        summary: 'Public Event Ingestion Endpoint',
-        description: 'Ingests a gamification event. Returns 202 Accepted upon enqueueing to the outbox for async processing.',
-        parameters: [
-          {
-            in: 'header',
-            name: 'x-api-key',
-            required: true,
-            description: 'Project Server-Side API Key (starts with gami_live_)',
-          },
-          {
-            in: 'header',
-            name: 'Idempotency-Key',
-            required: false,
-            description: 'Canonical client-generated key for exact-once event execution.',
-          },
-        ],
-        responses: {
-          '202': { description: 'Event accepted into outbox queue ({ id, status: "accepted", duplicate: false })' },
-          '400': { description: 'Invalid event schema or request parameters' },
-          '401': { description: 'Missing or invalid x-api-key header' },
-          '403': { description: 'Organization suspended or user deactivated' },
-          '409': { description: 'Idempotency-Key reused with a different request payload' },
-          '413': { description: 'Payload exceeds 64KB size limit' },
-          '429': { description: 'Project rate limit exceeded' },
-        },
-      },
-    },
-    '/api/projects/{projectId}/metrics': {
-      get: {
-        summary: 'Project API Usage Metrics',
-        description: 'Returns total requests, event ingestion volume, and operational delivery metrics.',
-        parameters: [
-          { in: 'path', name: 'projectId', required: true, description: 'Target Project ID' },
-        ],
-        responses: {
-          '200': { description: 'Project API activity metrics summary' },
-          '401': { description: 'Unauthorized session' },
-        },
-      },
-    },
-    '/health': {
-      get: {
-        summary: 'Liveness Health Check',
-        description: 'Lightweight process liveness health check endpoint.',
-        responses: {
-          '200': { description: 'Engine process is online' },
-        },
-      },
-    },
-    '/ready': {
-      get: {
-        summary: 'Readiness Dependency Probe',
-        description: 'Probes PostgreSQL & Redis database connectivity.',
-        responses: {
-          '200': { description: 'PostgreSQL & Redis connected' },
-          '503': { description: 'Database or Redis unreachable' },
-        },
-      },
-    },
-  },
+  info: { title: 'Gami.Fied API', version: '', description: '' },
+  paths: {},
 };
 
 export default function ApiDocsPage() {
@@ -106,7 +42,7 @@ export default function ApiDocsPage() {
 
   const fetchSpec = () => {
     setLoading(true);
-    fetch('/openapi.json')
+    fetch(`${API_URL}/openapi.json`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.paths) {
@@ -154,7 +90,7 @@ export default function ApiDocsPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <a
-            href="/openapi.json"
+            href={`${API_URL}/openapi.json`}
             target="_blank"
             rel="noreferrer"
             className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold flex items-center gap-2 transition"

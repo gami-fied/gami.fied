@@ -19,9 +19,6 @@ export class EventsResource {
    * ```
    */
   public async track(params: TrackEventParams): Promise<EventIngestionResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.events.track()');
-    }
     if (!params.type) {
       throw new Error('type is required for gami.events.track()');
     }

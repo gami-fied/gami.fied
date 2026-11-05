@@ -90,7 +90,8 @@ describe('@gami.fied/sdk - Live API Integration Test Suite', () => {
     });
 
     expect(balance.projectId).toBe(projId);
-    expect(balance.userId).toBe('usr_sdk_test_1');
+    // The API answers with the internal ID, whichever ID was sent.
+    expect(balance.userId).toMatch(/^usr_/);
     expect(balance.totalXp).toBe(0);
   });
 

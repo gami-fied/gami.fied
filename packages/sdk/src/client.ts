@@ -7,6 +7,7 @@ import { HttpClient } from './http.js';
 import { IntegrationsResource } from './integrations.js';
 import { LeaderboardsResource } from './leaderboards.js';
 import { LevelsResource } from './levels.js';
+import { MeResource } from './me.js';
 import { NotificationsResource } from './notifications.js';
 import { OrganizationsResource } from './organizations.js';
 import { SystemResource } from './system.js';
@@ -19,6 +20,7 @@ export class Gami {
   private readonly http: HttpClient;
 
   public readonly events: EventsResource;
+  public readonly me: MeResource;
   public readonly users: UsersResource;
   public readonly xp: XpResource;
   public readonly achievements: AchievementsResource;
@@ -37,6 +39,7 @@ export class Gami {
     this.http = new HttpClient(config);
 
     this.events = new EventsResource(this.http);
+    this.me = new MeResource(this.http);
     this.users = new UsersResource(this.http);
     this.xp = new XpResource(this.http);
     this.achievements = new AchievementsResource(this.http);

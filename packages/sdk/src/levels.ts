@@ -1,4 +1,4 @@
-import type { HttpClient } from './http.js';
+import { projectPath, type HttpClient } from './http.js';
 import type {
   CreateLevelParams,
   GetUserProgressParams,
@@ -17,13 +17,10 @@ export class LevelsResource {
    * Calls GET /api/projects/:projectId/levels
    */
   public async list(params: ListLevelsParams): Promise<LevelRecord[]> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.levels.list()');
-    }
 
     return this.http.request<LevelRecord[]>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/levels`,
+      path: projectPath(params.projectId, `/levels`),
     });
   }
 
@@ -32,16 +29,13 @@ export class LevelsResource {
    * Calls GET /api/projects/:projectId/levels/:levelId
    */
   public async get(params: { projectId: string; levelId: string }): Promise<LevelRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.levels.get()');
-    }
     if (!params.levelId) {
       throw new Error('levelId is required for gami.levels.get()');
     }
 
     return this.http.request<LevelRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/levels/${params.levelId}`,
+      path: projectPath(params.projectId, `/levels/${params.levelId}`),
     });
   }
 
@@ -50,9 +44,6 @@ export class LevelsResource {
    * Calls POST /api/projects/:projectId/levels
    */
   public async create(params: CreateLevelParams): Promise<LevelRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.levels.create()');
-    }
     if (params.level === undefined) {
       throw new Error('level is required for gami.levels.create()');
     }
@@ -65,7 +56,7 @@ export class LevelsResource {
 
     return this.http.request<LevelRecord>({
       method: 'POST',
-      path: `/api/projects/${params.projectId}/levels`,
+      path: projectPath(params.projectId, `/levels`),
       body: {
         level: params.level,
         name: params.name,
@@ -82,16 +73,13 @@ export class LevelsResource {
    * Calls PATCH /api/projects/:projectId/levels/:levelId
    */
   public async update(params: UpdateLevelParams): Promise<LevelRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.levels.update()');
-    }
     if (!params.levelId) {
       throw new Error('levelId is required for gami.levels.update()');
     }
 
     return this.http.request<LevelRecord>({
       method: 'PATCH',
-      path: `/api/projects/${params.projectId}/levels/${params.levelId}`,
+      path: projectPath(params.projectId, `/levels/${params.levelId}`),
       body: {
         level: params.level,
         name: params.name,
@@ -107,14 +95,11 @@ export class LevelsResource {
    * Get level configuration summary metrics.
    * Calls GET /api/projects/:projectId/levels/summary
    */
-  public async summary(params: { projectId: string }): Promise<LevelSummaryResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.levels.summary()');
-    }
+  public async summary(params: { projectId?: string }): Promise<LevelSummaryResponse> {
 
     return this.http.request<LevelSummaryResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/progression/summary`,
+      path: projectPath(params.projectId, `/progression/summary`),
     });
   }
 
@@ -123,16 +108,13 @@ export class LevelsResource {
    * Calls GET /api/projects/:projectId/users/:userId/progress
    */
   public async getUserProgress(params: GetUserProgressParams): Promise<UserProgressResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.levels.getUserProgress()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.levels.getUserProgress()');
     }
 
     return this.http.request<UserProgressResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/progress`,
+      path: projectPath(params.projectId, `/users/${params.userId}/progress`),
     });
   }
 }

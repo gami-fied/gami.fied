@@ -83,3 +83,51 @@ export function isValidDelivery(rawBody: string, headers: Record<string, string>
 When you rotate a secret, deliveries are signed with both the new and old secrets for 24 hours, so you can switch without missing any.
 
 After 20 deliveries in a row use up all their retries, the endpoint is disabled and its owners are emailed if SMTP is set up. Turning it back on resets the count.
+
+## Using the SDK in a browser
+
+API keys must stay on your server, and the SDK refuses to run with one in a browser. Instead, have your backend create a short-lived token for the signed-in user:
+
+```ts
+import { Gami } from '@gami.fied/sdk';
+
+const gami = new Gami({
+  baseUrl: process.env.GAMI_API_URL!,
+  apiKey: process.env.GAMI_API_KEY!,
+});
+
+export async function createToken(userId: string) {
+  const response = await fetch(`${process.env.GAMI_API_URL}/v1/end-user-tokens`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.GAMI_API_KEY!,
+    },
+    body: JSON.stringify({ userId }),
+  });
+  return response.json();
+}
+
+export const serverClient = gami;
+```
+
+Then use that token in the browser. It can only read that user's own data, and it expires after 15 minutes unless you set `expiresInSeconds`, up to one hour.
+
+```ts
+import { Gami } from '@gami.fied/sdk';
+
+const gami = new Gami({ baseUrl: 'https://api.example.com', endUserToken: 'geu_REPLACE_ME' });
+
+const me = await gami.me.get();
+console.log(`${me.totalXp} XP`);
+```
+
+To limit which sites can use tokens, set `allowedOrigins` on the project with `PATCH /api/projects/:id`. An empty list allows any site.
+
+## Showing rewards straight away
+
+Rewards are normally processed in the background. To show them immediately, add `?wait=true` to `POST /v1/events`. The response then includes a `rewards` object after up to 5 seconds. If `rewards.evaluated` is `false`, the worker hasn't finished, and the rewards will still arrive.
+
+## Sending many events
+
+`POST /v1/events/batch` takes up to 100 events and returns 207 with a result for each one, so you only need to retry the ones that failed.

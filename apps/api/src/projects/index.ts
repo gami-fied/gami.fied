@@ -2,6 +2,7 @@ import { db, levels, member, projects, projectMembers, isUniqueViolation } from 
 import { getDefaultLevelDefinitions } from '@gami/progression';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   requireAuth,
   requireOrgMember,
@@ -10,6 +11,17 @@ import {
 } from '../authorization/index.js';
 
 type SessionUserFlags = { role?: string; isPlatformAdmin?: boolean };
+
+const originSchema = z
+  .string()
+  .url()
+  .refine((value) => new URL(value).origin === value, 'Must be an origin, with no path');
+
+const updateProjectSchema = z.object({
+  name: z.string().min(1).max(128).optional(),
+  slug: z.string().min(1).max(128).optional(),
+  allowedOrigins: z.array(originSchema).max(50).optional(),
+});
 
 export async function projectRoutes(fastify: FastifyInstance) {
   // Create project
@@ -169,13 +181,22 @@ export async function projectRoutes(fastify: FastifyInstance) {
         .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
     }
 
-    const { name, slug } = (request.body as { name?: string; slug?: string }) || {};
+    const parsed = updateProjectSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'BAD_REQUEST',
+        message: 'Invalid project update',
+        details: parsed.error.format(),
+      });
+    }
+    const { name, slug, allowedOrigins } = parsed.data;
 
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
     if (name) updateData['name'] = name;
     if (slug) updateData['slug'] = slug;
+    if (allowedOrigins) updateData['allowedOrigins'] = allowedOrigins;
 
     try {
       const [updatedPrj] = await db

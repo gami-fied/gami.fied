@@ -58,3 +58,15 @@ Retrieve project-scoped API activity and ingestion volume.
 - `GET /health` - Liveness check (`200 OK`)
 - `GET /ready` - Deep PostgreSQL & Redis readiness probe (`200 OK` / `503 Service Unavailable`)
 - `GET /openapi.json` - Canonical OpenAPI 3.1 JSON Specification
+
+## Public API
+
+Routes under `/v1` are the stable public API, listed in [`openapi.json`](./openapi.json). The API key identifies the project, so paths don't include a project ID, and user routes accept either your own ID or the internal one. Routes under `/api/projects` serve the dashboard and can change without notice.
+
+Every error has this shape:
+
+```json
+{ "error": { "code": "NOT_FOUND", "message": "User not found", "requestId": "req_123" } }
+```
+
+The top-level `message` and `code` fields are kept for older clients.

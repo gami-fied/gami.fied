@@ -1,3 +1,7 @@
+import { errorFormatHook } from './middleware/error-format.js';
+import { addUserResolution } from './middleware/resolve-user.js';
+import { endUserRoutes } from './public/end-user.js';
+import { publicApiRoutes } from './public/gateway.js';
 import { startBackupScheduler } from './admin/backups/backup-scheduler.js';
 import { unsubscribeRoutes } from './notifications/unsubscribe.js';
 import cors from '@fastify/cors';
@@ -83,8 +87,12 @@ export async function buildServer() {
 
   await fastify.register(helmet);
 
+  // Both apply to routes registered below.
+  fastify.addHook('onRoute', addUserResolution);
+  fastify.addHook('onSend', errorFormatHook);
+
   // Register CORS for Dashboard and external clients
-  await fastify.register(cors, {
+  const dashboardCors = {
     origin: getAllowedOrigins(),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -96,7 +104,17 @@ export async function buildServer() {
       'Idempotency-Key',
       'Cookie',
     ],
-  });
+  };
+  // End-user tokens are made for customers' sites. A preflight carries no token, so the site is
+  // checked against the project's allowlist on the real request.
+  const endUserCors = { origin: true, credentials: false, methods: ['GET', 'OPTIONS'] };
+
+  await fastify.register(
+    cors,
+    () => (request: { url?: string }, callback: (error: Error | null, options: object) => void) => {
+      callback(null, request.url?.startsWith('/v1/me') ? endUserCors : dashboardCors);
+    }
+  );
 
   // Serve OpenAPI 3.1 Specification JSON
   fastify.get('/openapi.json', async (_request, reply) => {
@@ -251,6 +269,8 @@ export async function buildServer() {
   await fastify.register(otpRoutes);
   await fastify.register(userProfileRoutes);
   await fastify.register(unsubscribeRoutes);
+  await fastify.register(publicApiRoutes);
+  await fastify.register(endUserRoutes);
 
   // Register Project Analytics & Reporting endpoints (/api/projects/:projectId/analytics/*)
   await fastify.register(analyticsRoutes);

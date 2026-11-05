@@ -197,6 +197,13 @@
       "when": 1794000000000,
       "tag": "0027_platform_backups_and_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794100000000,
+      "tag": "0028_project_allowed_origins",
+      "breakpoints": true
     }
   ]
 }

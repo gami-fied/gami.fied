@@ -1,4 +1,4 @@
-import type { HttpClient } from './http.js';
+import { projectPath, type HttpClient } from './http.js';
 import type {
   CreateUserParams,
   DeleteUserParams,
@@ -18,13 +18,10 @@ export class UsersResource {
    * Calls GET /api/projects/:projectId/users
    */
   public async list(params: ListUsersParams): Promise<UserListResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.users.list()');
-    }
 
     return this.http.request<UserListResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users`,
+      path: projectPath(params.projectId, `/users`),
       query: {
         page: params.page ?? 1,
         limit: params.limit ?? 25,
@@ -38,16 +35,13 @@ export class UsersResource {
    * Calls GET /api/projects/:projectId/users/:userId
    */
   public async get(params: GetUserParams): Promise<UserRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.users.get()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.users.get()');
     }
 
     return this.http.request<UserRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}`,
+      path: projectPath(params.projectId, `/users/${params.userId}`),
     });
   }
 
@@ -56,9 +50,6 @@ export class UsersResource {
    * Calls GET /api/projects/:projectId/users/by-external-id/:externalId
    */
   public async getByExternalId(params: GetUserByExternalIdParams): Promise<UserRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.users.getByExternalId()');
-    }
     if (!params.externalId) {
       throw new Error('externalId is required for gami.users.getByExternalId()');
     }
@@ -67,7 +58,7 @@ export class UsersResource {
 
     return this.http.request<UserRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/by-external-id/${encodedExternalId}`,
+      path: projectPath(params.projectId, `/users/by-external-id/${encodedExternalId}`),
     });
   }
 
@@ -76,16 +67,13 @@ export class UsersResource {
    * Calls POST /api/projects/:projectId/users
    */
   public async create(params: CreateUserParams): Promise<UserRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.users.create()');
-    }
     if (!params.externalId) {
       throw new Error('externalId is required for gami.users.create()');
     }
 
     return this.http.request<UserRecord>({
       method: 'POST',
-      path: `/api/projects/${params.projectId}/users`,
+      path: projectPath(params.projectId, `/users`),
       body: {
         externalId: params.externalId,
         name: params.name,
@@ -101,16 +89,13 @@ export class UsersResource {
    * Calls PATCH /api/projects/:projectId/users/:userId
    */
   public async update(params: UpdateUserParams): Promise<UserRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.users.update()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.users.update()');
     }
 
     return this.http.request<UserRecord>({
       method: 'PATCH',
-      path: `/api/projects/${params.projectId}/users/${params.userId}`,
+      path: projectPath(params.projectId, `/users/${params.userId}`),
       body: {
         name: params.name,
         email: params.email,
@@ -128,16 +113,13 @@ export class UsersResource {
   public async delete(
     params: DeleteUserParams
   ): Promise<{ success: boolean; message: string; user: UserRecord }> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.users.delete()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.users.delete()');
     }
 
     return this.http.request<{ success: boolean; message: string; user: UserRecord }>({
       method: 'DELETE',
-      path: `/api/projects/${params.projectId}/users/${params.userId}`,
+      path: projectPath(params.projectId, `/users/${params.userId}`),
     });
   }
 }
