@@ -1,3 +1,4 @@
+import { product } from '@gami/config';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -125,7 +126,7 @@ export async function createPlatformBackup(params: {
       verificationStatus: 'unverified',
       encrypted: encrypt,
       encryptionAlgorithm: encrypt ? 'aes-256-gcm' : null,
-      appVersion: '0.1.0',
+      appVersion: product.version,
       schemaVersion: 1,
       createdByActorId: params.actorId,
     })
@@ -185,7 +186,7 @@ export async function createPlatformBackup(params: {
       manifest: {
         backupId,
         backupType: params.backupType || 'manual',
-        appVersion: '0.1.0',
+        appVersion: product.version,
         schemaVersion: 1,
         createdAt: new Date().toISOString(),
       },

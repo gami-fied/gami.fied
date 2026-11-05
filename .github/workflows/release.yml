@@ -50,6 +50,7 @@ jobs:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
           platforms: linux/amd64,linux/arm64
+          build-args: GAMI_VERSION=${{ steps.meta.outputs.version }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

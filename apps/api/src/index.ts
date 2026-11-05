@@ -7,7 +7,7 @@ import { startBackupScheduler } from './admin/backups/backup-scheduler.js';
 import { unsubscribeRoutes } from './notifications/unsubscribe.js';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import { defaultConfig, validateProductionConfig } from '@gami/config';
+import { defaultConfig, product, validateProductionConfig } from '@gami/config';
 import { checkDatabaseHealth, runMigrations } from '@gami/database';
 import { checkRedisHealth } from '@gami/queue';
 import Fastify from 'fastify';
@@ -152,7 +152,7 @@ export async function buildServer() {
   fastify.get('/', async (_request, reply) => {
     return reply.status(200).send({
       name: 'Gami.Fied Community Engine API',
-      version: '0.1.0',
+      version: product.version,
       status: 'online',
       health: '/health',
       ready: '/ready',
