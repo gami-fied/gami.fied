@@ -266,7 +266,7 @@ export function ChallengesView() {
               disabled={!isAdminOrOwner}
               title={!isAdminOrOwner ? 'Requires Admin or Owner role to create challenges' : undefined}
               onClick={() => isAdminOrOwner && openCreateModal()}
-              className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+              className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
             >
               <Plus className="w-4 h-4" />
               Create Challenge
@@ -347,7 +347,7 @@ export function ChallengesView() {
                   <Target className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-semibold text-zinc-200">No Challenges Defined</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                   Create your first counter challenge (e.g. &quot;Play 10 Games&quot;) to reward
                   your users automatically.
                 </p>
@@ -392,7 +392,7 @@ export function ChallengesView() {
                         <TableCell>
                           <div>
                             <div className="font-semibold text-xs text-zinc-100">{ch.name}</div>
-                            <div className="text-[11px] text-zinc-500 font-mono">{ch.key}</div>
+                            <div className="text-[11px] text-zinc-400 font-mono">{ch.key}</div>
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs text-orange-400">
@@ -407,7 +407,7 @@ export function ChallengesView() {
                               <Badge
                                 key={i}
                                 variant={r.type === 'xp' ? 'orange' : 'amber'}
-                                className="text-[10px]"
+                                className="text-xs"
                               >
                                 {r.type === 'xp' ? (
                                   <span className="flex items-center gap-1">
@@ -421,12 +421,12 @@ export function ChallengesView() {
                               </Badge>
                             ))}
                             {(ch.rewards || []).length === 0 && (
-                              <span className="text-zinc-600 text-xs">No rewards</span>
+                              <span className="text-zinc-400 text-xs">No rewards</span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusVariant} className="text-[10px]">
+                          <Badge variant={statusVariant} className="text-xs">
                             {statusLabel}
                           </Badge>
                         </TableCell>
@@ -437,7 +437,7 @@ export function ChallengesView() {
                             disabled={!isAdminOrOwner}
                             onClick={() => isAdminOrOwner && openEditModal(ch)}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit challenge' : 'Edit Challenge'}
-                            className={!isAdminOrOwner ? 'opacity-30 cursor-not-allowed text-zinc-600' : undefined}
+                            className={!isAdminOrOwner ? 'opacity-30 cursor-not-allowed text-zinc-400' : undefined}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </Button>
@@ -449,7 +449,7 @@ export function ChallengesView() {
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle challenge' : (ch.enabled ? 'Disable' : 'Enable')}
                             className={
                               !isAdminOrOwner
-                                ? 'opacity-30 cursor-not-allowed text-zinc-600'
+                                ? 'opacity-30 cursor-not-allowed text-zinc-400'
                                 : ch.enabled
                                 ? 'text-rose-400 hover:text-rose-300'
                                 : 'text-emerald-400 hover:text-emerald-300'
@@ -506,7 +506,7 @@ export function ChallengesView() {
                     <div className="font-bold text-sm text-zinc-100">
                       {userChallenges.name || 'Anonymous End-User'}
                     </div>
-                    <div className="text-xs text-zinc-500 font-mono">
+                    <div className="text-xs text-zinc-400 font-mono">
                       {userChallenges.externalId} ({userChallenges.userId})
                     </div>
                   </div>
@@ -524,17 +524,17 @@ export function ChallengesView() {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-semibold text-xs text-zinc-100">{item.name}</div>
-                            <div className="text-[11px] text-zinc-500 font-mono">{item.key}</div>
+                            <div className="text-[11px] text-zinc-400 font-mono">{item.key}</div>
                           </div>
                           {item.completed ? (
                             <Badge
                               variant="emerald"
-                              className="text-[10px] flex items-center gap-1"
+                              className="text-xs flex items-center gap-1"
                             >
                               <CheckCircle2 className="w-3 h-3" /> Completed
                             </Badge>
                           ) : (
-                            <Badge variant="orange" className="text-[10px]">
+                            <Badge variant="orange" className="text-xs">
                               In Progress
                             </Badge>
                           )}
@@ -551,8 +551,8 @@ export function ChallengesView() {
                         </div>
 
                         {item.completedAt && (
-                          <div className="text-[10px] text-zinc-500 flex items-center gap-1 pt-1 border-t border-zinc-800/80">
-                            <Calendar className="w-3 h-3 text-zinc-600" /> Completed on{' '}
+                          <div className="text-xs text-zinc-400 flex items-center gap-1 pt-1 border-t border-zinc-800/80">
+                            <Calendar className="w-3 h-3 text-zinc-400" /> Completed on{' '}
                             {new Date(item.completedAt).toLocaleString()}
                           </div>
                         )}

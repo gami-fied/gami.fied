@@ -198,10 +198,10 @@ export default function AdminSecurityPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  <label htmlFor="page-session-lifetime-hours" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                     Session Lifetime (hours)
                   </label>
-                  <Input
+                  <Input id="page-session-lifetime-hours"
                     type="number"
                     min="1"
                     max="720"
@@ -212,10 +212,10 @@ export default function AdminSecurityPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  <label htmlFor="page-minimum-password-length" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                     Minimum Password Length
                   </label>
-                  <Input
+                  <Input id="page-minimum-password-length"
                     type="number"
                     min="6"
                     max="128"
@@ -256,10 +256,10 @@ export default function AdminSecurityPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  <label htmlFor="page-max-failed-login-attempts" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                     Max Failed Login Attempts
                   </label>
-                  <Input
+                  <Input id="page-max-failed-login-attempts"
                     type="number"
                     min="1"
                     max="50"
@@ -270,10 +270,10 @@ export default function AdminSecurityPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  <label htmlFor="page-lockout-duration-minutes" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                     Lockout Duration (minutes)
                   </label>
-                  <Input
+                  <Input id="page-lockout-duration-minutes"
                     type="number"
                     min="1"
                     max="1440"
@@ -284,10 +284,10 @@ export default function AdminSecurityPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                  <label htmlFor="page-login-rate-limit-req-min" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                     Login Rate Limit (req/min)
                   </label>
-                  <Input
+                  <Input id="page-login-rate-limit-req-min"
                     type="number"
                     min="1"
                     max="1000"

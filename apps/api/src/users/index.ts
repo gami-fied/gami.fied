@@ -1,7 +1,17 @@
 import crypto from 'crypto';
-import { db, endUsers, events, webhookOutbox } from '@gami/database';
+import {
+  achievements,
+  db,
+  endUsers,
+  events,
+  ruleExecutions,
+  rules,
+  userAchievements,
+  webhookOutbox,
+  xpLedger,
+} from '@gami/database';
 import { createWebhookDelivery } from '@gami/webhooks';
-import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
@@ -246,6 +256,98 @@ export async function userRoutes(fastify: FastifyInstance) {
 
     return reply.status(200).send(updatedUser);
   });
+
+  // One view of what happened to a user: events, rule runs, XP and badges, newest first.
+  fastify.get<{ Params: { projectId: string; userId: string } }>(
+    '/api/projects/:projectId/users/:userId/timeline',
+    async (request, reply) => {
+      const { projectId, userId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const limit = 50;
+      const [userEvents, ledger, badges, runs] = await Promise.all([
+        db
+          .select()
+          .from(events)
+          .where(and(eq(events.projectId, projectId), eq(events.userId, userId)))
+          .orderBy(desc(events.occurredAt))
+          .limit(limit),
+        db
+          .select()
+          .from(xpLedger)
+          .where(and(eq(xpLedger.projectId, projectId), eq(xpLedger.userId, userId)))
+          .orderBy(desc(xpLedger.createdAt))
+          .limit(limit),
+        db
+          .select({
+            id: userAchievements.id,
+            name: achievements.name,
+            awardedAt: userAchievements.awardedAt,
+          })
+          .from(userAchievements)
+          .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
+          .where(and(eq(userAchievements.projectId, projectId), eq(userAchievements.userId, userId)))
+          .orderBy(desc(userAchievements.awardedAt))
+          .limit(limit),
+        db
+          .select({
+            id: ruleExecutions.id,
+            status: ruleExecutions.status,
+            error: ruleExecutions.error,
+            name: rules.name,
+            createdAt: ruleExecutions.createdAt,
+          })
+          .from(ruleExecutions)
+          .innerJoin(events, eq(ruleExecutions.eventId, events.id))
+          .innerJoin(rules, eq(ruleExecutions.ruleId, rules.id))
+          .where(
+            and(
+              eq(events.projectId, projectId),
+              eq(events.userId, userId),
+              ne(ruleExecutions.status, 'skipped')
+            )
+          )
+          .orderBy(desc(ruleExecutions.createdAt))
+          .limit(limit),
+      ]);
+
+      const data = [
+        ...userEvents.map((e) => ({
+          id: e.id,
+          kind: 'event',
+          title: e.type,
+          detail: null,
+          at: e.occurredAt,
+        })),
+        ...ledger.map((x) => ({
+          id: x.id,
+          kind: 'xp',
+          title: `${x.amount > 0 ? '+' : ''}${x.amount} XP`,
+          detail: x.reason,
+          at: x.createdAt,
+        })),
+        ...badges.map((b) => ({
+          id: b.id,
+          kind: 'achievement',
+          title: b.name,
+          detail: null,
+          at: b.awardedAt,
+        })),
+        ...runs.map((r) => ({
+          id: r.id,
+          kind: 'rule',
+          title: `${r.name}: ${r.status}`,
+          detail: r.error,
+          at: r.createdAt,
+        })),
+      ]
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, limit);
+
+      return reply.send({ data });
+    }
+  );
 
   // Permanent erasure for GDPR and CCPA requests. DELETE below only deactivates.
   fastify.post<{

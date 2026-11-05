@@ -85,7 +85,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
           <Zap className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-semibold text-zinc-200">Rule Executed Actions</span>
         </div>
-        <span className="text-[11px] text-zinc-500 font-medium">
+        <span className="text-[11px] text-zinc-400 font-medium">
           Executed in order when conditions match
         </span>
       </div>
@@ -98,7 +98,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-none bg-zinc-800 text-zinc-300 text-[10px] font-bold flex items-center justify-center font-mono">
+                <span className="w-5 h-5 rounded-none bg-zinc-800 text-zinc-300 text-xs font-bold flex items-center justify-center font-mono">
                   {idx + 1}
                 </span>
                 <div className="w-56">
@@ -116,7 +116,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                   type="button"
                   disabled={idx === 0}
                   onClick={() => handleMoveAction(idx, 'up')}
-                  className="p-1.5 text-zinc-500 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed rounded transition"
+                  className="p-1.5 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed rounded transition"
                   title="Move Up"
                 >
                   <ArrowUp className="w-3.5 h-3.5" />
@@ -125,7 +125,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                   type="button"
                   disabled={idx === actions.length - 1}
                   onClick={() => handleMoveAction(idx, 'down')}
-                  className="p-1.5 text-zinc-500 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed rounded transition"
+                  className="p-1.5 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed rounded transition"
                   title="Move Down"
                 >
                   <ArrowDown className="w-3.5 h-3.5" />
@@ -133,7 +133,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                 <button
                   type="button"
                   onClick={() => handleRemoveAction(act.id)}
-                  className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition ml-1"
+                  className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 rounded transition ml-1"
                   title="Remove Action"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

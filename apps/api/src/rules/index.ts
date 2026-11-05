@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { achievements, db, rules } from '@gami/database';
+import { achievements, db, events, ruleExecutions, rules } from '@gami/database';
 import {
   ActionDefinition,
   evaluateRule,
@@ -7,7 +7,7 @@ import {
   getReferencedAchievementKeys,
   validateRuleForSave,
 } from '@gami/rules';
-import { eq, and, asc, inArray } from 'drizzle-orm';
+import { eq, and, asc, desc, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
@@ -253,6 +253,77 @@ export async function ruleRoutes(fastify: FastifyInstance) {
       }
 
       return reply.send({ success: true, message: 'Rule deleted successfully' });
+    }
+  );
+
+  // Shows why a rule did or did not fire, using its current definition against recent events.
+  fastify.get<{ Params: { projectId: string; ruleId: string } }>(
+    '/api/projects/:projectId/rules/:ruleId/trace',
+    async (request, reply) => {
+      const { projectId, ruleId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const [rule] = await db
+        .select()
+        .from(rules)
+        .where(and(eq(rules.id, ruleId), eq(rules.projectId, projectId)));
+      if (!rule) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Rule not found' });
+      }
+
+      const recent = await db
+        .select()
+        .from(events)
+        .where(and(eq(events.projectId, projectId), eq(events.type, rule.trigger)))
+        .orderBy(desc(events.occurredAt))
+        .limit(20);
+
+      const executions =
+        recent.length === 0
+          ? []
+          : await db
+              .select()
+              .from(ruleExecutions)
+              .where(
+                and(
+                  eq(ruleExecutions.ruleId, ruleId),
+                  inArray(
+                    ruleExecutions.eventId,
+                    recent.map((event) => event.id)
+                  )
+                )
+              );
+
+      const data = recent.map((event) => {
+        const result = evaluateRule(
+          {
+            trigger: rule.trigger,
+            conditions: rule.conditions || undefined,
+            actions: rule.actions || [],
+          },
+          {
+            id: event.id,
+            projectId,
+            userId: event.userId,
+            type: event.type,
+            payload: (event.payload as Record<string, unknown>) || {},
+            occurredAt: event.occurredAt,
+          },
+          rule.id
+        );
+        const execution = executions.find((row) => row.eventId === event.id);
+
+        return {
+          eventId: event.id,
+          occurredAt: event.occurredAt,
+          matched: result.matched,
+          reason: result.error ?? (result.matched ? null : 'The conditions did not match this event'),
+          execution: execution ? { status: execution.status, error: execution.error } : null,
+        };
+      });
+
+      return reply.send({ data });
     }
   );
 

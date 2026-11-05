@@ -51,10 +51,18 @@ export const TableBody = forwardRef<
 TableBody.displayName = 'TableBody';
 
 export const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, onClick, onKeyDown, ...props }, ref) => (
     <tr
       ref={ref}
       className={twMerge(clsx('hover:bg-zinc-800/40 transition-colors', className))}
+      onClick={onClick}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (onClick && event.target === event.currentTarget && event.key === 'Enter') {
+          event.currentTarget.click();
+        }
+      }}
       {...props}
     />
   )

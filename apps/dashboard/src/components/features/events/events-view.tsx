@@ -214,7 +214,7 @@ export function EventsView() {
             disabled={!isAdminOrOwner}
             title={!isAdminOrOwner ? 'Requires Admin or Owner role to ingest test events' : undefined}
             onClick={() => isAdminOrOwner && setIsEmitOpen(true)}
-            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
           >
             <Send className="w-3.5 h-3.5" />
             Send Test Event
@@ -307,7 +307,7 @@ export function EventsView() {
                         </span>
                         <button
                           onClick={() => handleCopyEventId(evt.id)}
-                          className="p-1 text-zinc-600 hover:text-zinc-300 transition shrink-0"
+                          className="p-1 text-zinc-400 hover:text-zinc-300 transition shrink-0"
                           title="Copy Event ID"
                         >
                           {copiedId === evt.id ? (
@@ -322,7 +322,7 @@ export function EventsView() {
                       <Badge variant="orange">{evt.type}</Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-zinc-400">
-                      {evt.userId || <span className="text-zinc-600">Anonymous</span>}
+                      {evt.userId || <span className="text-zinc-400">Anonymous</span>}
                     </TableCell>
                     <TableCell
                       className="text-xs text-zinc-400 cursor-default"
@@ -346,7 +346,7 @@ export function EventsView() {
 
                 {events.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-zinc-500 text-xs">
+                    <TableCell colSpan={5} className="py-8 text-center text-zinc-400 text-xs">
                       No events recorded yet for this project.
                     </TableCell>
                   </TableRow>
@@ -434,7 +434,7 @@ export function EventsView() {
                   onChange={(e) => setRawSecretKey(e.target.value)}
                   required
                 />
-                <span className="text-[11px] text-zinc-500 block px-1">
+                <span className="text-[11px] text-zinc-400 block px-1">
                   Enter your raw API key secret string. Key is held temporarily in component memory
                   and never saved to browser storage.
                 </span>
@@ -467,10 +467,10 @@ export function EventsView() {
 
           {/* JSON Payload Editor */}
           <div className="space-y-1">
-            <label className="block text-xs font-semibold text-zinc-300">
+            <label htmlFor="events-view-event-payload-json-object" className="block text-xs font-semibold text-zinc-300">
               Event Payload (JSON Object)
             </label>
-            <textarea
+            <textarea id="events-view-event-payload-json-object"
               rows={4}
               className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-none font-mono text-xs text-zinc-200 focus:outline-none focus:border-orange-500 transition"
               value={emitPayloadJson}
@@ -504,13 +504,13 @@ export function EventsView() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-xs bg-zinc-950 p-3 rounded-none border border-zinc-800">
               <div>
-                <span className="text-zinc-500 block">End User ID</span>
+                <span className="text-zinc-400 block">End User ID</span>
                 <span className="font-mono text-zinc-200 font-medium">
                   {selectedEvent.userId || 'N/A'}
                 </span>
               </div>
               <div>
-                <span className="text-zinc-500 block">Idempotency Key</span>
+                <span className="text-zinc-400 block">Idempotency Key</span>
                 <span className="font-mono text-zinc-200 font-medium">
                   {selectedEvent.idempotencyKey || 'None'}
                 </span>

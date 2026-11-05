@@ -159,11 +159,11 @@ export default function DeveloperPage() {
             { step: '6', title: 'Verify Results', desc: 'Check user XP balance' },
           ].map((item, idx) => (
             <div key={item.step} className="bg-zinc-950 border border-zinc-800/80 p-3 relative">
-              <div className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest mb-1">
+              <div className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-widest mb-1">
                 Step {item.step}
               </div>
               <div className="text-xs font-mono font-bold text-white truncate">{item.title}</div>
-              <div className="text-[11px] text-zinc-500 mt-1 truncate">{item.desc}</div>
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">{item.desc}</div>
               {idx < 5 && (
                 <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 z-10">
                   <ArrowRight className="w-3.5 h-3.5 text-zinc-700" />

@@ -179,16 +179,16 @@ function AcceptInvitationContent() {
         ) : invitation ? (
           <div className="space-y-4">
             <div className="p-4 bg-zinc-950 border border-zinc-800 space-y-2">
-              <span className="text-[10px] text-zinc-500 uppercase tracking-widest block">Organization</span>
+              <span className="text-xs text-zinc-400 uppercase tracking-widest block">Organization</span>
               <h2 className="text-lg font-bold text-orange-400">{invitation.organizationName}</h2>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800 text-[11px]">
                 <div>
-                  <span className="text-zinc-500 block">Invited Email</span>
+                  <span className="text-zinc-400 block">Invited Email</span>
                   <span className="text-zinc-200 font-bold">{invitation.email}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block">Assigned Role</span>
+                  <span className="text-zinc-400 block">Assigned Role</span>
                   <span className="text-orange-400 font-bold uppercase">{invitation.role}</span>
                 </div>
               </div>

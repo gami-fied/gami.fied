@@ -138,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 required
                 className="w-full bg-zinc-900 border border-zinc-800 px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-rose-500 font-mono"
               />
-              <p className="text-[10px] text-zinc-500 mt-1">
+              <p className="text-xs text-zinc-400 mt-1">
                 This secret is configured in your server environment variables.
               </p>
             </div>
@@ -153,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </form>
 
           <div className="pt-2 border-t border-zinc-900 text-center">
-            <Link href="/dashboard" className="text-xs text-zinc-500 hover:text-zinc-300">
+            <Link href="/dashboard" className="text-xs text-zinc-400 hover:text-zinc-300">
               ← Return to Project Dashboard
             </Link>
           </div>
@@ -199,7 +199,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="text-sm font-bold uppercase tracking-wider text-white">
               Gami.Fied Platform Administration
             </span>
-            <span className="ml-2.5 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 border border-rose-800 bg-rose-950/40 text-rose-400">
+            <span className="ml-2.5 text-xs uppercase font-bold tracking-wider px-2 py-0.5 border border-rose-800 bg-rose-950/40 text-rose-400">
               Platform Admin Scope
             </span>
           </div>

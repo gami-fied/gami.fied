@@ -169,7 +169,7 @@ export default function AnalyticsPage() {
                 onChange={(e) => setStartDate(e.target.value)}
                 className="bg-zinc-950 border border-zinc-800 text-xs font-mono text-white px-2 py-1"
               />
-              <span className="text-zinc-500 text-xs">-</span>
+              <span className="text-zinc-400 text-xs">-</span>
               <input
                 type="date"
                 value={endDate}
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
           <button
             onClick={fetchAnalytics}
             className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
-            title="Refresh Analytics"
+            title="Refresh Analytics" aria-label="Refresh Analytics"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -317,7 +317,7 @@ export default function AnalyticsPage() {
       {activeTab === 'users' && (
         <DataBox title="User Growth Over Time">
           {userMetrics?.userGrowthOverTime?.length === 0 ? (
-            <p className="text-xs font-mono text-zinc-500 py-8 text-center">No user registration activity recorded in this period.</p>
+            <p className="text-xs font-mono text-zinc-400 py-8 text-center">No user registration activity recorded in this period.</p>
           ) : (
             <div className="space-y-2">
               {userMetrics?.userGrowthOverTime?.map((item, idx) => (
@@ -336,7 +336,7 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <DataBox title="Top Ingested Event Types">
             {eventMetrics?.topEventTypes?.length === 0 ? (
-              <p className="text-xs font-mono text-zinc-500 py-8 text-center">No event ingestion records found.</p>
+              <p className="text-xs font-mono text-zinc-400 py-8 text-center">No event ingestion records found.</p>
             ) : (
               <div className="divide-y divide-zinc-800">
                 {eventMetrics?.topEventTypes?.map((row, idx) => (
@@ -357,7 +357,7 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataBox title="Most Popular Achievements">
               {gamificationMetrics?.topAchievements?.length === 0 ? (
-                <p className="text-xs font-mono text-zinc-500 py-8 text-center">No achievements unlocked yet.</p>
+                <p className="text-xs font-mono text-zinc-400 py-8 text-center">No achievements unlocked yet.</p>
               ) : (
                 <div className="divide-y divide-zinc-800">
                   {gamificationMetrics?.topAchievements?.map((ach, idx) => (
@@ -372,14 +372,14 @@ export default function AnalyticsPage() {
 
             <DataBox title="Most Triggered Gamification Rules">
               {gamificationMetrics?.topTriggeredRules?.length === 0 ? (
-                <p className="text-xs font-mono text-zinc-500 py-8 text-center">No rule executions recorded.</p>
+                <p className="text-xs font-mono text-zinc-400 py-8 text-center">No rule executions recorded.</p>
               ) : (
                 <div className="divide-y divide-zinc-800">
                   {gamificationMetrics?.topTriggeredRules?.map((rule, idx) => (
                     <div key={idx} className="flex items-center justify-between py-2 text-xs font-mono">
                       <div>
                         <span className="text-orange-400 font-bold block">{rule.name}</span>
-                        <span className="text-[10px] text-zinc-500">Trigger: {rule.trigger}</span>
+                        <span className="text-xs text-zinc-400">Trigger: {rule.trigger}</span>
                       </div>
                       <span className="text-zinc-300">{rule.executionCount} executions</span>
                     </div>
@@ -437,7 +437,7 @@ function SummaryCard({ title, value, icon: Icon, color }: { title: string; value
   return (
     <div className="bg-zinc-900 border border-zinc-800 p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">{title}</span>
+        <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">{title}</span>
         <Icon className={`w-4 h-4 ${color}`} />
       </div>
       <div className={`text-xl font-bold font-mono ${color}`}>{value.toLocaleString()}</div>

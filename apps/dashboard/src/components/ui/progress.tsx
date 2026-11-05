@@ -27,7 +27,7 @@ export function Progress({ value, max = 100, label, sublabel, showPercent = true
           }}
         />
       </div>
-      {sublabel && <p className="text-[11px] font-mono text-zinc-500">{sublabel}</p>}
+      {sublabel && <p className="text-[11px] font-mono text-zinc-400">{sublabel}</p>}
     </div>
   );
 }

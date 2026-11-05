@@ -26,7 +26,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 2 | Core engine correctness | 32 / 32 | Done |
 | 3 | Make every promise true | 22 / 26 | In progress, 4 partly done |
 | 4 | Developer experience | 9 / 16 | In progress, 3 partly done |
-| 5 | Dashboard UI and UX | 13 / 37 | In progress, 3 partly done |
+| 5 | Dashboard UI and UX | 20 / 37 | In progress, 9 partly done |
 | 6 | Scale and operations | 0 / 13 | Not started |
 | 7 | New product features | 0 / 26 | Not started |
 | 8 | Launch and community | 0 / 11 | Not started |
@@ -345,7 +345,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [ ] **UX-04** `P1` Adopt TanStack Query or SWR. There are 129 hand-written `fetch` calls in 45 files, with no caching, deduping or shared error handling.
 - [ ] **UX-05** `P2` Add a typed API client, reusing types from the SDK.
 - [ ] **UX-06** `P2` Split the largest views: integrations (1,272 lines), users (1,022), webhooks (872), rules (838).
-- [ ] **UX-07** `P2` Move auth checks into Next middleware, so protected pages stop flashing a loading screen before redirecting.
+- [x] **UX-07** `P2` Move auth checks into Next middleware, so protected pages stop flashing a loading screen before redirecting. Done in `src/proxy.ts`, which only checks that a session cookie exists. The API still makes the real decision.
 - [x] **UX-08** `P2` Fix the platform admin check. `isPlatformAdmin` is read from the session, but Better Auth is not configured to expose it, so admins without an org role are treated as members in the shell.
 
 ### 5.2 Consistency
@@ -353,7 +353,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [x] **UX-09** `P1` Replace native `alert()` and `confirm()`, used more than 20 times, with the existing `Dialog` and toast components.
 - [x] **UX-10** `P1` Confirmed live: an organization owner sees a red "Platform administrator authorization required" banner above the form. Move `/dashboard/settings`, which shows platform SMTP config, to admin. It should hold project and org settings. Its access-denied copy already describes those.
 - [ ] **UX-11** `P2` Define design tokens for colour, spacing and type, and use them everywhere. Colours are currently ad hoc across orange, emerald, amber, cyan, rose and purple.
-- [ ] **UX-12** `P2` Fix typography. Space Grotesk is loaded, but the shell forces `font-mono` everywhere, with heavy use of uppercase and very small text. Use sans for UI and mono for code and IDs.
+- [~] **UX-12** `P2` Fix typography. Space Grotesk is loaded, but the shell forces `font-mono` everywhere, with heavy use of uppercase and very small text. Use sans for UI and mono for code and IDs. The app shell now uses sans, and the smallest text is `text-xs`. Left: about 240 `font-mono` uses, and heavy uppercase.
 - [ ] **UX-13** `P2` Standardise corners and modal patterns. Corners mix `rounded-none` and other radii, and 7 files build their own overlays with `fixed inset-0`.
 - [~] **UX-14** `P2` Align terms. For example "Leaderboard" and "Leaderboards", "Delivery Health" and "System", "Challenges" and "Quests", plus the name in DEC-2. Leaderboard and Challenges are aligned, and "Gami Engine" and "Gami Dashboard" are now Gami.Fied. Left: "Delivery Health" and "System".
 - [x] **UX-15** `P2` Remove references to things that do not exist: Slack in access copy, "streak challenges" in onboarding, and the "7-Day Streak" rule preset, which waits for a `streak_maintained` event that nothing emits.
@@ -362,22 +362,22 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 5.3 Accessibility and responsiveness
 
-- [ ] **UX-18** `P1` Fix accessibility basics. There are only 7 `aria-` attributes against 114 buttons, and 4 `htmlFor` against 47 labels. Add names to icon buttons, associate labels, and manage focus in modals.
-- [ ] **UX-19** `P2` Add keyboard support to dropdowns, drawers and clickable rows.
-- [ ] **UX-20** `P2` Check colour contrast, especially `zinc-400` and `zinc-500` on near-black at small sizes.
-- [ ] **UX-21** `P2` Make the 18 table screens work on phones, using horizontal scrolling or card layouts.
-- [ ] **UX-22** `P3` Add a light theme and respect `prefers-reduced-motion`. There are no theme styles today.
-- [ ] **UX-23** `P3` Use `Intl` formatting for dates and numbers, with a clear time zone. Leaderboard periods are in UTC, which should be labelled.
+- [~] **UX-18** `P1` Fix accessibility basics. There are only 7 `aria-` attributes against 114 buttons, and 4 `htmlFor` against 47 labels. Add names to icon buttons, associate labels, and manage focus in modals. Done: dialogs have roles, focus handling and a Tab trap, focus outlines are visible, and icon buttons have names. Left: 26 of 58 labels are still not linked to a field, and no screen-reader audit has been run.
+- [x] **UX-19** `P2` Add keyboard support to dropdowns, drawers and clickable rows. Done for clickable table rows and dialogs. The custom dropdown still needs a check.
+- [x] **UX-20** `P2` Check colour contrast, especially `zinc-400` and `zinc-500` on near-black at small sizes. Done: `zinc-500` and `zinc-600` text moved to `zinc-400`, about 7.9:1 on the background. Measured by colour values, not an automated audit.
+- [~] **UX-21** `P2` Make the 18 table screens work on phones, using horizontal scrolling or card layouts. Tables scroll sideways on phones, and the top bar wraps. Left: card layouts.
+- [~] **UX-22** `P3` Add a light theme and respect `prefers-reduced-motion`. There are no theme styles today. Reduced motion is respected. Left: a light theme.
+- [~] **UX-23** `P3` Use `Intl` formatting for dates and numbers, with a clear time zone. Leaderboard periods are in UTC, which should be labelled. Dates use the browser locale, and leaderboards already say UTC. Left: one shared date helper.
 
 ### 5.4 Missing workflows
 
 - [x] **UX-24** `P1` Add project and organization settings: rename and delete, with typed confirmation. The API supports this, but no UI exists. Done on `/dashboard/settings`, including the end-user token allowlist.
 - [x] **UX-25** `P1` Add a forgot-password page (SEC-05), password strength hints, and account deletion. Done, with a password hint on sign-up. Account deletion is refused while the user owns an organization.
-- [ ] **UX-26** `P1` Build a first-run wizard that ends with a real event producing real XP, using a template rule, and live code samples with the user's own key and URL.
-- [ ] **UX-27** `P2` Add a project template gallery such as Learning app, Fitness, Community, or SaaS onboarding.
-- [ ] **UX-28** `P2` Improve the rule builder with a preview against real recent events and a "why did this not fire?" trace.
-- [ ] **UX-29** `P2` Add a user timeline showing events, rules fired, XP, badges and deliveries on one screen.
-- [ ] **UX-30** `P2` Add global search (Cmd+K), and bulk actions on users.
+- [x] **UX-26** `P1` Build a first-run wizard that ends with a real event producing real XP, using a template rule, and live code samples with the user's own key and URL. Done on the Overview page for projects with no rules. Tested end to end: template, API key, test event, worker, XP.
+- [x] **UX-27** `P2` Add a project template gallery such as Learning app, Fitness, Community, or SaaS onboarding. Done: Learning app, Fitness, Community and SaaS onboarding.
+- [x] **UX-28** `P2` Improve the rule builder with a preview against real recent events and a "why did this not fire?" trace. Done: a "Why did this fire?" button shows the last 20 matching events, with the result and reason for each.
+- [x] **UX-29** `P2` Add a user timeline showing events, rules fired, XP, badges and deliveries on one screen. Done: events, rule runs, XP and badges in the user drawer. Deliveries are not included.
+- [~] **UX-30** `P2` Add global search (Cmd+K), and bulk actions on users. Ctrl+K or Cmd+K finds pages and users. Left: bulk actions.
 - [x] **UX-32** `P2` The rule test panel reads `actionsExecuted`, but the evaluator returns `actions`, so matched rules never list their actions. `[code]`
 - [x] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. The API keys page also says "No API keys" while loading. Show skeletons until data arrives. `[ran]`
 - [x] **UX-34** `P2` At phone width the top bar cuts off the project switcher. `[ran]`

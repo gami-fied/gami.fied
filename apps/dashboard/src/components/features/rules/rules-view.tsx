@@ -1,5 +1,6 @@
 'use client';
 
+import { RuleTraceDialog } from './rule-trace-dialog';
 import { useToast } from '@/components/ui/toast';
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/dashboard-context';
@@ -26,6 +27,7 @@ import {
   Play,
   SlidersHorizontal,
   Code2,
+  Search,
   Trash2,
   Edit2,
   CheckCircle2,
@@ -80,6 +82,7 @@ export function RulesView() {
   // Modal / Form state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RuleRecord | null>(null);
+  const [tracingRule, setTracingRule] = useState<RuleRecord | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<'visual' | 'json'>('visual');
   const [submitting, setSubmitting] = useState(false);
@@ -415,7 +418,7 @@ export function RulesView() {
               setEditingRule(null);
               setIsCreateOpen(true);
             }}
-            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
           >
             <Plus className="w-4 h-4" />
             Create Rule
@@ -437,9 +440,9 @@ export function RulesView() {
               <TableSkeleton rows={6} />
             ) : rules.length === 0 ? (
               <div className="py-16 text-center space-y-3">
-                <Zap className="w-10 h-10 text-zinc-600 mx-auto" />
+                <Zap className="w-10 h-10 text-zinc-400 mx-auto" />
                 <h3 className="text-sm font-semibold text-zinc-300">No Rules Defined Yet</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                   Create your first gamification rule to automatically award XP or achievements when
                   events occur.
                 </p>
@@ -463,7 +466,7 @@ export function RulesView() {
                         <div>
                           <div className="text-xs font-semibold text-zinc-200">{rule.name}</div>
                           {rule.description && (
-                            <div className="text-[11px] text-zinc-500">{rule.description}</div>
+                            <div className="text-[11px] text-zinc-400">{rule.description}</div>
                           )}
                         </div>
                       </TableCell>
@@ -480,14 +483,14 @@ export function RulesView() {
                                 : 'Custom JSON'}
                           </span>
                         ) : (
-                          <span className="text-zinc-500 italic">Always executes</span>
+                          <span className="text-zinc-400 italic">Always executes</span>
                         )}
                       </TableCell>
                       <TableCell className="text-xs">
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(rule.actions) ? (
                             (rule.actions as StoredAction[]).map((act, idx) => (
-                              <Badge key={idx} variant="emerald" className="text-[10px]">
+                              <Badge key={idx} variant="emerald" className="text-xs">
                                 {act.type === 'award_xp'
                                   ? `+${act.params?.amount || act.amount} XP`
                                   : act.type}
@@ -503,7 +506,7 @@ export function RulesView() {
                           disabled={!isAdminOrOwner}
                           title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle rule status' : undefined}
                           onClick={() => isAdminOrOwner && handleToggleEnabled(rule)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border transition ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold tracking-wider uppercase border transition ${
                             rule.enabled
                               ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50'
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
@@ -515,6 +518,15 @@ export function RulesView() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
+                            type="button"
+                            onClick={() => setTracingRule(rule)}
+                            className="p-2 text-zinc-400 hover:text-white transition"
+                            title="Why did this fire?"
+                            aria-label="Why did this fire?"
+                          >
+                            <Search className="w-4 h-4" />
+                          </button>
+                          <button
                             disabled={!isAdminOrOwner}
                             onClick={() => {
                               if (!isAdminOrOwner) return;
@@ -524,7 +536,7 @@ export function RulesView() {
                             className={`p-1.5 transition ${
                               isAdminOrOwner
                                 ? 'text-zinc-400 hover:text-zinc-200'
-                                : 'opacity-30 cursor-not-allowed text-zinc-600'
+                                : 'opacity-30 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit rule' : 'Edit Rule'}
                           >
@@ -536,7 +548,7 @@ export function RulesView() {
                             className={`p-1.5 transition ${
                               isAdminOrOwner
                                 ? 'text-zinc-400 hover:text-rose-400'
-                                : 'opacity-30 cursor-not-allowed text-zinc-600'
+                                : 'opacity-30 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to delete rule' : 'Delete Rule'}
                           >
@@ -604,7 +616,7 @@ export function RulesView() {
                         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
                           <div>
                             <span className="text-xs font-bold text-zinc-100">{res.ruleName}</span>
-                            <div className="text-[10px] text-zinc-500 font-mono">
+                            <div className="text-xs text-zinc-400 font-mono">
                               Trigger: {res.trigger}
                             </div>
                           </div>
@@ -643,7 +655,7 @@ export function RulesView() {
                               <div className="flex flex-wrap gap-1.5">
                                 {Array.isArray(res.actions) &&
                                   res.actions.map((act, i) => (
-                                    <Badge key={i} variant="emerald" className="text-[10px]">
+                                    <Badge key={i} variant="emerald" className="text-xs">
                                       {act.type === 'award_xp'
                                         ? `+${act.params?.amount || act.amount} XP`
                                         : act.type}
@@ -657,12 +669,12 @@ export function RulesView() {
                     ))}
                   </div>
                 ) : (
-                  <div className="py-12 text-center text-xs text-zinc-500">
+                  <div className="py-12 text-center text-xs text-zinc-400">
                     No active rules to evaluate. Create and activate a rule first.
                   </div>
                 )
               ) : (
-                <div className="py-16 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-none">
+                <div className="py-16 text-center text-xs text-zinc-400 border border-dashed border-zinc-800 rounded-none">
                   Run the simulation to see step-by-step trigger matches and action execution cards.
                 </div>
               )}
@@ -791,8 +803,8 @@ export function RulesView() {
             />
           ) : (
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-zinc-300">Conditions JSON</label>
-              <textarea
+              <label htmlFor="rules-view-conditions-json" className="block text-xs font-semibold text-zinc-300">Conditions JSON</label>
+              <textarea id="rules-view-conditions-json"
                 rows={5}
                 value={rawConditionsJson}
                 onChange={(e) => setRawConditionsJson(e.target.value)}
@@ -810,8 +822,8 @@ export function RulesView() {
             />
           ) : (
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-zinc-300">Actions JSON</label>
-              <textarea
+              <label htmlFor="rules-view-actions-json" className="block text-xs font-semibold text-zinc-300">Actions JSON</label>
+              <textarea id="rules-view-actions-json"
                 rows={5}
                 value={rawActionsJson}
                 onChange={(e) => setRawActionsJson(e.target.value)}
@@ -847,6 +859,13 @@ export function RulesView() {
         message="Are you sure you want to delete this rule? Active events will no longer trigger these actions."
         confirmText="Delete Rule"
       />
+      {tracingRule && selectedProject && (
+        <RuleTraceDialog
+          projectId={selectedProject.id}
+          rule={tracingRule}
+          onClose={() => setTracingRule(null)}
+        />
+      )}
     </div>
   );
 }

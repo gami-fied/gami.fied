@@ -157,7 +157,7 @@ export default function AdminBackupsPage() {
           <button
             onClick={fetchBackups}
             className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 transition"
-            title="Refresh Catalog"
+            title="Refresh Catalog" aria-label="Refresh Catalog"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -193,13 +193,13 @@ export default function AdminBackupsPage() {
             <HardDrive className="w-4 h-4 text-rose-400" />
             <h2 className="text-sm font-bold uppercase text-white">Backup Catalog</h2>
           </div>
-          <span className="text-xs text-zinc-500 font-semibold">{backups.length} total backup(s)</span>
+          <span className="text-xs text-zinc-400 font-semibold">{backups.length} total backup(s)</span>
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-xs text-zinc-500">Loading platform backup catalog...</div>
+          <div className="py-8 text-center text-xs text-zinc-400">Loading platform backup catalog...</div>
         ) : backups.length === 0 ? (
-          <div className="py-8 text-center text-xs text-zinc-500">
+          <div className="py-8 text-center text-xs text-zinc-400">
             No platform backups created yet. Click "Create PostgreSQL Backup" above.
           </div>
         ) : (
@@ -224,7 +224,7 @@ export default function AdminBackupsPage() {
                     <td className="p-3 capitalize text-zinc-400">{b.backupType}</td>
                     <td className="p-3">
                       <span
-                        className={`px-2 py-0.5 text-[10px] uppercase font-bold border ${
+                        className={`px-2 py-0.5 text-xs uppercase font-bold border ${
                           b.status === 'verified' || b.status === 'available'
                             ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
                             : b.status === 'restored'
@@ -237,7 +237,7 @@ export default function AdminBackupsPage() {
                     </td>
                     <td className="p-3">
                       <span
-                        className={`px-2 py-0.5 text-[10px] uppercase font-bold ${
+                        className={`px-2 py-0.5 text-xs uppercase font-bold ${
                           b.verificationStatus === 'passed' ? 'text-emerald-400' : 'text-rose-400'
                         }`}
                       >
@@ -251,7 +251,7 @@ export default function AdminBackupsPage() {
                           <Lock className="w-3 h-3" /> AES-256
                         </span>
                       ) : (
-                        <span className="text-zinc-500">Plain</span>
+                        <span className="text-zinc-400">Plain</span>
                       )}
                     </td>
                     <td className="p-3 text-zinc-400">{new Date(b.createdAt).toLocaleString()}</td>

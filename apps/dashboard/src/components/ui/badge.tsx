@@ -22,7 +22,7 @@ export function Badge({ className, variant = 'zinc', ...props }: BadgeProps) {
     <span
       className={twMerge(
         clsx(
-          'inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-mono font-semibold border tracking-wider uppercase select-none',
+          'inline-flex items-center px-2 py-0.5 rounded-none text-xs font-mono font-semibold border tracking-wider uppercase select-none',
           variants[variant],
           className
         )

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './button';
@@ -25,6 +25,9 @@ const maxWidthClasses = {
   '4xl': 'max-w-4xl',
 };
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
+
 export function Dialog({
   isOpen,
   onClose,
@@ -35,14 +38,40 @@ export function Dialog({
   maxWidth = '3xl',
 }: DialogProps) {
   const [mounted, setMounted] = useState(false);
+  const titleId = useId();
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Moves focus into the dialog, and gives it back to whatever opened it.
+  useEffect(() => {
+    if (!isOpen || !mounted) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const box = boxRef.current;
+    if (box && !box.contains(document.activeElement)) {
+      (box.querySelector<HTMLElement>(FOCUSABLE) ?? box).focus();
+    }
+    return () => opener?.focus();
+  }, [isOpen, mounted]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (e.key !== 'Tab' || !boxRef.current) return;
+
+      // Keeps Tab inside the dialog
+      const items = [...boxRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
     };
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -67,11 +96,18 @@ export function Dialog({
 
       {/* Modal Content Box */}
       <div
+        ref={boxRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={`relative w-full ${maxWidthClasses[maxWidth]} bg-zinc-900 border border-zinc-800 rounded-none shadow-2xl z-10 overflow-hidden transform transition-all my-auto`}
       >
         <div className="flex items-center justify-between p-5 pb-4 border-b border-zinc-800/80">
           <div>
-            <h3 className="text-base font-semibold text-zinc-100 tracking-tight">{title}</h3>
+            <h3 id={titleId} className="text-base font-semibold text-zinc-100 tracking-tight">
+              {title}
+            </h3>
             {description && <p className="text-xs text-zinc-400 mt-1">{description}</p>}
           </div>
           <button

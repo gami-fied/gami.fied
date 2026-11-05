@@ -152,7 +152,7 @@ export default function AdminStoragePage() {
   };
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
@@ -229,7 +229,7 @@ export default function AdminStoragePage() {
           <div className="text-2xl font-bold text-white tracking-tight">
             {metrics?.databaseSizeBytes ? formatBytes(metrics.databaseSizeBytes) : 'PostgreSQL DB'}
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Total disk space allocated to the active PostgreSQL database instance.
           </p>
         </div>
@@ -242,7 +242,7 @@ export default function AdminStoragePage() {
           <div className="text-2xl font-bold text-white tracking-tight">
             {calculateTotalRows().toLocaleString()} <span className="text-xs font-normal text-zinc-400">rows</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Combined total records stored across outboxes, delivery logs &amp; audit history.
           </p>
         </div>
@@ -255,7 +255,7 @@ export default function AdminStoragePage() {
           <div className="text-2xl font-bold text-white tracking-tight">
             {metrics?.tables ? Object.keys(metrics.tables).length : 6} <span className="text-xs font-normal text-zinc-400">monitored tables</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Independent log and history outboxes configured for automated maintenance.
           </p>
         </div>
@@ -272,7 +272,7 @@ export default function AdminStoragePage() {
             Loading storage &amp; table metrics...
           </div>
         ) : !metrics?.tables ? (
-          <div className="p-8 text-center text-xs text-zinc-500 bg-zinc-950 border border-zinc-800">
+          <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-950 border border-zinc-800">
             No table metrics available.
           </div>
         ) : (
@@ -305,13 +305,13 @@ export default function AdminStoragePage() {
                     {/* Breakdown metrics */}
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-[11px]">
-                        <span className="text-zinc-500 block uppercase text-[9px] tracking-wider">Completed / Sent</span>
+                        <span className="text-zinc-400 block uppercase text-xs tracking-wider">Completed / Sent</span>
                         <span className="text-emerald-400 font-bold">
                           {(table.completedRows ?? table.totalRows).toLocaleString()}
                         </span>
                       </div>
                       <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-[11px]">
-                        <span className="text-zinc-500 block uppercase text-[9px] tracking-wider">Failed / Error</span>
+                        <span className="text-zinc-400 block uppercase text-xs tracking-wider">Failed / Error</span>
                         <span className="text-rose-400 font-bold">
                           {(table.failedRows ?? 0).toLocaleString()}
                         </span>
@@ -322,7 +322,7 @@ export default function AdminStoragePage() {
                   {/* Actions & Custom Dropdown Component for Retention Selection */}
                   <div className="space-y-3 pt-3 border-t border-zinc-800/80">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider block">
                         Retention Filter:
                       </span>
                       <Dropdown

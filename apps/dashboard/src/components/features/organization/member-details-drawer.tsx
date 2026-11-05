@@ -101,7 +101,7 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
           <div>
             <h3 className="text-sm font-bold text-zinc-100">{member.name || 'User'}</h3>
             <p className="text-xs text-zinc-400 flex items-center gap-1">
-              <Mail className="w-3 h-3 text-zinc-500" /> {member.email}
+              <Mail className="w-3 h-3 text-zinc-400" /> {member.email}
             </p>
           </div>
         </div>
@@ -109,14 +109,14 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
         {/* Account Info Cards */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 bg-zinc-900 border border-zinc-800 space-y-1">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Organization Role</span>
+            <span className="text-xs text-zinc-400 uppercase tracking-wider block">Organization Role</span>
             <span className="font-bold text-orange-400 uppercase text-xs block">
               {member.role}
             </span>
           </div>
 
           <div className="p-3 bg-zinc-900 border border-zinc-800 space-y-1">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Joined Date</span>
+            <span className="text-xs text-zinc-400 uppercase tracking-wider block">Joined Date</span>
             <span className="text-zinc-300 text-xs block">
               {new Date(member.createdAt).toLocaleDateString()}
             </span>
@@ -177,14 +177,14 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
                     >
                       <div>
                         <span className="font-bold text-zinc-200">{p.name}</span>
-                        <span className="text-[10px] text-zinc-500 ml-2">({p.slug})</span>
+                        <span className="text-xs text-zinc-400 ml-2">({p.slug})</span>
                       </div>
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
                         onClick={() => handleRemoveProject(p.id)}
-                        className="h-6 px-1.5 border-rose-950 text-rose-400 text-[10px]"
+                        className="h-6 px-1.5 border-rose-950 text-rose-400 text-xs"
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>

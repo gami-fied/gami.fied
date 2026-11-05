@@ -211,7 +211,7 @@ export default function OrganizationDataPage() {
               </h3>
               <button
                 onClick={() => setShowImportModal(false)}
-                className="text-zinc-500 hover:text-white text-xs font-mono"
+                className="text-zinc-400 hover:text-white text-xs font-mono"
               >
                 ✕
               </button>

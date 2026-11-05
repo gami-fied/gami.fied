@@ -48,7 +48,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
         {error && <p className="text-xs text-rose-400 font-medium tracking-tight mt-1">{error}</p>}
         {helperText && !error && (
-          <p className="text-xs text-zinc-500 tracking-tight mt-1">{helperText}</p>
+          <p className="text-xs text-zinc-400 tracking-tight mt-1">{helperText}</p>
         )}
       </div>
     );

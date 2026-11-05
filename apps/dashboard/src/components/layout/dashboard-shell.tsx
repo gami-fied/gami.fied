@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDashboard } from '../features/context/dashboard-context';
 import { Sidebar } from './sidebar';
+import { CommandPalette } from './command-palette';
 import { Topbar } from './topbar';
 import { OnboardingFlow } from '../features/onboarding/onboarding-flow';
 import { Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
@@ -111,7 +112,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isAccessDenied = !isAdminOrOwner && Boolean(matchedRestrictedRoute);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex font-mono">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
       {/* Desktop Sidebar */}
       {!needsOnboarding && (
         <div className="hidden lg:block">
@@ -142,6 +143,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         }`}
       >
         <Topbar onMobileMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />
+        <CommandPalette />
 
         {error && (
           <div className="m-6 mb-0 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs px-4 py-3 rounded-none flex items-center justify-between">
@@ -165,7 +167,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 <ShieldAlert className="w-8 h-8" />
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-rose-400 border border-rose-800 px-2 py-0.5 bg-rose-950/60 inline-block mb-3">
+                <span className="text-xs uppercase font-bold tracking-widest text-rose-400 border border-rose-800 px-2 py-0.5 bg-rose-950/60 inline-block mb-3">
                   403 — ACCESS RESTRICTED
                 </span>
                 <h1 className="text-xl font-bold text-zinc-100 tracking-tight">

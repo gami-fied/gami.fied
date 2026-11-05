@@ -178,7 +178,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
               <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap block leading-none font-mono">
                 Gami.Fied
               </span>
-              <span className="text-[10px] text-orange-400 font-semibold tracking-widest uppercase whitespace-nowrap block mt-0.5 font-mono">
+              <span className="text-xs text-orange-400 font-semibold tracking-widest uppercase whitespace-nowrap block mt-0.5 font-mono">
                 Community Engine
               </span>
             </div>
@@ -186,7 +186,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         </Link>
         <button
           onClick={onToggleCollapse}
-          className="p-1 rounded-none text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition"
+          className="p-1 rounded-none text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -198,7 +198,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         {navGroups.map((group, groupIdx) => (
           <div key={group.label || `group-${groupIdx}`} className="space-y-0.5">
             {group.label && !isCollapsed && (
-              <div className="px-3 pt-2 pb-1 text-[10px] font-mono font-bold tracking-wider text-zinc-500 uppercase">
+              <div className="px-3 pt-2 pb-1 text-xs font-mono font-bold tracking-wider text-zinc-400 uppercase">
                 {group.label}
               </div>
             )}
@@ -215,19 +215,19 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                 return (
                   <div
                     key={item.name}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-xs font-semibold text-zinc-600 border border-transparent cursor-not-allowed opacity-60 ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-xs font-semibold text-zinc-400 border border-transparent cursor-not-allowed opacity-60 ${
                       isCollapsed ? 'justify-center px-0' : ''
                     }`}
                     title={isCollapsed ? `${item.name} (Soon)` : undefined}
                   >
-                    <Icon className="w-4 h-4 shrink-0 text-zinc-600" />
+                    <Icon className="w-4 h-4 shrink-0 text-zinc-400" />
                     {!isCollapsed && (
-                      <span className="truncate flex-1 font-mono text-zinc-600">
+                      <span className="truncate flex-1 font-mono text-zinc-400">
                         {item.name}
                       </span>
                     )}
                     {!isCollapsed && (
-                      <span className="text-[9px] font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 text-zinc-600 border border-zinc-800">
+                      <span className="text-xs font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 text-zinc-400 border border-zinc-800">
                         Soon
                       </span>
                     )}
@@ -242,13 +242,13 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-xs font-semibold transition-all duration-150 ${
                     isActive
                       ? themeStyles.activeClass
-                      : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent'
                   } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   title={isCollapsed ? item.name : undefined}
                 >
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? themeStyles.iconClass : 'text-zinc-500 group-hover:text-zinc-300'
+                      isActive ? themeStyles.iconClass : 'text-zinc-400 group-hover:text-zinc-300'
                     }`}
                   />
                   {!isCollapsed && (
@@ -283,15 +283,15 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                 <p className="text-xs font-semibold text-zinc-200 group-hover:text-orange-400 transition truncate">
                   {session?.user?.name || 'Dashboard User'}
                 </p>
-                <p className="text-[10px] text-zinc-500 truncate font-mono">{session?.user?.email}</p>
+                <p className="text-xs text-zinc-400 truncate font-mono">{session?.user?.email}</p>
               </div>
             )}
           </Link>
           {!isCollapsed && (
             <button
               onClick={logout}
-              className="p-1.5 rounded-none text-zinc-600 hover:text-rose-400 hover:bg-rose-950/40 transition shrink-0"
-              title="Log Out"
+              className="p-1.5 rounded-none text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 transition shrink-0"
+              title="Log Out" aria-label="Log Out"
             >
               <LogOut className="w-4 h-4" />
             </button>

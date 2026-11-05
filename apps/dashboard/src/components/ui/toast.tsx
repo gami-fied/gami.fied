@@ -128,7 +128,7 @@ function ToastCard({
           e.stopPropagation();
           onDismiss(item.id);
         }}
-        className="text-zinc-500 hover:text-zinc-300 transition-colors p-0.5 rounded-none shrink-0"
+        className="text-zinc-400 hover:text-zinc-300 transition-colors p-0.5 rounded-none shrink-0"
       >
         <X className="w-3.5 h-3.5" />
       </button>

@@ -137,7 +137,7 @@ export function VisualConditionBuilder({
               key={cond.id}
               className="p-3 bg-zinc-900/80 rounded-none border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
             >
-              <div className="text-[11px] font-bold text-zinc-500 w-6 shrink-0 text-center">
+              <div className="text-[11px] font-bold text-zinc-400 w-6 shrink-0 text-center">
                 {idx === 0 ? 'IF' : matchMode.toUpperCase()}
               </div>
 
@@ -178,7 +178,7 @@ export function VisualConditionBuilder({
               <button
                 type="button"
                 onClick={() => handleRemoveCondition(cond.id)}
-                className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-none transition shrink-0 self-center"
+                className="p-2 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-none transition shrink-0 self-center"
                 title="Remove Condition"
               >
                 <Trash2 className="w-4 h-4" />
@@ -188,7 +188,7 @@ export function VisualConditionBuilder({
         })}
 
         {conditions.length === 0 && (
-          <div className="py-4 text-center text-xs text-zinc-500 border border-dashed border-zinc-800/80 rounded-none">
+          <div className="py-4 text-center text-xs text-zinc-400 border border-dashed border-zinc-800/80 rounded-none">
             No conditions added. This rule will match all events with trigger &quot;{matchMode}
             &quot;.
           </div>

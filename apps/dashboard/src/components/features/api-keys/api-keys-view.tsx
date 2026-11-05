@@ -232,7 +232,7 @@ export function ApiKeysView() {
 
               {!loading && apiKeys.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-zinc-500 text-xs">
+                  <TableCell colSpan={8} className="py-8 text-center text-zinc-400 text-xs">
                     No API keys generated yet. Generate your first API key to authenticate event
                     ingestion.
                   </TableCell>
@@ -274,7 +274,7 @@ export function ApiKeysView() {
                   />
                   <span>
                     <span className="text-zinc-200 font-semibold">{scope.label}</span>
-                    <span className="block text-zinc-500">{scope.description}</span>
+                    <span className="block text-zinc-400">{scope.description}</span>
                   </span>
                 </label>
               ))}

@@ -44,7 +44,7 @@ export default function AdminOverviewPage() {
   };
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       <div className="border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
           <Server className="w-5 h-5 text-rose-400" />
@@ -71,28 +71,28 @@ export default function AdminOverviewPage() {
           {/* Health Badges */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-1">
-              <div className="text-[10px] text-zinc-500 uppercase font-bold">PostgreSQL</div>
+              <div className="text-xs text-zinc-400 uppercase font-bold">PostgreSQL</div>
               <div className="text-sm font-bold flex items-center gap-2 text-emerald-400">
                 <CheckCircle className="w-4 h-4" />
                 {systemData.health?.database || 'Healthy'}
               </div>
             </div>
             <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-1">
-              <div className="text-[10px] text-zinc-500 uppercase font-bold">Redis Cache</div>
+              <div className="text-xs text-zinc-400 uppercase font-bold">Redis Cache</div>
               <div className="text-sm font-bold flex items-center gap-2 text-emerald-400">
                 <CheckCircle className="w-4 h-4" />
                 {systemData.health?.redis || 'Healthy'}
               </div>
             </div>
             <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-1">
-              <div className="text-[10px] text-zinc-500 uppercase font-bold">Worker Process</div>
+              <div className="text-xs text-zinc-400 uppercase font-bold">Worker Process</div>
               <div className="text-sm font-bold flex items-center gap-2 text-emerald-400">
                 <Activity className="w-4 h-4" />
                 {systemData.health?.worker || 'Alive'}
               </div>
             </div>
             <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-1">
-              <div className="text-[10px] text-zinc-500 uppercase font-bold">API Version</div>
+              <div className="text-xs text-zinc-400 uppercase font-bold">API Version</div>
               <div className="text-sm font-bold text-zinc-200">
                 v{systemData.version} ({systemData.environment})
               </div>
@@ -106,7 +106,7 @@ export default function AdminOverviewPage() {
               <div className="text-2xl font-black text-rose-400">
                 {systemData.counts?.organizations?.toLocaleString()}
               </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">
+              <div className="text-xs text-zinc-400 uppercase tracking-wider mt-1">
                 Organizations
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function AdminOverviewPage() {
               <div className="text-2xl font-black text-amber-400">
                 {systemData.counts?.projects?.toLocaleString()}
               </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">
+              <div className="text-xs text-zinc-400 uppercase tracking-wider mt-1">
                 Active Projects
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function AdminOverviewPage() {
               <div className="text-2xl font-black text-purple-400">
                 {systemData.counts?.endUsers?.toLocaleString()}
               </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">
+              <div className="text-xs text-zinc-400 uppercase tracking-wider mt-1">
                 Total End-Users
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function AdminOverviewPage() {
               <div className="text-2xl font-black text-emerald-400">
                 {systemData.counts?.eventsIngested?.toLocaleString()}
               </div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">
+              <div className="text-xs text-zinc-400 uppercase tracking-wider mt-1">
                 Events Ingested
               </div>
             </div>
@@ -146,25 +146,25 @@ export default function AdminOverviewPage() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-500 text-[10px] uppercase font-bold">Event Outbox</div>
+                <div className="text-zinc-400 text-xs uppercase font-bold">Event Outbox</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.eventPending || 0} pending
                 </div>
               </div>
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-500 text-[10px] uppercase font-bold">Email Outbox</div>
+                <div className="text-zinc-400 text-xs uppercase font-bold">Email Outbox</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.emailPending || 0} pending
                 </div>
               </div>
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-500 text-[10px] uppercase font-bold">In-App Outbox</div>
+                <div className="text-zinc-400 text-xs uppercase font-bold">In-App Outbox</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.notificationPending || 0} pending
                 </div>
               </div>
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-500 text-[10px] uppercase font-bold">Webhook Outbox</div>
+                <div className="text-zinc-400 text-xs uppercase font-bold">Webhook Outbox</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.webhookPending || 0} pending
                 </div>

@@ -66,7 +66,7 @@ export default function AdminAuditLogsPage() {
   );
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       <div className="border-b border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
@@ -89,7 +89,7 @@ export default function AdminAuditLogsPage() {
           />
 
           <div className="relative w-full sm:w-56">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
             <input
               type="text"
               placeholder="Search logs..."
@@ -116,7 +116,7 @@ export default function AdminAuditLogsPage() {
         <div className="border border-zinc-800 bg-zinc-950 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase font-bold text-[10px]">
+              <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase font-bold text-xs">
                 <tr>
                   <th className="px-4 py-3">Timestamp</th>
                   <th className="px-4 py-3">Severity</th>
@@ -128,22 +128,22 @@ export default function AdminAuditLogsPage() {
               <tbody className="divide-y divide-zinc-900 text-zinc-300">
                 {filteredLogs.map((l) => (
                   <tr key={l.id} className="hover:bg-zinc-900/60 transition">
-                    <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
                       {new Date(l.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
                       {l.severity === 'critical' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 border border-rose-800 bg-rose-950/60 text-rose-400">
+                        <span className="inline-flex items-center gap-1 text-xs uppercase font-bold px-2 py-0.5 border border-rose-800 bg-rose-950/60 text-rose-400">
                           <ShieldAlert className="w-3 h-3 text-rose-400" />
                           Critical
                         </span>
                       ) : l.severity === 'warning' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 border border-amber-800 bg-amber-950/60 text-amber-400">
+                        <span className="inline-flex items-center gap-1 text-xs uppercase font-bold px-2 py-0.5 border border-amber-800 bg-amber-950/60 text-amber-400">
                           <AlertTriangle className="w-3 h-3 text-amber-400" />
                           Warning
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-400">
+                        <span className="inline-flex items-center gap-1 text-xs uppercase font-bold px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-400">
                           <Info className="w-3 h-3 text-zinc-400" />
                           Info
                         </span>
@@ -161,7 +161,7 @@ export default function AdminAuditLogsPage() {
                 ))}
                 {filteredLogs.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
                       No audit records found matching criteria.
                     </td>
                   </tr>

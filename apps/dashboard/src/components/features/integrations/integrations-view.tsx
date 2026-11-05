@@ -469,14 +469,14 @@ export function IntegrationsView() {
 
   if (!selectedProject) {
     return (
-      <div className="p-8 text-center text-zinc-500 font-mono text-xs">
+      <div className="p-8 text-center text-zinc-400 font-mono text-xs">
         Please select a project to manage external integrations.
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 font-mono">
+    <div className="space-y-8">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
@@ -499,7 +499,7 @@ export function IntegrationsView() {
           className={`text-white ${
             isAdminOrOwner
               ? 'bg-emerald-600 hover:bg-emerald-500'
-              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700'
+              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
           }`}
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -522,15 +522,15 @@ export function IntegrationsView() {
         </h2>
 
         {loading ? (
-          <div className="py-12 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+          <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
             Loading project integrations...
           </div>
         ) : integrations.length === 0 ? (
           <Card className="p-8 text-center bg-zinc-950/60 border-zinc-800/80">
-            <MessageSquare className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+            <MessageSquare className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-zinc-200">No Integrations Connected</h3>
-            <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
+            <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
               Connect Discord to deliver real-time custom embeds when users earn XP, unlock achievements, or level up.
             </p>
             <Button
@@ -562,7 +562,7 @@ export function IntegrationsView() {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-zinc-100">{intg.name}</h3>
-                          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                          <p className="text-xs text-zinc-400 uppercase tracking-wider">
                             Provider: {intg.provider}
                           </p>
                         </div>
@@ -570,11 +570,11 @@ export function IntegrationsView() {
 
                       <div className="flex items-center gap-2">
                         {intg.enabled ? (
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 border border-emerald-800 bg-emerald-950/60 text-emerald-400 flex items-center gap-1">
+                          <span className="text-xs font-bold uppercase px-2 py-0.5 border border-emerald-800 bg-emerald-950/60 text-emerald-400 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Active
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-500">
+                          <span className="text-xs font-bold uppercase px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-400">
                             Disabled
                           </span>
                         )}
@@ -590,10 +590,10 @@ export function IntegrationsView() {
                             return (
                               <span
                                 key={ev.id}
-                                className={`text-[9px] px-1.5 py-0.5 border ${
+                                className={`text-xs px-1.5 py-0.5 border ${
                                   isEvEnabled
                                     ? 'bg-zinc-900 border-zinc-700 text-emerald-400'
-                                    : 'bg-zinc-950 border-zinc-900 text-zinc-600 line-through'
+                                    : 'bg-zinc-950 border-zinc-900 text-zinc-400 line-through'
                                 }`}
                               >
                                 {ev.label}
@@ -629,7 +629,7 @@ export function IntegrationsView() {
                           className={`text-xs h-7 px-2.5 font-medium ${
                             isAdminOrOwner
                               ? 'border-emerald-900/60 hover:bg-emerald-950/40 text-emerald-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
                           <Sliders className="w-3 h-3 mr-1 text-emerald-400" />
@@ -644,7 +644,7 @@ export function IntegrationsView() {
                           className={`text-xs h-7 px-2.5 ${
                             isAdminOrOwner
                               ? 'border-zinc-800 hover:bg-zinc-900 text-zinc-300'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
                           <Send className="w-3 h-3 mr-1 text-emerald-400" />
@@ -671,7 +671,7 @@ export function IntegrationsView() {
                           className={`text-xs h-7 px-2.5 ${
                             isAdminOrOwner
                               ? 'border-zinc-800 hover:bg-zinc-900 text-zinc-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
                           {intg.enabled ? 'Disable' : 'Enable'}
@@ -685,7 +685,7 @@ export function IntegrationsView() {
                           className={`text-xs h-7 px-2 ${
                             isAdminOrOwner
                               ? 'border-rose-950 hover:bg-rose-950/40 text-rose-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
                           <Trash2 className="w-3 h-3" />
@@ -716,7 +716,7 @@ export function IntegrationsView() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-zinc-100">Discord</h3>
-                  <span className="text-[10px] text-emerald-400 font-semibold uppercase">
+                  <span className="text-xs text-emerald-400 font-semibold uppercase">
                     Active Provider
                   </span>
                 </div>
@@ -892,7 +892,7 @@ export function IntegrationsView() {
                       className={`px-3 py-2 text-xs font-bold transition border-b-2 ${
                         selectedEventTab === ev.id
                           ? 'border-emerald-400 text-emerald-400 bg-emerald-950/20'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                          : 'border-transparent text-zinc-400 hover:text-zinc-300'
                       }`}
                     >
                       {ev.label}
@@ -957,7 +957,7 @@ export function IntegrationsView() {
                     </div>
 
                     {(getActiveTemplate().fields || []).length === 0 ? (
-                      <p className="text-[11px] text-zinc-500 text-center py-6">
+                      <p className="text-[11px] text-zinc-400 text-center py-6">
                         No custom fields configured for this template. Click "Add Field" to add key-value metadata.
                       </p>
                     ) : (
@@ -966,7 +966,7 @@ export function IntegrationsView() {
                           <div key={idx} className="p-3 bg-zinc-950/80 border border-zinc-800 space-y-3">
                             <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
                               <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <span className="w-4 h-4 bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] flex items-center justify-center font-bold">
+                                <span className="w-4 h-4 bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs flex items-center justify-center font-bold">
                                   {idx + 1}
                                 </span>
                                 Field #{idx + 1}
@@ -987,7 +987,7 @@ export function IntegrationsView() {
                                   variant="secondary"
                                   size="sm"
                                   onClick={() => handleRemoveField(idx)}
-                                  className="h-6 px-2 border-rose-950/80 hover:bg-rose-950/40 text-rose-400 text-[10px]"
+                                  className="h-6 px-2 border-rose-950/80 hover:bg-rose-950/40 text-rose-400 text-xs"
                                 >
                                   <Trash2 className="w-3 h-3 mr-1" /> Remove
                                 </Button>
@@ -1033,7 +1033,7 @@ export function IntegrationsView() {
                       <Code className="w-3.5 h-3.5 text-emerald-400" />
                       Placeholders for {EVENT_TYPES.find((e) => e.id === selectedEventTab)?.label}
                     </span>
-                    <span className="text-[10px] text-zinc-500">Click token to copy</span>
+                    <span className="text-xs text-zinc-400">Click token to copy</span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-1">
@@ -1045,10 +1045,10 @@ export function IntegrationsView() {
                       >
                         <div>
                           <code className="text-emerald-400 font-mono text-xs font-bold">{ph.key}</code>
-                          <p className="text-[10px] text-zinc-400 mt-0.5">{ph.description}</p>
+                          <p className="text-xs text-zinc-400 mt-0.5">{ph.description}</p>
                         </div>
 
-                        <div className="text-zinc-500 hover:text-zinc-200">
+                        <div className="text-zinc-400 hover:text-zinc-200">
                           {copiedKey === ph.key ? (
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
                           ) : (
@@ -1069,12 +1069,12 @@ export function IntegrationsView() {
 
                   <div className="p-4 bg-[#2f3136] rounded border border-zinc-700 text-zinc-200 font-sans space-y-2 shadow-inner">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
+                      <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                         G
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white">Gami Bot</span>
-                        <span className="text-[9px] bg-indigo-600 text-white px-1 py-0.2 rounded ml-1.5 font-mono">
+                        <span className="text-xs bg-indigo-600 text-white px-1 py-0.2 rounded ml-1.5 font-mono">
                           BOT
                         </span>
                       </div>
@@ -1135,7 +1135,7 @@ export function IntegrationsView() {
                       )}
 
                       {getActiveTemplate().footerText && (
-                        <div className="pt-2 border-t border-zinc-700/50 text-[10px] text-zinc-400 flex items-center gap-1 font-mono">
+                        <div className="pt-2 border-t border-zinc-700/50 text-xs text-zinc-400 flex items-center gap-1 font-mono">
                           {getActiveTemplate().footerText} • Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       )}
@@ -1180,9 +1180,9 @@ export function IntegrationsView() {
         >
           <div className="space-y-4 font-mono text-xs max-h-[70vh] overflow-y-auto">
             {deliveriesLoading ? (
-              <div className="py-8 text-center text-zinc-500">Loading delivery history...</div>
+              <div className="py-8 text-center text-zinc-400">Loading delivery history...</div>
             ) : deliveries.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500">No delivery logs found.</div>
+              <div className="py-8 text-center text-zinc-400">No delivery logs found.</div>
             ) : (
               <div className="space-y-2">
                 {deliveries.map((del) => (
@@ -1194,7 +1194,7 @@ export function IntegrationsView() {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-zinc-200">{del.eventType}</span>
                         <span
-                          className={`text-[10px] uppercase font-bold px-1.5 py-0.5 border ${
+                          className={`text-xs uppercase font-bold px-1.5 py-0.5 border ${
                             del.status === 'completed'
                               ? 'border-emerald-800 bg-emerald-950/60 text-emerald-400'
                               : del.status === 'failed'
@@ -1205,12 +1205,12 @@ export function IntegrationsView() {
                           {del.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-500 mt-1">
+                      <p className="text-[11px] text-zinc-400 mt-1">
                         Attempts: {del.attempts} | {new Date(del.createdAt).toLocaleString()}
                         {del.replayedAt && ` (Replayed: ${new Date(del.replayedAt).toLocaleString()})`}
                       </p>
                       {del.lastError && (
-                        <p className="text-[10px] text-rose-400 mt-1 font-mono">{del.lastError}</p>
+                        <p className="text-xs text-rose-400 mt-1 font-mono">{del.lastError}</p>
                       )}
                     </div>
 

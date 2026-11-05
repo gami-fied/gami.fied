@@ -59,7 +59,7 @@ const EVENT_COLOR: Record<string, string> = {
 function EventPill({ event }: { event: SdkWebhookEventType }) {
   const color = EVENT_COLOR[event] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700';
   return (
-    <span className={`inline-block border px-1.5 py-0.5 text-[10px] font-mono font-semibold whitespace-nowrap ${color}`}>
+    <span className={`inline-block border px-1.5 py-0.5 text-xs font-mono font-semibold whitespace-nowrap ${color}`}>
       {event}
     </span>
   );
@@ -79,7 +79,7 @@ function EventList({ events, max = 2 }: { events: SdkWebhookEventType[]; max?: n
       {!expanded && overflow > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-          className="text-[10px] font-mono text-zinc-500 hover:text-orange-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
+          className="text-xs font-mono text-zinc-400 hover:text-orange-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
         >
           +{overflow} more
         </button>
@@ -87,7 +87,7 @@ function EventList({ events, max = 2 }: { events: SdkWebhookEventType[]; max?: n
       {expanded && overflow > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
-          className="text-[10px] font-mono text-zinc-500 hover:text-orange-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
+          className="text-xs font-mono text-zinc-400 hover:text-orange-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
         >
           show less
         </button>
@@ -112,7 +112,7 @@ function ActionsMenu({
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] uppercase border border-zinc-700 font-mono tracking-wider"
+        className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs uppercase border border-zinc-700 font-mono tracking-wider"
         title="More actions"
       >
         ⋯
@@ -406,7 +406,7 @@ export function WebhooksView() {
           }`}
         >
           <span>{alertMsg.msg}</span>
-          <button onClick={() => setAlertMsg(null)} className="text-zinc-500 hover:text-white ml-4 shrink-0">✕</button>
+          <button onClick={() => setAlertMsg(null)} className="text-zinc-400 hover:text-white ml-4 shrink-0">✕</button>
         </div>
       )}
 
@@ -426,7 +426,7 @@ export function WebhooksView() {
           className={`shrink-0 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
             isAdminOrOwner
               ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              : 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-50'
+              : 'bg-zinc-800 text-zinc-400 border border-zinc-700 cursor-not-allowed opacity-50'
           }`}
         >
           + Add Endpoint
@@ -455,7 +455,7 @@ export function WebhooksView() {
             <col style={{ width: '20%' }} />
           </colgroup>
 
-          <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-[10px] tracking-wider">
+          <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-xs tracking-wider">
             <tr>
               <th className="px-4 py-3">Endpoint / URL</th>
               <th className="px-4 py-3">Subscribed Events</th>
@@ -468,7 +468,7 @@ export function WebhooksView() {
           <tbody className="divide-y divide-zinc-800/60">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-3 h-3 border border-orange-500 border-t-transparent animate-spin" />
                     Loading webhook endpoints...
@@ -477,11 +477,11 @@ export function WebhooksView() {
               </tr>
             ) : endpoints.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                   <div className="space-y-2">
                     <div className="text-2xl">📡</div>
                     <p>No webhook endpoints registered.</p>
-                    <p className="text-[11px] text-zinc-600">
+                    <p className="text-[11px] text-zinc-400">
                       Click &quot;+ Add Endpoint&quot; to configure your first webhook.
                     </p>
                   </div>
@@ -494,21 +494,21 @@ export function WebhooksView() {
                   {/* Name + URL */}
                   <td className="px-4 py-3">
                     <div className="font-semibold text-white text-xs">{ep.name}</div>
-                    <div className="text-zinc-500 text-[11px] truncate mt-0.5" title={ep.url}>
+                    <div className="text-zinc-400 text-[11px] truncate mt-0.5" title={ep.url}>
                       {ep.url}
                     </div>
                     {ep.description && (
-                      <div className="text-zinc-600 text-[10px] italic mt-0.5 truncate">
+                      <div className="text-zinc-400 text-xs italic mt-0.5 truncate">
                         {ep.description}
                       </div>
                     )}
                     {ep.failureCount > 0 && (
-                      <div className="mt-1 text-[10px] text-amber-400 font-semibold">
+                      <div className="mt-1 text-xs text-amber-400 font-semibold">
                         ⚠ {ep.failureCount} failure{ep.failureCount !== 1 ? 's' : ''}
                       </div>
                     )}
                     {ep.disabledReason && (
-                      <div className="mt-1 text-[10px] text-rose-400 font-semibold">
+                      <div className="mt-1 text-xs text-rose-400 font-semibold">
                         {ep.disabledReason}
                       </div>
                     )}
@@ -525,10 +525,10 @@ export function WebhooksView() {
                       disabled={!isAdminOrOwner}
                       title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle webhook' : (ep.active ? 'Click to disable' : 'Click to enable')}
                       onClick={() => isAdminOrOwner && updateEndpoint(ep.id, { active: !ep.active })}
-                      className={`px-2 py-0.5 text-[10px] border uppercase tracking-wider font-bold whitespace-nowrap transition ${
+                      className={`px-2 py-0.5 text-xs border uppercase tracking-wider font-bold whitespace-nowrap transition ${
                         ep.active
                           ? 'border-emerald-700 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40'
-                          : 'border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-600'
+                          : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600'
                       } ${!isAdminOrOwner ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       {ep.active ? '● ACTIVE' : '○ OFF'}
@@ -536,13 +536,13 @@ export function WebhooksView() {
                   </td>
 
                   {/* Last Delivery */}
-                  <td className="px-4 py-3 text-zinc-500 text-[11px]">
+                  <td className="px-4 py-3 text-zinc-400 text-[11px]">
                     {ep.lastDeliveryAt ? (
                       <span title={new Date(ep.lastDeliveryAt).toLocaleString()}>
                         {formatRelativeTime(ep.lastDeliveryAt)}
                       </span>
                     ) : (
-                      <span className="text-zinc-600 italic">Never</span>
+                      <span className="text-zinc-400 italic">Never</span>
                     )}
                   </td>
 
@@ -554,8 +554,8 @@ export function WebhooksView() {
                         disabled={!isAdminOrOwner}
                         onClick={() => isAdminOrOwner && handleTestWebhook(ep)}
                         title={!isAdminOrOwner ? 'Requires Admin or Owner role to test webhook' : undefined}
-                        className={`px-2.5 py-1 bg-zinc-800 text-[10px] uppercase border border-zinc-700 tracking-wider transition ${
-                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        className={`px-2.5 py-1 bg-zinc-800 text-xs uppercase border border-zinc-700 tracking-wider transition ${
+                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
                         Test
@@ -565,8 +565,8 @@ export function WebhooksView() {
                         disabled={!isAdminOrOwner}
                         onClick={() => isAdminOrOwner && handleOpenEdit(ep)}
                         title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit webhook' : undefined}
-                        className={`px-2.5 py-1 bg-zinc-800 text-[10px] uppercase border border-zinc-700 tracking-wider transition ${
-                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        className={`px-2.5 py-1 bg-zinc-800 text-xs uppercase border border-zinc-700 tracking-wider transition ${
+                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
                         Edit
@@ -602,7 +602,7 @@ export function WebhooksView() {
               </p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase text-zinc-400 tracking-wider">Signing Secret</label>
+              <label className="text-xs uppercase text-zinc-400 tracking-wider">Signing Secret</label>
               <div className="flex items-stretch gap-2">
                 <input
                   type="text"
@@ -646,7 +646,7 @@ export function WebhooksView() {
               </h2>
               <button
                 onClick={() => { setIsCreateOpen(false); setEditingEndpoint(null); }}
-                className="text-zinc-500 hover:text-white text-xs uppercase px-2 py-1 border border-zinc-800 hover:border-zinc-600 transition"
+                className="text-zinc-400 hover:text-white text-xs uppercase px-2 py-1 border border-zinc-800 hover:border-zinc-600 transition"
               >
                 ✕
               </button>
@@ -667,7 +667,7 @@ export function WebhooksView() {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] uppercase text-zinc-400 mb-1 tracking-wider">
+                    <label className="block text-xs uppercase text-zinc-400 mb-1 tracking-wider">
                       Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -680,7 +680,7 @@ export function WebhooksView() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase text-zinc-400 mb-1 tracking-wider">
+                    <label className="block text-xs uppercase text-zinc-400 mb-1 tracking-wider">
                       Description
                     </label>
                     <input
@@ -694,7 +694,7 @@ export function WebhooksView() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 mb-1 tracking-wider">
+                  <label className="block text-xs uppercase text-zinc-400 mb-1 tracking-wider">
                     Target URL <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -708,9 +708,9 @@ export function WebhooksView() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 mb-2 tracking-wider">
+                  <label className="block text-xs uppercase text-zinc-400 mb-2 tracking-wider">
                     Event Subscriptions <span className="text-red-500">*</span>
-                    <span className="text-zinc-600 ml-2 normal-case">({selectedEvents.length} selected)</span>
+                    <span className="text-zinc-400 ml-2 normal-case">({selectedEvents.length} selected)</span>
                   </label>
                   <Checklist<SdkWebhookEventType>
                     items={WEBHOOK_EVENT_ITEMS}
@@ -759,7 +759,7 @@ export function WebhooksView() {
                   Delivery History
                 </h2>
                 <div className="text-[11px] text-emerald-400 mt-0.5">{selectedEndpointForDeliveries.name}</div>
-                <div className="text-[11px] text-zinc-500 truncate max-w-xl">{selectedEndpointForDeliveries.url}</div>
+                <div className="text-[11px] text-zinc-400 truncate max-w-xl">{selectedEndpointForDeliveries.url}</div>
               </div>
               <button
                 onClick={() => setSelectedEndpointForDeliveries(null)}
@@ -780,7 +780,7 @@ export function WebhooksView() {
                   <col style={{ width: '30%' }} />
                   <col style={{ width: '16%' }} />
                 </colgroup>
-                <thead className="border-b border-zinc-800 bg-zinc-900 uppercase text-zinc-400 text-[10px] tracking-wider sticky top-0">
+                <thead className="border-b border-zinc-800 bg-zinc-900 uppercase text-zinc-400 text-xs tracking-wider sticky top-0">
                   <tr>
                     <th className="px-4 py-2.5">Delivery ID</th>
                     <th className="px-4 py-2.5">Event Type</th>
@@ -793,7 +793,7 @@ export function WebhooksView() {
                 <tbody className="divide-y divide-zinc-800/60">
                   {deliveriesLoading ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
+                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">
                         <div className="flex items-center justify-center gap-2">
                           <div className="w-3 h-3 border border-orange-500 border-t-transparent animate-spin" />
                           Loading deliveries...
@@ -802,14 +802,14 @@ export function WebhooksView() {
                     </tr>
                   ) : deliveries.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
+                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">
                         No delivery logs recorded yet.
                       </td>
                     </tr>
                   ) : (
                     deliveries.map((del) => (
                       <tr key={del.id} className="hover:bg-zinc-900/40 transition-colors">
-                        <td className="px-4 py-2.5 font-mono text-[10px] text-zinc-400 truncate" title={del.id}>
+                        <td className="px-4 py-2.5 font-mono text-xs text-zinc-400 truncate" title={del.id}>
                           {del.id.slice(0, 16)}…
                         </td>
                         <td className="px-4 py-2.5">
@@ -817,7 +817,7 @@ export function WebhooksView() {
                         </td>
                         <td className="px-4 py-2.5">
                           <span
-                            className={`px-1.5 py-0.5 text-[10px] uppercase font-bold border whitespace-nowrap ${
+                            className={`px-1.5 py-0.5 text-xs uppercase font-bold border whitespace-nowrap ${
                               del.status === 'delivered'
                                 ? 'bg-emerald-950 text-emerald-400 border-emerald-700'
                                 : del.status === 'failed'
@@ -830,19 +830,19 @@ export function WebhooksView() {
                         </td>
                         <td className="px-4 py-2.5 text-zinc-300 font-mono">{del.attempts}</td>
                         <td className="px-4 py-2.5 text-red-400 text-[11px] truncate" title={del.lastError || ''}>
-                          {del.lastError || <span className="text-zinc-600">—</span>}
+                          {del.lastError || <span className="text-zinc-400">—</span>}
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <span
-                              className="text-zinc-500 text-[11px] whitespace-nowrap"
+                              className="text-zinc-400 text-[11px] whitespace-nowrap"
                               title={del.deliveredAt ? new Date(del.deliveredAt).toLocaleString() : new Date(del.createdAt).toLocaleString()}
                             >
                               {formatRelativeTime(del.deliveredAt || del.createdAt)}
                             </span>
                             <button
                               onClick={() => handleReplayDelivery(del.id)}
-                              className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] uppercase border border-zinc-700 whitespace-nowrap transition"
+                              className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs uppercase border border-zinc-700 whitespace-nowrap transition"
                             >
                               Replay
                             </button>

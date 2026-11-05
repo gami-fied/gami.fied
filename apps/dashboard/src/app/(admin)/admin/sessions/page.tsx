@@ -117,7 +117,7 @@ export default function AdminSessionsPage() {
             <tbody className="divide-y divide-zinc-800/60">
               {sessions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                     No active sessions found.
                   </td>
                 </tr>
@@ -126,7 +126,7 @@ export default function AdminSessionsPage() {
                   <tr key={sess.id} className="hover:bg-zinc-900/40 transition">
                     <td className="px-4 py-3">
                       <div className="font-bold text-white">{sess.userName}</div>
-                      <div className="text-zinc-500 text-[10px]">{sess.userEmail}</div>
+                      <div className="text-zinc-400 text-xs">{sess.userEmail}</div>
                     </td>
                     <td className="px-4 py-3">
                       {sess.isPlatformAdmin ? (

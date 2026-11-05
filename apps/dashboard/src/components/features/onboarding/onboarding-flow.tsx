@@ -110,7 +110,7 @@ export function OnboardingFlow() {
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-none border font-mono ${
                   step === 'create-project'
                     ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                    : 'bg-zinc-900 text-zinc-500 border-zinc-800'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800'
                 }`}
               >
                 <FolderGit2 className="w-3.5 h-3.5" />

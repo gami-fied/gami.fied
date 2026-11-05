@@ -184,10 +184,10 @@ export function ProfileView() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="profile-view-full-name" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   Full Name *
                 </label>
-                <Input
+                <Input id="profile-view-full-name"
                   type="text"
                   required
                   placeholder="Your Full Name"
@@ -197,7 +197,7 @@ export function ProfileView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   Email Address
                 </label>
                 <div className="relative">
@@ -208,7 +208,7 @@ export function ProfileView() {
                     className="opacity-70 bg-zinc-950"
                   />
                   {profile?.emailVerified && (
-                    <span className="absolute right-3 top-2.5 text-[10px] text-emerald-400 font-bold uppercase flex items-center gap-1">
+                    <span className="absolute right-3 top-2.5 text-xs text-emerald-400 font-bold uppercase flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Verified
                     </span>
                   )}
@@ -216,10 +216,10 @@ export function ProfileView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="profile-view-avatar-image-url" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   Avatar Image URL
                 </label>
-                <Input
+                <Input id="profile-view-avatar-image-url"
                   type="url"
                   placeholder="https://example.com/avatar.png"
                   value={image}
@@ -228,10 +228,10 @@ export function ProfileView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="profile-view-new-password-optional" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   New Password (Optional)
                 </label>
-                <Input
+                <Input id="profile-view-new-password-optional"
                   type="password"
                   placeholder="Leave blank to keep unchanged"
                   value={password}

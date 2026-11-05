@@ -102,19 +102,19 @@ export function SmtpSettingsView() {
       <Card>
         <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">SMTP Server Status</div>
+            <div className="text-xs uppercase text-zinc-400 font-bold tracking-wider">SMTP Server Status</div>
             <div className="flex items-center gap-2">
               <Badge variant={status?.configured ? 'cyan' : 'amber'}>
                 {status?.configured ? 'SMTP Configured' : 'SMTP Not Configured'}
               </Badge>
               {status?.passwordConfigured && (
-                <span className="text-[10px] text-zinc-400 border border-zinc-800 bg-zinc-900 px-2 py-0.5">
+                <span className="text-xs text-zinc-400 border border-zinc-800 bg-zinc-900 px-2 py-0.5">
                   🔒 Password Encrypted
                 </span>
               )}
             </div>
             {status?.updatedAt && (
-              <div className="text-[11px] text-zinc-500">
+              <div className="text-[11px] text-zinc-400">
                 Last updated: {formatRelativeTime(status.updatedAt)}
               </div>
             )}
@@ -145,10 +145,10 @@ export function SmtpSettingsView() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-host" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   SMTP Host *
                 </label>
-                <Input
+                <Input id="smtp-settings-view-smtp-host"
                   type="text"
                   required
                   placeholder="e.g. smtp.mailtrap.io or smtp.gmail.com"
@@ -158,10 +158,10 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-port" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   SMTP Port *
                 </label>
-                <Input
+                <Input id="smtp-settings-view-smtp-port"
                   type="number"
                   required
                   placeholder="587 or 465"
@@ -171,10 +171,10 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-username" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   SMTP Username
                 </label>
-                <Input
+                <Input id="smtp-settings-view-smtp-username"
                   type="text"
                   placeholder="Username or API Key ID"
                   value={user}
@@ -183,10 +183,10 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-password-secret" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   SMTP Password / Secret
                 </label>
-                <Input
+                <Input id="smtp-settings-view-smtp-password-secret"
                   type="password"
                   placeholder={status?.passwordConfigured ? '•••••••••••• (Leave blank to keep unchanged)' : 'Enter SMTP password'}
                   value={password}
@@ -195,10 +195,10 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-sender-email-address-from-email" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   Sender Email Address (From Email) *
                 </label>
-                <Input
+                <Input id="smtp-settings-view-sender-email-address-from-email"
                   type="email"
                   required
                   placeholder="e.g. notifications@mycompany.com"
@@ -208,10 +208,10 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-sender-name-from-name" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   Sender Name (From Name)
                 </label>
-                <Input
+                <Input id="smtp-settings-view-sender-name-from-name"
                   type="text"
                   placeholder="e.g. Gami.Fied"
                   value={fromName}
@@ -257,7 +257,7 @@ export function SmtpSettingsView() {
               <button
                 type="button"
                 onClick={() => setIsTestModalOpen(false)}
-                className="text-zinc-500 hover:text-white text-xs uppercase border border-zinc-800 px-2 py-1"
+                className="text-zinc-400 hover:text-white text-xs uppercase border border-zinc-800 px-2 py-1"
               >
                 ✕
               </button>
@@ -265,10 +265,10 @@ export function SmtpSettingsView() {
 
             <form onSubmit={handleSendTest} className="space-y-4">
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-recipient-email-address" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   Recipient Email Address *
                 </label>
-                <Input
+                <Input id="smtp-settings-view-recipient-email-address"
                   type="email"
                   required
                   placeholder="admin@example.com"

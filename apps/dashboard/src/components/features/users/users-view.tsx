@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import { UserTimeline } from './user-timeline';
+import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useUserRank } from '@/hooks/use-leaderboard';
 import { useLevels } from '@/hooks/use-levels';
@@ -121,6 +122,12 @@ export function UsersView() {
     successMsg: prefSuccess,
     updatePreference,
   } = useNotificationPreferences(projectId, selectedUserId);
+
+  // Search links here with ?user=<id>
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('user');
+    if (requested) setSelectedUserId(requested);
+  }, []);
 
   const selectedUser = users.find((u) => u.id === selectedUserId);
   const hasEmail = Boolean(selectedUser?.email && selectedUser.email.includes('@'));
@@ -313,7 +320,7 @@ export function UsersView() {
           disabled={!isAdminOrOwner}
           title={!isAdminOrOwner ? 'Requires Admin or Owner role to create end-users' : undefined}
           onClick={() => isAdminOrOwner && handleOpenCreateModal()}
-          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
         >
           <Plus className="w-4 h-4" />
           Create User
@@ -324,9 +331,9 @@ export function UsersView() {
       <Card>
         <CardContent className="pt-5 pb-5">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
-              className="w-full pl-9 pr-4 py-2 bg-zinc-950/80 border border-zinc-800 rounded-none text-sm text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-orange-500/60 transition font-mono"
+              className="w-full pl-9 pr-4 py-2 bg-zinc-950/80 border border-zinc-800 rounded-none text-sm text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-orange-500/60 transition font-mono"
               placeholder="Search by name or external ID..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -353,10 +360,10 @@ export function UsersView() {
           ) : users.length === 0 ? (
             <div className="text-center py-16 px-4 space-y-3">
               <div className="w-12 h-12 rounded-none bg-zinc-800/80 flex items-center justify-center mx-auto">
-                <Users className="w-6 h-6 text-zinc-500" />
+                <Users className="w-6 h-6 text-zinc-400" />
               </div>
               <h3 className="text-sm font-semibold text-zinc-200">No Users Found</h3>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                 {search
                   ? `No users match "${search}". Try a different search term.`
                   : 'No users exist in this project yet. Click "Create User" or send an event to auto-provision.'}
@@ -394,7 +401,7 @@ export function UsersView() {
                             ) : user.name ? (
                               user.name.charAt(0).toUpperCase()
                             ) : (
-                              <UserIcon className="w-3.5 h-3.5 text-zinc-500" />
+                              <UserIcon className="w-3.5 h-3.5 text-zinc-400" />
                             )}
                           </div>
                           <span className="text-xs font-semibold text-zinc-200">
@@ -406,20 +413,20 @@ export function UsersView() {
                         {user.externalId}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-zinc-400">
-                        {user.email || <span className="text-zinc-600 italic">No email</span>}
+                        {user.email || <span className="text-zinc-400 italic">No email</span>}
                       </TableCell>
                       <TableCell>
                         {user.active ? (
-                          <Badge variant="emerald" className="text-[10px]">
+                          <Badge variant="emerald" className="text-xs">
                             Active
                           </Badge>
                         ) : (
-                          <Badge variant="zinc" className="text-[10px]">
+                          <Badge variant="zinc" className="text-xs">
                             Deactivated
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-zinc-500 font-mono">
+                      <TableCell className="text-xs text-zinc-400 font-mono">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -433,7 +440,7 @@ export function UsersView() {
                             className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
                               isAdminOrOwner
                                 ? 'hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100'
-                                : 'opacity-40 cursor-not-allowed text-zinc-600'
+                                : 'opacity-40 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit user' : 'Edit user profile'}
                           >
@@ -448,7 +455,7 @@ export function UsersView() {
                               className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
                                 isAdminOrOwner
                                   ? 'hover:bg-rose-950/40 hover:border-rose-800/60 text-rose-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-600'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-400'
                               }`}
                               title={!isAdminOrOwner ? 'Requires Admin or Owner role to deactivate user' : 'Deactivate user account'}
                             >
@@ -470,7 +477,7 @@ export function UsersView() {
                               className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
                                 isAdminOrOwner
                                   ? 'hover:bg-emerald-950/40 hover:border-emerald-800/60 text-emerald-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-600'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-400'
                               }`}
                               title={!isAdminOrOwner ? 'Requires Admin or Owner role to reactivate user' : 'Reactivate user account'}
                             >
@@ -485,7 +492,7 @@ export function UsersView() {
                             className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
                               isAdminOrOwner
                                 ? 'hover:bg-zinc-800 text-orange-400 hover:text-orange-300'
-                                : 'opacity-40 cursor-not-allowed text-zinc-600'
+                                : 'opacity-40 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to grant XP' : 'Grant XP to this user'}
                           >
@@ -516,7 +523,7 @@ export function UsersView() {
         title="Create End-User"
         description="Register a new end-user account directly in this project."
       >
-        <form onSubmit={handleCreateSubmit} className="space-y-4 font-mono">
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
           {createError && (
             <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
               {createError}
@@ -554,10 +561,10 @@ export function UsersView() {
           />
 
           <div className="space-y-1.5">
-            <label className="text-xs font-mono font-medium text-zinc-400">
+            <label htmlFor="users-view-metadata-json-format" className="text-xs font-mono font-medium text-zinc-400">
               Metadata (JSON format)
             </label>
-            <textarea
+            <textarea id="users-view-metadata-json-format"
               rows={3}
               className="w-full p-2.5 bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-200 outline-none focus:border-orange-500/60 transition"
               value={createMetadata}
@@ -584,7 +591,7 @@ export function UsersView() {
         title="Edit User Profile"
         description={editingUser ? `External ID: ${editingUser.externalId}` : 'Update profile data'}
       >
-        <form onSubmit={handleEditSubmit} className="space-y-4 font-mono">
+        <form onSubmit={handleEditSubmit} className="space-y-4">
           {editError && (
             <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
               {editError}
@@ -614,10 +621,10 @@ export function UsersView() {
           />
 
           <div className="space-y-1.5">
-            <label className="text-xs font-mono font-medium text-zinc-400">
+            <label htmlFor="users-view-metadata-json-format" className="text-xs font-mono font-medium text-zinc-400">
               Metadata (JSON format)
             </label>
-            <textarea
+            <textarea id="users-view-metadata-json-format"
               rows={3}
               className="w-full p-2.5 bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-200 outline-none focus:border-orange-500/60 transition"
               value={editMetadata}
@@ -661,7 +668,7 @@ export function UsersView() {
             : 'Deactivate User'
         }
       >
-        <div className="space-y-4 font-mono">
+        <div className="space-y-4">
           <div className="p-3 bg-amber-950/40 border border-amber-800/60 text-amber-200 text-xs space-y-1">
             <span className="font-bold block text-amber-400">
               Historical Data Preservation Notice
@@ -703,7 +710,7 @@ export function UsersView() {
         title="Grant XP to User"
         description={`Target User ID: ${grantUserId}`}
       >
-        <form onSubmit={handleGrantSubmit} className="space-y-4 font-mono">
+        <form onSubmit={handleGrantSubmit} className="space-y-4">
           {grantError && (
             <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
               {grantError}
@@ -788,7 +795,7 @@ export function UsersView() {
                 <div className="text-xl font-black text-orange-400 font-mono">
                   {userRank.entry.xp.toLocaleString()}
                 </div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5 font-mono">
+                <div className="text-xs text-zinc-400 uppercase tracking-wide mt-0.5 font-mono">
                   XP Total
                 </div>
               </div>
@@ -797,7 +804,7 @@ export function UsersView() {
                   <TrendingUp className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-xl font-black text-amber-400 font-mono">#{userRank.rank}</div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5 font-mono">
+                <div className="text-xs text-zinc-400 uppercase tracking-wide mt-0.5 font-mono">
                   of {userRank.totalUsers} users
                 </div>
               </div>
@@ -812,7 +819,7 @@ export function UsersView() {
                     'L1'
                   )}
                 </div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wide mt-0.5 font-mono">
+                <div className="text-xs text-zinc-400 uppercase tracking-wide mt-0.5 font-mono">
                   Level
                 </div>
               </div>
@@ -826,12 +833,12 @@ export function UsersView() {
                   Notification Preferences
                 </h4>
                 {prefSaving && (
-                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 animate-pulse">
+                  <span className="text-xs text-emerald-400 font-mono flex items-center gap-1 animate-pulse">
                     <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                   </span>
                 )}
                 {prefSuccess && (
-                  <span className="text-[10px] text-emerald-400 font-mono">
+                  <span className="text-xs text-emerald-400 font-mono">
                     ✓ Saved
                   </span>
                 )}
@@ -854,7 +861,7 @@ export function UsersView() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="border-b border-zinc-800 text-[10px] uppercase text-zinc-400">
+                          <tr className="border-b border-zinc-800 text-xs uppercase text-zinc-400">
                             <th className="py-2 pr-4 font-bold">Notification Type</th>
                             <th className="py-2 px-4 text-center font-bold">In-App</th>
                             <th className="py-2 pl-4 text-center font-bold">Email</th>
@@ -949,7 +956,7 @@ export function UsersView() {
                     {userProgress.isMaxLevel ? (
                       <Badge variant="emerald">MAX LEVEL</Badge>
                     ) : (
-                      <span className="text-zinc-500">
+                      <span className="text-zinc-400">
                         Next: {userProgress.nextLevel?.name} @{' '}
                         {userProgress.nextLevel?.requiredXp?.toLocaleString()} XP
                       </span>
@@ -985,17 +992,17 @@ export function UsersView() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-xs font-semibold text-zinc-200">{ch.name}</div>
-                          <div className="text-[10px] text-zinc-500 font-mono">{ch.key}</div>
+                          <div className="text-xs text-zinc-400 font-mono">{ch.key}</div>
                         </div>
                         <Badge
                           variant={ch.completed ? 'emerald' : 'orange'}
-                          className="text-[10px]"
+                          className="text-xs"
                         >
                           {ch.completed ? '✓ Done' : 'In Progress'}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2 text-[11px]">
-                        <span className="text-zinc-500 font-mono">
+                        <span className="text-zinc-400 font-mono">
                           {ch.progress}/{ch.target}
                         </span>
                         <div className="flex-1 bg-zinc-800 rounded-none h-2 overflow-hidden border border-zinc-800 p-0.5">
@@ -1010,6 +1017,10 @@ export function UsersView() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {projectId && selectedUserId && (
+              <UserTimeline projectId={projectId} userId={selectedUserId} />
             )}
           </div>
         ) : null}

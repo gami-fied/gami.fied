@@ -127,20 +127,20 @@ export function LeaderboardView() {
                 <div className="font-bold text-sm text-zinc-100 truncate">
                   {top2 ? top2.name || top2.externalId : 'No contender'}
                 </div>
-                <div className="text-[11px] text-zinc-500 font-mono">
+                <div className="text-[11px] text-zinc-400 font-mono">
                   {top2 ? top2.externalId : '-'}
                 </div>
               </div>
               <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-around text-xs">
                 <div>
-                  <div className="text-[10px] text-zinc-500 font-medium uppercase">Period XP</div>
+                  <div className="text-xs text-zinc-400 font-medium uppercase">Period XP</div>
                   <div className="font-bold text-orange-400">
                     {top2 ? `${top2.xp.toLocaleString()} XP` : '0 XP'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-zinc-500 font-medium uppercase">Level</div>
-                  <Badge variant="purple" className="text-[10px]">
+                  <div className="text-xs text-zinc-400 font-medium uppercase">Level</div>
+                  <Badge variant="purple" className="text-xs">
                     {top2 ? top2.levelName || `Level ${top2.level || 1}` : 'Level 1'}
                   </Badge>
                 </div>
@@ -172,7 +172,7 @@ export function LeaderboardView() {
               </div>
               <div className="pt-2 border-t border-amber-900/40 flex items-center justify-around text-xs">
                 <div>
-                  <div className="text-[10px] text-amber-400/80 font-semibold uppercase">
+                  <div className="text-xs text-amber-400/80 font-semibold uppercase">
                     Period XP
                   </div>
                   <div className="font-extrabold text-amber-400 text-sm">
@@ -180,8 +180,8 @@ export function LeaderboardView() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-amber-400/80 font-semibold uppercase">Level</div>
-                  <Badge variant="amber" className="text-[10px]">
+                  <div className="text-xs text-amber-400/80 font-semibold uppercase">Level</div>
+                  <Badge variant="amber" className="text-xs">
                     {top1 ? top1.levelName || `Level ${top1.level || 1}` : 'Level 1'}
                   </Badge>
                 </div>
@@ -207,20 +207,20 @@ export function LeaderboardView() {
                 <div className="font-bold text-sm text-zinc-100 truncate">
                   {top3 ? top3.name || top3.externalId : 'No contender'}
                 </div>
-                <div className="text-[11px] text-zinc-500 font-mono">
+                <div className="text-[11px] text-zinc-400 font-mono">
                   {top3 ? top3.externalId : '-'}
                 </div>
               </div>
               <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-around text-xs">
                 <div>
-                  <div className="text-[10px] text-zinc-500 font-medium uppercase">Period XP</div>
+                  <div className="text-xs text-zinc-400 font-medium uppercase">Period XP</div>
                   <div className="font-bold text-orange-400">
                     {top3 ? `${top3.xp.toLocaleString()} XP` : '0 XP'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-zinc-500 font-medium uppercase">Level</div>
-                  <Badge variant="purple" className="text-[10px]">
+                  <div className="text-xs text-zinc-400 font-medium uppercase">Level</div>
+                  <Badge variant="purple" className="text-xs">
                     {top3 ? top3.levelName || `Level ${top3.level || 1}` : 'Level 1'}
                   </Badge>
                 </div>
@@ -265,7 +265,7 @@ export function LeaderboardView() {
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="text-sm font-semibold text-zinc-200">No Ranked Users Found</h3>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                 No end-users matched the specified search filter or project criteria for this
                 period.
               </p>
@@ -315,14 +315,14 @@ export function LeaderboardView() {
                               {entry.name ? (
                                 entry.name.substring(0, 2).toUpperCase()
                               ) : (
-                                <User className="w-4 h-4 text-zinc-500" />
+                                <User className="w-4 h-4 text-zinc-400" />
                               )}
                             </div>
                             <div>
                               <div className="font-semibold text-xs text-zinc-200">
                                 {entry.name || 'Anonymous User'}
                               </div>
-                              <div className="text-[11px] text-zinc-500 font-mono">
+                              <div className="text-[11px] text-zinc-400 font-mono">
                                 {entry.externalId}
                               </div>
                             </div>
@@ -333,11 +333,11 @@ export function LeaderboardView() {
                         </TableCell>
                         <TableCell>
                           {entry.levelName ? (
-                            <Badge variant="purple" className="text-[10px]">
+                            <Badge variant="purple" className="text-xs">
                               {entry.levelName}
                             </Badge>
                           ) : (
-                            <span className="text-zinc-600 font-mono text-xs">Level 1</span>
+                            <span className="text-zinc-400 font-mono text-xs">Level 1</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -414,7 +414,7 @@ export function LeaderboardView() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-zinc-300">Level</span>
-                <Badge variant="purple" className="text-[10px]">
+                <Badge variant="purple" className="text-xs">
                   {userRank.entry.levelName || 'Level 1'}
                 </Badge>
               </div>

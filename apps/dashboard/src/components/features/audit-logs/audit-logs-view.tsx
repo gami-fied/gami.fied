@@ -73,7 +73,7 @@ export function AuditLogsView() {
       {/* Filter Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border border-zinc-800 bg-zinc-950 p-4">
         <div>
-          <label className="block text-[10px] uppercase text-zinc-500 font-bold mb-1">Action Filter</label>
+          <label className="block text-xs uppercase text-zinc-400 font-bold mb-1">Action Filter</label>
           <input
             type="text"
             value={actionFilter}
@@ -84,7 +84,7 @@ export function AuditLogsView() {
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase text-zinc-500 font-bold mb-1">Resource Filter</label>
+          <label className="block text-xs uppercase text-zinc-400 font-bold mb-1">Resource Filter</label>
           <input
             type="text"
             value={resourceFilter}
@@ -110,7 +110,7 @@ export function AuditLogsView() {
       {/* Table */}
       <div className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-[10px]">
+          <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-xs">
             <tr>
               <th className="px-4 py-3">Timestamp</th>
               <th className="px-4 py-3">Action</th>
@@ -122,7 +122,7 @@ export function AuditLogsView() {
           <tbody className="divide-y divide-zinc-800/60">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-3 h-3 border border-emerald-500 border-t-transparent animate-spin" />
                     Loading audit logs...
@@ -131,7 +131,7 @@ export function AuditLogsView() {
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                   No audit logs recorded for this filter.
                 </td>
               </tr>
@@ -145,25 +145,25 @@ export function AuditLogsView() {
                   </td>
 
                   <td className="px-4 py-3">
-                    <span className={`inline-block border px-2 py-0.5 text-[10px] uppercase font-bold ${getActionBadgeColor(log.action)}`}>
+                    <span className={`inline-block border px-2 py-0.5 text-xs uppercase font-bold ${getActionBadgeColor(log.action)}`}>
                       {log.action}
                     </span>
                   </td>
 
                   <td className="px-4 py-3 text-zinc-300">
                     <div className="text-[11px] font-semibold text-white uppercase">{log.actorType}</div>
-                    <div className="text-[10px] text-zinc-500 truncate max-w-[140px]">{log.actorId}</div>
+                    <div className="text-xs text-zinc-400 truncate max-w-[140px]">{log.actorId}</div>
                   </td>
 
                   <td className="px-4 py-3 text-zinc-300">
                     <div className="text-[11px] font-semibold text-emerald-400 uppercase">{log.resourceType}</div>
-                    <div className="text-[10px] text-zinc-500 truncate max-w-[160px]">{log.resourceId}</div>
+                    <div className="text-xs text-zinc-400 truncate max-w-[160px]">{log.resourceId}</div>
                   </td>
 
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setSelectedLogForDetails(log)}
-                      className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 px-2.5 py-1 text-[10px] uppercase tracking-wider"
+                      className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 px-2.5 py-1 text-xs uppercase tracking-wider"
                     >
                       View Details
                     </button>
@@ -177,7 +177,7 @@ export function AuditLogsView() {
 
       {/* Pagination Controls */}
       <div className="flex items-center justify-between border-t border-zinc-800 pt-4 text-xs">
-        <span className="text-zinc-500">
+        <span className="text-zinc-400">
           Showing page <strong className="text-white">{page}</strong> of <strong className="text-white">{totalPages}</strong> ({total} total entries)
         </span>
         <div className="flex items-center gap-2">
@@ -207,11 +207,11 @@ export function AuditLogsView() {
                 <h2 className="text-sm font-bold uppercase text-white tracking-wide">
                   Audit Log Record: {selectedLogForDetails.action}
                 </h2>
-                <div className="text-[10px] text-zinc-500">{selectedLogForDetails.id}</div>
+                <div className="text-xs text-zinc-400">{selectedLogForDetails.id}</div>
               </div>
               <button
                 onClick={() => setSelectedLogForDetails(null)}
-                className="text-zinc-500 hover:text-white text-xs uppercase border border-zinc-800 px-2 py-1"
+                className="text-zinc-400 hover:text-white text-xs uppercase border border-zinc-800 px-2 py-1"
               >
                 ✕
               </button>
@@ -220,25 +220,25 @@ export function AuditLogsView() {
             <div className="space-y-2 text-xs">
               <div className="grid grid-cols-2 gap-4 bg-zinc-900/60 p-3 border border-zinc-800">
                 <div>
-                  <span className="text-[10px] uppercase text-zinc-500 block font-bold">Timestamp</span>
+                  <span className="text-xs uppercase text-zinc-400 block font-bold">Timestamp</span>
                   <span className="text-zinc-200">{new Date(selectedLogForDetails.createdAt).toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase text-zinc-500 block font-bold">Action</span>
+                  <span className="text-xs uppercase text-zinc-400 block font-bold">Action</span>
                   <span className="text-emerald-400 font-bold">{selectedLogForDetails.action}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase text-zinc-500 block font-bold">Actor</span>
+                  <span className="text-xs uppercase text-zinc-400 block font-bold">Actor</span>
                   <span className="text-zinc-200">{selectedLogForDetails.actorType} ({selectedLogForDetails.actorId})</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase text-zinc-500 block font-bold">Target Resource</span>
+                  <span className="text-xs uppercase text-zinc-400 block font-bold">Target Resource</span>
                   <span className="text-zinc-200">{selectedLogForDetails.resourceType} ({selectedLogForDetails.resourceId})</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] uppercase text-zinc-500 block font-bold mb-1">
+                <label className="text-xs uppercase text-zinc-400 block font-bold mb-1">
                   Metadata (Redacted)
                 </label>
                 <pre className="bg-zinc-900 border border-zinc-800 p-3 text-[11px] text-emerald-300 font-mono overflow-x-auto">

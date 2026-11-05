@@ -79,7 +79,7 @@ export function SystemView() {
   const getStatusBadge = (status: string, isHealthy: boolean) => {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider font-mono ${
+        className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-xs uppercase font-bold tracking-wider font-mono ${
           isHealthy
             ? 'border-emerald-700 bg-emerald-950/40 text-emerald-400'
             : 'border-rose-700 bg-rose-950/40 text-rose-400'
@@ -128,7 +128,7 @@ export function SystemView() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* API Process */}
         <div className="border border-zinc-800 bg-zinc-950 p-4 space-y-2">
-          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">API Process</div>
+          <div className="text-xs uppercase text-zinc-400 font-bold tracking-wider">API Process</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">Fastify API</span>
             {getStatusBadge(metrics?.health.api || 'checking', metrics?.health.api === 'healthy')}
@@ -138,7 +138,7 @@ export function SystemView() {
 
         {/* PostgreSQL */}
         <div className="border border-zinc-800 bg-zinc-950 p-4 space-y-2">
-          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Database</div>
+          <div className="text-xs uppercase text-zinc-400 font-bold tracking-wider">Database</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">PostgreSQL</span>
             {getStatusBadge(metrics?.health.postgres || 'checking', metrics?.health.postgres === 'healthy')}
@@ -148,7 +148,7 @@ export function SystemView() {
 
         {/* Redis */}
         <div className="border border-zinc-800 bg-zinc-950 p-4 space-y-2">
-          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Cache &amp; Queue</div>
+          <div className="text-xs uppercase text-zinc-400 font-bold tracking-wider">Cache &amp; Queue</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">Redis</span>
             {getStatusBadge(metrics?.health.redis || 'checking', metrics?.health.redis === 'healthy')}
@@ -158,7 +158,7 @@ export function SystemView() {
 
         {/* Worker Heartbeat */}
         <div className="border border-zinc-800 bg-zinc-950 p-4 space-y-2">
-          <div className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Background Worker</div>
+          <div className="text-xs uppercase text-zinc-400 font-bold tracking-wider">Background Worker</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">BullMQ Worker</span>
             {getStatusBadge(
@@ -184,7 +184,7 @@ export function SystemView() {
             <h2 className="text-sm font-bold uppercase tracking-wide text-white">
               📦 Global Outbox Queues (PostgreSQL)
             </h2>
-            <span className="text-[10px] text-zinc-500 italic">Database Computed</span>
+            <span className="text-xs text-zinc-400 italic">Database Computed</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
@@ -192,28 +192,28 @@ export function SystemView() {
               <div className="text-lg font-black text-amber-400">
                 {metrics?.outboxes.eventPending ?? 0}
               </div>
-              <div className="text-[10px] text-zinc-400 uppercase mt-1">Events Pending</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Events Pending</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-3">
               <div className="text-lg font-black text-purple-400">
                 {metrics?.outboxes.notificationPending ?? 0}
               </div>
-              <div className="text-[10px] text-zinc-400 uppercase mt-1">Notifs Pending</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Notifs Pending</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-3">
               <div className="text-lg font-black text-emerald-400">
                 {metrics?.outboxes.emailPending ?? 0}
               </div>
-              <div className="text-[10px] text-zinc-400 uppercase mt-1">Emails Pending</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Emails Pending</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-3">
               <div className="text-lg font-black text-cyan-400">
                 {metrics?.outboxes.webhookPending ?? 0}
               </div>
-              <div className="text-[10px] text-zinc-400 uppercase mt-1">Webhooks Pending</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Webhooks Pending</div>
             </div>
           </div>
         </div>
@@ -224,33 +224,33 @@ export function SystemView() {
             <h2 className="text-sm font-bold uppercase tracking-wide text-white">
               ⚡ BullMQ Queue State (Redis)
             </h2>
-            <span className="text-[10px] text-zinc-500 italic">Live Redis Pipeline</span>
+            <span className="text-xs text-zinc-400 italic">Live Redis Pipeline</span>
           </div>
 
           <div className="grid grid-cols-5 gap-2 text-center">
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
               <div className="text-base font-bold text-amber-400">{metrics?.queue.waiting ?? 0}</div>
-              <div className="text-[9px] text-zinc-400 uppercase mt-1">Waiting</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Waiting</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
               <div className="text-base font-bold text-emerald-400">{metrics?.queue.active ?? 0}</div>
-              <div className="text-[9px] text-zinc-400 uppercase mt-1">Active</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Active</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
               <div className="text-base font-bold text-blue-400">{metrics?.queue.completed ?? 0}</div>
-              <div className="text-[9px] text-zinc-400 uppercase mt-1">Completed</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Completed</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
               <div className="text-base font-bold text-purple-400">{metrics?.queue.delayed ?? 0}</div>
-              <div className="text-[9px] text-zinc-400 uppercase mt-1">Delayed</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Delayed</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
               <div className="text-base font-bold text-rose-400">{metrics?.queue.failed ?? 0}</div>
-              <div className="text-[9px] text-zinc-400 uppercase mt-1">Failed</div>
+              <div className="text-xs text-zinc-400 uppercase mt-1">Failed</div>
             </div>
           </div>
 
@@ -275,12 +275,12 @@ export function SystemView() {
           <h2 className="text-sm font-bold uppercase tracking-wide text-white">
             🌐 Low-Cardinality HTTP Route Traffic
           </h2>
-          <span className="text-[10px] text-zinc-500 italic">Requests &amp; Error Histogram</span>
+          <span className="text-xs text-zinc-400 italic">Requests &amp; Error Histogram</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-[10px]">
+            <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-xs">
               <tr>
                 <th className="px-3 py-2">HTTP Method &amp; Route</th>
                 <th className="px-3 py-2 text-right">Total Requests</th>
@@ -303,7 +303,7 @@ export function SystemView() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
+                  <td colSpan={4} className="px-3 py-6 text-center text-zinc-400">
                     No HTTP traffic recorded in current API process lifetime.
                   </td>
                 </tr>

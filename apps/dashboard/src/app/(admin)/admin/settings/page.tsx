@@ -9,7 +9,7 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'smtp' | 'platform'>('smtp');
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       <div className="border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
           <Settings className="w-5 h-5 text-rose-400" />

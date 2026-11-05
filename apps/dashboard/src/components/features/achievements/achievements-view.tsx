@@ -120,7 +120,7 @@ export function AchievementsView() {
           disabled={!isAdminOrOwner}
           title={!isAdminOrOwner ? 'Requires Admin or Owner role to create achievements' : undefined}
           onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
-          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
         >
           <Plus className="w-4 h-4" />
           Create Achievement
@@ -140,7 +140,7 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-purple-400">
               {summary?.enabledAchievements || 0} / {summary?.totalAchievements || 0}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Enabled definitions</p>
+            <p className="text-[11px] text-zinc-400 mt-1">Enabled definitions</p>
           </CardContent>
         </Card>
 
@@ -155,7 +155,7 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-orange-400">
               {summary?.totalAwards?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Granted to end-users</p>
+            <p className="text-[11px] text-zinc-400 mt-1">Granted to end-users</p>
           </CardContent>
         </Card>
 
@@ -170,7 +170,7 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-emerald-400">
               {summary?.uniqueUsersWithAchievements?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Distinct users holding badges</p>
+            <p className="text-[11px] text-zinc-400 mt-1">Distinct users holding badges</p>
           </CardContent>
         </Card>
       </div>
@@ -217,10 +217,10 @@ export function AchievementsView() {
                       <p className="text-xs font-bold text-zinc-100 truncate">
                         {a.achievementName}
                       </p>
-                      <p className="text-[10px] font-mono text-zinc-500 truncate">
+                      <p className="text-xs font-mono text-zinc-400 truncate">
                         {a.achievementKey}
                       </p>
-                      <p className="text-[10px] text-zinc-600">
+                      <p className="text-xs text-zinc-400">
                         {new Date(a.awardedAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -228,7 +228,7 @@ export function AchievementsView() {
                 ))}
 
                 {userAwards.length === 0 && (
-                  <div className="col-span-full py-4 text-center text-zinc-500 text-xs">
+                  <div className="col-span-full py-4 text-center text-zinc-400 text-xs">
                     No achievements awarded to this user yet.
                   </div>
                 )}
@@ -279,7 +279,7 @@ export function AchievementsView() {
                       </div>
                       <div>
                         <CardTitle className="text-sm font-bold">{a.name}</CardTitle>
-                        <span className="font-mono text-[11px] text-zinc-500 block">{a.key}</span>
+                        <span className="font-mono text-[11px] text-zinc-400 block">{a.key}</span>
                       </div>
                     </div>
                     <Badge variant={a.enabled ? 'emerald' : 'rose'}>
@@ -295,7 +295,7 @@ export function AchievementsView() {
                 </CardContent>
 
                 <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-zinc-500">{a.id}</span>
+                  <span className="text-[11px] font-mono text-zinc-400">{a.id}</span>
                   <button
                     disabled={!isAdminOrOwner}
                     title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle achievement' : undefined}
@@ -314,7 +314,7 @@ export function AchievementsView() {
 
             {achievements.length === 0 && (
               <div className="col-span-full p-12 text-center bg-zinc-900/40 rounded-none border border-zinc-800 space-y-3">
-                <Trophy className="w-8 h-8 text-zinc-500 mx-auto" />
+                <Trophy className="w-8 h-8 text-zinc-400 mx-auto" />
                 <h3 className="text-base font-semibold text-zinc-200">
                   No Achievements Configured
                 </h3>
@@ -328,7 +328,7 @@ export function AchievementsView() {
                   disabled={!isAdminOrOwner}
                   title={!isAdminOrOwner ? 'Requires Admin or Owner role to create achievements' : undefined}
                   onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
-                  className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+                  className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
                 >
                   Create First Achievement
                 </Button>

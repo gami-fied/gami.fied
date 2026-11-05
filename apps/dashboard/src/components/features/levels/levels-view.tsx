@@ -184,7 +184,7 @@ export function LevelsView() {
           disabled={!isAdminOrOwner}
           title={!isAdminOrOwner ? 'Requires Admin or Owner role to add level thresholds' : undefined}
           onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
-          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
         >
           <Plus className="w-4 h-4" />
           Add Level Threshold
@@ -204,7 +204,7 @@ export function LevelsView() {
             <div className="text-2xl font-black text-amber-400">
               L1 → L{summary?.maxConfiguredLevel || 0}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">
+            <p className="text-[11px] text-zinc-400 mt-1">
               {summary?.configuredLevelCount || 0} total active levels
             </p>
           </CardContent>
@@ -221,7 +221,7 @@ export function LevelsView() {
             <div className="text-2xl font-black text-emerald-400">
               {summary?.usersAtMaxLevel || 0}
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Highest level achieved</p>
+            <p className="text-[11px] text-zinc-400 mt-1">Highest level achieved</p>
           </CardContent>
         </Card>
 
@@ -236,7 +236,7 @@ export function LevelsView() {
             <div className="text-2xl font-black text-orange-400">
               {summary?.totalProjectXp?.toLocaleString() || 0} XP
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1">Across all project users</p>
+            <p className="text-[11px] text-zinc-400 mt-1">Across all project users</p>
           </CardContent>
         </Card>
       </div>
@@ -264,8 +264,8 @@ export function LevelsView() {
                   <React.Fragment key={lvl.id}>
                     {index > 0 && (
                       <div className="flex flex-col items-center shrink-0">
-                        <ArrowRight className="w-4 h-4 text-zinc-600" />
-                        <span className="text-[10px] text-orange-400 font-mono font-bold mt-0.5">
+                        <ArrowRight className="w-4 h-4 text-zinc-400" />
+                        <span className="text-xs text-orange-400 font-mono font-bold mt-0.5">
                           +{deltaXp.toLocaleString()} XP
                         </span>
                       </div>
@@ -278,10 +278,10 @@ export function LevelsView() {
                       }`}
                     >
                       <div className="flex items-center justify-center gap-1.5">
-                        <Badge variant="amber" className="text-[10px]">
+                        <Badge variant="amber" className="text-xs">
                           L{lvl.level}
                         </Badge>
-                        <Badge variant={lvl.enabled ? 'emerald' : 'rose'} className="text-[9px]">
+                        <Badge variant={lvl.enabled ? 'emerald' : 'rose'} className="text-xs">
                           {lvl.enabled ? 'Active' : 'Disabled'}
                         </Badge>
                       </div>
@@ -398,7 +398,7 @@ export function LevelsView() {
                       className={`text-xs font-semibold ${
                         isAdminOrOwner
                           ? 'text-zinc-300 hover:text-white hover:underline'
-                          : 'opacity-40 cursor-not-allowed text-zinc-600'
+                          : 'opacity-40 cursor-not-allowed text-zinc-400'
                       }`}
                     >
                       Edit
@@ -411,7 +411,7 @@ export function LevelsView() {
                         className={`text-xs font-semibold ${
                           isAdminOrOwner
                             ? 'text-rose-400 hover:underline'
-                            : 'opacity-40 cursor-not-allowed text-zinc-600'
+                            : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
                         Disable
@@ -424,7 +424,7 @@ export function LevelsView() {
                         className={`text-xs font-semibold ${
                           isAdminOrOwner
                             ? 'text-emerald-400 hover:underline'
-                            : 'opacity-40 cursor-not-allowed text-zinc-600'
+                            : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
                         Enable
@@ -436,7 +436,7 @@ export function LevelsView() {
 
               {levels.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-6 text-center text-zinc-500 text-xs">
+                  <TableCell colSpan={6} className="py-6 text-center text-zinc-400 text-xs">
                     No levels configured.
                   </TableCell>
                 </TableRow>
@@ -464,7 +464,7 @@ export function LevelsView() {
                       <div key={d.level} className="flex items-center gap-4">
                         <div className="w-20 shrink-0 text-right">
                           <span className="text-xs font-bold text-amber-400">L{d.level}</span>
-                          <span className="text-[11px] text-zinc-500 block truncate">{d.name}</span>
+                          <span className="text-[11px] text-zinc-400 block truncate">{d.name}</span>
                         </div>
                         <div className="flex-1 bg-zinc-950 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
                           <div
@@ -474,7 +474,7 @@ export function LevelsView() {
                         </div>
                         <div className="w-16 text-right shrink-0">
                           <span className="text-sm font-bold text-orange-400">{d.userCount}</span>
-                          <span className="text-[10px] text-zinc-500 block">users</span>
+                          <span className="text-xs text-zinc-400 block">users</span>
                         </div>
                       </div>
                     );

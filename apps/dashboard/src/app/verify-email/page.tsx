@@ -152,10 +152,10 @@ export default function VerifyEmailPage() {
           <CardContent>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="page-6-digit-otp-code" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
                   6-Digit OTP Code *
                 </label>
-                <Input
+                <Input id="page-6-digit-otp-code"
                   type="text"
                   required
                   maxLength={6}
@@ -191,7 +191,7 @@ export default function VerifyEmailPage() {
           </CardContent>
         </Card>
 
-        <div className="text-center text-[10px] text-zinc-600">
+        <div className="text-center text-xs text-zinc-400">
           Gami.Fied Engine Security &amp; Identity Verification Subsystem
         </div>
       </div>

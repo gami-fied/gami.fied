@@ -1,5 +1,6 @@
 'use client';
 
+import { QuickStart } from './quick-start';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useXp } from '@/hooks/use-xp';
@@ -34,6 +35,8 @@ export function OverviewView() {
   const { rules, fetchRules } = useRules(selectedProject?.id || null);
 
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
+  const [quickStartDone, setQuickStartDone] = useState(false);
+  const rulesLoaded = onboardingData !== null;
 
   const fetchOnboarding = useCallback(async () => {
     if (!selectedProject) return;
@@ -85,8 +88,20 @@ export function OverviewView() {
 
   const isComplete = onboardingData ? onboardingData.completedCount === onboardingData.totalSteps : false;
 
+  const showQuickStart = selectedProject && rulesLoaded && rules.length === 0 && !quickStartDone;
+
   return (
-    <div className="space-y-8 font-mono">
+    <div className="space-y-8">
+      {showQuickStart && (
+        <QuickStart
+          projectId={selectedProject.id}
+          onDone={() => {
+            setQuickStartDone(true);
+            void fetchRules();
+          }}
+        />
+      )}
+
       {/* Page Heading */}
       <div>
         <h1 className="text-xl font-bold text-zinc-100 tracking-tight uppercase">Project Overview</h1>
@@ -104,7 +119,7 @@ export function OverviewView() {
           <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-orange-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">⚡</div>
-            <span className="text-[10px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
               XP
             </span>
           </div>
@@ -113,7 +128,7 @@ export function OverviewView() {
               {xpSummary?.totalXpAwarded?.toLocaleString() || '0'}
             </div>
             <div className="text-xs text-orange-400 font-semibold mt-0.5">total XP awarded</div>
-            <div className="text-[11px] text-zinc-500 mt-2">
+            <div className="text-[11px] text-zinc-400 mt-2">
               {xpSummary?.totalUsersWithXp || 0} players active
             </div>
           </div>
@@ -124,20 +139,20 @@ export function OverviewView() {
           <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-purple-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">🏆</div>
-            <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
               Badges
             </span>
           </div>
           <div className="mt-4">
             <div className="text-3xl font-black text-white tracking-tight">
               {achSummary?.enabledAchievements || 0}
-              <span className="text-xl font-medium text-zinc-500">
+              <span className="text-xl font-medium text-zinc-400">
                 {' '}
                 / {achSummary?.totalAchievements || 0}
               </span>
             </div>
             <div className="text-xs text-purple-400 font-semibold mt-0.5">active achievements</div>
-            <div className="text-[11px] text-zinc-500 mt-2">
+            <div className="text-[11px] text-zinc-400 mt-2">
               {achSummary?.totalAwards || 0} badges awarded total
             </div>
           </div>
@@ -148,7 +163,7 @@ export function OverviewView() {
           <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">🎯</div>
-            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
               Levels
             </span>
           </div>
@@ -157,7 +172,7 @@ export function OverviewView() {
               L1 <span className="text-amber-400">→</span> L{progSummary?.maxConfiguredLevel || 0}
             </div>
             <div className="text-xs text-amber-400 font-semibold mt-0.5">progression ladder</div>
-            <div className="text-[11px] text-zinc-500 mt-2">
+            <div className="text-[11px] text-zinc-400 mt-2">
               {progSummary?.configuredLevelCount || 0} levels configured
             </div>
           </div>
@@ -168,17 +183,17 @@ export function OverviewView() {
           <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">⚙️</div>
-            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
               Rules
             </span>
           </div>
           <div className="mt-4">
             <div className="text-3xl font-black text-white tracking-tight">
               {activeRulesCount}
-              <span className="text-xl font-medium text-zinc-500"> / {rules.length}</span>
+              <span className="text-xl font-medium text-zinc-400"> / {rules.length}</span>
             </div>
             <div className="text-xs text-emerald-400 font-semibold mt-0.5">active rules</div>
-            <div className="text-[11px] text-zinc-500 mt-2">processing your event stream</div>
+            <div className="text-[11px] text-zinc-400 mt-2">processing your event stream</div>
           </div>
         </div>
       </div>
@@ -227,7 +242,7 @@ export function OverviewView() {
                   {step.completed ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   ) : (
-                    <Circle className="w-4 h-4 text-zinc-600 shrink-0 group-hover:text-orange-400 transition" />
+                    <Circle className="w-4 h-4 text-zinc-400 shrink-0 group-hover:text-orange-400 transition" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p
@@ -235,10 +250,10 @@ export function OverviewView() {
                     >
                       {step.label}
                     </p>
-                    <p className="text-[11px] text-zinc-500 truncate">{step.description}</p>
+                    <p className="text-[11px] text-zinc-400 truncate">{step.description}</p>
                   </div>
                   {!step.completed && (
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-orange-400 transition shrink-0" />
+                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-orange-400 transition shrink-0" />
                   )}
                 </Link>
               ))}
@@ -262,9 +277,9 @@ export function OverviewView() {
               <p className="text-xs font-bold text-zinc-200 group-hover:text-orange-400 transition">
                 Inspect Events Log
               </p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Filter incoming customer events</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Filter incoming customer events</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-orange-400 transition" />
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-orange-400 transition" />
           </Link>
 
           <Link
@@ -275,9 +290,9 @@ export function OverviewView() {
               <p className="text-xs font-bold text-zinc-200 group-hover:text-emerald-400 transition">
                 Manage Rules Engine
               </p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Configure event triggers &amp; actions</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Configure event triggers &amp; actions</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 transition" />
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-emerald-400 transition" />
           </Link>
 
           <Link
@@ -288,9 +303,9 @@ export function OverviewView() {
               <p className="text-xs font-bold text-zinc-200 group-hover:text-purple-400 transition">
                 Generate API Keys
               </p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Authenticate event ingestion</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Authenticate event ingestion</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-purple-400 transition" />
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-purple-400 transition" />
           </Link>
         </CardContent>
       </Card>
@@ -367,7 +382,7 @@ export function OverviewView() {
                       <div key={d.level} className="flex items-center gap-4">
                         <div className="w-20 shrink-0 text-right">
                           <span className="text-xs font-bold text-amber-400">L{d.level}</span>
-                          <span className="text-[11px] text-zinc-500 block truncate">{d.name}</span>
+                          <span className="text-[11px] text-zinc-400 block truncate">{d.name}</span>
                         </div>
                         <div className="flex-1 bg-zinc-950/80 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
                           <div
@@ -377,7 +392,7 @@ export function OverviewView() {
                         </div>
                         <div className="w-16 text-right shrink-0">
                           <span className="text-sm font-bold text-orange-400">{d.userCount}</span>
-                          <span className="text-[10px] text-zinc-500 block">users</span>
+                          <span className="text-xs text-zinc-400 block">users</span>
                         </div>
                       </div>
                     );

@@ -156,7 +156,7 @@ export function MembersView() {
 
   if (!selectedOrg) {
     return (
-      <div className="p-8 text-center text-zinc-500 font-mono text-xs">
+      <div className="p-8 text-center text-zinc-400 font-mono text-xs">
         Please select an organization to view team members.
       </div>
     );
@@ -167,7 +167,7 @@ export function MembersView() {
   const isAdminOrOwner = ['owner', 'admin'].includes(currentUserRole);
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
@@ -181,8 +181,8 @@ export function MembersView() {
               <span className="text-orange-400 font-semibold">{selectedOrg.name}</span>.
             </span>
             {!isAdminOrOwner && (
-              <span className="text-[10px] uppercase font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
-                <Lock className="w-3 h-3 text-zinc-500" /> READ-ONLY MEMBER
+              <span className="text-xs uppercase font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-zinc-400" /> READ-ONLY MEMBER
               </span>
             )}
           </p>
@@ -197,7 +197,7 @@ export function MembersView() {
           className={`font-medium h-9 ${
             isAdminOrOwner
               ? 'bg-orange-500 hover:bg-orange-600 text-white'
-              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700'
+              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
           }`}
         >
           <UserPlus className="w-4 h-4 mr-1" />
@@ -222,7 +222,7 @@ export function MembersView() {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            leftIcon={<Search className="w-4 h-4 text-zinc-500" />}
+            leftIcon={<Search className="w-4 h-4 text-zinc-400" />}
             className="h-9 text-xs"
           />
         </div>
@@ -253,19 +253,19 @@ export function MembersView() {
       {/* Members Table */}
       <Card className="bg-zinc-950 border-zinc-800">
         {loading ? (
-          <div className="py-12 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+          <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
             Loading members...
           </div>
         ) : members.length === 0 ? (
-          <div className="py-12 text-center text-xs text-zinc-500">
+          <div className="py-12 text-center text-xs text-zinc-400">
             No organization members found matching your search.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase text-xs tracking-wider">
                   <th className="p-3">Member</th>
                   <th className="p-3">Role</th>
                   <th className="p-3">Joined Date</th>
@@ -309,19 +309,19 @@ export function MembersView() {
                             <div className="font-bold text-zinc-100 flex items-center gap-1.5">
                               {mem.name || 'User'}
                               {isSelf && (
-                                <span className="text-[9px] px-1 py-0.2 bg-zinc-800 text-zinc-400 border border-zinc-700">
+                                <span className="text-xs px-1 py-0.2 bg-zinc-800 text-zinc-400 border border-zinc-700">
                                   YOU
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-zinc-500">{mem.email}</div>
+                            <div className="text-[11px] text-zinc-400">{mem.email}</div>
                           </div>
                         </div>
                       </td>
 
                       <td className="p-3">
                         <span
-                          className={`text-[10px] font-bold uppercase px-2 py-0.5 border flex items-center gap-1 w-fit ${
+                          className={`text-xs font-bold uppercase px-2 py-0.5 border flex items-center gap-1 w-fit ${
                             isMemOwner
                               ? 'border-amber-800 bg-amber-950/60 text-amber-400'
                               : mem.role === 'admin'
@@ -363,7 +363,7 @@ export function MembersView() {
                             className={`h-7 px-2 border-zinc-800 text-[11px] ${
                               canEditRole
                                 ? 'hover:bg-zinc-900 text-zinc-300'
-                                : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                                : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                             }`}
                           >
                             <Sliders className="w-3 h-3 mr-1 text-orange-400" /> Role
@@ -383,7 +383,7 @@ export function MembersView() {
                               className={`h-7 px-2 text-[11px] ${
                                 canTransfer
                                   ? 'border-amber-900/80 hover:bg-amber-950/40 text-amber-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                               }`}
                             >
                               <ArrowRightLeft className="w-3 h-3 mr-1 text-amber-400" /> Transfer
@@ -403,7 +403,7 @@ export function MembersView() {
                             className={`h-7 px-2 text-[11px] ${
                               canRemove
                                 ? 'border-rose-950 hover:bg-rose-950/40 text-rose-400'
-                                : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                                : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                             }`}
                           >
                             <Trash2 className="w-3 h-3" />

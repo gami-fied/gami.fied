@@ -83,7 +83,7 @@ export default function ApiDocsPage() {
           <button
             onClick={fetchSpec}
             className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
-            title="Reload OpenAPI Specification"
+            title="Reload OpenAPI Specification" aria-label="Reload OpenAPI Specification"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -124,7 +124,7 @@ export default function ApiDocsPage() {
 
       {/* Endpoint Cards List */}
       {filteredPaths.length === 0 ? (
-        <div className="p-8 text-center font-mono text-xs text-zinc-500">No matching API endpoints found.</div>
+        <div className="p-8 text-center font-mono text-xs text-zinc-400">No matching API endpoints found.</div>
       ) : (
         <div className="space-y-4">
           {filteredPaths.map(([pathUrl, methods]) =>
@@ -145,7 +145,7 @@ export default function ApiDocsPage() {
                     </span>
                     <span className="font-mono font-bold text-sm text-white">{pathUrl}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                  <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
                     OpenAPI 3.1 Route
                   </span>
                 </div>
@@ -168,11 +168,11 @@ export default function ApiDocsPage() {
                         <div key={idx} className="p-2.5 text-xs font-mono flex items-center justify-between gap-4">
                           <div className="flex items-center gap-2">
                             <span className="text-emerald-400 font-bold">{param.name}</span>
-                            <span className="text-[10px] text-zinc-500 uppercase font-mono px-1.5 py-0.5 bg-zinc-900 border border-zinc-800">
+                            <span className="text-xs text-zinc-400 uppercase font-mono px-1.5 py-0.5 bg-zinc-900 border border-zinc-800">
                               {param.in}
                             </span>
                             {param.required && (
-                              <span className="text-[10px] text-rose-400 font-mono font-bold">Required</span>
+                              <span className="text-xs text-rose-400 font-mono font-bold">Required</span>
                             )}
                           </div>
                           <span className="text-zinc-400 text-right truncate">{param.description}</span>

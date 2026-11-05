@@ -109,7 +109,7 @@ export function InvitationsView() {
 
   if (!selectedOrg) {
     return (
-      <div className="p-8 text-center text-zinc-500 font-mono text-xs">
+      <div className="p-8 text-center text-zinc-400 font-mono text-xs">
         Please select an organization to view invitations.
       </div>
     );
@@ -118,7 +118,7 @@ export function InvitationsView() {
   const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg.role || 'member');
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
@@ -132,8 +132,8 @@ export function InvitationsView() {
               <span className="text-orange-400 font-semibold">{selectedOrg.name}</span>.
             </span>
             {!isAdminOrOwner && (
-              <span className="text-[10px] uppercase font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
-                <Lock className="w-3 h-3 text-zinc-500" /> READ-ONLY MEMBER
+              <span className="text-xs uppercase font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-zinc-400" /> READ-ONLY MEMBER
               </span>
             )}
           </p>
@@ -153,7 +153,7 @@ export function InvitationsView() {
             className={`font-medium h-9 ${
               isAdminOrOwner
                 ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700'
+                : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
             }`}
           >
             <UserPlus className="w-4 h-4 mr-1" />
@@ -172,19 +172,19 @@ export function InvitationsView() {
       {/* Invitations Table */}
       <Card className="bg-zinc-950 border-zinc-800">
         {loading ? (
-          <div className="py-12 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+          <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
             Loading invitations...
           </div>
         ) : invitations.length === 0 ? (
-          <div className="py-12 text-center text-xs text-zinc-500">
+          <div className="py-12 text-center text-xs text-zinc-400">
             No pending or historical invitations found for this organization.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase text-xs tracking-wider">
                   <th className="p-3">Recipient Email</th>
                   <th className="p-3">Assigned Role</th>
                   <th className="p-3">Status</th>
@@ -202,20 +202,20 @@ export function InvitationsView() {
                     <tr key={inv.id} className="hover:bg-zinc-900/40 transition">
                       <td className="p-3">
                         <div className="flex items-center gap-2 font-bold text-zinc-100">
-                          <Mail className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                          <Mail className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                           {inv.email}
                         </div>
                       </td>
 
                       <td className="p-3">
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-300">
+                        <span className="text-xs font-bold uppercase px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-300">
                           {inv.role}
                         </span>
                       </td>
 
                       <td className="p-3">
                         <span
-                          className={`text-[10px] font-bold uppercase px-2 py-0.5 border flex items-center gap-1 w-fit ${
+                          className={`text-xs font-bold uppercase px-2 py-0.5 border flex items-center gap-1 w-fit ${
                             inv.status === 'accepted'
                               ? 'border-emerald-800 bg-emerald-950/60 text-emerald-400'
                               : isPending && !isExpired
@@ -258,7 +258,7 @@ export function InvitationsView() {
                               className={`h-7 px-2 border-zinc-800 text-[11px] ${
                                 isAdminOrOwner
                                   ? 'hover:bg-zinc-900 text-orange-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                               }`}
                             >
                               <Send className="w-3 h-3 mr-1 text-orange-400" /> Resend
@@ -277,7 +277,7 @@ export function InvitationsView() {
                               className={`h-7 px-2 text-[11px] ${
                                 isAdminOrOwner
                                   ? 'border-rose-950 hover:bg-rose-950/40 text-rose-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                                  : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                               }`}
                             >
                               <Trash2 className="w-3 h-3" /> Revoke

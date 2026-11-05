@@ -126,7 +126,7 @@ export default function AdminOrganizationsPage() {
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
             <Input
               type="text"
               placeholder="Search organizations..."
@@ -165,7 +165,7 @@ export default function AdminOrganizationsPage() {
             <tbody className="divide-y divide-zinc-800/60">
               {filteredOrgs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                     No organizations found.
                   </td>
                 </tr>

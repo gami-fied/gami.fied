@@ -123,7 +123,7 @@ export function ProjectHealthView() {
             {(metrics?.eventsIngested ?? 0).toLocaleString()}{' '}
             <span className="text-xs font-normal text-zinc-400">events</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Total raw events ingested and processed for {selectedProject.name}.
           </p>
         </div>
@@ -137,7 +137,7 @@ export function ProjectHealthView() {
             {(metrics?.webhookStats.delivered ?? 0).toLocaleString()}{' '}
             <span className="text-xs font-normal text-zinc-400">delivered</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Successful HTTP webhook deliveries. Failed: {(metrics?.webhookStats.failed ?? 0).toLocaleString()}.
           </p>
         </div>
@@ -151,7 +151,7 @@ export function ProjectHealthView() {
             {(metrics?.integrationStats.delivered ?? 0).toLocaleString()}{' '}
             <span className="text-xs font-normal text-zinc-400">channel messages</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Discord embed dispatches. Failed: {(metrics?.integrationStats.failed ?? 0).toLocaleString()}.
           </p>
         </div>
@@ -164,7 +164,7 @@ export function ProjectHealthView() {
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             Project Outbox Processing Queues
           </h2>
-          <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
+          <span className="text-xs text-zinc-400 uppercase tracking-widest">
             Project Scoped Only
           </span>
         </div>
@@ -174,42 +174,42 @@ export function ProjectHealthView() {
             <div className="text-lg font-black text-amber-400">
               {metrics?.outbox.eventOutboxPending ?? 0}
             </div>
-            <div className="text-[10px] text-zinc-400 uppercase mt-1">Pending Rules</div>
+            <div className="text-xs text-zinc-400 uppercase mt-1">Pending Rules</div>
           </div>
 
           <div className="border border-zinc-800 bg-zinc-900/60 p-3">
             <div className="text-lg font-black text-blue-400">
               {metrics?.outbox.challengeRewardOutboxPending ?? 0}
             </div>
-            <div className="text-[10px] text-zinc-400 uppercase mt-1">Pending Rewards</div>
+            <div className="text-xs text-zinc-400 uppercase mt-1">Pending Rewards</div>
           </div>
 
           <div className="border border-zinc-800 bg-zinc-900/60 p-3">
             <div className="text-lg font-black text-purple-400">
               {metrics?.outbox.notificationOutboxPending ?? 0}
             </div>
-            <div className="text-[10px] text-zinc-400 uppercase mt-1">Pending In-App</div>
+            <div className="text-xs text-zinc-400 uppercase mt-1">Pending In-App</div>
           </div>
 
           <div className="border border-zinc-800 bg-zinc-900/60 p-3">
             <div className="text-lg font-black text-emerald-400">
               {metrics?.outbox.emailNotificationOutboxPending ?? 0}
             </div>
-            <div className="text-[10px] text-zinc-400 uppercase mt-1">Pending Emails</div>
+            <div className="text-xs text-zinc-400 uppercase mt-1">Pending Emails</div>
           </div>
 
           <div className="border border-zinc-800 bg-zinc-900/60 p-3">
             <div className="text-lg font-black text-cyan-400">
               {metrics?.outbox.webhookOutboxPending ?? 0}
             </div>
-            <div className="text-[10px] text-zinc-400 uppercase mt-1">Pending Webhooks</div>
+            <div className="text-xs text-zinc-400 uppercase mt-1">Pending Webhooks</div>
           </div>
         </div>
 
         {(metrics?.outbox.staleProcessingRecords ?? 0) > 0 && (
           <div className="p-3 bg-amber-950/40 border border-amber-800 text-amber-300 text-xs flex items-center justify-between">
             <span>Notice: {metrics?.outbox.staleProcessingRecords} records in processing status &gt; 5 min.</span>
-            <span className="text-[10px] uppercase font-bold text-amber-400">Outbox Recovery Active</span>
+            <span className="text-xs uppercase font-bold text-amber-400">Outbox Recovery Active</span>
           </div>
         )}
       </div>
