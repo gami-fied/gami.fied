@@ -29,7 +29,7 @@ export const TableHeader = forwardRef<
     ref={ref}
     className={twMerge(
       clsx(
-        'bg-zinc-950/80 text-zinc-400 uppercase text-[11px] font-mono tracking-wider border-b border-zinc-800',
+        'bg-zinc-950/80 text-zinc-400 uppercase text-[11px] tracking-wider border-b border-zinc-800',
         className
       )
     )}
@@ -96,7 +96,7 @@ export interface PaginationProps {
 
 export function TablePagination({ page, onPageChange, hasMore = false }: PaginationProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800 bg-zinc-950/40 text-xs font-mono text-zinc-400">
+    <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800 bg-zinc-950/40 text-xs text-zinc-400">
       <span>PAGE {page}</span>
       <div className="flex gap-2">
         <button

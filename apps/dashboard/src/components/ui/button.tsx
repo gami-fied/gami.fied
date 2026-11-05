@@ -27,17 +27,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        'bg-orange-500 hover:bg-orange-400 text-white focus:ring-orange-500 active:scale-[0.98]',
+        'bg-brand-500 hover:bg-brand-400 text-on-accent focus:ring-brand-500 active:scale-[0.98]',
       secondary:
         'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700/80 focus:ring-zinc-500 active:scale-[0.98]',
       outline:
         'bg-transparent hover:bg-zinc-800/60 text-zinc-200 border border-zinc-700 focus:ring-zinc-500 active:scale-[0.98]',
       ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white focus:ring-zinc-500',
-      danger: 'bg-rose-600 hover:bg-rose-500 text-white focus:ring-rose-500 active:scale-[0.98]',
-      cyan: 'bg-cyan-600 hover:bg-cyan-500 text-white focus:ring-cyan-500 active:scale-[0.98]',
-      orange: 'bg-orange-600 hover:bg-orange-500 text-white focus:ring-orange-500 active:scale-[0.98]',
-      rose: 'bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 focus:ring-rose-500 active:scale-[0.98]',
-      emerald: 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 focus:ring-emerald-500 active:scale-[0.98]',
+      danger: 'bg-danger-600 hover:bg-danger-500 text-on-accent focus:ring-danger-500 active:scale-[0.98]',
+      cyan: 'bg-info-600 hover:bg-info-500 text-on-accent focus:ring-info-500 active:scale-[0.98]',
+      orange: 'bg-brand-600 hover:bg-brand-500 text-on-accent focus:ring-brand-500 active:scale-[0.98]',
+      rose: 'bg-danger-950/80 hover:bg-danger-900 text-danger-300 border border-danger-800 focus:ring-danger-500 active:scale-[0.98]',
+      emerald: 'bg-success-950/80 hover:bg-success-900 text-success-300 border border-success-800 focus:ring-success-500 active:scale-[0.98]',
     };
 
     const sizes = {

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -25,7 +27,7 @@ export function RuleTraceDialog({
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/projects/${projectId}/rules/${rule.id}/trace`)
+    apiFetch(`/api/projects/${projectId}/rules/${rule.id}/trace`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('failed'))))
       .then((body) => setEntries(body.data))
       .catch(() => setFailed(true));
@@ -40,7 +42,7 @@ export function RuleTraceDialog({
       maxWidth="2xl"
     >
       {failed && (
-        <p role="alert" className="text-sm text-rose-300">
+        <p role="alert" className="text-sm text-danger-300">
           The trace couldn&apos;t load. Close this and try again.
         </p>
       )}
@@ -55,11 +57,11 @@ export function RuleTraceDialog({
         {entries?.map((entry) => (
           <li key={entry.eventId} className="border border-zinc-800 p-3 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className={entry.matched ? 'text-emerald-300' : 'text-amber-300'}>
+              <span className={entry.matched ? 'text-success-300' : 'text-warning-300'}>
                 {entry.matched ? 'Matches' : 'Does not match'}
               </span>
               <time className="text-xs text-zinc-400" dateTime={entry.occurredAt}>
-                {new Date(entry.occurredAt).toLocaleString()}
+                {formatDateTime(entry.occurredAt)}
               </time>
             </div>
             {entry.reason && <p className="text-xs text-zinc-400 mt-1">{entry.reason}</p>}

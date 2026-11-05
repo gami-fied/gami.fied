@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDashboard } from '../context/dashboard-context';
 
 async function send(url: string, method: string, body?: object): Promise<void> {
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,

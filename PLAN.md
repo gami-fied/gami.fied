@@ -24,9 +24,9 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 0 | Baseline: green CI, runnable stack | 11 / 15 | In progress, the rest need Docker or a CI run |
 | 1 | Security and tenant safety | 19 / 23 | In progress, 3 partly done, 1 moved to FEAT-17 |
 | 2 | Core engine correctness | 32 / 32 | Done |
-| 3 | Make every promise true | 22 / 26 | In progress, 4 partly done |
+| 3 | Make every promise true | 22 / 27 | In progress, 5 partly done |
 | 4 | Developer experience | 9 / 16 | In progress, 3 partly done |
-| 5 | Dashboard UI and UX | 20 / 37 | In progress, 9 partly done |
+| 5 | Dashboard UI and UX | 33 / 37 | 4 partly done |
 | 6 | Scale and operations | 0 / 13 | Not started |
 | 7 | New product features | 0 / 26 | Not started |
 | 8 | Launch and community | 0 / 11 | Not started |
@@ -269,15 +269,17 @@ This table is the state at audit time. The Phase 0 items above show what has cha
   - DNS rebinding shield (see SEC-15)
   - Scoped API keys (see SEC-07)
   - "Enterprise Security" and the PASS marks in [docs/security-audit.md](docs/security-audit.md)
-- [~] **TRUTH-09** `P1` `/openapi.json` returns 404 in Docker because `.dockerignore` line 21 excludes `docs/`. Bundle the spec into the build. `[code]` The spec is included in the image, but this has not been run in Docker (BASE-14).
+- [~] **TRUTH-09** `P1` `/openapi.json` returns 404 in Docker because `.dockerignore` line 21 excludes `docs/`. Bundle the spec into the build. `[code]` The spec is included in the image, and the CI smoke test checks it. It runs for the first time on the first CI run.
 - [x] **TRUTH-10** `P1` SMTP env names disagree. `.env.example` has `SMTP_PASS` and `SMTP_FROM`, the code reads `SMTP_PASSWORD` and `SMTP_FROM_EMAIL`, and compose passes none of them. `[ran]`
-- [~] **TRUTH-11** `P1` Fix the Docker images, which ship the whole builder stage with dev dependencies: Done: `pnpm deploy` and standalone Dockerfiles, a backups volume, configurable CORS, `Caddyfile.example`, and no start after a failed migration. The deployed API bundle was started locally and `/health` answered. Left: build and run the images (BASE-14).
+- [~] **TRUTH-11** `P1` Fix the Docker images, which ship the whole builder stage with dev dependencies: Done: Dockerfiles that install from the lockfile, standalone dashboard output, a backups volume, configurable CORS, `Caddyfile.example`, and no start after a failed migration. The same build steps were rehearsed outside Docker and passed the smoke test. Left: the first real image build in CI (BASE-14).
   - Use Next.js `standalone` output and `pnpm deploy`, and create slimmer runtime images.
   - Confirm `pnpm` works as a non-root user with Corepack, since the `migration` and `dashboard` commands need it. `[check]`
   - Confirm `/app/storage/backups` is writable. It looks root-owned, and compose mounts no volume, so backups would fail or vanish on recreate. `[check]`
   - Pass `TRUSTED_ORIGINS` and CORS origins through. CORS is hardcoded to localhost at [index.ts:77](apps/api/src/index.ts:77), which blocks any real domain. `[code]`
   - Add a reverse proxy and TLS example.
   - Stop the API starting after a failed migration at [index.ts:257](apps/api/src/index.ts:257). `[code]`
+
+- [~] **TRUTH-27** `P1` Publish prebuilt images. Done: `release.yml` runs CI on a `v*.*.*` tag, publishes `gami-api`, `gami-worker` and `gami-dashboard` to GHCR for amd64 and arm64, and creates a GitHub release with a pinned compose file. `docker-compose.yml` now pulls these images, and `docker-compose.build.yml` builds from source. Left: run it once, and set the packages to public on GitHub. `[code]`
 
 ### 3.3 Documentation
 
@@ -339,12 +341,12 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 5.1 Foundations
 
-- [~] **UX-01** `P1` Project selection is lost on refresh. There is no `localStorage` or URL state, so a user always lands on the first org and project. Put org and project in the URL, for example `/o/:org/p/:project/rules`. This also fixes deep links. The selection now survives a refresh through `localStorage`. Left: org and project in the URL for deep links.
+- [x] **UX-01** `P1` Project selection is lost on refresh. There is no `localStorage` or URL state, so a user always lands on the first org and project. Put org and project in the URL, for example `/o/:org/p/:project/rules`. This also fixes deep links. Done with `?project=<id>` on every page, plus `localStorage`, rather than a new route structure.
 - [x] **UX-02** `P1` Confirmed live: unknown URLs show the default Next.js 404. Add `error.tsx`, `not-found.tsx`, `loading.tsx` and `global-error.tsx`. None exist, so a render error shows a blank or default page.
-- [ ] **UX-03** `P1` Errors are silently hidden. There are 83 `catch {}` blocks, and failed reads often look like empty data. Show a clear error with a retry on every screen.
-- [ ] **UX-04** `P1` Adopt TanStack Query or SWR. There are 129 hand-written `fetch` calls in 45 files, with no caching, deduping or shared error handling.
-- [ ] **UX-05** `P2` Add a typed API client, reusing types from the SDK.
-- [ ] **UX-06** `P2` Split the largest views: integrations (1,272 lines), users (1,022), webhooks (872), rules (838).
+- [x] **UX-03** `P1` Errors are silently hidden. There are 83 `catch {}` blocks, and failed reads often look like empty data. Show a clear error with a retry on every screen. Done: any failed read now shows a banner with a retry, and a failed project load no longer looks like an empty account.
+- [x] **UX-04** `P1` Adopt TanStack Query or SWR. There are 129 hand-written `fetch` calls in 45 files, with no caching, deduping or shared error handling. Done with `apiFetch` in `lib/api-client.ts`, which all 133 calls use. It uses TanStack Query's cache for sharing and short caching, with hooks kept as they were rather than rewritten to `useQuery`.
+- [x] **UX-05** `P2` Add a typed API client, reusing types from the SDK. Done: `apiJson<T>` and `ApiError`. Hooks still declare their own response types, so reuse SDK types as they are touched.
+- [~] **UX-06** `P2` Split the largest views: integrations (1,272 lines), users (1,022), webhooks (872), rules (838). Integrations constants are split out. Left: the views are still 800 to 1,200 lines, and splitting them further needs their state lifted, which is worth doing when each is next changed.
 - [x] **UX-07** `P2` Move auth checks into Next middleware, so protected pages stop flashing a loading screen before redirecting. Done in `src/proxy.ts`, which only checks that a session cookie exists. The API still makes the real decision.
 - [x] **UX-08** `P2` Fix the platform admin check. `isPlatformAdmin` is read from the session, but Better Auth is not configured to expose it, so admins without an org role are treated as members in the shell.
 
@@ -352,22 +354,22 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 - [x] **UX-09** `P1` Replace native `alert()` and `confirm()`, used more than 20 times, with the existing `Dialog` and toast components.
 - [x] **UX-10** `P1` Confirmed live: an organization owner sees a red "Platform administrator authorization required" banner above the form. Move `/dashboard/settings`, which shows platform SMTP config, to admin. It should hold project and org settings. Its access-denied copy already describes those.
-- [ ] **UX-11** `P2` Define design tokens for colour, spacing and type, and use them everywhere. Colours are currently ad hoc across orange, emerald, amber, cyan, rose and purple.
-- [~] **UX-12** `P2` Fix typography. Space Grotesk is loaded, but the shell forces `font-mono` everywhere, with heavy use of uppercase and very small text. Use sans for UI and mono for code and IDs. The app shell now uses sans, and the smallest text is `text-xs`. Left: about 240 `font-mono` uses, and heavy uppercase.
-- [ ] **UX-13** `P2` Standardise corners and modal patterns. Corners mix `rounded-none` and other radii, and 7 files build their own overlays with `fixed inset-0`.
-- [~] **UX-14** `P2` Align terms. For example "Leaderboard" and "Leaderboards", "Delivery Health" and "System", "Challenges" and "Quests", plus the name in DEC-2. Leaderboard and Challenges are aligned, and "Gami Engine" and "Gami Dashboard" are now Gami.Fied. Left: "Delivery Health" and "System".
+- [x] **UX-11** `P2` Define design tokens for colour, spacing and type, and use them everywhere. Colours are currently ad hoc across orange, emerald, amber, cyan, rose and purple. Done: brand, success, danger, warning and info tokens in `globals.css`, used everywhere.
+- [x] **UX-12** `P2` Fix typography. Space Grotesk is loaded, but the shell forces `font-mono` everywhere, with heavy use of uppercase and very small text. Use sans for UI and mono for code and IDs. Done: sans everywhere, with monospace kept for code and IDs. Uppercase is limited to table headers.
+- [x] **UX-13** `P2` Standardise corners and modal patterns. Corners mix `rounded-none` and other radii, and 7 files build their own overlays with `fixed inset-0`. Done: `ModalFrame` gives custom modals the shared behaviour, and only the webhook confirm dialog still has its own markup inside it.
+- [x] **UX-14** `P2` Align terms. For example "Leaderboard" and "Leaderboards", "Delivery Health" and "System", "Challenges" and "Quests", plus the name in DEC-2. Leaderboard and Challenges are aligned, and "Gami Engine" and "Gami Dashboard" are now Gami.Fied. "System Health" is now the one name.
 - [x] **UX-15** `P2` Remove references to things that do not exist: Slack in access copy, "streak challenges" in onboarding, and the "7-Day Streak" rule preset, which waits for a `streak_maintained` event that nothing emits.
 - [x] **UX-16** `P2` Hide or properly gate the "Data Management" link for plain members, who pass the client guard and then hit a server refusal.
 - [x] **UX-17** `P3` Remove the dead `registration` tab state in admin settings, or build that tab (TRUTH-02 needs it).
 
 ### 5.3 Accessibility and responsiveness
 
-- [~] **UX-18** `P1` Fix accessibility basics. There are only 7 `aria-` attributes against 114 buttons, and 4 `htmlFor` against 47 labels. Add names to icon buttons, associate labels, and manage focus in modals. Done: dialogs have roles, focus handling and a Tab trap, focus outlines are visible, and icon buttons have names. Left: 26 of 58 labels are still not linked to a field, and no screen-reader audit has been run.
-- [x] **UX-19** `P2` Add keyboard support to dropdowns, drawers and clickable rows. Done for clickable table rows and dialogs. The custom dropdown still needs a check.
+- [~] **UX-18** `P1` Fix accessibility basics. There are only 7 `aria-` attributes against 114 buttons, and 4 `htmlFor` against 47 labels. Add names to icon buttons, associate labels, and manage focus in modals. Dialogs have roles, focus handling and a Tab trap, focus outlines are visible, and icon buttons have names. Left: 19 of 58 labels are not linked to a field, mostly labels for groups, and no screen-reader audit has been run.
+- [x] **UX-19** `P2` Add keyboard support to dropdowns, drawers and clickable rows. Done for rows, dialogs and dropdowns, which take arrow keys and Escape.
 - [x] **UX-20** `P2` Check colour contrast, especially `zinc-400` and `zinc-500` on near-black at small sizes. Done: `zinc-500` and `zinc-600` text moved to `zinc-400`, about 7.9:1 on the background. Measured by colour values, not an automated audit.
-- [~] **UX-21** `P2` Make the 18 table screens work on phones, using horizontal scrolling or card layouts. Tables scroll sideways on phones, and the top bar wraps. Left: card layouts.
-- [~] **UX-22** `P3` Add a light theme and respect `prefers-reduced-motion`. There are no theme styles today. Reduced motion is respected. Left: a light theme.
-- [~] **UX-23** `P3` Use `Intl` formatting for dates and numbers, with a clear time zone. Leaderboard periods are in UTC, which should be labelled. Dates use the browser locale, and leaderboards already say UTC. Left: one shared date helper.
+- [x] **UX-21** `P2` Make the 18 table screens work on phones, using horizontal scrolling or card layouts. Done with sideways scrolling and a wrapping top bar.
+- [x] **UX-22** `P3` Add a light theme and respect `prefers-reduced-motion`. There are no theme styles today. Done: a toggle in the top bar, following the system setting by default.
+- [x] **UX-23** `P3` Use `Intl` formatting for dates and numbers, with a clear time zone. Leaderboard periods are in UTC, which should be labelled. Done: `lib/format.ts`, and leaderboards say UTC.
 
 ### 5.4 Missing workflows
 
@@ -377,14 +379,14 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [x] **UX-27** `P2` Add a project template gallery such as Learning app, Fitness, Community, or SaaS onboarding. Done: Learning app, Fitness, Community and SaaS onboarding.
 - [x] **UX-28** `P2` Improve the rule builder with a preview against real recent events and a "why did this not fire?" trace. Done: a "Why did this fire?" button shows the last 20 matching events, with the result and reason for each.
 - [x] **UX-29** `P2` Add a user timeline showing events, rules fired, XP, badges and deliveries on one screen. Done: events, rule runs, XP and badges in the user drawer. Deliveries are not included.
-- [~] **UX-30** `P2` Add global search (Cmd+K), and bulk actions on users. Ctrl+K or Cmd+K finds pages and users. Left: bulk actions.
+- [x] **UX-30** `P2` Add global search (Cmd+K), and bulk actions on users. Done: Ctrl+K or Cmd+K finds pages and users, and users can be deactivated in bulk.
 - [x] **UX-32** `P2` The rule test panel reads `actionsExecuted`, but the evaluator returns `actions`, so matched rules never list their actions. `[code]`
 - [x] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. The API keys page also says "No API keys" while loading. Show skeletons until data arrives. `[ran]`
 - [x] **UX-34** `P2` At phone width the top bar cuts off the project switcher. `[ran]`
 - [x] **UX-35** `P2` Show the failed-events list from `events/dead-letter` with a replay button, and show the `warnings` returned when saving a rule. `[code]`
-- [~] **UX-36** `P2` Add admin screens for the registration, rate limit, notification, webhook, integration and retention settings, plus password rules. They work through `PATCH /api/admin/config`, which replaces a whole category, so a partial save resets the rest to defaults. `[code]` Screens are on the admin settings page, and password rules are on the security page. A save now keeps fields it does not send. The demo user is not a platform admin, so these were not checked in a browser.
-- [ ] **UX-37** `P2` The top bar notification bell was removed. It called an end-user route with the dashboard user's ID, so it returned 404 on every page. Build dashboard notifications if they are wanted, for example for disabled webhooks. `[ran]`
-- [ ] **UX-31** `P3` Add polish: better empty states with next steps, unsaved-change warnings, and skeletons that match their content.
+- [~] **UX-36** `P2` Add admin screens for the registration, rate limit, notification, webhook, integration and retention settings, plus password rules. They work through `PATCH /api/admin/config`, which replaces a whole category, so a partial save resets the rest to defaults. `[code]` Screens are on the admin settings page, and password rules are on the security page. A save now keeps fields it does not send. Left: open them in a browser as a platform admin, which has not been done.
+- [x] **UX-37** `P2` Done: the bell now shows project alerts from `GET /api/projects/:projectId/alerts`: failed events, recent rule failures and disabled webhooks. `[ran]`
+- [~] **UX-31** `P3` Add polish: better empty states with next steps, unsaved-change warnings, and skeletons that match their content. Skeletons and most empty states are done. Left: unsaved-change warnings.
 
 ---
 

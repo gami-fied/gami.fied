@@ -1,5 +1,7 @@
 'use client';
 
+import { ModalFrame } from '@/components/ui/dialog';
+import { apiFetch } from '@/lib/api-client';
 import React, { useState } from 'react';
 import { useDashboard } from '@/components/features/context/dashboard-context';
 import { useToast } from '@/components/ui/toast';
@@ -34,7 +36,7 @@ export default function OrganizationDataPage() {
     if (!selectedOrg?.id) return;
     setExporting(true);
     try {
-      const res = await fetch(`/api/v1/organizations/${selectedOrg.id}/export`, {
+      const res = await apiFetch(`/api/v1/organizations/${selectedOrg.id}/export`, {
         method: 'POST',
       });
       if (res.ok) {
@@ -75,7 +77,7 @@ export default function OrganizationDataPage() {
         setImportFileContent(content);
 
         // Run Dry-Run Validation
-        const res = await fetch(`/api/v1/organizations/${selectedOrg?.id}/import/validate`, {
+        const res = await apiFetch(`/api/v1/organizations/${selectedOrg?.id}/import/validate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(content),
@@ -97,7 +99,7 @@ export default function OrganizationDataPage() {
     if (!selectedOrg?.id || !importFileContent) return;
     setImporting(true);
     try {
-      const res = await fetch(`/api/v1/organizations/${selectedOrg.id}/import`, {
+      const res = await apiFetch(`/api/v1/organizations/${selectedOrg.id}/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(importFileContent),
@@ -126,8 +128,8 @@ export default function OrganizationDataPage() {
       {/* Header */}
       <div className="border-b border-zinc-800 pb-4">
         <div className="flex items-center gap-2">
-          <FolderLock className="w-6 h-6 text-orange-400" />
-          <h1 className="text-xl font-bold font-mono text-white">Organization Data Management</h1>
+          <FolderLock className="w-6 h-6 text-brand-400" />
+          <h1 className="text-xl font-bold text-white">Organization Data Management</h1>
         </div>
         <p className="text-xs text-zinc-400 mt-1">
           Export organization logical data for tenant portability or validate & import logical datasets into target organization scope.
@@ -135,10 +137,10 @@ export default function OrganizationDataPage() {
       </div>
 
       {/* Security Shield Banner */}
-      <div className="bg-zinc-900/60 border border-emerald-500/30 p-4 rounded-none flex items-start gap-3">
-        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+      <div className="bg-zinc-900/60 border border-success-500/30 p-4 rounded-none flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-success-400 shrink-0 mt-0.5" />
         <div className="text-xs text-zinc-300 space-y-1">
-          <p className="font-mono font-semibold text-emerald-300">Tenant Isolation & Secret Redaction Guarantee</p>
+          <p className="font-semibold text-success-300">Tenant Isolation & Secret Redaction Guarantee</p>
           <p className="text-zinc-400">
             Logical exports contain exclusively data belonging to <span className="text-white font-semibold">{selectedOrg?.name || 'your organization'}</span>. All sensitive security artifacts (password hashes, API key secrets, SMTP passwords, session tokens) are strictly redacted. Imports perform deterministic ID remapping to ensure target tenant isolation.
           </p>
@@ -151,8 +153,8 @@ export default function OrganizationDataPage() {
         <div className="bg-zinc-950 border border-zinc-800 p-5 space-y-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Download className="w-5 h-5 text-orange-400" />
-              <h2 className="text-sm font-mono font-bold text-white">Export Organization Data</h2>
+              <Download className="w-5 h-5 text-brand-400" />
+              <h2 className="text-sm font-bold text-white">Export Organization Data</h2>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
               Download a complete versioned JSON archive containing project settings, end users, events, XP history, levels, achievements, challenges, rules, and integration metadata.
@@ -162,7 +164,7 @@ export default function OrganizationDataPage() {
           <button
             onClick={handleExportData}
             disabled={exporting}
-            className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-black text-xs font-mono font-bold flex items-center justify-center gap-2 transition disabled:opacity-50"
+            className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-black text-xs font-bold flex items-center justify-center gap-2 transition disabled:opacity-50"
           >
             {exporting ? (
               <>
@@ -182,19 +184,19 @@ export default function OrganizationDataPage() {
         <div className="bg-zinc-950 border border-zinc-800 p-5 space-y-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Upload className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-sm font-mono font-bold text-white">Import Organization Data</h2>
+              <Upload className="w-5 h-5 text-info-400" />
+              <h2 className="text-sm font-bold text-white">Import Organization Data</h2>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Import a validated <span className="font-mono text-zinc-200">gami-organization-export</span> package into this organization. Dry-run validation prevents ID collisions and cross-tenant reference leakage.
+              Import a validated <span className="text-zinc-200">gami-organization-export</span> package into this organization. Dry-run validation prevents ID collisions and cross-tenant reference leakage.
             </p>
           </div>
 
           <button
             onClick={() => setShowImportModal(true)}
-            className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-mono font-bold flex items-center justify-center gap-2 transition"
+            className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-bold flex items-center justify-center gap-2 transition"
           >
-            <Upload className="w-4 h-4 text-cyan-400" />
+            <Upload className="w-4 h-4 text-info-400" />
             Validate & Import Data
           </button>
         </div>
@@ -202,48 +204,48 @@ export default function OrganizationDataPage() {
 
       {/* Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <ModalFrame onClose={() => setShowImportModal(false)} label="Import organization data">
           <div className="bg-zinc-950 border border-zinc-800 p-6 max-w-xl w-full space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-base font-mono font-bold text-white flex items-center gap-2">
-                <FileJson className="w-5 h-5 text-cyan-400" />
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <FileJson className="w-5 h-5 text-info-400" />
                 Organization Data Import & Validation
               </h3>
               <button
                 onClick={() => setShowImportModal(false)}
-                className="text-zinc-400 hover:text-white text-xs font-mono"
+                className="text-zinc-400 hover:text-white text-xs"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3">
-              <label className="block text-xs font-mono text-zinc-300">Select Export Package (.json):</label>
-              <input
+              <label htmlFor="page-select-export-package-json" className="block text-xs text-zinc-300">Select Export Package (.json):</label>
+              <input id="page-select-export-package-json"
                 type="file"
                 accept=".json"
                 onChange={handleFileSelect}
-                className="block w-full text-xs font-mono text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 cursor-pointer"
+                className="block w-full text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 cursor-pointer"
               />
             </div>
 
             {validationResult && (
               <div className="space-y-3 bg-zinc-900 border border-zinc-800 p-4">
-                <h4 className="text-xs font-mono font-bold text-white flex items-center gap-2">
+                <h4 className="text-xs font-bold text-white flex items-center gap-2">
                   {validationResult.valid ? (
-                    <span className="text-emerald-400 flex items-center gap-1">
+                    <span className="text-success-400 flex items-center gap-1">
                       <CheckCircle2 className="w-4 h-4" /> Dry-Run Validation Passed
                     </span>
                   ) : (
-                    <span className="text-rose-400 flex items-center gap-1">
+                    <span className="text-danger-400 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" /> Validation Failed
                     </span>
                   )}
                 </h4>
 
                 {validationResult.valid && (
-                  <div className="text-xs font-mono text-zinc-300 space-y-1">
-                    <p>Format: <span className="text-orange-400">{validationResult.manifest?.organizationName || 'Export'}</span></p>
+                  <div className="text-xs text-zinc-300 space-y-1">
+                    <p>Format: <span className="text-brand-400">{validationResult.manifest?.organizationName || 'Export'}</span></p>
                     <p>Remapping Plan:</p>
                     <ul className="list-disc list-inside text-zinc-400 text-[11px] space-y-0.5">
                       <li>Projects to create: {validationResult.remappingPlan?.projectsToCreate}</li>
@@ -254,7 +256,7 @@ export default function OrganizationDataPage() {
                 )}
 
                 {validationResult.error && (
-                  <p className="text-xs text-rose-400 font-mono">{validationResult.error}</p>
+                  <p className="text-xs text-danger-400">{validationResult.error}</p>
                 )}
               </div>
             )}
@@ -262,20 +264,20 @@ export default function OrganizationDataPage() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowImportModal(false)}
-                className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-mono font-semibold"
+                className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExecuteImport}
                 disabled={!validationResult?.valid || importing}
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-black text-xs font-mono font-bold flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 bg-info-500 hover:bg-info-600 text-black text-xs font-bold flex items-center gap-2 disabled:opacity-50"
               >
                 {importing ? 'Importing Data...' : 'Execute Import'}
               </button>
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
     </div>
   );

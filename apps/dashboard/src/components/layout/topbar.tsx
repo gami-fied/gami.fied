@@ -4,6 +4,8 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { OrganizationSwitcher } from './organization-switcher';
 import { ProjectSwitcher } from './project-switcher';
+import { ProjectAlerts } from './project-alerts';
+import { ThemeToggle } from './theme-toggle';
 import { Menu } from 'lucide-react';
 
 interface TopbarProps {
@@ -40,20 +42,20 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
       path.startsWith('/dashboard/webhooks') ||
       path.startsWith('/dashboard/integrations')
     ) {
-      return 'via-emerald-500/40';
+      return 'via-success-500/40';
     }
     if (
       path.startsWith('/dashboard/system') ||
       path.startsWith('/dashboard/audit-logs') ||
       path.startsWith('/dashboard/settings')
     ) {
-      return 'via-cyan-500/40';
+      return 'via-info-500/40';
     }
-    return 'via-orange-500/40';
+    return 'via-brand-500/40';
   };
 
   return (
-    <header className="relative min-h-16 flex-wrap gap-y-2 py-2 lg:py-0 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/60 sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-sm shadow-black/20 font-mono">
+    <header className="relative min-h-16 flex-wrap gap-y-2 py-2 lg:py-0 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/60 sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-sm shadow-black/20">
       {/* Dynamic Section Accent Line */}
       <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${getAccentLineClass(pathname)} to-transparent`} />
       
@@ -78,6 +80,8 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
         <OrganizationSwitcher />
         <div className="h-4 w-px bg-zinc-800 hidden sm:block" />
         <ProjectSwitcher />
+        <ProjectAlerts />
+        <ThemeToggle />
       </div>
     </header>
   );

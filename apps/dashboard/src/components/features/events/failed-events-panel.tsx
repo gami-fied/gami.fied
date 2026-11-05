@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
@@ -17,7 +18,7 @@ export function FailedEventsPanel({ projectId }: { projectId: string }) {
   const [failed, setFailed] = useState<FailedEvent[]>([]);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/projects/${projectId}/events/dead-letter`).catch(() => null);
+    const res = await apiFetch(`/api/projects/${projectId}/events/dead-letter`).catch(() => null);
     if (res?.ok) setFailed((await res.json()).data);
   }, [projectId]);
 
@@ -26,7 +27,7 @@ export function FailedEventsPanel({ projectId }: { projectId: string }) {
   }, [load]);
 
   const replay = async (eventId: string) => {
-    const res = await fetch(`/api/projects/${projectId}/events/${eventId}/replay`, {
+    const res = await apiFetch(`/api/projects/${projectId}/events/${eventId}/replay`, {
       method: 'POST',
     }).catch(() => null);
     if (res?.ok) {
@@ -40,8 +41,8 @@ export function FailedEventsPanel({ projectId }: { projectId: string }) {
   if (failed.length === 0) return null;
 
   return (
-    <section className="border border-rose-800 bg-rose-950/20 p-4" aria-label="Failed events">
-      <h2 className="text-sm font-bold text-rose-200">
+    <section className="border border-danger-800 bg-danger-950/20 p-4" aria-label="Failed events">
+      <h2 className="text-sm font-bold text-danger-200">
         {failed.length} {failed.length === 1 ? 'event' : 'events'} failed to process
       </h2>
       <ul className="mt-3 space-y-2">

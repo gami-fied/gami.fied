@@ -18,9 +18,9 @@ export function JsonViewer({ data, title, maxHeight = 'max-h-96' }: JsonViewerPr
   };
 
   return (
-    <div className="rounded-none border border-zinc-800 bg-zinc-950/90 overflow-hidden font-mono text-xs">
+    <div className="rounded-none border border-zinc-800 bg-zinc-950/90 overflow-hidden text-xs">
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/60">
-        <span className="text-zinc-400 text-[11px] font-sans font-medium uppercase tracking-wider">
+        <span className="text-zinc-400 text-[11px] font-sans font-medium">
           {title || 'JSON Payload'}
         </span>
         <button
@@ -29,8 +29,8 @@ export function JsonViewer({ data, title, maxHeight = 'max-h-96' }: JsonViewerPr
         >
           {copied ? (
             <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-400 font-sans">Copied!</span>
+              <Check className="w-3.5 h-3.5 text-success-400" />
+              <span className="text-success-400 font-sans">Copied!</span>
             </>
           ) : (
             <>
@@ -40,7 +40,7 @@ export function JsonViewer({ data, title, maxHeight = 'max-h-96' }: JsonViewerPr
           )}
         </button>
       </div>
-      <pre className={`p-4 text-emerald-400/90 overflow-auto ${maxHeight} leading-relaxed`}>
+      <pre className={`p-4 text-success-400/90 overflow-auto ${maxHeight} leading-relaxed`}>
         <code>{jsonString}</code>
       </pre>
     </div>

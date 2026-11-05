@@ -1,5 +1,6 @@
 'use client';
 
+import { ModalFrame } from '@/components/ui/dialog';
 import { useEffect, useState } from 'react';
 import { useSmtpConfig } from '@/hooks/use-smtp';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
@@ -72,12 +73,12 @@ export function SmtpSettingsView() {
   ];
 
   return (
-    <div className="space-y-6 font-mono text-zinc-100 max-w-4xl">
+    <div className="space-y-6 text-zinc-100 max-w-4xl">
       {/* Header */}
       <div className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
         <div className="flex items-center gap-2">
-          <Mail className="w-5 h-5 text-cyan-400" />
-          <h1 className="text-xl font-bold tracking-tight text-white uppercase">Server SMTP &amp; Email Settings</h1>
+          <Mail className="w-5 h-5 text-info-400" />
+          <h1 className="text-xl font-bold tracking-tight text-white">Server SMTP &amp; Email Settings</h1>
         </div>
         <p className="text-xs text-zinc-400">
           Configure server-wide SMTP email delivery settings for Gami notifications. Secrets encrypted at rest.
@@ -85,15 +86,15 @@ export function SmtpSettingsView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-4 bg-cyan-950/40 border border-cyan-800 text-cyan-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+        <div className="p-4 bg-info-950/40 border border-info-800 text-info-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-info-400 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
@@ -102,7 +103,7 @@ export function SmtpSettingsView() {
       <Card>
         <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-xs uppercase text-zinc-400 font-bold tracking-wider">SMTP Server Status</div>
+            <div className="text-xs text-zinc-400 font-bold">SMTP Server Status</div>
             <div className="flex items-center gap-2">
               <Badge variant={status?.configured ? 'cyan' : 'amber'}>
                 {status?.configured ? 'SMTP Configured' : 'SMTP Not Configured'}
@@ -137,7 +138,7 @@ export function SmtpSettingsView() {
       <form onSubmit={handleSave} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-bold uppercase tracking-wide text-white">
+            <CardTitle className="text-sm font-bold tracking-wide text-white">
               SMTP Server Credentials
             </CardTitle>
             <CardDescription>Configure SMTP mail server host, port, credentials, and sender headers.</CardDescription>
@@ -145,7 +146,7 @@ export function SmtpSettingsView() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="smtp-settings-view-smtp-host" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-host" className="block text-xs text-zinc-400 font-bold mb-1">
                   SMTP Host *
                 </label>
                 <Input id="smtp-settings-view-smtp-host"
@@ -158,7 +159,7 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-smtp-port" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-port" className="block text-xs text-zinc-400 font-bold mb-1">
                   SMTP Port *
                 </label>
                 <Input id="smtp-settings-view-smtp-port"
@@ -171,7 +172,7 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-smtp-username" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-username" className="block text-xs text-zinc-400 font-bold mb-1">
                   SMTP Username
                 </label>
                 <Input id="smtp-settings-view-smtp-username"
@@ -183,7 +184,7 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-smtp-password-secret" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-smtp-password-secret" className="block text-xs text-zinc-400 font-bold mb-1">
                   SMTP Password / Secret
                 </label>
                 <Input id="smtp-settings-view-smtp-password-secret"
@@ -195,7 +196,7 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-sender-email-address-from-email" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-sender-email-address-from-email" className="block text-xs text-zinc-400 font-bold mb-1">
                   Sender Email Address (From Email) *
                 </label>
                 <Input id="smtp-settings-view-sender-email-address-from-email"
@@ -208,7 +209,7 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-sender-name-from-name" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-sender-name-from-name" className="block text-xs text-zinc-400 font-bold mb-1">
                   Sender Name (From Name)
                 </label>
                 <Input id="smtp-settings-view-sender-name-from-name"
@@ -248,16 +249,16 @@ export function SmtpSettingsView() {
 
       {/* Test Email Modal */}
       {isTestModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 font-mono">
+        <ModalFrame onClose={() => setIsTestModalOpen(false)} label="Send a test email">
           <div className="w-full max-w-md border border-zinc-700 bg-zinc-950 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-sm font-bold uppercase text-white tracking-wide">
+              <h3 className="text-sm font-bold text-white tracking-wide">
                 Send Test Email
               </h3>
               <button
                 type="button"
                 onClick={() => setIsTestModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-xs uppercase border border-zinc-800 px-2 py-1"
+                className="text-zinc-400 hover:text-white text-xs border border-zinc-800 px-2 py-1"
               >
                 ✕
               </button>
@@ -265,7 +266,7 @@ export function SmtpSettingsView() {
 
             <form onSubmit={handleSendTest} className="space-y-4">
               <div>
-                <label htmlFor="smtp-settings-view-recipient-email-address" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="smtp-settings-view-recipient-email-address" className="block text-xs text-zinc-400 font-bold mb-1">
                   Recipient Email Address *
                 </label>
                 <Input id="smtp-settings-view-recipient-email-address"
@@ -295,7 +296,7 @@ export function SmtpSettingsView() {
               </div>
             </form>
           </div>
-        </div>
+        </ModalFrame>
       )}
     </div>
   );

@@ -108,13 +108,13 @@ function ToastCard({
       )}
     >
       {item.type === 'success' && (
-        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0 mt-0.5" />
       )}
-      {item.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />}
+      {item.type === 'error' && <AlertCircle className="w-4 h-4 text-danger-400 shrink-0 mt-0.5" />}
       {item.type === 'warning' && (
-        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+        <AlertTriangle className="w-4 h-4 text-warning-400 shrink-0 mt-0.5" />
       )}
-      {item.type === 'info' && <Info className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />}
+      {item.type === 'info' && <Info className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />}
 
       <div className="flex-1 min-w-0">
         <h4 className="text-xs font-semibold text-zinc-100 leading-snug">{item.title}</h4>
@@ -220,7 +220,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               isHovered ? 'opacity-0 pointer-events-none' : 'opacity-100'
             )}
           >
-            <Layers className="w-3 h-3 text-orange-400" />
+            <Layers className="w-3 h-3 text-brand-400" />
             <span>+{activeCount - 1} more (hover to expand)</span>
           </div>
         )}

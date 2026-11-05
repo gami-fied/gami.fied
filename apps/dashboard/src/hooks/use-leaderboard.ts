@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { LeaderboardPeriod, LeaderboardResponse, UserRankResult } from '@gami/leaderboards';
 
@@ -32,7 +33,7 @@ export function useLeaderboard(
       });
       if (search.trim()) params.set('search', search.trim());
 
-      const res = await fetch(`/api/projects/${projectId}/leaderboard?${params.toString()}`, {
+      const res = await apiFetch(`/api/projects/${projectId}/leaderboard?${params.toString()}`, {
         credentials: 'include',
       });
 
@@ -81,7 +82,7 @@ export function useUserRank(
     setError(null);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${projectId}/leaderboard/${encodeURIComponent(userId)}?period=${period}`,
         {
           credentials: 'include',

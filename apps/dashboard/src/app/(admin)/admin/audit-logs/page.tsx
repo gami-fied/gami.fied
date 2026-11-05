@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
 import { History, ShieldAlert, AlertTriangle, Info, Search } from 'lucide-react';
 import { Dropdown } from '@/components/ui/dropdown';
@@ -42,7 +44,7 @@ export default function AdminAuditLogsPage() {
       const query = new URLSearchParams();
       if (severityFilter) query.set('severity', severityFilter);
 
-      const res = await fetch(`/api/admin/audit-logs?${query.toString()}`);
+      const res = await apiFetch(`/api/admin/audit-logs?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setLogs(data.auditLogs || []);
@@ -69,8 +71,8 @@ export default function AdminAuditLogsPage() {
     <div className="space-y-6">
       <div className="border-b border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
-            <History className="w-5 h-5 text-rose-400" />
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <History className="w-5 h-5 text-danger-400" />
             Global Platform Audit Logs
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -95,28 +97,28 @@ export default function AdminAuditLogsPage() {
               placeholder="Search logs..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 px-3 py-1.5 pl-9 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+              className="w-full bg-zinc-950 border border-zinc-800 px-3 py-1.5 pl-9 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-danger-500"
             />
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs">
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
-          <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-danger-500 border-t-transparent rounded-full animate-spin" />
           Loading audit trail...
         </div>
       ) : (
         <div className="border border-zinc-800 bg-zinc-950 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase font-bold text-xs">
+              <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 font-bold text-xs">
                 <tr>
                   <th className="px-4 py-3">Timestamp</th>
                   <th className="px-4 py-3">Severity</th>
@@ -129,21 +131,21 @@ export default function AdminAuditLogsPage() {
                 {filteredLogs.map((l) => (
                   <tr key={l.id} className="hover:bg-zinc-900/60 transition">
                     <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
-                      {new Date(l.createdAt).toLocaleString()}
+                      {formatDateTime(l.createdAt)}
                     </td>
                     <td className="px-4 py-3">
                       {l.severity === 'critical' ? (
-                        <span className="inline-flex items-center gap-1 text-xs uppercase font-bold px-2 py-0.5 border border-rose-800 bg-rose-950/60 text-rose-400">
-                          <ShieldAlert className="w-3 h-3 text-rose-400" />
+                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 border border-danger-800 bg-danger-950/60 text-danger-400">
+                          <ShieldAlert className="w-3 h-3 text-danger-400" />
                           Critical
                         </span>
                       ) : l.severity === 'warning' ? (
-                        <span className="inline-flex items-center gap-1 text-xs uppercase font-bold px-2 py-0.5 border border-amber-800 bg-amber-950/60 text-amber-400">
-                          <AlertTriangle className="w-3 h-3 text-amber-400" />
+                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 border border-warning-800 bg-warning-950/60 text-warning-400">
+                          <AlertTriangle className="w-3 h-3 text-warning-400" />
                           Warning
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs uppercase font-bold px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-400">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-400">
                           <Info className="w-3 h-3 text-zinc-400" />
                           Info
                         </span>

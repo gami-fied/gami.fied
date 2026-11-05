@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
 
 export interface LevelRecord {
@@ -59,8 +60,8 @@ export function useLevels(projectId: string | null) {
     setError(null);
     try {
       const [levelsRes, summaryRes] = await Promise.all([
-        fetch(`/api/projects/${projectId}/levels`),
-        fetch(`/api/projects/${projectId}/progression/summary`),
+        apiFetch(`/api/projects/${projectId}/levels`),
+        apiFetch(`/api/projects/${projectId}/progression/summary`),
       ]);
 
       if (levelsRes.ok) {
@@ -85,7 +86,7 @@ export function useLevels(projectId: string | null) {
     enabled?: boolean;
   }) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/levels`, {
+    const res = await apiFetch(`/api/projects/${projectId}/levels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -112,7 +113,7 @@ export function useLevels(projectId: string | null) {
     }>
   ) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/levels/${levelId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/levels/${levelId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -133,7 +134,7 @@ export function useLevels(projectId: string | null) {
 
   const disableLevel = async (levelId: string) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/levels/${levelId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/levels/${levelId}`, {
       method: 'DELETE',
     });
 
@@ -148,7 +149,7 @@ export function useLevels(projectId: string | null) {
   const fetchUserProgress = async (userId: string) => {
     if (!projectId || !userId.trim()) return;
     try {
-      const res = await fetch(`/api/projects/${projectId}/users/${userId.trim()}/progress`);
+      const res = await apiFetch(`/api/projects/${projectId}/users/${userId.trim()}/progress`);
       if (res.ok) {
         setUserProgress(await res.json());
       } else {

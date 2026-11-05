@@ -1,4 +1,28 @@
+# Runs Gami.Fied from the published images:
+#   docker compose up -d
+#
+# To build from source instead, see docker-compose.build.yml.
+
 name: gami-production
+
+x-api-environment: &app-environment
+  DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  NODE_ENV: production
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3001}
+  ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:?Set ENCRYPTION_MASTER_KEY in .env}
+  ENCRYPTION_MASTER_KEY_PREVIOUS: ${ENCRYPTION_MASTER_KEY_PREVIOUS:-}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
+  SMTP_SECURE: ${SMTP_SECURE:-false}
+  SMTP_ALLOW_SELF_SIGNED: ${SMTP_ALLOW_SELF_SIGNED:-false}
 
 services:
   postgres:
@@ -12,8 +36,7 @@ services:
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-gami} -d $${POSTGRES_DB:-gami_prod}']
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-gami} -d $${POSTGRES_DB:-gami_prod}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -40,11 +63,9 @@ services:
       - gami-prod-network
 
   migration:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-api:${GAMI_VERSION:-latest}
     container_name: gami-migration-prod
-    command: ["node", "node_modules/@gami/database/dist/migrate.js"]
+    command: ['node', 'packages/database/dist/migrate.js']
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
       NODE_ENV: production
@@ -55,40 +76,22 @@ services:
       - gami-prod-network
 
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-api:${GAMI_VERSION:-latest}
     container_name: gami-api-prod
     restart: unless-stopped
     ports:
       - '${PORT:-3001}:3001'
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      <<: *app-environment
       PORT: 3001
       HOST: 0.0.0.0
-      NODE_ENV: production
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3001}
-      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      PLATFORM_BOOTSTRAP_SECRET: ${PLATFORM_BOOTSTRAP_SECRET}
+      PLATFORM_BOOTSTRAP_SECRET: ${PLATFORM_BOOTSTRAP_SECRET:?Set PLATFORM_BOOTSTRAP_SECRET in .env}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
-      ENCRYPTION_MASTER_KEY_PREVIOUS: ${ENCRYPTION_MASTER_KEY_PREVIOUS:-}
       BACKUP_STORAGE_PATH: /app/storage/backups
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-}
       RATE_LIMIT_IP_MAX: ${RATE_LIMIT_IP_MAX:-}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_ALLOW_SELF_SIGNED: ${SMTP_ALLOW_SELF_SIGNED:-false}
     volumes:
       - backups_prod_data:/app/storage/backups
     depends_on:
@@ -99,38 +102,25 @@ services:
       migration:
         condition: service_completed_successfully
     healthcheck:
-      test: ['CMD-SHELL', 'node -e "fetch(\"http://localhost:3001/ready\").then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"']
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://localhost:3001/ready\").then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 6
+      start_period: 15s
     networks:
       - gami-prod-network
 
   worker:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
+    image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-worker:${GAMI_VERSION:-latest}
     container_name: gami-worker-prod
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      NODE_ENV: production
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3001}
-      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
-      ENCRYPTION_MASTER_KEY_PREVIOUS: ${ENCRYPTION_MASTER_KEY_PREVIOUS:-}
+      <<: *app-environment
       OUTBOX_POLL_INTERVAL_MS: 1000
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_ALLOW_SELF_SIGNED: ${SMTP_ALLOW_SELF_SIGNED:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -142,11 +132,7 @@ services:
       - gami-prod-network
 
   dashboard:
-    build:
-      context: .
-      dockerfile: apps/dashboard/Dockerfile
-      args:
-        API_URL: http://api:3001
+    image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-dashboard:${GAMI_VERSION:-latest}
     container_name: gami-dashboard-prod
     restart: unless-stopped
     ports:
@@ -154,16 +140,26 @@ services:
     environment:
       PORT: 3000
       API_URL: http://api:3001
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NODE_ENV: production
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://localhost:3000/login\").then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     networks:
       - gami-prod-network
 
 volumes:
   backups_prod_data:
+    name: gami_backups_prod_data
   postgres_prod_data:
     name: gami_postgres_prod_data
   redis_prod_data:

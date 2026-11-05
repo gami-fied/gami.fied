@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Building2, CheckCircle2, AlertTriangle, UserPlus, ArrowRight } from 'lucide-react';
@@ -41,7 +42,7 @@ function AcceptInvitationContent() {
 
   const fetchInvitation = async () => {
     try {
-      const res = await fetch(`/api/invitations/${token}`);
+      const res = await apiFetch(`/api/invitations/${token}`);
       if (res.ok) {
         const data = await res.json();
         setInvitation(data);
@@ -63,7 +64,7 @@ function AcceptInvitationContent() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/invitations/${token}/accept`, {
+      const res = await apiFetch(`/api/invitations/${token}/accept`, {
         method: 'POST',
       });
 
@@ -94,7 +95,7 @@ function AcceptInvitationContent() {
 
     try {
       // 1. Create account with invited email
-      const regRes = await fetch('/api/auth/sign-up/email', {
+      const regRes = await apiFetch('/api/auth/sign-up/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,7 +113,7 @@ function AcceptInvitationContent() {
       }
 
       // 2. Accept invitation automatically
-      const acceptRes = await fetch(`/api/invitations/${token}/accept`, {
+      const acceptRes = await apiFetch(`/api/invitations/${token}/accept`, {
         method: 'POST',
       });
 
@@ -135,7 +136,7 @@ function AcceptInvitationContent() {
   const handleDecline = async () => {
     if (!token) return;
     try {
-      await fetch(`/api/invitations/${token}/decline`, { method: 'POST' });
+      await apiFetch(`/api/invitations/${token}/decline`, { method: 'POST' });
       router.push('/login');
     } catch {
       setError('Could not decline the invitation. Please try again.');
@@ -144,9 +145,9 @@ function AcceptInvitationContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center font-mono text-xs p-4">
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center text-xs p-4">
         <Card className="w-full max-w-md p-6 bg-zinc-900 border-zinc-800 text-center space-y-3">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent animate-spin mx-auto" />
+          <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent animate-spin mx-auto" />
           <p className="text-zinc-400">Verifying invitation token...</p>
         </Card>
       </div>
@@ -154,33 +155,33 @@ function AcceptInvitationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center font-mono text-xs p-4">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center text-xs p-4">
       <Card className="w-full max-w-2xl p-6 bg-zinc-900 border-zinc-800 space-y-5">
         <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
-          <Building2 className="w-5 h-5 text-orange-400 shrink-0" />
-          <h1 className="text-base font-bold text-zinc-100 uppercase tracking-wider">
+          <Building2 className="w-5 h-5 text-brand-400 shrink-0" />
+          <h1 className="text-base font-bold text-zinc-100">
             Team Invitation
           </h1>
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
             {error}
           </div>
         )}
 
         {success ? (
-          <div className="p-4 bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs space-y-2 text-center">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-            <h3 className="font-bold text-sm text-zinc-100 uppercase">Invitation Accepted!</h3>
+          <div className="p-4 bg-success-950/40 border border-success-800 text-success-300 text-xs space-y-2 text-center">
+            <CheckCircle2 className="w-8 h-8 text-success-400 mx-auto" />
+            <h3 className="font-bold text-sm text-zinc-100">Invitation Accepted!</h3>
             <p className="text-zinc-400">You are now attached to {invitation?.organizationName}. Redirecting to dashboard...</p>
           </div>
         ) : invitation ? (
           <div className="space-y-4">
             <div className="p-4 bg-zinc-950 border border-zinc-800 space-y-2">
-              <span className="text-xs text-zinc-400 uppercase tracking-widest block">Organization</span>
-              <h2 className="text-lg font-bold text-orange-400">{invitation.organizationName}</h2>
+              <span className="text-xs text-zinc-400 block">Organization</span>
+              <h2 className="text-lg font-bold text-brand-400">{invitation.organizationName}</h2>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800 text-[11px]">
                 <div>
@@ -189,7 +190,7 @@ function AcceptInvitationContent() {
                 </div>
                 <div>
                   <span className="text-zinc-400 block">Assigned Role</span>
-                  <span className="text-orange-400 font-bold uppercase">{invitation.role}</span>
+                  <span className="text-brand-400 font-bold">{invitation.role}</span>
                 </div>
               </div>
             </div>
@@ -197,7 +198,7 @@ function AcceptInvitationContent() {
             {showRegister ? (
               <form onSubmit={handleRegisterAndAccept} className="space-y-3 p-4 bg-zinc-950 border border-zinc-800">
                 <p className="text-zinc-300 text-[11px]">
-                  Create your Gami account to accept invitation for <span className="text-orange-400">{invitation.email}</span>:
+                  Create your Gami account to accept invitation for <span className="text-brand-400">{invitation.email}</span>:
                 </p>
                 <Input
                   label="Full Name"
@@ -215,7 +216,7 @@ function AcceptInvitationContent() {
                   minLength={8}
                   required
                 />
-                <Button type="submit" variant="primary" size="sm" isLoading={regLoading} className="w-full bg-orange-500 hover:bg-orange-600">
+                <Button type="submit" variant="primary" size="sm" isLoading={regLoading} className="w-full bg-brand-500 hover:bg-brand-600">
                   <UserPlus className="w-4 h-4 mr-1" /> Create Account & Accept
                 </Button>
               </form>
@@ -236,7 +237,7 @@ function AcceptInvitationContent() {
                   size="sm"
                   isLoading={accepting}
                   onClick={handleAccept}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                  className="flex-1 bg-brand-500 hover:bg-brand-600 text-on-accent font-bold"
                 >
                   Accept Invitation <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -251,7 +252,7 @@ function AcceptInvitationContent() {
 
 export default function AcceptInvitationPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center font-mono text-xs">Loading invitation...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center text-xs">Loading invitation...</div>}>
       <AcceptInvitationContent />
     </Suspense>
   );

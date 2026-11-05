@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import { QuickStart } from './quick-start';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../context/dashboard-context';
@@ -41,7 +42,7 @@ export function OverviewView() {
   const fetchOnboarding = useCallback(async () => {
     if (!selectedProject) return;
     try {
-      const res = await fetch(`/api/projects/${selectedProject.id}/onboarding`);
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/onboarding`);
       if (res.ok) {
         setOnboardingData(await res.json());
       }
@@ -69,14 +70,14 @@ export function OverviewView() {
 
   if (!selectedProject) {
     return (
-      <div className="p-8 text-center bg-zinc-950 border border-zinc-800 space-y-4 max-w-lg mx-auto my-12 font-mono">
-        <div className="w-12 h-12 bg-amber-950/40 border border-amber-800/80 text-amber-400 flex items-center justify-center mx-auto">
+      <div className="p-8 text-center bg-zinc-950 border border-zinc-800 space-y-4 max-w-lg mx-auto my-12">
+        <div className="w-12 h-12 bg-warning-950/40 border border-warning-800/80 text-warning-400 flex items-center justify-center mx-auto">
           <FolderKanban className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-zinc-100 uppercase tracking-wide">No Projects Assigned</h3>
+          <h3 className="text-base font-bold text-zinc-100 tracking-wide">No Projects Assigned</h3>
           <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-            You have not been assigned to any project in <span className="text-orange-400 font-bold">{selectedOrg?.name || 'this organization'}</span> yet.
+            You have not been assigned to any project in <span className="text-brand-400 font-bold">{selectedOrg?.name || 'this organization'}</span> yet.
             Please contact your organization Admin or Owner to request access to specific projects.
           </p>
         </div>
@@ -104,22 +105,22 @@ export function OverviewView() {
 
       {/* Page Heading */}
       <div>
-        <h1 className="text-xl font-bold text-zinc-100 tracking-tight uppercase">Project Overview</h1>
+        <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Project Overview</h1>
         <p className="text-xs text-zinc-400 mt-1">
           Gamification metrics and progression distribution for{' '}
-          <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+          <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
         </p>
       </div>
 
       {/* Analytics Grid — Game HUD Style */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* XP Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-orange-500/30 transition-all duration-300">
+        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-brand-500/30 transition-all duration-300">
           <div className="animate-shimmer absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-orange-500 rounded-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-brand-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">⚡</div>
-            <span className="text-xs font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded-none">
               XP
             </span>
           </div>
@@ -127,7 +128,7 @@ export function OverviewView() {
             <div className="text-3xl font-black text-white tracking-tight animate-count">
               {xpSummary?.totalXpAwarded?.toLocaleString() || '0'}
             </div>
-            <div className="text-xs text-orange-400 font-semibold mt-0.5">total XP awarded</div>
+            <div className="text-xs text-brand-400 font-semibold mt-0.5">total XP awarded</div>
             <div className="text-[11px] text-zinc-400 mt-2">
               {xpSummary?.totalUsersWithXp || 0} players active
             </div>
@@ -135,11 +136,11 @@ export function OverviewView() {
         </div>
 
         {/* Achievements Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-purple-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-purple-500 rounded-none" />
+        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-info-500/30 transition-all duration-300">
+          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-info-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">🏆</div>
-            <span className="text-xs font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-info-400 bg-info-500/10 border border-info-500/20 px-2 py-0.5 rounded-none">
               Badges
             </span>
           </div>
@@ -151,7 +152,7 @@ export function OverviewView() {
                 / {achSummary?.totalAchievements || 0}
               </span>
             </div>
-            <div className="text-xs text-purple-400 font-semibold mt-0.5">active achievements</div>
+            <div className="text-xs text-info-400 font-semibold mt-0.5">active achievements</div>
             <div className="text-[11px] text-zinc-400 mt-2">
               {achSummary?.totalAwards || 0} badges awarded total
             </div>
@@ -159,19 +160,19 @@ export function OverviewView() {
         </div>
 
         {/* Levels Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-amber-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-500 rounded-none" />
+        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-warning-500/30 transition-all duration-300">
+          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-warning-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">🎯</div>
-            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-warning-400 bg-warning-500/10 border border-warning-500/20 px-2 py-0.5 rounded-none">
               Levels
             </span>
           </div>
           <div className="mt-4">
             <div className="text-3xl font-black text-white tracking-tight">
-              L1 <span className="text-amber-400">→</span> L{progSummary?.maxConfiguredLevel || 0}
+              L1 <span className="text-warning-400">→</span> L{progSummary?.maxConfiguredLevel || 0}
             </div>
-            <div className="text-xs text-amber-400 font-semibold mt-0.5">progression ladder</div>
+            <div className="text-xs text-warning-400 font-semibold mt-0.5">progression ladder</div>
             <div className="text-[11px] text-zinc-400 mt-2">
               {progSummary?.configuredLevelCount || 0} levels configured
             </div>
@@ -179,11 +180,11 @@ export function OverviewView() {
         </div>
 
         {/* Rules Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-emerald-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500 rounded-none" />
+        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-success-500/30 transition-all duration-300">
+          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-success-500 rounded-none" />
           <div className="flex items-start justify-between">
             <div className="text-3xl leading-none select-none">⚙️</div>
-            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-none uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-success-400 bg-success-500/10 border border-success-500/20 px-2 py-0.5 rounded-none">
               Rules
             </span>
           </div>
@@ -192,7 +193,7 @@ export function OverviewView() {
               {activeRulesCount}
               <span className="text-xl font-medium text-zinc-400"> / {rules.length}</span>
             </div>
-            <div className="text-xs text-emerald-400 font-semibold mt-0.5">active rules</div>
+            <div className="text-xs text-success-400 font-semibold mt-0.5">active rules</div>
             <div className="text-[11px] text-zinc-400 mt-2">processing your event stream</div>
           </div>
         </div>
@@ -200,11 +201,11 @@ export function OverviewView() {
 
       {/* Backend-Driven Setup Checklist */}
       {onboardingData && !isComplete && (
-        <Card className="border-orange-800/50 bg-gradient-to-b from-orange-950/20 to-zinc-900/80">
+        <Card className="border-brand-800/50 bg-gradient-to-b from-brand-950/20 to-zinc-900/80">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2 uppercase tracking-wider">
+                <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
                   Backend-Driven Setup Checklist
                   <Badge variant="orange">
                     {onboardingData.completedCount}/{onboardingData.totalSteps}
@@ -214,14 +215,14 @@ export function OverviewView() {
                   Real-time database detection for Gami setup lifecycle steps
                 </CardDescription>
               </div>
-              <div className="text-xs font-semibold text-orange-400 font-mono">
+              <div className="text-xs font-semibold text-brand-400">
                 {onboardingData.progressPercentage}% complete
               </div>
             </div>
             {/* Progress bar */}
             <div className="w-full bg-zinc-800 rounded-none h-2.5 mt-2 overflow-hidden border border-zinc-800 p-0.5">
               <div
-                className="bg-orange-500 h-full rounded-none transition-all duration-500"
+                className="bg-brand-500 h-full rounded-none transition-all duration-500"
                 style={{ width: `${onboardingData.progressPercentage}%` }}
               />
             </div>
@@ -234,26 +235,26 @@ export function OverviewView() {
                   href={step.href}
                   className={`flex items-center gap-3 p-3 rounded-none border transition group ${
                     step.completed
-                      ? 'bg-emerald-950/20 border-emerald-800/40 cursor-default'
-                      : 'bg-zinc-950/40 border-zinc-800 hover:border-orange-500/50 hover:bg-zinc-900'
+                      ? 'bg-success-950/20 border-success-800/40 cursor-default'
+                      : 'bg-zinc-950/40 border-zinc-800 hover:border-brand-500/50 hover:bg-zinc-900'
                   }`}
                   onClick={step.completed ? (e) => e.preventDefault() : undefined}
                 >
                   {step.completed ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
                   ) : (
-                    <Circle className="w-4 h-4 text-zinc-400 shrink-0 group-hover:text-orange-400 transition" />
+                    <Circle className="w-4 h-4 text-zinc-400 shrink-0 group-hover:text-brand-400 transition" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`text-xs font-semibold ${step.completed ? 'text-emerald-400 line-through' : 'text-zinc-200 group-hover:text-orange-300 transition'}`}
+                      className={`text-xs font-semibold ${step.completed ? 'text-success-400 line-through' : 'text-zinc-200 group-hover:text-brand-300 transition'}`}
                     >
                       {step.label}
                     </p>
                     <p className="text-[11px] text-zinc-400 truncate">{step.description}</p>
                   </div>
                   {!step.completed && (
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-orange-400 transition shrink-0" />
+                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-brand-400 transition shrink-0" />
                   )}
                 </Link>
               ))}
@@ -265,58 +266,58 @@ export function OverviewView() {
       {/* Quick Actions Shortcuts */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider">Quick Actions</CardTitle>
+          <CardTitle className="text-sm font-bold text-zinc-100">Quick Actions</CardTitle>
           <CardDescription>Direct navigation shortcuts to key project systems</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link
             href="/dashboard/events"
-            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-orange-500/50 transition group flex items-center justify-between"
+            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-brand-500/50 transition group flex items-center justify-between"
           >
             <div>
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-orange-400 transition">
+              <p className="text-xs font-bold text-zinc-200 group-hover:text-brand-400 transition">
                 Inspect Events Log
               </p>
               <p className="text-[11px] text-zinc-400 mt-0.5">Filter incoming customer events</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-orange-400 transition" />
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-brand-400 transition" />
           </Link>
 
           <Link
             href="/dashboard/rules"
-            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-emerald-500/50 transition group flex items-center justify-between"
+            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-success-500/50 transition group flex items-center justify-between"
           >
             <div>
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-emerald-400 transition">
+              <p className="text-xs font-bold text-zinc-200 group-hover:text-success-400 transition">
                 Manage Rules Engine
               </p>
               <p className="text-[11px] text-zinc-400 mt-0.5">Configure event triggers &amp; actions</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-emerald-400 transition" />
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-success-400 transition" />
           </Link>
 
           <Link
             href="/dashboard/api-keys"
-            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-purple-500/50 transition group flex items-center justify-between"
+            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-info-500/50 transition group flex items-center justify-between"
           >
             <div>
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-purple-400 transition">
+              <p className="text-xs font-bold text-zinc-200 group-hover:text-info-400 transition">
                 Generate API Keys
               </p>
               <p className="text-[11px] text-zinc-400 mt-0.5">Authenticate event ingestion</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-purple-400 transition" />
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-info-400 transition" />
           </Link>
         </CardContent>
       </Card>
 
       {/* SDK & Developer Quickstart Card */}
-      <Card className="border-orange-500/20 bg-zinc-900/30">
+      <Card className="border-brand-500/20 bg-zinc-900/30">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Code2 className="w-5 h-5 text-orange-400" />
-              <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider font-mono">
+              <Code2 className="w-5 h-5 text-brand-400" />
+              <CardTitle className="text-sm font-bold text-zinc-100">
                 TypeScript / JS SDK Integration (@gami.fied/sdk)
               </CardTitle>
             </div>
@@ -331,7 +332,7 @@ export function OverviewView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Step 1: Install */}
             <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-none space-y-1.5">
-              <span className="text-[11px] font-mono font-bold text-orange-400">
+              <span className="text-[11px] font-bold text-brand-400">
                 1. Install Package
               </span>
               <pre className="p-2 bg-zinc-900 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto rounded-none">
@@ -341,7 +342,7 @@ export function OverviewView() {
 
             {/* Step 2: Initialize */}
             <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-none space-y-1.5">
-              <span className="text-[11px] font-mono font-bold text-orange-400">
+              <span className="text-[11px] font-bold text-brand-400">
                 2. Initialize Client
               </span>
               <pre className="p-2 bg-zinc-900 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto rounded-none">
@@ -352,8 +353,8 @@ export function OverviewView() {
 
           {/* Step 3: Track Event */}
           <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-none space-y-1.5">
-            <span className="text-[11px] font-mono font-bold text-orange-400">3. Track Event</span>
-            <pre className="p-2.5 bg-zinc-900 text-xs font-mono text-emerald-400 border border-zinc-800 overflow-x-auto rounded-none">
+            <span className="text-[11px] font-bold text-brand-400">3. Track Event</span>
+            <pre className="p-2.5 bg-zinc-900 text-xs font-mono text-success-400 border border-zinc-800 overflow-x-auto rounded-none">
               {`await gami.events.track({\n  projectId: '${selectedProject.id}',\n  userId: 'usr_player_101',\n  type: 'order_completed',\n  properties: { amount: 149.99 }\n});`}
             </pre>
           </div>
@@ -364,7 +365,7 @@ export function OverviewView() {
       {progSummary && progSummary.distribution.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
+            <CardTitle className="text-sm font-bold text-zinc-100">
               End-User Level Distribution
             </CardTitle>
             <CardDescription>
@@ -381,17 +382,17 @@ export function OverviewView() {
                     return (
                       <div key={d.level} className="flex items-center gap-4">
                         <div className="w-20 shrink-0 text-right">
-                          <span className="text-xs font-bold text-amber-400">L{d.level}</span>
+                          <span className="text-xs font-bold text-warning-400">L{d.level}</span>
                           <span className="text-[11px] text-zinc-400 block truncate">{d.name}</span>
                         </div>
                         <div className="flex-1 bg-zinc-950/80 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
                           <div
-                            className="bg-orange-500 h-full rounded-none transition-all duration-700 ease-out"
+                            className="bg-brand-500 h-full rounded-none transition-all duration-700 ease-out"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
                         <div className="w-16 text-right shrink-0">
-                          <span className="text-sm font-bold text-orange-400">{d.userCount}</span>
+                          <span className="text-sm font-bold text-brand-400">{d.userCount}</span>
                           <span className="text-xs text-zinc-400 block">users</span>
                         </div>
                       </div>

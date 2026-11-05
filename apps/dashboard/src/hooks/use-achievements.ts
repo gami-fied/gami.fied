@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
 
 export interface AchievementRecord {
@@ -49,8 +50,8 @@ export function useAchievements(projectId: string | null) {
     setError(null);
     try {
       const [listRes, summaryRes] = await Promise.all([
-        fetch(`/api/projects/${projectId}/achievements`),
-        fetch(`/api/projects/${projectId}/achievements/summary`),
+        apiFetch(`/api/projects/${projectId}/achievements`),
+        apiFetch(`/api/projects/${projectId}/achievements/summary`),
       ]);
 
       if (listRes.ok) {
@@ -75,7 +76,7 @@ export function useAchievements(projectId: string | null) {
     enabled?: boolean;
   }) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/achievements`, {
+    const res = await apiFetch(`/api/projects/${projectId}/achievements`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -94,7 +95,7 @@ export function useAchievements(projectId: string | null) {
     data: Partial<{ name: string; description: string; iconUrl: string; enabled: boolean }>
   ) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/achievements/${achievementId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/achievements/${achievementId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -110,7 +111,7 @@ export function useAchievements(projectId: string | null) {
 
   const disableAchievement = async (achievementId: string) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/achievements/${achievementId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/achievements/${achievementId}`, {
       method: 'DELETE',
     });
     if (res.ok) {
@@ -124,7 +125,7 @@ export function useAchievements(projectId: string | null) {
   const fetchUserAchievements = async (userId: string) => {
     if (!projectId || !userId.trim()) return;
     try {
-      const res = await fetch(`/api/projects/${projectId}/users/${userId.trim()}/achievements`);
+      const res = await apiFetch(`/api/projects/${projectId}/users/${userId.trim()}/achievements`);
       if (res.ok) {
         const json = await res.json();
         setUserAwards(json.data || []);

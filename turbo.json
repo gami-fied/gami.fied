@@ -24,6 +24,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["NEXT_OUTPUT"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {

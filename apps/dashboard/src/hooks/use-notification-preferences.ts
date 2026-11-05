@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 
 export type NotificationChannel = 'in_app' | 'email';
@@ -34,7 +35,7 @@ export function useNotificationPreferences(projectId: string | null, userId: str
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${projectId}/users/${userId}/notification-preferences`
       );
       if (res.ok) {
@@ -74,7 +75,7 @@ export function useNotificationPreferences(projectId: string | null, userId: str
     );
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${projectId}/users/${userId}/notification-preferences`,
         {
           method: 'PATCH',

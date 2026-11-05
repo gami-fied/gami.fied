@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDateTime } from '@/lib/format';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useXp } from '@/hooks/use-xp';
@@ -104,7 +105,7 @@ export function XpView() {
         <h1 className="text-xl font-bold text-zinc-100 tracking-tight">XP & Ledger System</h1>
         <p className="text-xs text-zinc-400 mt-1">
           XP balance tracking, transaction ledger history, and manual adjustments for{' '}
-          <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+          <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
         </p>
       </div>
 
@@ -112,13 +113,13 @@ export function XpView() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Total XP Awarded
             </CardTitle>
-            <Coins className="w-4 h-4 text-orange-400" />
+            <Coins className="w-4 h-4 text-brand-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-orange-400">
+            <div className="text-2xl font-black text-brand-400">
               {summary?.totalXpAwarded?.toLocaleString() || 0} XP
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Project aggregate total</p>
@@ -127,13 +128,13 @@ export function XpView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Total Ledger Entries
             </CardTitle>
-            <History className="w-4 h-4 text-purple-400" />
+            <History className="w-4 h-4 text-info-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-purple-400">
+            <div className="text-2xl font-black text-info-400">
               {summary?.totalTransactions?.toLocaleString() || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Atomic ledger records</p>
@@ -142,13 +143,13 @@ export function XpView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Active End-Users
             </CardTitle>
-            <Users className="w-4 h-4 text-emerald-400" />
+            <Users className="w-4 h-4 text-success-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-emerald-400">
+            <div className="text-2xl font-black text-success-400">
               {summary?.totalUsersWithXp?.toLocaleString() || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Users with XP balance {'>'} 0</p>
@@ -185,13 +186,13 @@ export function XpView() {
                 <div className="p-4 bg-zinc-950 rounded-none border border-zinc-800 flex items-center justify-between">
                   <div>
                     <span className="text-[11px] text-zinc-400 block">End-User ID</span>
-                    <span className="font-mono text-sm font-bold text-zinc-100">
+                    <span className="text-sm font-bold text-zinc-100">
                       {activeSearchedUser}
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="text-[11px] text-zinc-400 block">Current XP Balance</span>
-                    <span className="text-lg font-black text-orange-400">
+                    <span className="text-lg font-black text-brand-400">
                       {userBalance !== null ? userBalance.toLocaleString() : 0} XP
                     </span>
                   </div>
@@ -213,20 +214,20 @@ export function XpView() {
                       <TableRow key={entry.id}>
                         <TableCell>
                           <span
-                            className={`font-mono font-bold ${
-                              entry.amount > 0 ? 'text-emerald-400' : 'text-rose-400'
+                            className={` font-bold ${
+                              entry.amount > 0 ? 'text-success-400' : 'text-danger-400'
                             }`}
                           >
                             {entry.amount > 0 ? `+${entry.amount}` : entry.amount} XP
                           </span>
                         </TableCell>
                         <TableCell className="text-xs text-zinc-300">{entry.reason}</TableCell>
-                        <TableCell className="font-mono text-[11px] text-zinc-400">
+                        <TableCell className="text-[11px] text-zinc-400">
                           {entry.ruleExecutionId || entry.ruleId || 'manual'}
                         </TableCell>
                         <TableCell
                           className="text-xs text-zinc-400 cursor-default"
-                          title={new Date(entry.createdAt).toLocaleString()}
+                          title={formatDateTime(entry.createdAt)}
                         >
                           {formatRelativeTime(entry.createdAt)}
                         </TableCell>
@@ -265,10 +266,10 @@ export function XpView() {
                 <TableBody>
                   {summary?.topUsers?.map((u, i) => (
                     <TableRow key={u.userId}>
-                      <TableCell className="font-bold text-amber-400 text-xs">#{i + 1}</TableCell>
+                      <TableCell className="font-bold text-warning-400 text-xs">#{i + 1}</TableCell>
                       <TableCell className="font-mono text-xs text-zinc-300">{u.userId}</TableCell>
                       <TableCell className="text-xs text-zinc-400">{u.externalId}</TableCell>
-                      <TableCell className="text-right font-mono font-bold text-orange-400">
+                      <TableCell className="text-right font-bold text-brand-400">
                         {u.totalXp.toLocaleString()} XP
                       </TableCell>
                     </TableRow>
@@ -299,12 +300,12 @@ export function XpView() {
             <CardContent>
               <form onSubmit={handleAdjustSubmit} className="space-y-4">
                 {adjSuccess && (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs rounded-none">
+                  <div className="p-3 bg-success-950/40 border border-success-800/60 text-success-300 text-xs rounded-none">
                     {adjSuccess}
                   </div>
                 )}
                 {adjError && (
-                  <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
+                  <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
                     {adjError}
                   </div>
                 )}
@@ -340,7 +341,7 @@ export function XpView() {
                     <button
                       type="button"
                       onClick={refreshIdempotencyKey}
-                      className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-orange-400 transition"
+                      className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-brand-400 transition"
                       title="Generate a new key"
                     >
                       <RefreshCw className="w-3 h-3" />

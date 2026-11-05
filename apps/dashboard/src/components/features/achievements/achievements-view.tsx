@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDate } from '@/lib/format';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useAchievements, AchievementRecord } from '@/hooks/use-achievements';
@@ -110,7 +111,7 @@ export function AchievementsView() {
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Achievements & Badges</h1>
           <p className="text-xs text-zinc-400 mt-1">
             Project-scoped achievement definitions and award tracking for{' '}
-            <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
           </p>
         </div>
 
@@ -131,13 +132,13 @@ export function AchievementsView() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Active Achievements
             </CardTitle>
-            <Trophy className="w-4 h-4 text-purple-400" />
+            <Trophy className="w-4 h-4 text-info-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-purple-400">
+            <div className="text-2xl font-black text-info-400">
               {summary?.enabledAchievements || 0} / {summary?.totalAchievements || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Enabled definitions</p>
@@ -146,13 +147,13 @@ export function AchievementsView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Total Badges Awarded
             </CardTitle>
-            <Award className="w-4 h-4 text-orange-400" />
+            <Award className="w-4 h-4 text-brand-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-orange-400">
+            <div className="text-2xl font-black text-brand-400">
               {summary?.totalAwards?.toLocaleString() || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Granted to end-users</p>
@@ -161,13 +162,13 @@ export function AchievementsView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Unique Achievers
             </CardTitle>
-            <Trophy className="w-4 h-4 text-emerald-400" />
+            <Trophy className="w-4 h-4 text-success-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-emerald-400">
+            <div className="text-2xl font-black text-success-400">
               {summary?.uniqueUsersWithAchievements?.toLocaleString() || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Distinct users holding badges</p>
@@ -201,7 +202,7 @@ export function AchievementsView() {
           {searchedUser && (
             <div className="space-y-3 pt-2">
               <p className="text-xs font-semibold text-zinc-300">
-                Badges Awarded to <span className="font-mono text-orange-400">{searchedUser}</span>{' '}
+                Badges Awarded to <span className="text-brand-400">{searchedUser}</span>{' '}
                 ({userAwards.length}):
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -210,18 +211,18 @@ export function AchievementsView() {
                     key={a.id}
                     className="p-3 bg-zinc-950 rounded-none border border-zinc-800 flex items-center gap-3"
                   >
-                    <div className="w-9 h-9 rounded-none bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 shrink-0 font-bold text-xs">
+                    <div className="w-9 h-9 rounded-none bg-info-950/80 border border-info-800/60 flex items-center justify-center text-info-300 shrink-0 font-bold text-xs">
                       🏆
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-zinc-100 truncate">
                         {a.achievementName}
                       </p>
-                      <p className="text-xs font-mono text-zinc-400 truncate">
+                      <p className="text-xs text-zinc-400 truncate">
                         {a.achievementKey}
                       </p>
                       <p className="text-xs text-zinc-400">
-                        {new Date(a.awardedAt).toLocaleDateString()}
+                        {formatDate(a.awardedAt)}
                       </p>
                     </div>
                   </div>
@@ -243,7 +244,7 @@ export function AchievementsView() {
         <h2 className="text-sm font-bold text-zinc-200">Achievement Definitions</h2>
 
         {error && (
-          <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
+          <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
             {error}
           </div>
         )}
@@ -261,7 +262,7 @@ export function AchievementsView() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-none bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 font-bold text-sm shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-none bg-info-950/80 border border-info-800/60 flex items-center justify-center text-info-300 font-bold text-sm shrink-0 overflow-hidden">
                         {a.iconUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -302,8 +303,8 @@ export function AchievementsView() {
                     onClick={() => isAdminOrOwner && handleToggleDisable(a)}
                     className={`text-xs font-semibold px-2.5 py-1 rounded-none transition ${
                       a.enabled
-                        ? 'bg-rose-950/40 text-rose-400 hover:bg-rose-900/60'
-                        : 'bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/60'
+                        ? 'bg-danger-950/40 text-danger-400 hover:bg-danger-900/60'
+                        : 'bg-success-950/40 text-success-400 hover:bg-success-900/60'
                     } ${!isAdminOrOwner ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     {a.enabled ? 'Soft Disable' : 'Enable'}
@@ -346,7 +347,7 @@ export function AchievementsView() {
         description="Add a project-scoped badge definition."
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          {formError && <div className="text-xs text-rose-400 font-medium">{formError}</div>}
+          {formError && <div className="text-xs text-danger-400 font-medium">{formError}</div>}
 
           <Input
             label="Achievement Key (Alphanumeric, _ or -)"

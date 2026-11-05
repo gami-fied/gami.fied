@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -69,13 +70,26 @@ jobs:
       - run: pnpm build
       - run: pnpm test
 
-  docker:
-    name: Docker image (${{ matrix.app }})
+  smoke:
+    name: Images work together
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [api, worker, dashboard]
+    env:
+      COMPOSE_FILES: -f docker-compose.yml -f docker-compose.build.yml
+      GAMI_VERSION: ci
     steps:
       - uses: actions/checkout@v4
-      - run: docker build --file apps/${{ matrix.app }}/Dockerfile --tag gami-${{ matrix.app }}:ci .
+      - name: Create test secrets
+        run: |
+          {
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+            echo "REDIS_PASSWORD=$(openssl rand -hex 24)"
+            echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
+            echo "ENCRYPTION_MASTER_KEY=$(openssl rand -hex 32)"
+            echo "PLATFORM_BOOTSTRAP_SECRET=$(openssl rand -hex 32)"
+          } > .env
+      - run: docker compose $COMPOSE_FILES build
+      - run: docker compose $COMPOSE_FILES up -d --no-build --wait --wait-timeout 180
+      - run: node scripts/smoke-test.mjs
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose $COMPOSE_FILES logs --no-color --tail 100

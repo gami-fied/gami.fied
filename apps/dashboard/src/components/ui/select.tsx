@@ -30,9 +30,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               clsx(
                 'w-full h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 text-sm text-zinc-100 appearance-none cursor-pointer pr-10 shadow-none outline-none',
                 'hover:border-zinc-700 hover:bg-zinc-900/90',
-                'focus:outline-none focus:ring-0 focus:border-orange-500 focus:bg-zinc-900 transition-colors duration-150',
+                'focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-zinc-900 transition-colors duration-150',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:bg-zinc-900/70',
-                error && 'border-rose-500/80 focus:border-rose-500 hover:border-rose-500/80',
+                error && 'border-danger-500/80 focus:border-danger-500 hover:border-danger-500/80',
                 className
               )
             )}
@@ -46,7 +46,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </svg>
           </div>
         </div>
-        {error && <p className="text-xs text-rose-400 font-medium tracking-tight mt-1">{error}</p>}
+        {error && <p className="text-xs text-danger-400 font-medium tracking-tight mt-1">{error}</p>}
         {helperText && !error && (
           <p className="text-xs text-zinc-400 tracking-tight mt-1">{helperText}</p>
         )}

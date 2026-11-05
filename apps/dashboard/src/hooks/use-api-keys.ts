@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
 
 export interface ApiKeyRecord {
@@ -29,7 +30,7 @@ export function useApiKeys(projectId: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/api-keys`);
+      const res = await apiFetch(`/api/projects/${projectId}/api-keys`);
       if (res.ok) {
         setApiKeys(await res.json());
       } else {
@@ -49,7 +50,7 @@ export function useApiKeys(projectId: string | null) {
     expiresAt?: string
   ): Promise<GeneratedApiKey> => {
     if (!projectId) throw new Error('No project selected');
-    const res = await fetch(`/api/projects/${projectId}/api-keys`, {
+    const res = await apiFetch(`/api/projects/${projectId}/api-keys`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, scopes, expiresAt }),
@@ -67,7 +68,7 @@ export function useApiKeys(projectId: string | null) {
 
   const revokeApiKey = async (keyId: string) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/api-keys/${keyId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/api-keys/${keyId}`, {
       method: 'DELETE',
     });
 
@@ -81,7 +82,7 @@ export function useApiKeys(projectId: string | null) {
 
   const rotateApiKey = async (keyId: string): Promise<GeneratedApiKey> => {
     if (!projectId) throw new Error('No project selected');
-    const res = await fetch(`/api/projects/${projectId}/api-keys/${keyId}/rotate`, {
+    const res = await apiFetch(`/api/projects/${projectId}/api-keys/${keyId}/rotate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),

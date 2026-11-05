@@ -1,5 +1,7 @@
 'use client';
 
+import { usePublicApiUrl } from '@/hooks/use-public-api-url';
+import { apiFetch } from '@/lib/api-client';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +13,7 @@ const POLL_ATTEMPTS = 15;
 const POLL_DELAY_MS = 2000;
 
 async function post(url: string, body: object): Promise<Response> {
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -31,7 +33,7 @@ export function QuickStart({ projectId, onDone }: { projectId: string; onDone: (
   const [xp, setXp] = useState<number | null>(null);
   const [waitedTooLong, setWaitedTooLong] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const apiUrl = usePublicApiUrl();
   const base = `/api/projects/${projectId}`;
 
   const applyTemplate = async (choice: ProjectTemplate) => {
@@ -58,7 +60,7 @@ export function QuickStart({ projectId, onDone }: { projectId: string; onDone: (
   };
 
   const readXp = async (): Promise<number | null> => {
-    const res = await fetch(`${base}/users/${TEST_USER}/xp`).catch(() => null);
+    const res = await apiFetch(`${base}/users/${TEST_USER}/xp`).catch(() => null);
     if (!res?.ok) return null;
     return (await res.json()).totalXp ?? null;
   };
@@ -114,7 +116,7 @@ export function QuickStart({ projectId, onDone }: { projectId: string; onDone: (
                   key={choice.id}
                   disabled={busy}
                   onClick={() => applyTemplate(choice)}
-                  className="border border-zinc-800 p-4 text-left hover:border-orange-500 disabled:opacity-50"
+                  className="border border-zinc-800 p-4 text-left hover:border-brand-500 disabled:opacity-50"
                 >
                   <span className="block text-sm font-semibold text-zinc-100">{choice.name}</span>
                   <span className="block text-xs text-zinc-400 mt-1">{choice.description}</span>
@@ -141,12 +143,12 @@ export function QuickStart({ projectId, onDone }: { projectId: string; onDone: (
             </Button>
 
             {xp !== null && (
-              <p role="status" className="text-sm text-emerald-300">
+              <p role="status" className="text-sm text-success-300">
                 It worked: <strong>{TEST_USER}</strong> now has {xp} XP.
               </p>
             )}
             {waitedTooLong && (
-              <p role="alert" className="text-sm text-amber-300">
+              <p role="alert" className="text-sm text-warning-300">
                 No XP after 30 seconds. Check that the worker is running on the System page.
               </p>
             )}

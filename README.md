@@ -146,6 +146,12 @@ console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 
 ---
 
+## Self-Hosting with Docker
+
+Published images are available, so you don't need to build anything. See [Installing from published images](./docs/deployment-and-production.md#installing-from-published-images).
+
+---
+
 ## Verification & Code Quality
 
 ```bash

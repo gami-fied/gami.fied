@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog } from '@/components/ui/dialog';
@@ -60,7 +61,7 @@ export function CommandPalette() {
     }
 
     const timer = setTimeout(() => {
-      fetch(`/api/projects/${selectedProject.id}/users?search=${encodeURIComponent(search)}&limit=5`)
+      apiFetch(`/api/projects/${selectedProject.id}/users?search=${encodeURIComponent(search)}&limit=5`)
         .then((res) => (res.ok ? res.json() : null))
         .then((body) => setUsers(body?.users ?? body?.data ?? []))
         .catch(() => setUsers([]));

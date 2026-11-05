@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -25,7 +27,7 @@ export function UserTimeline({ projectId, userId }: { projectId: string; userId:
   useEffect(() => {
     setEntries(null);
     setFailed(false);
-    fetch(`/api/projects/${projectId}/users/${userId}/timeline`)
+    apiFetch(`/api/projects/${projectId}/users/${userId}/timeline`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('failed'))))
       .then((body) => setEntries(body.data))
       .catch(() => setFailed(true));
@@ -34,7 +36,7 @@ export function UserTimeline({ projectId, userId }: { projectId: string; userId:
   return (
     <section aria-label="User timeline">
       <h3 className="text-sm font-semibold text-zinc-200 mb-2">Timeline</h3>
-      {failed && <p className="text-sm text-rose-300">The timeline couldn&apos;t load.</p>}
+      {failed && <p className="text-sm text-danger-300">The timeline couldn&apos;t load.</p>}
       {!failed && !entries && <Skeleton className="h-24 w-full" />}
       {entries?.length === 0 && <p className="text-sm text-zinc-400">Nothing yet.</p>}
       <ol className="space-y-1.5">
@@ -48,7 +50,7 @@ export function UserTimeline({ projectId, userId }: { projectId: string; userId:
               )}
             </span>
             <time className="shrink-0 text-xs text-zinc-400" dateTime={entry.at}>
-              {new Date(entry.at).toLocaleString()}
+              {formatDateTime(entry.at)}
             </time>
           </li>
         ))}

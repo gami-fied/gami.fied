@@ -13,7 +13,7 @@ Gami provides a production-ready `docker-compose.yml` file that orchestrates Pos
 ```bash
 cp .env.production.example .env
 # Replace every placeholder in .env before starting
-docker compose up -d --build
+docker compose up -d
 ```
 
 ---
@@ -130,3 +130,41 @@ Rate limits use the saved value, then `RATE_LIMIT_IP_MAX`, `RATE_LIMIT_MAX` and 
 SMTP uses the settings saved in the admin UI, or the `SMTP_*` variables. Certificates are verified unless you set `SMTP_ALLOW_SELF_SIGNED=true`.
 
 Organization imports accept up to 100 MB. Change this with `ORG_IMPORT_MAX_BYTES`.
+
+## Installing from published images
+
+Each release publishes `gami-api`, `gami-worker` and `gami-dashboard` to the GitHub Container Registry for `linux/amd64` and `linux/arm64`, so there is nothing to build.
+
+1. From the [latest release](https://github.com/gami-fied/gami.fied/releases), download `docker-compose.yml` and `env.example`.
+2. Rename `env.example` to `.env`, and fill in every secret. Each one needs a long random value, for example from `openssl rand -hex 32`.
+3. Start it:
+
+```bash
+docker compose up -d
+```
+
+The dashboard is at `http://localhost:3000`. To upgrade, change `GAMI_VERSION` in `.env`, then run:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The compose file from a release is pinned to that version. In a checkout, it uses `latest`, which only exists after the first stable release, so set `GAMI_VERSION` or build from source:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
+Images have no address built in. The browser only talks to the dashboard, which reaches the API through `API_URL`, so the same image works on any domain.
+
+## Publishing a release
+
+Push a version tag. CI runs first, including booting the images and sending a real event through them, and nothing is published unless that passes.
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+A stable tag publishes `1.2.3`, `1.2`, `1` and `latest`. A pre-release such as `v1.2.3-rc.1` only publishes its exact version.

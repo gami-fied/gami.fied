@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useState } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -38,7 +39,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
     setSuccessMsg(null);
 
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/invitations`, {
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/invitations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,22 +78,22 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Invite Team Member">
-      <form onSubmit={handleSubmit} className="space-y-4 font-mono text-xs max-h-[75vh] overflow-y-auto pr-1">
+      <form onSubmit={handleSubmit} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
         <p className="text-zinc-400 text-xs">
           Invite a developer or administrator to collaborate on organization{' '}
-          <span className="text-orange-400 font-bold">{selectedOrg?.name}</span>.
+          <span className="text-brand-400 font-bold">{selectedOrg?.name}</span>.
         </p>
 
         {error && (
-          <div className="p-3 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
             {error}
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="p-3 bg-success-950/40 border border-success-800 text-success-300 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
             {successMsg}
           </div>
         )}
@@ -124,7 +125,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
         <div className="space-y-2 pt-2 border-t border-zinc-800/80">
           <div className="flex items-center justify-between">
             <label className="block text-[13px] font-medium text-zinc-300 tracking-tight flex items-center gap-1.5">
-              <FolderGit2 className="w-3.5 h-3.5 text-orange-400" />
+              <FolderGit2 className="w-3.5 h-3.5 text-brand-400" />
               Initial Assigned Projects ({selectedProjectIds.length}/{projects.length})
             </label>
           </div>
@@ -151,7 +152,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm" isLoading={loading} className="bg-orange-500 hover:bg-orange-600 text-white font-medium">
+          <Button type="submit" variant="primary" size="sm" isLoading={loading} className="bg-brand-500 hover:bg-brand-600 text-on-accent font-medium">
             <UserPlus className="w-4 h-4 mr-1" /> Send Invitation
           </Button>
         </div>

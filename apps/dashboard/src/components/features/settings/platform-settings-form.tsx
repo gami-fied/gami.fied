@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,7 +114,7 @@ function SectionCard({ section, initial }: { section: Section; initial: Values }
     event.preventDefault();
     setSaving(true);
     const payload = Object.fromEntries(section.fields.map((f) => [f.key, values[f.key]]));
-    const res = await fetch('/api/admin/config', {
+    const res = await apiFetch('/api/admin/config', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ category: section.category, payload }),
@@ -186,7 +187,7 @@ export function PlatformSettingsForm() {
 
   const load = useCallback(async () => {
     setFailed(false);
-    const res = await fetch('/api/admin/config').catch(() => null);
+    const res = await apiFetch('/api/admin/config').catch(() => null);
     if (res?.ok) {
       setConfigurations((await res.json()).configurations);
     } else {
@@ -200,7 +201,7 @@ export function PlatformSettingsForm() {
 
   if (failed) {
     return (
-      <div role="alert" className="border border-rose-800 p-4 text-sm text-rose-300">
+      <div role="alert" className="border border-danger-800 p-4 text-sm text-danger-300">
         Settings couldn&apos;t load.{' '}
         <button className="underline" onClick={load}>
           Try again

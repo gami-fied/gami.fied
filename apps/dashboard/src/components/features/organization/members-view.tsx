@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDate } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
@@ -70,7 +72,7 @@ export function MembersView() {
       params.append('page', page.toString());
       params.append('limit', '10');
 
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/members?${params.toString()}`);
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/members?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setMembers(data.members || []);
@@ -92,7 +94,7 @@ export function MembersView() {
     if (!selectedOrg || !roleChangeMember) return;
     setRoleSaving(true);
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/members/${roleChangeMember.userId}`, {
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/members/${roleChangeMember.userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
@@ -115,7 +117,7 @@ export function MembersView() {
     if (!selectedOrg || !transferMember) return;
     setTransferSaving(true);
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/transfer-ownership`, {
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/transfer-ownership`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: transferMember.userId }),
@@ -140,7 +142,7 @@ export function MembersView() {
     if (!await confirmAction({ message: `Are you sure you want to remove ${mem.name || mem.email} from the organization?` })) return;
 
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/members/${mem.userId}`, {
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/members/${mem.userId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -156,7 +158,7 @@ export function MembersView() {
 
   if (!selectedOrg) {
     return (
-      <div className="p-8 text-center text-zinc-400 font-mono text-xs">
+      <div className="p-8 text-center text-zinc-400 text-xs">
         Please select an organization to view team members.
       </div>
     );
@@ -172,16 +174,16 @@ export function MembersView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-orange-400" />
+            <Users className="w-5 h-5 text-brand-400" />
             Organization Members & Roles
           </h1>
           <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
             <span>
               Manage developer team members, access roles, and project assignments for{' '}
-              <span className="text-orange-400 font-semibold">{selectedOrg.name}</span>.
+              <span className="text-brand-400 font-semibold">{selectedOrg.name}</span>.
             </span>
             {!isAdminOrOwner && (
-              <span className="text-xs uppercase font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
+              <span className="text-xs font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
                 <Lock className="w-3 h-3 text-zinc-400" /> READ-ONLY MEMBER
               </span>
             )}
@@ -196,7 +198,7 @@ export function MembersView() {
           onClick={() => setIsInviteOpen(true)}
           className={`font-medium h-9 ${
             isAdminOrOwner
-              ? 'bg-orange-500 hover:bg-orange-600 text-white'
+              ? 'bg-brand-500 hover:bg-brand-600 text-on-accent'
               : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
           }`}
         >
@@ -206,8 +208,8 @@ export function MembersView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
           {error}
         </div>
       )}
@@ -254,7 +256,7 @@ export function MembersView() {
       <Card className="bg-zinc-950 border-zinc-800">
         {loading ? (
           <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+            <RefreshCw className="w-4 h-4 animate-spin text-brand-400" />
             Loading members...
           </div>
         ) : members.length === 0 ? (
@@ -265,7 +267,7 @@ export function MembersView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase text-xs tracking-wider">
+                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
                   <th className="p-3">Member</th>
                   <th className="p-3">Role</th>
                   <th className="p-3">Joined Date</th>
@@ -302,7 +304,7 @@ export function MembersView() {
                     <tr key={mem.id} className="hover:bg-zinc-900/40 transition">
                       <td className="p-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-orange-400 shrink-0">
+                          <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-brand-400 shrink-0">
                             {mem.name ? mem.name.charAt(0).toUpperCase() : 'U'}
                           </div>
                           <div>
@@ -321,21 +323,21 @@ export function MembersView() {
 
                       <td className="p-3">
                         <span
-                          className={`text-xs font-bold uppercase px-2 py-0.5 border flex items-center gap-1 w-fit ${
+                          className={`text-xs font-bold px-2 py-0.5 border flex items-center gap-1 w-fit ${
                             isMemOwner
-                              ? 'border-amber-800 bg-amber-950/60 text-amber-400'
+                              ? 'border-warning-800 bg-warning-950/60 text-warning-400'
                               : mem.role === 'admin'
-                              ? 'border-cyan-800 bg-cyan-950/60 text-cyan-400'
+                              ? 'border-info-800 bg-info-950/60 text-info-400'
                               : 'border-zinc-800 bg-zinc-900 text-zinc-400'
                           }`}
                         >
-                          {isMemOwner ? <Crown className="w-3 h-3 text-amber-400" /> : <Shield className="w-3 h-3" />}
+                          {isMemOwner ? <Crown className="w-3 h-3 text-warning-400" /> : <Shield className="w-3 h-3" />}
                           {mem.role}
                         </span>
                       </td>
 
                       <td className="p-3 text-zinc-400">
-                        {new Date(mem.createdAt).toLocaleDateString()}
+                        {formatDate(mem.createdAt)}
                       </td>
 
                       <td className="p-3 text-right">
@@ -346,7 +348,7 @@ export function MembersView() {
                             onClick={() => setSelectedDrawerMember(mem)}
                             className="h-7 px-2 border-zinc-800 hover:bg-zinc-900 text-zinc-300 text-[11px]"
                           >
-                            <Eye className="w-3 h-3 mr-1 text-cyan-400" /> Profile
+                            <Eye className="w-3 h-3 mr-1 text-info-400" /> Profile
                           </Button>
 
                           {/* Role Change Button */}
@@ -366,7 +368,7 @@ export function MembersView() {
                                 : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                             }`}
                           >
-                            <Sliders className="w-3 h-3 mr-1 text-orange-400" /> Role
+                            <Sliders className="w-3 h-3 mr-1 text-brand-400" /> Role
                           </Button>
 
                           {/* Transfer Ownership Button (Only for Owner) */}
@@ -382,11 +384,11 @@ export function MembersView() {
                               }}
                               className={`h-7 px-2 text-[11px] ${
                                 canTransfer
-                                  ? 'border-amber-900/80 hover:bg-amber-950/40 text-amber-400'
+                                  ? 'border-warning-900/80 hover:bg-warning-950/40 text-warning-400'
                                   : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                               }`}
                             >
-                              <ArrowRightLeft className="w-3 h-3 mr-1 text-amber-400" /> Transfer
+                              <ArrowRightLeft className="w-3 h-3 mr-1 text-warning-400" /> Transfer
                             </Button>
                           )}
 
@@ -402,7 +404,7 @@ export function MembersView() {
                             }}
                             className={`h-7 px-2 text-[11px] ${
                               canRemove
-                                ? 'border-rose-950 hover:bg-rose-950/40 text-rose-400'
+                                ? 'border-danger-950 hover:bg-danger-950/40 text-danger-400'
                                 : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                             }`}
                           >
@@ -467,7 +469,7 @@ export function MembersView() {
           onClose={() => setRoleChangeMember(null)}
           title={`Change Member Role — ${roleChangeMember.name || roleChangeMember.email}`}
         >
-          <form onSubmit={handleRoleChangeSubmit} className="space-y-4 font-mono text-xs">
+          <form onSubmit={handleRoleChangeSubmit} className="space-y-4 text-xs">
             <p className="text-zinc-400">
               Select a new access role for <span className="text-zinc-100 font-bold">{roleChangeMember.email}</span>.
             </p>
@@ -488,7 +490,7 @@ export function MembersView() {
               <Button type="button" variant="secondary" size="sm" onClick={() => setRoleChangeMember(null)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" isLoading={roleSaving} className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button type="submit" variant="primary" size="sm" isLoading={roleSaving} className="bg-brand-500 hover:bg-brand-600 text-on-accent">
                 Save Role
               </Button>
             </div>
@@ -503,9 +505,9 @@ export function MembersView() {
           onClose={() => setTransferMember(null)}
           title={`Transfer Organization Ownership`}
         >
-          <div className="space-y-4 font-mono text-xs">
-            <div className="p-3 bg-amber-950/40 border border-amber-800 text-amber-300 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-warning-950/40 border border-warning-800 text-warning-300 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-warning-400 shrink-0" />
               <span>
                 Warning: Ownership transfer is permanent. You will step down as Owner and become an Admin.
               </span>
@@ -513,7 +515,7 @@ export function MembersView() {
 
             <p className="text-zinc-300">
               Are you sure you want to transfer full ownership of organization{' '}
-              <span className="text-amber-400 font-bold">{selectedOrg.name}</span> to{' '}
+              <span className="text-warning-400 font-bold">{selectedOrg.name}</span> to{' '}
               <span className="text-zinc-100 font-bold">{transferMember.email}</span>?
             </p>
 
@@ -527,7 +529,7 @@ export function MembersView() {
                 size="sm"
                 onClick={handleTransferOwnershipSubmit}
                 isLoading={transferSaving}
-                className="bg-amber-600 hover:bg-amber-500 text-white"
+                className="bg-warning-600 hover:bg-warning-500 text-on-accent"
               >
                 Confirm Ownership Transfer
               </Button>

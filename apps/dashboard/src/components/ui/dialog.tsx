@@ -28,6 +28,75 @@ const maxWidthClasses = {
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
 
+/** Traps focus, closes on Escape, locks scrolling, and gives focus back when it closes. */
+function useDialogBehaviour(
+  boxRef: React.RefObject<HTMLDivElement | null>,
+  isOpen: boolean,
+  onClose: () => void
+) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const box = boxRef.current;
+    if (box && !box.contains(document.activeElement)) {
+      (box.querySelector<HTMLElement>(FOCUSABLE) ?? box).focus();
+    }
+    return () => opener?.focus();
+  }, [boxRef, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Tab' || !boxRef.current) return;
+
+      const items = [...boxRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [boxRef, isOpen, onClose]);
+}
+
+/** For dialogs with their own layout. Adds the backdrop and the shared behaviour. */
+export function ModalFrame({
+  onClose,
+  label,
+  children,
+}: {
+  onClose: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  useDialogBehaviour(boxRef, true, onClose);
+
+  return (
+    <div
+      ref={boxRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Dialog({
   isOpen,
   onClose,
@@ -45,43 +114,7 @@ export function Dialog({
     setMounted(true);
   }, []);
 
-  // Moves focus into the dialog, and gives it back to whatever opened it.
-  useEffect(() => {
-    if (!isOpen || !mounted) return;
-    const opener = document.activeElement as HTMLElement | null;
-    const box = boxRef.current;
-    if (box && !box.contains(document.activeElement)) {
-      (box.querySelector<HTMLElement>(FOCUSABLE) ?? box).focus();
-    }
-    return () => opener?.focus();
-  }, [isOpen, mounted]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key !== 'Tab' || !boxRef.current) return;
-
-      // Keeps Tab inside the dialog
-      const items = [...boxRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  useDialogBehaviour(boxRef, isOpen && mounted, onClose);
 
   if (!isOpen || !mounted) return null;
 

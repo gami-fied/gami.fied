@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { ChallengeDefinition } from '@gami/challenges';
 
@@ -56,7 +57,7 @@ export function useChallenges(projectId: string | null) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/challenges`, {
+      const res = await apiFetch(`/api/projects/${projectId}/challenges`, {
         credentials: 'include',
       });
 
@@ -102,7 +103,7 @@ export function useChallengeSummary(projectId: string | null) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/challenges/summary`, {
+      const res = await apiFetch(`/api/projects/${projectId}/challenges/summary`, {
         credentials: 'include',
       });
 
@@ -147,7 +148,7 @@ export function useUserChallenges(projectId: string | null, userId: string | nul
     setError(null);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${projectId}/users/${encodeURIComponent(userId)}/challenges`,
         { credentials: 'include' }
       );

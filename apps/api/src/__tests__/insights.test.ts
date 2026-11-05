@@ -1,5 +1,14 @@
 import { randomUUID } from 'crypto';
-import { db, endUsers, member, organizations, projects, rules, runMigrations } from '@gami/database';
+import {
+  db,
+  endUsers,
+  member,
+  organizations,
+  projects,
+  rules,
+  runMigrations,
+  webhookEndpoints,
+} from '@gami/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { processEventJob } from '../../../worker/src/processor.js';
@@ -93,6 +102,25 @@ describe('Rule trace and user timeline', () => {
   it('returns 404 for a rule in another project', async () => {
     const res = await get(`/api/projects/${projectId}/rules/rule_missing/trace`);
     expect(res.statusCode).toBe(404);
+  });
+
+  it('lists problems for the dashboard bell', async () => {
+    const res = await get(`/api/projects/${projectId}/alerts`);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.payload).data).toEqual([]);
+
+    await db.insert(webhookEndpoints).values({
+      id: `wh_ins_${suffix}`,
+      projectId,
+      name: 'Broken',
+      url: 'https://example.com/hook',
+      encryptedSecret: 'x',
+      active: false,
+      disabledReason: 'Disabled after 20 failed deliveries',
+    });
+
+    const after = await get(`/api/projects/${projectId}/alerts`);
+    expect(JSON.parse(after.payload).data[0].title).toContain('Broken');
   });
 
   it('puts events, rule runs and XP on one timeline, without skipped runs', async () => {

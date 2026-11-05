@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
@@ -34,7 +36,7 @@ export default function AdminSessionsPage() {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/sessions');
+      const res = await apiFetch('/api/admin/sessions');
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -59,7 +61,7 @@ export default function AdminSessionsPage() {
 
     setRevokingUserId(userId);
     try {
-      const res = await fetch('/api/admin/sessions/revoke-all', {
+      const res = await apiFetch('/api/admin/sessions/revoke-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: userId }),
@@ -79,10 +81,10 @@ export default function AdminSessionsPage() {
   };
 
   return (
-    <div className="space-y-6 font-mono text-zinc-100">
+    <div className="space-y-6 text-zinc-100">
       <div className="border-b border-zinc-800 pb-4">
-        <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
-          <KeyRound className="w-5 h-5 text-rose-400" />
+        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <KeyRound className="w-5 h-5 text-danger-400" />
           Active Administrative &amp; User Sessions
         </h1>
         <p className="text-xs text-zinc-400 mt-1">
@@ -91,20 +93,20 @@ export default function AdminSessionsPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs">
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="py-12 flex items-center justify-center gap-3 text-zinc-400 text-xs">
-          <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-danger-500 border-t-transparent rounded-full animate-spin" />
           Loading active session directory...
         </div>
       ) : (
         <div className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase">
+            <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400">
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Role Scope</th>
@@ -137,10 +139,10 @@ export default function AdminSessionsPage() {
                     </td>
                     <td className="px-4 py-3 text-zinc-400">{sess.ipAddress || '127.0.0.1'}</td>
                     <td className="px-4 py-3 text-zinc-400">
-                      {new Date(sess.createdAt).toLocaleString()}
+                      {formatDateTime(sess.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-zinc-400">
-                      {new Date(sess.expiresAt).toLocaleString()}
+                      {formatDateTime(sess.expiresAt)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button

@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDate } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
@@ -42,7 +44,7 @@ export function InvitationsView() {
     if (!selectedOrg) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/invitations`);
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/invitations`);
       if (res.ok) {
         const data = await res.json();
         setInvitations(data.invitations || []);
@@ -62,7 +64,7 @@ export function InvitationsView() {
     if (!selectedOrg) return;
     setResendingId(invId);
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/invitations/${invId}/resend`, {
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/invitations/${invId}/resend`, {
         method: 'POST',
       });
       if (res.ok) {
@@ -91,7 +93,7 @@ export function InvitationsView() {
 
     setRevokingId(invId);
     try {
-      const res = await fetch(`/api/organizations/${selectedOrg.id}/invitations/${invId}`, {
+      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/invitations/${invId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -109,7 +111,7 @@ export function InvitationsView() {
 
   if (!selectedOrg) {
     return (
-      <div className="p-8 text-center text-zinc-400 font-mono text-xs">
+      <div className="p-8 text-center text-zinc-400 text-xs">
         Please select an organization to view invitations.
       </div>
     );
@@ -123,16 +125,16 @@ export function InvitationsView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-orange-400" />
+            <UserPlus className="w-5 h-5 text-brand-400" />
             Pending Organization Invitations
           </h1>
           <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
             <span>
               Track and manage team invitations sent for{' '}
-              <span className="text-orange-400 font-semibold">{selectedOrg.name}</span>.
+              <span className="text-brand-400 font-semibold">{selectedOrg.name}</span>.
             </span>
             {!isAdminOrOwner && (
-              <span className="text-xs uppercase font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
+              <span className="text-xs font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
                 <Lock className="w-3 h-3 text-zinc-400" /> READ-ONLY MEMBER
               </span>
             )}
@@ -152,7 +154,7 @@ export function InvitationsView() {
             onClick={() => setIsInviteOpen(true)}
             className={`font-medium h-9 ${
               isAdminOrOwner
-                ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                ? 'bg-brand-500 hover:bg-brand-600 text-on-accent'
                 : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
             }`}
           >
@@ -163,8 +165,8 @@ export function InvitationsView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
           {error}
         </div>
       )}
@@ -173,7 +175,7 @@ export function InvitationsView() {
       <Card className="bg-zinc-950 border-zinc-800">
         {loading ? (
           <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+            <RefreshCw className="w-4 h-4 animate-spin text-brand-400" />
             Loading invitations...
           </div>
         ) : invitations.length === 0 ? (
@@ -184,7 +186,7 @@ export function InvitationsView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase text-xs tracking-wider">
+                <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
                   <th className="p-3">Recipient Email</th>
                   <th className="p-3">Assigned Role</th>
                   <th className="p-3">Status</th>
@@ -208,27 +210,27 @@ export function InvitationsView() {
                       </td>
 
                       <td className="p-3">
-                        <span className="text-xs font-bold uppercase px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-300">
+                        <span className="text-xs font-bold px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-300">
                           {inv.role}
                         </span>
                       </td>
 
                       <td className="p-3">
                         <span
-                          className={`text-xs font-bold uppercase px-2 py-0.5 border flex items-center gap-1 w-fit ${
+                          className={`text-xs font-bold px-2 py-0.5 border flex items-center gap-1 w-fit ${
                             inv.status === 'accepted'
-                              ? 'border-emerald-800 bg-emerald-950/60 text-emerald-400'
+                              ? 'border-success-800 bg-success-950/60 text-success-400'
                               : isPending && !isExpired
-                              ? 'border-amber-800 bg-amber-950/60 text-amber-400'
-                              : 'border-rose-950 bg-rose-950/40 text-rose-400'
+                              ? 'border-warning-800 bg-warning-950/60 text-warning-400'
+                              : 'border-danger-950 bg-danger-950/40 text-danger-400'
                           }`}
                         >
                           {inv.status === 'accepted' ? (
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <CheckCircle2 className="w-3 h-3 text-success-400" />
                           ) : isPending && !isExpired ? (
-                            <Clock className="w-3 h-3 text-amber-400" />
+                            <Clock className="w-3 h-3 text-warning-400" />
                           ) : (
-                            <XCircle className="w-3 h-3 text-rose-400" />
+                            <XCircle className="w-3 h-3 text-danger-400" />
                           )}
                           {isPending && isExpired ? 'expired' : inv.status}
                         </span>
@@ -239,7 +241,7 @@ export function InvitationsView() {
                       </td>
 
                       <td className="p-3 text-zinc-400">
-                        {new Date(inv.expiresAt).toLocaleDateString()}
+                        {formatDate(inv.expiresAt)}
                       </td>
 
                       <td className="p-3 text-right">
@@ -257,11 +259,11 @@ export function InvitationsView() {
                               }}
                               className={`h-7 px-2 border-zinc-800 text-[11px] ${
                                 isAdminOrOwner
-                                  ? 'hover:bg-zinc-900 text-orange-400'
+                                  ? 'hover:bg-zinc-900 text-brand-400'
                                   : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                               }`}
                             >
-                              <Send className="w-3 h-3 mr-1 text-orange-400" /> Resend
+                              <Send className="w-3 h-3 mr-1 text-brand-400" /> Resend
                             </Button>
 
                             <Button
@@ -276,7 +278,7 @@ export function InvitationsView() {
                               }}
                               className={`h-7 px-2 text-[11px] ${
                                 isAdminOrOwner
-                                  ? 'border-rose-950 hover:bg-rose-950/40 text-rose-400'
+                                  ? 'border-danger-950 hover:bg-danger-950/40 text-danger-400'
                                   : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                               }`}
                             >

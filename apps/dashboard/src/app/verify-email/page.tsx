@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, ArrowRight, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
@@ -31,7 +32,7 @@ export default function VerifyEmailPage() {
 
   const fetchOtpStatus = async () => {
     try {
-      const res = await fetch('/api/auth/otp/status');
+      const res = await apiFetch('/api/auth/otp/status');
       if (res.ok) {
         const data = await res.json();
         setUserEmail(data.userEmail || '');
@@ -57,7 +58,7 @@ export default function VerifyEmailPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch('/api/auth/otp/verify', {
+      const res = await apiFetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -86,7 +87,7 @@ export default function VerifyEmailPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch('/api/auth/otp/send', {
+      const res = await apiFetch('/api/auth/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -107,32 +108,32 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 font-mono text-zinc-100">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 text-zinc-100">
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-cyan-950/60 border border-cyan-700/80 text-cyan-400 flex items-center justify-center mx-auto shadow-lg">
+          <div className="w-12 h-12 bg-info-950/60 border border-info-700/80 text-info-400 flex items-center justify-center mx-auto shadow-lg">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold text-white uppercase tracking-wider">
+          <h1 className="text-xl font-bold text-white">
             Email OTP Verification
           </h1>
           <p className="text-xs text-zinc-400">
             A 6-digit verification code was sent to{' '}
-            <span className="text-cyan-400 font-bold">{userEmail || 'your registered email'}</span>.
+            <span className="text-info-400 font-bold">{userEmail || 'your registered email'}</span>.
           </p>
         </div>
 
         {error && (
-          <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="p-4 bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="p-4 bg-success-950/40 border border-success-800 text-success-300 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
             <span>{success}</span>
           </div>
         )}
@@ -140,7 +141,7 @@ export default function VerifyEmailPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-white">
+              <CardTitle className="text-sm font-bold text-white">
                 Enter 6-Digit Code
               </CardTitle>
               <Badge variant="cyan">Transactional Security</Badge>
@@ -152,7 +153,7 @@ export default function VerifyEmailPage() {
           <CardContent>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
-                <label htmlFor="page-6-digit-otp-code" className="block text-xs uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="page-6-digit-otp-code" className="block text-xs text-zinc-400 font-bold mb-1">
                   6-Digit OTP Code *
                 </label>
                 <Input id="page-6-digit-otp-code"
@@ -162,7 +163,7 @@ export default function VerifyEmailPage() {
                   placeholder="123456"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  className="text-center font-bold text-lg tracking-[8px] uppercase focus:border-cyan-500"
+                  className="text-center font-bold text-lg tracking-[8px] focus:border-info-500"
                 />
               </div>
 
@@ -181,7 +182,7 @@ export default function VerifyEmailPage() {
                   type="button"
                   onClick={handleResend}
                   disabled={resending || cooldown > 0}
-                  className="text-xs text-zinc-400 hover:text-cyan-400 disabled:opacity-40 transition flex items-center justify-center gap-1.5 mx-auto"
+                  className="text-xs text-zinc-400 hover:text-info-400 disabled:opacity-40 transition flex items-center justify-center gap-1.5 mx-auto"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
                   {cooldown > 0 ? `Resend Code in ${cooldown}s` : 'Resend OTP Verification Email'}

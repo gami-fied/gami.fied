@@ -50,13 +50,13 @@ function ResetPasswordForm() {
   };
 
   if (!token) {
-    return <p className="text-sm text-rose-300">This reset link is invalid or has expired.</p>;
+    return <p className="text-sm text-danger-300">This reset link is invalid or has expired.</p>;
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div role="alert" className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs">
+        <div role="alert" className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs">
           {error}
         </div>
       )}
@@ -100,7 +100,7 @@ export default function ResetPasswordPage() {
             </Suspense>
           </CardContent>
           <CardFooter className="justify-center text-xs text-zinc-400">
-            <Link href="/login" className="text-orange-400 hover:underline font-semibold">
+            <Link href="/login" className="text-brand-400 hover:underline font-semibold">
               Back to sign in
             </Link>
           </CardFooter>

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDate, formatDateTime } from '@/lib/format';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useApiKeys, GeneratedApiKey } from '@/hooks/use-api-keys';
@@ -141,7 +142,7 @@ export function ApiKeysView() {
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">API Keys Management</h1>
           <p className="text-xs text-zinc-400 mt-1">
             API keys used for authenticating public event ingestion endpoints (`/v1/events`) for{' '}
-            <span className="text-emerald-400 font-semibold">{selectedProject.name}</span>
+            <span className="text-success-400 font-semibold">{selectedProject.name}</span>
           </p>
         </div>
 
@@ -152,7 +153,7 @@ export function ApiKeysView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
+        <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
           {error}
         </div>
       )}
@@ -180,24 +181,24 @@ export function ApiKeysView() {
                 return (
                   <TableRow key={k.id}>
                     <TableCell className="font-semibold text-zinc-200">{k.name}</TableCell>
-                    <TableCell className="font-mono text-xs text-zinc-400">
+                    <TableCell className="text-xs text-zinc-400">
                       {k.keyPrefix}...
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-zinc-400">
+                    <TableCell className="text-xs text-zinc-400">
                       {k.scopes?.includes('*') ? 'Full access' : k.scopes?.join(', ')}
                     </TableCell>
                     <TableCell className="text-xs text-zinc-400">
-                      {k.expiresAt ? new Date(k.expiresAt).toLocaleDateString() : 'Never'}
+                      {k.expiresAt ? formatDate(k.expiresAt) : 'Never'}
                     </TableCell>
                     <TableCell
                       className="text-xs text-zinc-400 cursor-default"
-                      title={new Date(k.createdAt).toLocaleString()}
+                      title={formatDateTime(k.createdAt)}
                     >
                       {formatRelativeTime(k.createdAt)}
                     </TableCell>
                     <TableCell
                       className="text-xs text-zinc-400 cursor-default"
-                      title={k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : 'Never'}
+                      title={k.lastUsedAt ? formatDateTime(k.lastUsedAt) : 'Never'}
                     >
                       {formatRelativeTime(k.lastUsedAt)}
                     </TableCell>
@@ -210,7 +211,7 @@ export function ApiKeysView() {
                       {!isRevoked && !isExpired && (
                         <button
                           onClick={() => handleRotate(k.id)}
-                          className="text-xs text-orange-400 hover:underline font-semibold inline-flex items-center gap-1 mr-3"
+                          className="text-xs text-brand-400 hover:underline font-semibold inline-flex items-center gap-1 mr-3"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
                           Rotate
@@ -219,7 +220,7 @@ export function ApiKeysView() {
                       {!isRevoked && (
                         <button
                           onClick={() => setRevokingKeyId(k.id)}
-                          className="text-xs text-rose-400 hover:underline font-semibold flex items-center gap-1 ml-auto"
+                          className="text-xs text-danger-400 hover:underline font-semibold flex items-center gap-1 ml-auto"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           Revoke Key
@@ -251,7 +252,7 @@ export function ApiKeysView() {
         description="Provide a descriptive name to identify this API key."
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          {formError && <div className="text-xs text-rose-400 font-medium">{formError}</div>}
+          {formError && <div className="text-xs text-danger-400 font-medium">{formError}</div>}
 
           <Input
             label="API Key Name"
@@ -323,11 +324,11 @@ export function ApiKeysView() {
         {generatedKey && (
           <div className="space-y-4">
             {/* Warning Banner */}
-            <div className="p-4 bg-amber-950/40 border border-amber-800/60 rounded-none flex items-start gap-3 text-amber-300 text-xs">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-4 bg-warning-950/40 border border-warning-800/60 rounded-none flex items-start gap-3 text-warning-300 text-xs">
+              <AlertTriangle className="w-5 h-5 text-warning-400 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-amber-200">Save your secret key now!</p>
-                <p className="mt-1 leading-relaxed text-amber-300/90">
+                <p className="font-bold text-warning-200">Save your secret key now!</p>
+                <p className="mt-1 leading-relaxed text-warning-300/90">
                   This raw secret key is displayed **only once** for security reasons. We only store
                   an encrypted hash on our servers. If you lose this key, you will have to generate
                   a new one.
@@ -337,20 +338,20 @@ export function ApiKeysView() {
 
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-zinc-300">
-                Secret API Key for <span className="text-orange-400">{generatedKey.name}</span>
+                Secret API Key for <span className="text-brand-400">{generatedKey.name}</span>
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={generatedKey.rawSecret}
-                  className="flex-1 h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 font-mono text-xs text-emerald-400 font-semibold select-all outline-none hover:border-zinc-700 focus:border-emerald-500/80 transition-colors duration-150 shadow-none"
+                  className="flex-1 h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 text-xs text-success-400 font-semibold select-all outline-none hover:border-zinc-700 focus:border-success-500/80 transition-colors duration-150 shadow-none"
                 />
                 <Button variant="secondary" size="md" onClick={handleCopySecret}>
                   {copied ? (
                     <>
-                      <Check className="w-4 h-4 text-emerald-400" />
-                      <span className="text-emerald-400">Copied</span>
+                      <Check className="w-4 h-4 text-success-400" />
+                      <span className="text-success-400">Copied</span>
                     </>
                   ) : (
                     <>

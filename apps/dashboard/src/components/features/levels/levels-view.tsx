@@ -174,7 +174,7 @@ export function LevelsView() {
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Levels & Progression</h1>
           <p className="text-xs text-zinc-400 mt-1">
             Deterministic level thresholds and end-user progression status for{' '}
-            <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
           </p>
         </div>
 
@@ -195,13 +195,13 @@ export function LevelsView() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Levels Defined
             </CardTitle>
-            <TrendingUp className="w-4 h-4 text-amber-400" />
+            <TrendingUp className="w-4 h-4 text-warning-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-amber-400">
+            <div className="text-2xl font-black text-warning-400">
               L1 → L{summary?.maxConfiguredLevel || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">
@@ -212,13 +212,13 @@ export function LevelsView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Users at Max Level
             </CardTitle>
-            <Award className="w-4 h-4 text-emerald-400" />
+            <Award className="w-4 h-4 text-success-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-emerald-400">
+            <div className="text-2xl font-black text-success-400">
               {summary?.usersAtMaxLevel || 0}
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Highest level achieved</p>
@@ -227,13 +227,13 @@ export function LevelsView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <CardTitle className="text-xs font-semibold text-zinc-400">
               Total Project XP
             </CardTitle>
-            <Layers className="w-4 h-4 text-orange-400" />
+            <Layers className="w-4 h-4 text-brand-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-orange-400">
+            <div className="text-2xl font-black text-brand-400">
               {summary?.totalProjectXp?.toLocaleString() || 0} XP
             </div>
             <p className="text-[11px] text-zinc-400 mt-1">Across all project users</p>
@@ -246,7 +246,7 @@ export function LevelsView() {
         <Card className="bg-zinc-900/80 border-zinc-800">
           <CardHeader>
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-orange-400" />
+              <ShieldCheck className="w-4 h-4 text-brand-400" />
               Level Progression Roadmap & Difficulty Curve
             </CardTitle>
             <CardDescription>
@@ -265,7 +265,7 @@ export function LevelsView() {
                     {index > 0 && (
                       <div className="flex flex-col items-center shrink-0">
                         <ArrowRight className="w-4 h-4 text-zinc-400" />
-                        <span className="text-xs text-orange-400 font-mono font-bold mt-0.5">
+                        <span className="text-xs text-brand-400 font-bold mt-0.5">
                           +{deltaXp.toLocaleString()} XP
                         </span>
                       </div>
@@ -286,7 +286,7 @@ export function LevelsView() {
                         </Badge>
                       </div>
                       <div className="text-xs font-bold text-zinc-100 truncate">{lvl.name}</div>
-                      <div className="text-[11px] font-mono text-orange-400 font-black">
+                      <div className="text-[11px] text-brand-400 font-black">
                         {lvl.requiredXp.toLocaleString()} XP
                       </div>
                     </div>
@@ -325,7 +325,7 @@ export function LevelsView() {
             <div className="bg-zinc-950 p-5 rounded-none border border-zinc-800 space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-xs font-bold text-amber-400 tracking-wider uppercase">
+                  <span className="text-xs font-bold text-warning-400">
                     Level {userProgress.level.number} — {userProgress.level.name}
                   </span>
                   <p className="text-2xl font-black text-zinc-100 mt-1">
@@ -379,9 +379,9 @@ export function LevelsView() {
             <TableBody>
               {levels.map((lvl) => (
                 <TableRow key={lvl.id}>
-                  <TableCell className="font-bold text-amber-400">L{lvl.level}</TableCell>
+                  <TableCell className="font-bold text-warning-400">L{lvl.level}</TableCell>
                   <TableCell className="font-semibold text-zinc-200">{lvl.name}</TableCell>
-                  <TableCell className="font-mono text-orange-400 font-bold">
+                  <TableCell className="text-brand-400 font-bold">
                     {lvl.requiredXp.toLocaleString()} XP
                   </TableCell>
                   <TableCell className="text-xs text-zinc-400">{lvl.description || '—'}</TableCell>
@@ -410,7 +410,7 @@ export function LevelsView() {
                         onClick={() => isAdminOrOwner && handleDisable(lvl)}
                         className={`text-xs font-semibold ${
                           isAdminOrOwner
-                            ? 'text-rose-400 hover:underline'
+                            ? 'text-danger-400 hover:underline'
                             : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
@@ -423,7 +423,7 @@ export function LevelsView() {
                         onClick={() => isAdminOrOwner && handleEnable(lvl)}
                         className={`text-xs font-semibold ${
                           isAdminOrOwner
-                            ? 'text-emerald-400 hover:underline'
+                            ? 'text-success-400 hover:underline'
                             : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
@@ -463,17 +463,17 @@ export function LevelsView() {
                     return (
                       <div key={d.level} className="flex items-center gap-4">
                         <div className="w-20 shrink-0 text-right">
-                          <span className="text-xs font-bold text-amber-400">L{d.level}</span>
+                          <span className="text-xs font-bold text-warning-400">L{d.level}</span>
                           <span className="text-[11px] text-zinc-400 block truncate">{d.name}</span>
                         </div>
                         <div className="flex-1 bg-zinc-950 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
                           <div
-                            className="bg-orange-500 h-full rounded-none transition-all duration-500 ease-out"
+                            className="bg-brand-500 h-full rounded-none transition-all duration-500 ease-out"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
                         <div className="w-16 text-right shrink-0">
-                          <span className="text-sm font-bold text-orange-400">{d.userCount}</span>
+                          <span className="text-sm font-bold text-brand-400">{d.userCount}</span>
                           <span className="text-xs text-zinc-400 block">users</span>
                         </div>
                       </div>
@@ -494,7 +494,7 @@ export function LevelsView() {
         description="Append a new level to the sequential progression ladder."
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          {formError && <div className="text-xs text-rose-400 font-medium">{formError}</div>}
+          {formError && <div className="text-xs text-danger-400 font-medium">{formError}</div>}
 
           <Input
             label="Level Number"
@@ -547,7 +547,7 @@ export function LevelsView() {
         description="Update level threshold parameters and display details."
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
-          {editFormError && <div className="text-xs text-rose-400 font-medium">{editFormError}</div>}
+          {editFormError && <div className="text-xs text-danger-400 font-medium">{editFormError}</div>}
 
           <Input
             label="Level Number"

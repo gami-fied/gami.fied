@@ -371,7 +371,7 @@ export function RulesView() {
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Configure IF/THEN event rules for{' '}
-            <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
           </p>
         </div>
 
@@ -382,7 +382,7 @@ export function RulesView() {
               onClick={() => setActiveTab('rules')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                 activeTab === 'rules'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-brand-500 text-on-accent shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -393,7 +393,7 @@ export function RulesView() {
               onClick={() => setActiveTab('simulator')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                 activeTab === 'simulator'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-brand-500 text-on-accent shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -427,7 +427,7 @@ export function RulesView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
+        <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
           {error}
         </div>
       )}
@@ -475,7 +475,7 @@ export function RulesView() {
                       </TableCell>
                       <TableCell className="text-xs text-zinc-400">
                         {rule.conditions ? (
-                          <span className="font-mono text-[11px] bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
+                          <span className="text-[11px] bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
                             {Array.isArray((rule.conditions as StoredConditions).all)
                               ? `${(rule.conditions as StoredConditions).all?.length} IF (ALL)`
                               : Array.isArray((rule.conditions as StoredConditions).any)
@@ -506,9 +506,9 @@ export function RulesView() {
                           disabled={!isAdminOrOwner}
                           title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle rule status' : undefined}
                           onClick={() => isAdminOrOwner && handleToggleEnabled(rule)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold tracking-wider uppercase border transition ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold border transition ${
                             rule.enabled
-                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50'
+                              ? 'bg-success-950/60 text-success-300 border-success-800/50'
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                           } ${!isAdminOrOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
@@ -547,7 +547,7 @@ export function RulesView() {
                             onClick={() => isAdminOrOwner && setDeletingRuleId(rule.id)}
                             className={`p-1.5 transition ${
                               isAdminOrOwner
-                                ? 'text-zinc-400 hover:text-rose-400'
+                                ? 'text-zinc-400 hover:text-danger-400'
                                 : 'opacity-30 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to delete rule' : 'Delete Rule'}
@@ -569,7 +569,7 @@ export function RulesView() {
           <Card className="bg-zinc-900/80 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Play className="w-4 h-4 text-emerald-400" />
+                <Play className="w-4 h-4 text-success-400" />
                 Simulated Event Payload
               </CardTitle>
               <CardDescription>
@@ -581,7 +581,7 @@ export function RulesView() {
                 rows={12}
                 value={testEventJson}
                 onChange={(e) => setTestEventJson(e.target.value)}
-                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-orange-500 font-mono text-xs bg-zinc-950/80 text-zinc-200"
+                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950/80 text-zinc-200"
               />
               <Button onClick={handleRunSimulator} className="w-full" variant="primary">
                 <Play className="w-4 h-4" />
@@ -593,7 +593,7 @@ export function RulesView() {
           <Card className="bg-zinc-900/80 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-orange-400" />
+                <ShieldCheck className="w-4 h-4 text-brand-400" />
                 Step-by-Step Evaluation Breakdown
               </CardTitle>
               <CardDescription>Visual execution breakdown for active rules.</CardDescription>
@@ -601,7 +601,7 @@ export function RulesView() {
             <CardContent>
               {testResults ? (
                 'error' in testResults ? (
-                  <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs rounded-none">
+                  <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs rounded-none">
                     {testResults.error}
                   </div>
                 ) : Array.isArray(testResults) && testResults.length > 0 ? (
@@ -616,7 +616,7 @@ export function RulesView() {
                         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
                           <div>
                             <span className="text-xs font-bold text-zinc-100">{res.ruleName}</span>
-                            <div className="text-xs text-zinc-400 font-mono">
+                            <div className="text-xs text-zinc-400">
                               Trigger: {res.trigger}
                             </div>
                           </div>
@@ -634,11 +634,11 @@ export function RulesView() {
                             </span>
                             <span className="flex items-center gap-1 font-bold text-[11px]">
                               {res.matched ? (
-                                <span className="text-emerald-400 flex items-center gap-1">
+                                <span className="text-success-400 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Matched
                                 </span>
                               ) : (
-                                <span className="text-rose-400 flex items-center gap-1">
+                                <span className="text-danger-400 flex items-center gap-1">
                                   <XCircle className="w-3.5 h-3.5" /> Mismatched
                                 </span>
                               )}
@@ -647,9 +647,9 @@ export function RulesView() {
 
                           {/* Step 2: Actions Executed */}
                           {res.matched && (
-                            <div className="p-2.5 rounded-none bg-emerald-950/30 border border-emerald-800/40 space-y-1.5">
-                              <span className="text-emerald-300 font-bold text-[11px] flex items-center gap-1">
-                                <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+                            <div className="p-2.5 rounded-none bg-success-950/30 border border-success-800/40 space-y-1.5">
+                              <span className="text-success-300 font-bold text-[11px] flex items-center gap-1">
+                                <ArrowRight className="w-3.5 h-3.5 text-success-400" />
                                 Actions Executed:
                               </span>
                               <div className="flex flex-wrap gap-1.5">
@@ -695,7 +695,7 @@ export function RulesView() {
       >
         <form onSubmit={handleSaveRule} className="space-y-5 overflow-y-auto pr-1">
           {formError && (
-            <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none font-medium">
+            <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none font-medium">
               {formError}
             </div>
           )}
@@ -703,7 +703,7 @@ export function RulesView() {
           {/* Preset Buttons */}
           <div className="space-y-1.5">
             <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-orange-400" /> Rule Presets:
+              <Sparkles className="w-3 h-3 text-brand-400" /> Rule Presets:
             </span>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -726,7 +726,7 @@ export function RulesView() {
           {/* Builder Mode Toggle */}
           <div className="flex items-center justify-between bg-zinc-950/60 p-2 rounded-none border border-zinc-800">
             <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-              <SlidersHorizontal className="w-4 h-4 text-orange-400" />
+              <SlidersHorizontal className="w-4 h-4 text-brand-400" />
               Rule Builder Mode
             </span>
             <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
@@ -735,7 +735,7 @@ export function RulesView() {
                 onClick={() => setEditorMode('visual')}
                 className={`px-3 py-1 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                   editorMode === 'visual'
-                    ? 'bg-orange-500 text-white shadow-sm'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -759,7 +759,7 @@ export function RulesView() {
                 }}
                 className={`px-3 py-1 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                   editorMode === 'json'
-                    ? 'bg-orange-500 text-white shadow-sm'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -808,7 +808,7 @@ export function RulesView() {
                 rows={5}
                 value={rawConditionsJson}
                 onChange={(e) => setRawConditionsJson(e.target.value)}
-                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-orange-500 font-mono text-xs bg-zinc-950 text-zinc-200"
+                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950 text-zinc-200"
               />
             </div>
           )}
@@ -827,7 +827,7 @@ export function RulesView() {
                 rows={5}
                 value={rawActionsJson}
                 onChange={(e) => setRawActionsJson(e.target.value)}
-                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-orange-500 font-mono text-xs bg-zinc-950 text-zinc-200"
+                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950 text-zinc-200"
               />
             </div>
           )}

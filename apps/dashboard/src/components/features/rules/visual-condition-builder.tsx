@@ -98,7 +98,7 @@ export function VisualConditionBuilder({
       {/* Match Mode Selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-orange-400" />
+          <Layers className="w-4 h-4 text-brand-400" />
           <span className="text-xs font-semibold text-zinc-200">Condition Match Rule</span>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
@@ -107,7 +107,7 @@ export function VisualConditionBuilder({
             onClick={() => onMatchModeChange('all')}
             className={`px-3 py-1 text-xs font-semibold rounded-none transition ${
               matchMode === 'all'
-                ? 'bg-orange-500 text-white shadow-sm'
+                ? 'bg-brand-500 text-on-accent shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -118,7 +118,7 @@ export function VisualConditionBuilder({
             onClick={() => onMatchModeChange('any')}
             className={`px-3 py-1 text-xs font-semibold rounded-none transition ${
               matchMode === 'any'
-                ? 'bg-orange-500 text-white shadow-sm'
+                ? 'bg-brand-500 text-on-accent shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -178,7 +178,7 @@ export function VisualConditionBuilder({
               <button
                 type="button"
                 onClick={() => handleRemoveCondition(cond.id)}
-                className="p-2 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-none transition shrink-0 self-center"
+                className="p-2 text-zinc-400 hover:text-danger-400 hover:bg-danger-950/40 rounded-none transition shrink-0 self-center"
                 title="Remove Condition"
               >
                 <Trash2 className="w-4 h-4" />

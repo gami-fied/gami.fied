@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface SmtpStatus {
@@ -21,7 +22,7 @@ export function useSmtpConfig() {
   const fetchStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/smtp');
+      const res = await apiFetch('/api/admin/smtp');
       if (res.ok) {
         setStatus(await res.json());
         setError(null);
@@ -53,7 +54,7 @@ export function useSmtpConfig() {
     setError(null);
     setSuccessMsg(null);
     try {
-      const res = await fetch('/api/admin/smtp', {
+      const res = await apiFetch('/api/admin/smtp', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -81,7 +82,7 @@ export function useSmtpConfig() {
     setError(null);
     setSuccessMsg(null);
     try {
-      const res = await fetch('/api/admin/smtp/test', {
+      const res = await apiFetch('/api/admin/smtp/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientEmail }),

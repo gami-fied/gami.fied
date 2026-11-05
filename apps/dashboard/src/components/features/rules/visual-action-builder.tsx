@@ -22,11 +22,11 @@ export interface VisualAction {
 }
 
 const ACTION_TYPE_OPTIONS = [
-  { value: 'award_xp', label: 'Award XP', icon: <Zap className="w-3.5 h-3.5 text-amber-400" /> },
+  { value: 'award_xp', label: 'Award XP', icon: <Zap className="w-3.5 h-3.5 text-warning-400" /> },
   {
     value: 'award_achievement',
     label: 'Award Achievement / Badge',
-    icon: <Award className="w-3.5 h-3.5 text-purple-400" />,
+    icon: <Award className="w-3.5 h-3.5 text-info-400" />,
   },
 ];
 
@@ -75,14 +75,14 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
     value: ach.id,
     label: `${ach.name} (${ach.key})`,
     sublabel: ach.description || undefined,
-    icon: <Award className="w-3.5 h-3.5 text-purple-400" />,
+    icon: <Award className="w-3.5 h-3.5 text-info-400" />,
   }));
 
   return (
     <div className="space-y-4 bg-zinc-950/60 p-4 rounded-none border border-zinc-800">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
+          <Zap className="w-4 h-4 text-warning-400" />
           <span className="text-xs font-semibold text-zinc-200">Rule Executed Actions</span>
         </div>
         <span className="text-[11px] text-zinc-400 font-medium">
@@ -98,7 +98,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-none bg-zinc-800 text-zinc-300 text-xs font-bold flex items-center justify-center font-mono">
+                <span className="w-5 h-5 rounded-none bg-zinc-800 text-zinc-300 text-xs font-bold flex items-center justify-center">
                   {idx + 1}
                 </span>
                 <div className="w-56">
@@ -133,7 +133,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                 <button
                   type="button"
                   onClick={() => handleRemoveAction(act.id)}
-                  className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/40 rounded transition ml-1"
+                  className="p-1.5 text-zinc-400 hover:text-danger-400 hover:bg-danger-950/40 rounded transition ml-1"
                   title="Remove Action"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -182,7 +182,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                     }}
                   />
                 ) : (
-                  <div className="p-3 bg-amber-950/30 border border-amber-800/40 text-amber-300 text-xs rounded-none">
+                  <div className="p-3 bg-warning-950/30 border border-warning-800/40 text-warning-300 text-xs rounded-none">
                     No achievements created yet for this project. Please create an achievement in
                     the Achievements tab first.
                   </div>
@@ -193,7 +193,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
         ))}
 
         {actions.length === 0 && (
-          <div className="py-4 text-center text-xs text-rose-400 bg-rose-950/20 border border-rose-800/40 rounded-none">
+          <div className="py-4 text-center text-xs text-danger-400 bg-danger-950/20 border border-danger-800/40 rounded-none">
             Every rule requires at least one action to execute.
           </div>
         )}

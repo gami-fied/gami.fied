@@ -1,3 +1,4 @@
+import { projectAlertRoutes } from './projects/alerts.js';
 import { errorFormatHook } from './middleware/error-format.js';
 import { addUserResolution } from './middleware/resolve-user.js';
 import { endUserRoutes } from './public/end-user.js';
@@ -264,6 +265,7 @@ export async function buildServer() {
 
   // Register Project Onboarding Checklist backend endpoint
   await fastify.register(projectOnboardingRoutes);
+  await fastify.register(projectAlertRoutes);
 
   // Register Email OTP Verification & User Profile endpoints
   await fastify.register(otpRoutes);

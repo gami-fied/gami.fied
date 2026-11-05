@@ -7,10 +7,8 @@ FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
-# API_URL is the internal Docker service URL used by Next.js server-side rewrites.
-# It must be passed at build time because next.config.mjs is evaluated during `next build`.
-ARG API_URL=http://api:3001
-ENV API_URL=${API_URL}
+# Published images run on any domain, so no address is built in. The browser talks to this
+# server, and this server reaches the API through API_URL, which is read at runtime.
 ENV NEXT_OUTPUT=standalone
 RUN pnpm exec turbo build --filter=@gami/dashboard...
 
