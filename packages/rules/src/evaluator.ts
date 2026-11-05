@@ -1,5 +1,14 @@
 import { Condition, ConditionGroup, EventData, SimpleCondition } from './types.js';
 
+/** The rule builder saves lists as text, so "5" in a list has to match the number 5. */
+function listIncludes(list: unknown[], value: unknown): boolean {
+  return list.some(
+    (item) =>
+      item === value ||
+      (typeof value === 'number' && typeof item === 'string' && item.trim() === String(value))
+  );
+}
+
 export function resolveFieldPath(obj: Record<string, unknown>, path: string): unknown {
   if (!path || typeof path !== 'string') return undefined;
 
@@ -84,13 +93,13 @@ function evaluateSimpleCondition(cond: SimpleCondition, eventData: EventData): b
 
     case 'in':
       if (Array.isArray(targetValue)) {
-        return targetValue.includes(actualValue);
+        return listIncludes(targetValue, actualValue);
       }
       return false;
 
     case 'not_in':
       if (Array.isArray(targetValue)) {
-        return !targetValue.includes(actualValue);
+        return !listIncludes(targetValue, actualValue);
       }
       return false;
 

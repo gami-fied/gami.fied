@@ -13,6 +13,7 @@
     "url": "https://github.com/gami-fied/gami.fied/issues"
   },
   "scripts": {
+    "docs:check": "node scripts/check-docs.mjs",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",

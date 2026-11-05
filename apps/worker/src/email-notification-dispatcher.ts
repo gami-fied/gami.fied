@@ -1,11 +1,13 @@
-import { db, emailNotificationOutbox, serverConfigs } from '@gami/database';
+import { db, emailNotificationOutbox, serverConfigs, getPlatformSettings } from '@gami/database';
 import {
+  createUnsubscribeToken,
   getSmtpProviderFromConfig,
   SmtpConfig,
   SmtpEmailProvider,
 } from '@gami/notifications';
 import { decryptSecret } from '@gami/webhooks';
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, count, eq, gte } from 'drizzle-orm';
+import { claimDueRows } from './outbox.js';
 
 let cachedSmtpProvider: SmtpEmailProvider | null = null;
 let lastSmtpFetchTime = 0;
@@ -85,50 +87,64 @@ export function calculateEmailBackoff(attempt: number): Date {
 /**
  * Dispatches pending email notification outbox records atomically.
  */
+/** Adds a visible link, and the headers mail clients use for their own unsubscribe button. */
+function withUnsubscribe(record: {
+  projectId: string | null;
+  userId: string | null;
+  htmlBody: string;
+  textBody: string;
+}) {
+  if (!record.projectId || !record.userId) {
+    return { html: record.htmlBody, text: record.textBody };
+  }
+
+  const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3001';
+  const token = createUnsubscribeToken({ projectId: record.projectId, userId: record.userId });
+  const url = `${baseUrl}/v1/email/unsubscribe?token=${encodeURIComponent(token)}`;
+
+  return {
+    html: `${record.htmlBody}<p style="font-size:12px;color:#71717a"><a href="${url}">Unsubscribe</a></p>`,
+    text: `${record.textBody}\n\nUnsubscribe: ${url}`,
+    headers: {
+      'List-Unsubscribe': `<${url}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+}
+
+async function hasReachedDailyLimit(recipientEmail: string, limit: number): Promise<boolean> {
+  const [sent] = await db
+    .select({ total: count() })
+    .from(emailNotificationOutbox)
+    .where(
+      and(
+        eq(emailNotificationOutbox.recipientEmail, recipientEmail),
+        eq(emailNotificationOutbox.status, 'completed'),
+        gte(emailNotificationOutbox.updatedAt, new Date(Date.now() - 24 * 60 * 60 * 1000))
+      )
+    );
+  return (sent?.total ?? 0) >= limit;
+}
+
 export async function dispatchPendingEmailNotifications(
   batchLimit = 50,
   forceNow?: Date
 ): Promise<{ processedCount: number; completedCount: number; failedCount: number }> {
 
-  // 1. Select pending outbox records using FOR UPDATE SKIP LOCKED
-  const pendingRecords = await db.transaction(async (tx) => {
-    const query = tx
-      .select()
-      .from(emailNotificationOutbox)
-      .where(
-        and(
-          eq(emailNotificationOutbox.status, 'pending'),
-          lte(emailNotificationOutbox.availableAt, forceNow ?? sql`now()`)
-        )
-      )
-      .limit(batchLimit);
-
-    if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
-      return await query.for('update', { skipLocked: true });
-    }
-    return await query;
-  });
+  // 1. Claim due records
+  const pendingRecords = await claimDueRows(emailNotificationOutbox, batchLimit, forceNow);
 
   if (pendingRecords.length === 0) {
     return { processedCount: 0, completedCount: 0, failedCount: 0 };
   }
 
   const provider = await getActiveSmtpProvider();
+  const { maxDailyEmailsPerUser, retryAttempts } = await getPlatformSettings('notifications');
 
   let completedCount = 0;
   let failedCount = 0;
 
   for (const record of pendingRecords) {
-    // Mark as processing
-    await db
-      .update(emailNotificationOutbox)
-      .set({
-        status: 'processing',
-        processingAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(emailNotificationOutbox.id, record.id));
-
     if (!provider) {
       // SMTP not configured -> delay retry
       const nextAvailable = calculateEmailBackoff(record.attempts + 1);
@@ -147,12 +163,26 @@ export async function dispatchPendingEmailNotifications(
       continue;
     }
 
+    if (await hasReachedDailyLimit(record.recipientEmail, maxDailyEmailsPerUser)) {
+      // Waiting is not a failure, so this does not use up an attempt.
+      await db
+        .update(emailNotificationOutbox)
+        .set({
+          status: 'pending',
+          lastError: 'Daily email limit reached for this recipient',
+          availableAt: new Date(Date.now() + 60 * 60 * 1000),
+          processingAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(emailNotificationOutbox.id, record.id));
+      continue;
+    }
+
     try {
       await provider.sendEmail({
         to: record.recipientEmail,
         subject: record.subject,
-        html: record.htmlBody,
-        text: record.textBody,
+        ...withUnsubscribe(record),
       });
 
       // Mark as completed
@@ -169,7 +199,7 @@ export async function dispatchPendingEmailNotifications(
     } catch (err: unknown) {
       const errorMsg = (err as Error).message || String(err);
       const attempts = record.attempts + 1;
-      const isPermanentFailure = attempts >= 10;
+      const isPermanentFailure = attempts > retryAttempts;
 
       await db
         .update(emailNotificationOutbox)

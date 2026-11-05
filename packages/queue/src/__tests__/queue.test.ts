@@ -72,7 +72,7 @@ describe('@gami/queue - Outbox Dispatcher & Queue Test Suite', () => {
     const job = await queue.getJob(eventId);
     expect(job).not.toBeNull();
     expect(job?.id).toBe(eventId);
-    expect(job?.data).toEqual({ eventId });
+    expect(job?.data).toEqual({ eventId, replay: false });
   });
 
   it('2. Outbox Invariant: enforces UNIQUE constraint on event_outbox.event_id', async () => {

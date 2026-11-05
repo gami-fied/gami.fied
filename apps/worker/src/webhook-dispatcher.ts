@@ -1,5 +1,10 @@
 import {
+  auditLogs,
   db,
+  getPlatformSettings,
+  member,
+  projects,
+  users,
   webhookEndpoints,
   webhookOutbox,
   type WebhookEndpoint,
@@ -7,18 +12,22 @@ import {
 } from '@gami/database';
 import {
   calculateHmacSignature,
+  calculateTimestampedSignature,
   decryptSecret,
   fetchWithSsrfProtection,
   resolveAndValidateTargetIp,
 } from '@gami/webhooks';
-import { and, asc, eq, inArray, lt, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
+import { getActiveSmtpProvider } from './email-notification-dispatcher.js';
+import { claimDueRows, reclaimStaleRows } from './outbox.js';
 
-export const MAX_WEBHOOK_ATTEMPTS = 10;
 export const STALE_WEBHOOK_PROCESSING_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
-export const DEFAULT_WEBHOOK_TIMEOUT_MS = 10 * 1000; // 10 seconds
 export const MAX_CONCURRENT_WEBHOOK_ENDPOINTS = 10;
 /** Well under the stale threshold, so a record is never reclaimed while it is being sent. */
 export const WEBHOOK_BATCH_BUDGET_MS = 60 * 1000;
+/** Deliveries that used up every retry in a row, with no success between them. */
+export const MAX_CONSECUTIVE_ENDPOINT_FAILURES = 20;
 
 export interface WebhookDispatcherStats {
   processedCount: number;
@@ -26,6 +35,11 @@ export interface WebhookDispatcherStats {
   failedCount: number;
   recoveredCount: number;
   releasedCount: number;
+}
+
+interface DeliveryLimits {
+  timeoutMs: number;
+  maxAttempts: number;
 }
 
 type DeliveryOutcome =
@@ -61,8 +75,14 @@ export async function dispatchPendingWebhooks(
   limit = 50,
   forceNow?: Date
 ): Promise<WebhookDispatcherStats> {
+  const settings = await getPlatformSettings('webhooks');
   const now = forceNow ?? new Date();
-  const { claimed, recoveredCount } = await claimDueRecords(limit, now, forceNow);
+  const recoveredCount = await reclaimStaleRows(
+    webhookOutbox,
+    STALE_WEBHOOK_PROCESSING_THRESHOLD_MS,
+    now
+  );
+  const claimed = settings.enabled ? await claimDueRows(webhookOutbox, limit, forceNow) : [];
 
   const stats: WebhookDispatcherStats = {
     processedCount: 0,
@@ -72,6 +92,7 @@ export async function dispatchPendingWebhooks(
     releasedCount: 0,
   };
   if (claimed.length === 0) return stats;
+  const delivery = { timeoutMs: settings.defaultTimeoutMs, maxAttempts: settings.maxRetryAttempts + 1 };
 
   const endpoints = await db
     .select()
@@ -89,52 +110,11 @@ export async function dispatchPendingWebhooks(
     MAX_CONCURRENT_WEBHOOK_ENDPOINTS,
     async ([endpointId, records]) => {
       const endpoint = endpoints.find((candidate) => candidate.id === endpointId);
-      await sendToEndpoint(endpoint, records, { now, deadline, stats });
+      await sendToEndpoint(endpoint, records, { now, deadline, stats, delivery });
     }
   );
 
   return stats;
-}
-
-async function claimDueRecords(limit: number, now: Date, forceNow?: Date) {
-  const staleThreshold = new Date(now.getTime() - STALE_WEBHOOK_PROCESSING_THRESHOLD_MS);
-
-  return await db.transaction(async (tx) => {
-    const recovered = await tx
-      .update(webhookOutbox)
-      .set({ status: 'pending', processingAt: null, updatedAt: now })
-      .where(
-        and(eq(webhookOutbox.status, 'processing'), lt(webhookOutbox.processingAt, staleThreshold))
-      )
-      .returning({ id: webhookOutbox.id });
-
-    const due = await tx
-      .select()
-      .from(webhookOutbox)
-      .where(
-        and(
-          eq(webhookOutbox.status, 'pending'),
-          lte(webhookOutbox.availableAt, forceNow ?? sql`now()`)
-        )
-      )
-      .orderBy(asc(webhookOutbox.availableAt), asc(webhookOutbox.id))
-      .limit(limit)
-      .for('update', { skipLocked: true });
-
-    if (due.length > 0) {
-      await tx
-        .update(webhookOutbox)
-        .set({ status: 'processing', processingAt: now, updatedAt: now })
-        .where(
-          inArray(
-            webhookOutbox.id,
-            due.map((record) => record.id)
-          )
-        );
-    }
-
-    return { claimed: due, recoveredCount: recovered.length };
-  });
 }
 
 /**
@@ -144,9 +124,14 @@ async function claimDueRecords(limit: number, now: Date, forceNow?: Date) {
 async function sendToEndpoint(
   endpoint: WebhookEndpoint | undefined,
   records: WebhookOutboxRecord[],
-  context: { now: Date; deadline: number; stats: WebhookDispatcherStats }
+  context: {
+    now: Date;
+    deadline: number;
+    stats: WebhookDispatcherStats;
+    delivery: DeliveryLimits;
+  }
 ): Promise<void> {
-  const { now, deadline, stats } = context;
+  const { now, deadline, stats, delivery } = context;
 
   try {
     for (const [index, record] of records.entries()) {
@@ -155,8 +140,8 @@ async function sendToEndpoint(
         return;
       }
 
-      const outcome = await attemptDelivery(record, endpoint);
-      await saveOutcome(record, endpoint, outcome, now);
+      const outcome = await attemptDelivery(record, endpoint, delivery.timeoutMs);
+      await saveOutcome(record, endpoint, outcome, now, delivery.maxAttempts);
       stats.processedCount++;
       if (outcome.kind === 'delivered') stats.deliveredCount++;
       else stats.failedCount++;
@@ -178,7 +163,8 @@ async function sendToEndpoint(
 
 async function attemptDelivery(
   record: WebhookOutboxRecord,
-  endpoint: WebhookEndpoint | undefined
+  endpoint: WebhookEndpoint | undefined,
+  timeoutMs: number
 ): Promise<DeliveryOutcome> {
   if (!endpoint || endpoint.projectId !== record.projectId || !endpoint.active) {
     return { kind: 'failed', error: 'Webhook endpoint deactivated or deleted' };
@@ -195,21 +181,24 @@ async function attemptDelivery(
 
   try {
     const rawBody = JSON.stringify(record.payload);
-    const signature = calculateHmacSignature(rawBody, decryptSecret(endpoint.encryptedSecret));
+    const secret = decryptSecret(endpoint.encryptedSecret);
+    const timestamp = Math.floor(Date.now() / 1000);
 
     const response = await fetchWithSsrfProtection(endpoint.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-Gami-Signature': signature,
+        'X-Gami-Signature': calculateHmacSignature(rawBody, secret),
+        'X-Gami-Timestamp': String(timestamp),
+        'X-Gami-Signature-V2': signaturesFor(endpoint, secret, rawBody, timestamp),
         'X-Gami-Event-Id': record.eventId,
         'X-Gami-Event-Type': record.eventType,
         'X-Gami-Delivery-Id': record.id,
       },
       body: rawBody,
       redirect: 'manual', // Disable redirects to prevent SSRF bypass
-      signal: AbortSignal.timeout(DEFAULT_WEBHOOK_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     // Unread bodies keep the connection busy, and the content is not used.
@@ -224,11 +213,30 @@ async function attemptDelivery(
   }
 }
 
+/** Signs with the previous secret as well during a rotation, so receivers can switch over. */
+function signaturesFor(
+  endpoint: WebhookEndpoint,
+  secret: string,
+  rawBody: string,
+  timestamp: number
+): string {
+  const signatures = [calculateTimestampedSignature(rawBody, secret, timestamp)];
+  const { previousEncryptedSecret, previousSecretExpiresAt } = endpoint;
+
+  if (previousEncryptedSecret && previousSecretExpiresAt && previousSecretExpiresAt > new Date()) {
+    signatures.push(
+      calculateTimestampedSignature(rawBody, decryptSecret(previousEncryptedSecret), timestamp)
+    );
+  }
+  return signatures.join(',');
+}
+
 async function saveOutcome(
   record: WebhookOutboxRecord,
   endpoint: WebhookEndpoint | undefined,
   outcome: DeliveryOutcome,
-  now: Date
+  now: Date,
+  maxAttempts: number
 ): Promise<void> {
   const attempts = record.attempts + 1;
 
@@ -248,13 +256,13 @@ async function saveOutcome(
 
       await tx
         .update(webhookEndpoints)
-        .set({ lastDeliveryAt: now, updatedAt: now })
+        .set({ lastDeliveryAt: now, failureCount: 0, updatedAt: now })
         .where(eq(webhookEndpoints.id, record.endpointId));
     });
     return;
   }
 
-  if (outcome.kind === 'retry' && attempts < MAX_WEBHOOK_ATTEMPTS) {
+  if (outcome.kind === 'retry' && attempts < maxAttempts) {
     await db
       .update(webhookOutbox)
       .set({
@@ -269,7 +277,7 @@ async function saveOutcome(
     return;
   }
 
-  await db.transaction(async (tx) => {
+  const disabled = await db.transaction(async (tx) => {
     await tx
       .update(webhookOutbox)
       .set({
@@ -281,13 +289,74 @@ async function saveOutcome(
       })
       .where(eq(webhookOutbox.id, record.id));
 
-    if (endpoint) {
-      await tx
-        .update(webhookEndpoints)
-        .set({ failureCount: sql`webhook_endpoints.failure_count + 1`, updatedAt: now })
-        .where(eq(webhookEndpoints.id, endpoint.id));
-    }
+    if (!endpoint?.active) return false;
+
+    const [updated] = await tx
+      .update(webhookEndpoints)
+      .set({ failureCount: sql`webhook_endpoints.failure_count + 1`, updatedAt: now })
+      .where(eq(webhookEndpoints.id, endpoint.id))
+      .returning({ failureCount: webhookEndpoints.failureCount });
+
+    if (!updated || updated.failureCount < MAX_CONSECUTIVE_ENDPOINT_FAILURES) return false;
+
+    const disabledReason = `Disabled after ${updated.failureCount} failed deliveries in a row. Last error: ${outcome.error}`;
+    await tx
+      .update(webhookEndpoints)
+      .set({ active: false, disabledReason, updatedAt: now })
+      .where(eq(webhookEndpoints.id, endpoint.id));
+    await tx.insert(auditLogs).values({
+      id: `aud_${randomUUID()}`,
+      projectId: endpoint.projectId,
+      actorType: 'system',
+      actorId: 'webhook-dispatcher',
+      action: 'webhook.auto_disabled',
+      severity: 'warning',
+      resourceType: 'webhook',
+      resourceId: endpoint.id,
+      metadata: { failureCount: updated.failureCount, lastError: outcome.error },
+    });
+    return true;
   });
+
+  if (disabled && endpoint) await notifyOwnersOfDisabledEndpoint(endpoint);
+}
+
+/** A failure here is only logged: the endpoint is already disabled and shows that in the API. */
+async function notifyOwnersOfDisabledEndpoint(endpoint: WebhookEndpoint): Promise<void> {
+  try {
+    const provider = await getActiveSmtpProvider();
+    if (!provider) return;
+
+    const owners = await db
+      .select({ email: users.email })
+      .from(projects)
+      .innerJoin(member, eq(member.organizationId, projects.organizationId))
+      .innerJoin(users, eq(users.id, member.userId))
+      .where(and(eq(projects.id, endpoint.projectId), eq(member.role, 'owner')));
+
+    const text = `Gami disabled your webhook endpoint "${endpoint.name}" because deliveries to it kept failing. Fix the endpoint, then turn it back on from the dashboard.`;
+    for (const owner of owners) {
+      await provider.sendEmail({
+        to: owner.email,
+        subject: `Webhook endpoint "${endpoint.name}" was disabled`,
+        html: `<p>${escapeHtml(text)}</p>`,
+        text,
+      });
+    }
+  } catch (err: unknown) {
+    console.error(
+      `[WebhookDispatcher] Could not notify owners about endpoint ${endpoint.id}:`,
+      (err as Error).message || err
+    );
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
 /** Puts unattempted records back without using up one of their attempts. */

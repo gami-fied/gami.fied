@@ -23,10 +23,10 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | :--- | :--- | :---: | :--- |
 | 0 | Baseline: green CI, runnable stack | 11 / 15 | In progress, the rest need Docker or a CI run |
 | 1 | Security and tenant safety | 19 / 23 | In progress, 3 partly done, 1 moved to FEAT-17 |
-| 2 | Core engine correctness | 22 / 32 | In progress, 2 partly done |
-| 3 | Make every promise true | 0 / 26 | Not started |
+| 2 | Core engine correctness | 32 / 32 | Done |
+| 3 | Make every promise true | 22 / 26 | In progress, 4 partly done |
 | 4 | Developer experience | 0 / 16 | Not started |
-| 5 | Dashboard UI and UX | 0 / 34 | Not started |
+| 5 | Dashboard UI and UX | 0 / 36 | Not started |
 | 6 | Scale and operations | 0 / 13 | Not started |
 | 7 | New product features | 0 / 26 | Not started |
 | 8 | Launch and community | 0 / 11 | Not started |
@@ -188,17 +188,17 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 2.1 Event ingestion
 
-- [ ] **ENG-01** `P1` Idempotent retries can return a false 409. [events/index.ts:142](apps/api/src/events/index.ts:142) compares `JSON.stringify` of a `jsonb` value, and Postgres reorders keys. Compare a canonical hash stored on the event. `[code]`
-- [ ] **ENG-02** `P1` Merge the two copies of ingestion. The dashboard test route skips the deactivated-user check and the `user.created` webhook, so test results can differ from production. Extract one `ingestEvent` service. `[code]`
-- [ ] **ENG-03** `P2` Move the `user.created` webhook into the same transaction as the user insert. It currently passes the user ID as the event ID and is not atomic. `[code]`
-- [ ] **ENG-04** `P2` Invalid `startDate` and `endDate` values become `Invalid Date` and probably return a 500. Validate all list query params with Zod. `[check]`
+- [x] **ENG-01** `P1` Idempotent retries can return a false 409. [events/index.ts:142](apps/api/src/events/index.ts:142) compares `JSON.stringify` of a `jsonb` value, and Postgres reorders keys. Compare a canonical hash stored on the event. `[code]` Done by comparing canonical JSON rather than a stored hash, which also covers existing rows.
+- [x] **ENG-02** `P1` Merge the two copies of ingestion. The dashboard test route skips the deactivated-user check and the `user.created` webhook, so test results can differ from production. Extract one `ingestEvent` service. `[code]` Done: `apps/api/src/services/event-ingestion.ts`. The test route now returns 403 for deactivated users and 409 for a changed payload.
+- [x] **ENG-03** `P2` Move the `user.created` webhook into the same transaction as the user insert. It currently passes the user ID as the event ID and is not atomic. `[code]`
+- [x] **ENG-04** `P2` Invalid `startDate` and `endDate` values become `Invalid Date` and probably return a 500. Validate all list query params with Zod. `[check]`
 
 ### 2.2 Replay and outbox
 
-- [ ] **ENG-05** `P1` Replay does nothing for processed events but reports success. `event_outbox.event_id` is unique, so the insert at [events/index.ts:580](apps/api/src/events/index.ts:580) is dropped, and the BullMQ `jobId` also dedupes. Rule executions then skip anything completed. Design real replay with a replay ID and a clear choice of what re-runs. `[code]`
-- [~] **ENG-06** `P1` Event outbox has no terminal failure state. Attempts are not raised on reclaim, and failures retry forever. Add a max attempt count and a dead-letter view. `[code]` Done: events stop after 10 attempts with status `failed`. Left: raise attempts on reclaim, and add the dead-letter view.
+- [x] **ENG-05** `P1` Replay does nothing for processed events but reports success. `event_outbox.event_id` is unique, so the insert at [events/index.ts:580](apps/api/src/events/index.ts:580) is dropped, and the BullMQ `jobId` also dedupes. Rule executions then skip anything completed. Design real replay with a replay ID and a clear choice of what re-runs. `[code]` Done: replay runs failed rules, rules added since, and rules that did not match. Completed rules never run twice, so XP cannot be awarded again. There is deliberately no mode that repeats them.
+- [x] **ENG-06** `P1` Event outbox has no terminal failure state. Attempts are not raised on reclaim, and failures retry forever. Add a max attempt count and a dead-letter view. `[code]` Done: events stop after 10 attempts with status `failed`, and `GET /api/projects/:projectId/events/dead-letter` lists them. Events never sit in `processing`, so reclaim has nothing to count. The dashboard screen is UX-35.
 - [x] **ENG-07** `P2` The event outbox query has no `ORDER BY`, so ordering is not guaranteed and rows can starve. Order by `available_at, id`. `[code]`
-- [ ] **ENG-08** `P2` Build one generic claim, dispatch, retry helper. Six outboxes each repeat this logic with different bugs. `[code]`
+- [x] **ENG-08** `P2` Build one generic claim, dispatch, retry helper. Six outboxes each repeat this logic with different bugs. `[code]` Done for claim, reclaim and backoff in `apps/worker/src/outbox.ts`. Events and challenge rewards keep their own loops because they work inside the transaction.
 
 ### 2.3 Rule execution
 
@@ -206,16 +206,16 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [x] **ENG-10** `P1` A rule with two `award_xp` actions silently loses the second. `xp_ledger_rule_execution_unique` allows one row per execution, and the 23505 error is meant to be treated as a harmless duplicate (see ENG-31, which currently makes it fail instead). Add an action index to the unique key. `[code]` Done with migration 0025, which also stops a rule losing its second achievement.
 - [x] **ENG-11** `P1` Rule-based XP sends no `xp.awarded` or `level.up` webhook. The executor at [executor.ts:84](apps/worker/src/executor.ts:84) has its own inline copy, and `executeAwardXpAction` is never used for rules. Its registry handler would always throw. Make one `awardXp` service for rules, rewards and manual adjustments. `[code]` Done: `@gami/rewards` is now the only code that writes XP and grants rule and challenge achievements.
 - [x] **ENG-12** `P1` Rule evaluation errors are logged as "did not match", and unknown action types are marked `completed` with no effect. Store the real error, and reject unknown actions when the rule is saved. `[code]` Done. `log` and other unknown actions now fail instead of doing nothing, so existing rules using them show as failed.
-- [x] **ENG-13** `P2` Check on save that referenced achievement keys exist, and warn when they are disabled. `[code]` Done. Disabled keys return a `warnings` list on save. The dashboard does not show it yet.
+- [x] **ENG-13** `P2` Check on save that referenced achievement keys exist, and warn when they are disabled. `[code]` Done. Disabled keys return a `warnings` list on save. The dashboard shows this in UX-35.
 
 ### 2.4 XP, levels and achievements
 
-- [~] **ENG-14** `P1` Manual XP adjustment fails for external IDs. If the path ID is an existing `externalId`, the user insert is skipped and the ledger insert then fails with a 500. Resolve users properly (see DX-01). `[code]` An unknown ID now returns 404 rather than 500. Left: accepting external IDs (DX-01).
+- [x] **ENG-14** `P1` Manual XP adjustment fails for external IDs. If the path ID is an existing `externalId`, the user insert is skipped and the ledger insert then fails with a 500. Resolve users properly (see DX-01). `[code]` Done: the path accepts internal or external IDs, and an unknown ID returns 404. Other routes are DX-01.
 - [x] **ENG-15** `P1` Negative adjustments can push a balance below zero, while progression treats it as zero. Decide on a floor and enforce it in the transaction. `[code]` Done: a deduction below zero returns 422 `INSUFFICIENT_XP` and writes nothing.
 - [x] **ENG-16** `P2` Level-ups include disabled levels. [calculator.ts:113](packages/progression/src/calculator.ts:113) loops over every number, producing "Level N" notices for levels that are switched off. Iterate over active levels. `[code]`
 - [x] **ENG-17** `P2` `nextLevel` in the progress API assumes `level + 1`, which is wrong when a level is disabled. `[code]`
 
-- [x] **ENG-29** `P1` The rule builder saves `in` and `not_in` values as a comma-separated string, while the evaluator requires an array. `in` never matches and `not_in` never excludes. Split the list when saving, and reject non-array values in validation. `[code]` Done: the builder always saves arrays, and validation rejects anything else. List values are saved as strings, so `in` will not match a numeric payload value.
+- [x] **ENG-29** `P1` The rule builder saves `in` and `not_in` values as a comma-separated string, while the evaluator requires an array. `in` never matches and `not_in` never excludes. Split the list when saving, and reject non-array values in validation. `[code]` Done: the builder always saves arrays, and validation rejects anything else. Text list values also match numeric payload values.
 
 ### 2.5 Challenges
 
@@ -227,8 +227,8 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 - [x] **ENG-21** `P0` Webhook HTTP calls run inside one database transaction at [webhook-dispatcher.ts:87](apps/worker/src/webhook-dispatcher.ts:87). A batch of 50 slow endpoints can hold a transaction and connection for about 8 minutes and stall every later step of the poller. Claim rows, commit, send in parallel with per-endpoint limits, then record results. The email and integration dispatchers already work this way. `[code]`
 - [x] **ENG-22** `P1` Permanent webhook failures retry anyway. The query at [webhook-dispatcher.ts:74](apps/worker/src/webhook-dispatcher.ts:74) reselects `failed` rows under 10 attempts with no backoff, so a 404 is retried on each poll. Separate `failed` from `dead`. `[code]` Done: `failed` is now final and a retry stays `pending`, so no separate `dead` status was needed.
-- [ ] **ENG-23** `P2` Add a timestamp to the webhook signature to stop replay attacks, publish a verification helper in the SDK, and support secret rotation. `[code]`
-- [ ] **ENG-24** `P2` Automatically disable endpoints after sustained failure and notify the owner. `failureCount` is only stored. `[code]`
+- [x] **ENG-23** `P2` Add a timestamp to the webhook signature to stop replay attacks, publish a verification helper in the SDK, and support secret rotation. `[code]` Done: `X-Gami-Signature-V2` and `X-Gami-Timestamp`, `verifyWebhook` in the SDK, and a 24 hour overlap on rotation. `X-Gami-Signature` stays for existing receivers and has no replay protection.
+- [x] **ENG-24** `P2` Automatically disable endpoints after sustained failure and notify the owner. `failureCount` is only stored. `[code]` Done: 20 exhausted deliveries in a row disable the endpoint, with an audit log and an email to owners. The email has not been tested against a real SMTP server.
 
 - [x] **ENG-28** `P1` [notifications/src/service.ts](packages/notifications/src/service.ts) catches errors from a query inside the caller's transaction. A failed integration insert aborts that transaction, so the commit then fails and the XP award is lost. Phase 0 added a log line, but the catch needs a savepoint or a move outside the transaction. `[code]`
 
@@ -250,17 +250,17 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 3.1 Admin settings
 
-- [ ] **TRUTH-01** `P1` 24 settings across the security, registration, rate limit, notification, webhook and integration schemas are never read outside their schema. So far only the integration `enabled` and `allowDiscordIntegration` toggles and `requireEmailOtpVerification` are known to work. The webhook and notification `enabled` flags and `defaultEmailNotifications` still need checking. Implement each setting below, or remove it from the UI. `[ran]`
-- [ ] **TRUTH-02** `P1` Enforce `allowPublicRegistration` and `allowOrgCreation`. Self-hosters currently cannot close sign-ups. `[ran]`
-- [ ] **TRUTH-03** `P1` Enforce session lifetime, password policy, failed login lockout and login rate limits through Better Auth. `[ran]`
-- [ ] **TRUTH-04** `P1` Make rate limits read from config. `RATE_LIMIT_MAX` defaults to 100 per minute, while the admin default claims 10,000. `[code]`
-- [ ] **TRUTH-05** `P2` Enforce webhook and API key creation toggles, per-project limits, timeouts, retry counts, and daily email caps. `[ran]`
-- [ ] **TRUTH-06** `P2` Make diagnostics honest. `migrations` reports `current` whenever the database is up, and `smtp` checks only env vars, so SMTP set through the UI shows as missing at [diagnostics](apps/api/src/admin/diagnostics/index.ts:36). The onboarding checklist has the same SMTP gap. `[code]`
-- [ ] **TRUTH-07** `P3` Remove `allowSlackIntegration` and `allowExternalSso` until Slack and SSO exist. `[code]`
+- [x] **TRUTH-01** `P1` 24 settings across the security, registration, rate limit, notification, webhook and integration schemas are never read outside their schema. So far only the integration `enabled` and `allowDiscordIntegration` toggles and `requireEmailOtpVerification` are known to work. The webhook and notification `enabled` flags and `defaultEmailNotifications` still need checking. Implement each setting below, or remove it from the UI. `[ran]` Done: `getPlatformSettings` is the one reader. Removed settings that duplicated others: `sessionExpirationMinutes`, `apiRateLimit`, `eventIngestionRateLimit`. Only part of these appear in the admin UI, and the rest are API-only (UX-36).
+- [x] **TRUTH-02** `P1` Enforce `allowPublicRegistration` and `allowOrgCreation`. Self-hosters currently cannot close sign-ups. `[ran]` Done. The first account and invited emails can still sign up.
+- [x] **TRUTH-03** `P1` Enforce session lifetime, password policy, failed login lockout and login rate limits through Better Auth. `[ran]` Done. Sessions now last a fixed time from sign-in, with no sliding refresh.
+- [x] **TRUTH-04** `P1` Make rate limits read from config. `RATE_LIMIT_MAX` defaults to 100 per minute, while the admin default claims 10,000. `[code]` Done. The default project limit is now 1,000 per minute.
+- [x] **TRUTH-05** `P2` Enforce webhook and API key creation toggles, per-project limits, timeouts, retry counts, and daily email caps. `[ran]` Done. Default retry counts and timeouts match the old hardcoded behaviour.
+- [x] **TRUTH-06** `P2` Make diagnostics honest. `migrations` reports `current` whenever the database is up, and `smtp` checks only env vars, so SMTP set through the UI shows as missing at [diagnostics](apps/api/src/admin/diagnostics/index.ts:36). The onboarding checklist has the same SMTP gap. `[code]`
+- [x] **TRUTH-07** `P3` Remove `allowSlackIntegration` and `allowExternalSso` until Slack and SSO exist. `[code]`
 
 ### 3.2 Deployment
 
-- [ ] **TRUTH-08** `P1` Correct or build every false claim:
+- [x] **TRUTH-08** `P1` Correct or build every false claim: Done. Claims removed or corrected, and `docs/security-audit.md` is now an honest status page.
   - Streak tracking (not implemented, see FEAT-01)
   - Redis-cached leaderboards (no Redis in the service)
   - Multi-step challenges (counter only)
@@ -269,9 +269,9 @@ This table is the state at audit time. The Phase 0 items above show what has cha
   - DNS rebinding shield (see SEC-15)
   - Scoped API keys (see SEC-07)
   - "Enterprise Security" and the PASS marks in [docs/security-audit.md](docs/security-audit.md)
-- [ ] **TRUTH-09** `P1` `/openapi.json` returns 404 in Docker because `.dockerignore` line 21 excludes `docs/`. Bundle the spec into the build. `[code]`
-- [ ] **TRUTH-10** `P1` SMTP env names disagree. `.env.example` has `SMTP_PASS` and `SMTP_FROM`, the code reads `SMTP_PASSWORD` and `SMTP_FROM_EMAIL`, and compose passes none of them. `[ran]`
-- [ ] **TRUTH-11** `P1` Fix the Docker images, which ship the whole builder stage with dev dependencies:
+- [~] **TRUTH-09** `P1` `/openapi.json` returns 404 in Docker because `.dockerignore` line 21 excludes `docs/`. Bundle the spec into the build. `[code]` The spec is included in the image, but this has not been run in Docker (BASE-14).
+- [x] **TRUTH-10** `P1` SMTP env names disagree. `.env.example` has `SMTP_PASS` and `SMTP_FROM`, the code reads `SMTP_PASSWORD` and `SMTP_FROM_EMAIL`, and compose passes none of them. `[ran]`
+- [~] **TRUTH-11** `P1` Fix the Docker images, which ship the whole builder stage with dev dependencies: Done: `pnpm deploy` and standalone Dockerfiles, a backups volume, configurable CORS, `Caddyfile.example`, and no start after a failed migration. The deployed API bundle was started locally and `/health` answered. Left: build and run the images (BASE-14).
   - Use Next.js `standalone` output and `pnpm deploy`, and create slimmer runtime images.
   - Confirm `pnpm` works as a non-root user with Corepack, since the `migration` and `dashboard` commands need it. `[check]`
   - Confirm `/app/storage/backups` is writable. It looks root-owned, and compose mounts no volume, so backups would fail or vanish on recreate. `[check]`
@@ -281,24 +281,24 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 3.3 Documentation
 
-- [ ] **TRUTH-12** `P1` Rewrite the README quickstart. `GamiClient`, `gami.ingestEvent`, `gami.getUserXp` and `pnpm --filter @gami/database migrate` do not exist, and the `.env` copy step is missing. `[ran]`
-- [ ] **TRUTH-13** `P1` Remove the dead `docs/CURRENT_IMPLEMENTATION.md` link, and update the "20 test files, 155+ tests" claim. `[ran]`
-- [ ] **TRUTH-14** `P1` Replace `gami_pk_live_`, which appears 13 times across docs and the dashboard, with the real prefix `gami_live_`. Copied examples fail with 401 otherwise. `[ran]`
-- [ ] **TRUTH-15** `P1` Fix [packages/sdk/README.md](packages/sdk/README.md), which uses `eventKey`, `attributes`, `executionTimeMs` and no `projectId`. None of this matches the SDK. Compile docs examples in CI. `[ran]`
-- [ ] **TRUTH-16** `P2` Replace the hardcoded `gamiapi.fied.cc` host in docs and dashboard samples with the instance's own URL. `[ran]`
-- [ ] **TRUTH-17** `P2` Merge overlapping pages such as `backups.md` and `backup-restore.md`, or `analytics*.md`, and add a page describing architecture and security model. `[code]`
+- [x] **TRUTH-12** `P1` Rewrite the README quickstart. `GamiClient`, `gami.ingestEvent`, `gami.getUserXp` and `pnpm --filter @gami/database migrate` do not exist, and the `.env` copy step is missing. `[ran]`
+- [x] **TRUTH-13** `P1` Remove the dead `docs/CURRENT_IMPLEMENTATION.md` link, and update the "20 test files, 155+ tests" claim. `[ran]`
+- [x] **TRUTH-14** `P1` Replace `gami_pk_live_`, which appears 13 times across docs and the dashboard, with the real prefix `gami_live_`. Copied examples fail with 401 otherwise. `[ran]`
+- [x] **TRUTH-15** `P1` Fix [packages/sdk/README.md](packages/sdk/README.md), which uses `eventKey`, `attributes`, `executionTimeMs` and no `projectId`. None of this matches the SDK. Compile docs examples in CI. `[ran]` Done, with `pnpm docs:check` in CI. This found wrong SDK types for events, progress and leaderboards, and an added test found four SDK paths that did not exist. All are fixed.
+- [x] **TRUTH-16** `P2` Replace the hardcoded `gamiapi.fied.cc` host in docs and dashboard samples with the instance's own URL. `[ran]`
+- [x] **TRUTH-17** `P2` Merge overlapping pages such as `backups.md` and `backup-restore.md`, or `analytics*.md`, and add a page describing architecture and security model. `[code]`
 
 ### 3.4 Data lifecycle
 
-- [ ] **TRUTH-25** `P1` Organization import loses data: it skips levels, events, XP, badges awarded and challenge progress, even though they are exported. Phase 0 fixed a crash on any import containing rules (rule conditions and actions now round-trip) and three export fields that always came out empty. `[code]`
-- [ ] **TRUTH-18** `P1` Organization import cannot work on real data. It inherits the global 64 KB body limit. Stream it, or allow a large authenticated upload limit on that route. `[code]`
-- [ ] **TRUTH-19** `P1` Backups load every table into memory as JSON from the API process, including sessions and password hashes, and encryption is optional. Use `pg_dump` in a worker, encrypt by default, and support S3-compatible storage. `[code]`
-- [ ] **TRUTH-20** `P1` Add scheduled jobs for backups and retention. Events, rule executions, outboxes and notifications grow without limit, and clean-up is manual. `[ran]`
-- [ ] **TRUTH-21** `P1` Add hard deletion of an end user for GDPR and CCPA, including cascade and audit record. `DELETE` is only a soft deactivation. `[code]`
-- [ ] **TRUTH-22** `P2` Neutralise CSV formula injection in [analytics.ts:387](packages/database/src/analytics.ts:387), and stream exports rather than buffering. `[code]`
-- [ ] **TRUTH-23** `P2` Add an unsubscribe link and list-unsubscribe header to non-transactional email. Confirm what the current preference flow covers. `[check]`
-- [ ] **TRUTH-26** `P2` Turbo's strict env mode drops variables set in the shell for `turbo dev`, so the apps silently fall back to localhost. `.env` works because the apps read it themselves. Declare the variables in `turbo.json` or document this. `.env.local` is also never loaded, despite being in `.gitignore`, which surprises people. `[ran]`
-- [ ] **TRUTH-24** `P2` Commit the missing Drizzle snapshots. `meta/` has only `0002_snapshot.json` for 24 migrations, which makes `db:generate` unreliable. `platform_backups` has no migration at all, and the service creates the table through raw SQL at runtime, so add a proper migration. `[ran]`
+- [x] **TRUTH-25** `P1` Organization import loses data: it skips levels, events, XP, badges awarded and challenge progress, even though they are exported. Phase 0 fixed a crash on any import containing rules (rule conditions and actions now round-trip) and three export fields that always came out empty. `[code]`
+- [x] **TRUTH-18** `P1` Organization import cannot work on real data. It inherits the global 64 KB body limit. Stream it, or allow a large authenticated upload limit on that route. `[code]` Done with a 100 MB route limit (`ORG_IMPORT_MAX_BYTES`). The import is still held in memory rather than streamed.
+- [~] **TRUTH-19** `P1` Backups load every table into memory as JSON from the API process, including sessions and password hashes, and encryption is optional. Use `pg_dump` in a worker, encrypt by default, and support S3-compatible storage. `[code]` Done: encrypted by default with `ENCRYPTION_MASTER_KEY`, sessions left out, no default key. Left: `pg_dump`, running in a worker, and S3 storage. `pg_dump` and Docker are not available on this machine, so this needs a decision and an environment to test in.
+- [x] **TRUTH-20** `P1` Add scheduled jobs for backups and retention. Events, rule executions, outboxes and notifications grow without limit, and clean-up is manual. `[ran]` Done: retention runs in the worker every 6 hours, and scheduled backups run in the API. Backups stay off until `backupIntervalHours` is set. Events and notifications are kept forever by default.
+- [x] **TRUTH-21** `P1` Add hard deletion of an end user for GDPR and CCPA, including cascade and audit record. `DELETE` is only a soft deactivation. `[code]` Done: `POST /api/projects/:projectId/users/:userId/erase`. Backups still hold the user until they expire.
+- [~] **TRUTH-22** `P2` Neutralise CSV formula injection in [analytics.ts:387](packages/database/src/analytics.ts:387), and stream exports rather than buffering. `[code]` Formula injection is fixed. Left: streaming exports, which are capped at 5,000 rows.
+- [x] **TRUTH-23** `P2` Add an unsubscribe link and list-unsubscribe header to non-transactional email. Confirm what the current preference flow covers. `[check]` Done: signed link and one-click headers on notification emails, turning off all four email types. Not tested with a real mail client.
+- [x] **TRUTH-26** `P2` Turbo's strict env mode drops variables set in the shell for `turbo dev`, so the apps silently fall back to localhost. `.env` works because the apps read it themselves. Declare the variables in `turbo.json` or document this. `.env.local` is also never loaded, despite being in `.gitignore`, which surprises people. `[ran]` Done: `turbo.json` passes these through, and the docs say `.env.local` is not read.
+- [x] **TRUTH-24** `P2` Commit the missing Drizzle snapshots. `meta/` has only `0002_snapshot.json` for 24 migrations, which makes `db:generate` unreliable. `platform_backups` has no migration at all, and the service creates the table through raw SQL at runtime, so add a proper migration. `[ran]` Done: migration 0027 and a full snapshot, and `db:generate` now reports no changes. Older snapshots stay missing, which only matters for rollback.
 
 ---
 
@@ -381,6 +381,8 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [ ] **UX-32** `P2` The rule test panel reads `actionsExecuted`, but the evaluator returns `actions`, so matched rules never list their actions. `[code]`
 - [ ] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. The API keys page also says "No API keys" while loading. Show skeletons until data arrives. `[ran]`
 - [ ] **UX-34** `P2` At phone width the top bar cuts off the project switcher. `[ran]`
+- [ ] **UX-35** `P2` Show the failed-events list from `events/dead-letter` with a replay button, and show the `warnings` returned when saving a rule. `[code]`
+- [ ] **UX-36** `P2` Add admin screens for the registration, rate limit, notification, webhook, integration and retention settings, plus password rules. They work through `PATCH /api/admin/config`, which replaces a whole category, so a partial save resets the rest to defaults. `[code]`
 - [ ] **UX-31** `P3` Add polish: better empty states with next steps, unsaved-change warnings, and skeletons that match their content.
 
 ---

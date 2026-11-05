@@ -1,6 +1,6 @@
 import { awardXp, InsufficientXpError } from '@gami/rewards';
 import { db, endUsers, userXpBalances, xpLedger } from '@gami/database';
-import { eq, and, desc, sql, count } from 'drizzle-orm';
+import { eq, and, desc, or, sql, count } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
@@ -154,7 +154,12 @@ export async function xpRoutes(fastify: FastifyInstance) {
       const [targetUser] = await db
         .select({ id: endUsers.id })
         .from(endUsers)
-        .where(and(eq(endUsers.id, userId), eq(endUsers.projectId, projectId)));
+        .where(
+          and(
+            eq(endUsers.projectId, projectId),
+            or(eq(endUsers.id, userId), eq(endUsers.externalId, userId))
+          )
+        );
 
       if (!targetUser) {
         return reply.status(404).send({ error: 'Not Found', message: 'End user not found' });
@@ -193,7 +198,7 @@ export async function xpRoutes(fastify: FastifyInstance) {
 
           const result = await awardXp(tx, {
             projectId,
-            userId,
+            userId: targetUser.id,
             amount,
             reason: fullReason,
             metadata,
@@ -218,7 +223,7 @@ export async function xpRoutes(fastify: FastifyInstance) {
             actorId: authResult.membership.userId,
             action: 'xp.manually_adjusted',
             resourceType: 'user',
-            resourceId: userId,
+            resourceId: targetUser.id,
             metadata: { amount, reason, idempotencyKey },
           });
         }

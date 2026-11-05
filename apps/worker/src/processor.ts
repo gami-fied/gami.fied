@@ -8,7 +8,10 @@ import {
   processChallengesForEvent,
 } from './challenge-processor.js';
 
-export async function processEventJob(eventId: string): Promise<{
+export async function processEventJob(
+  eventId: string,
+  options: { replay?: boolean } = {}
+): Promise<{
   eventId: string;
   processedRulesCount: number;
   completedRulesCount: number;
@@ -55,7 +58,7 @@ export async function processEventJob(eventId: string): Promise<{
 
   // 3. Evaluate each rule with Failure Isolation
   for (const rule of projectRules) {
-    const res = await executeRuleForEvent(rule, eventData);
+    const res = await executeRuleForEvent(rule, eventData, options);
     if (res.status === 'completed') {
       completedCount++;
     }

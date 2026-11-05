@@ -18,9 +18,9 @@ Gami.Fied is an open-source, self-hostable gamification engine and infrastructur
 | 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-App Notifications, Transactional SMTP Email Outbox, HMAC-signed Webhooks, and Discord Embed Integrations. |
 | ⚙️ [**Platform Administration**](./platform-administration.md) | Platform Admin Console (`/admin/*`), Global Server Configurations, User Profile management, Immutable Audit Logs, and Storage Cleanup tools. |
 | 🐳 [**Deployment & Production**](./deployment-and-production.md) | Production Docker Compose setup, Environment variable checklist, Health check APIs (`/health`, `/ready`), Observability metrics, and Troubleshooting. |
-| 📊 [**Project Analytics & Insights**](./analytics.md) | Product analytics overview, [Analytics API](./analytics-api.md), [Data Layer Aggregations](./analytics-data.md), and [CSV Data Export](./analytics-export.md). |
-| 📦 [**Data Management & Backups**](./backups.md) | Platform Backups, [Restoration Procedures](./backup-restore.md), [Data Export](./data-export.md), [Data Import](./data-import.md), [Disaster Recovery Playbook](./disaster-recovery.md), and [Retention Policy](./data-retention.md). |
-| 📜 [**Master Technical Inventory**](./CURRENT_IMPLEMENTATION.md) | Authoritative technical inventory detailing every route, queue, schema, and system component. |
+| 📊 [**Project Analytics & Insights**](./analytics.md) | Product analytics overview, [Analytics API](./analytics.md), [Data Layer Aggregations](./analytics.md), and [CSV Data Export](./analytics.md). |
+| 📦 [**Data Management & Backups**](./backups.md) | Platform Backups, [Restoration Procedures](./backups.md), [Data Export](./data-export.md), [Data Import](./data-import.md), [Disaster Recovery Playbook](./disaster-recovery.md), and [Retention Policy](./data-retention.md). |
+| 🧭 [**Architecture & Security Model**](./architecture.md) | How the processes fit together, and how tenants and secrets are protected. |
 
 ---
 

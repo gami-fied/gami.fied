@@ -15,6 +15,7 @@ import { awardXp, grantAchievement, type RewardTransaction } from '@gami/rewards
 import { createWebhookDelivery } from '@gami/webhooks';
 import { EventData } from '@gami/rules';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
+import { exponentialBackoffMs } from './outbox.js';
 
 type ChallengeRewardOutbox = typeof challengeRewardOutbox.$inferSelect;
 
@@ -58,7 +59,7 @@ async function recordRewardFailure(
   forceNow?: Date
 ): Promise<void> {
   const attempts = record.attempts + 1;
-  const backoffMs = Math.min(300000, 1000 * Math.pow(2, attempts));
+  const backoffMs = exponentialBackoffMs(attempts);
 
   await db
     .update(challengeRewardOutbox)

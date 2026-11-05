@@ -42,11 +42,9 @@ export interface TrackEventParams {
 }
 
 export interface EventIngestionResponse {
-  success: boolean;
-  eventId: string;
-  outboxId: string;
-  status: 'pending' | 'processing' | 'processed' | 'failed';
-  duplicate?: boolean;
+  id: string;
+  status: 'accepted';
+  duplicate: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -281,12 +279,9 @@ export interface UpdateLevelParams {
 export interface UserProgressResponse {
   projectId: string;
   userId: string;
-  currentXp: number;
-  currentLevel: number;
-  levelName: string;
-  requiredXp: number;
-  nextLevelNumber?: number | null;
-  nextLevelXp?: number | null;
+  totalXp: number;
+  level: { number: number; name: string; requiredXp: number };
+  nextLevel: { number: number; name: string; requiredXp: number } | null;
   xpIntoLevel: number;
   xpToNextLevel: number;
   progressPercent: number;
@@ -319,7 +314,11 @@ export interface LeaderboardEntry {
   rank: number;
   userId: string;
   externalId: string;
-  totalXp: number;
+  name: string | null;
+  avatarUrl: string | null;
+  xp: number;
+  level?: number;
+  levelName?: string;
 }
 
 export interface ListLeaderboardResponse {
@@ -478,6 +477,7 @@ export interface WebhookEndpointRecord {
   updatedAt: string;
   lastDeliveryAt?: string | null;
   failureCount: number;
+  disabledReason?: string | null;
 }
 
 export interface WebhookDeliveryRecord {

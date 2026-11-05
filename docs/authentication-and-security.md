@@ -7,7 +7,7 @@ Gami provides multi-layered security including session authentication, RBAC auth
 ## 1. Authentication & Session Management
 
 - **Dashboard Auth**: Managed via **Better Auth** session cookies and Bearer tokens.
-- **Session Lifetimes**: Configurable via Platform Admin Settings (`sessionExpirationMinutes`, `maxSessionLifetimeHours`).
+- **Session Lifetimes**: Sessions last `maxSessionLifetimeHours` from sign-in and are not extended by activity.
 - **Emergency Session Revocation**: Platform Admins can view and revoke all active administrative sessions in one click via `POST /api/admin/sessions/revoke-all`.
 
 ---

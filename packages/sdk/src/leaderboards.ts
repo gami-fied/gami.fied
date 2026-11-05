@@ -20,7 +20,7 @@ export class LeaderboardsResource {
 
     return this.http.request<ListLeaderboardResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/leaderboards`,
+      path: `/api/projects/${params.projectId}/leaderboard`,
       query: {
         period: params.period ?? 'all_time',
         page: params.page ?? 1,
@@ -44,7 +44,7 @@ export class LeaderboardsResource {
 
     return this.http.request<UserRankResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/rank`,
+      path: `/api/projects/${params.projectId}/leaderboard/${params.userId}`,
       query: {
         period: params.period ?? 'all_time',
       },

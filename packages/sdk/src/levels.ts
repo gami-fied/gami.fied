@@ -114,13 +114,13 @@ export class LevelsResource {
 
     return this.http.request<LevelSummaryResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/levels/summary`,
+      path: `/api/projects/${params.projectId}/progression/summary`,
     });
   }
 
   /**
    * Get user's current level progression, required XP, and progress percentage.
-   * Calls GET /api/projects/:projectId/users/:userId/levels/progress
+   * Calls GET /api/projects/:projectId/users/:userId/progress
    */
   public async getUserProgress(params: GetUserProgressParams): Promise<UserProgressResponse> {
     if (!params.projectId) {
@@ -132,7 +132,7 @@ export class LevelsResource {
 
     return this.http.request<UserProgressResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/levels/progress`,
+      path: `/api/projects/${params.projectId}/users/${params.userId}/progress`,
     });
   }
 }

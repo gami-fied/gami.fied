@@ -8,7 +8,7 @@ The Gami.Fied Community Engine provides a high-performance REST API for gamifica
 Ingest a user activity event for real-time gamification evaluation.
 
 - **URL**: `POST /v1/events`
-- **Authentication**: `x-api-key: gami_pk_live_REPLACE_ME`
+- **Authentication**: `x-api-key: gami_live_REPLACE_ME`
 - **Headers**: `Idempotency-Key: <unique-uuid>` (Optional, Recommended)
 - **Request Body**:
 ```json

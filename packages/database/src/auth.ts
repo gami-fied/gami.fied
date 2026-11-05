@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import { db } from './client.js';
+import { getPlatformSettings } from './platform-settings.js';
 import * as schema from './schema/index.js';
 
 const trustedOrigins = Array.from(
@@ -51,8 +52,25 @@ export const auth = betterAuth({
       invitation: schema.invitation,
     },
   }),
+  session: {
+    // The lifetime is fixed at sign-in, so the admin limit is a real limit.
+    disableSessionRefresh: true,
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const { maxSessionLifetimeHours } = await getPlatformSettings('security');
+          const expiresAt = new Date(Date.now() + maxSessionLifetimeHours * 60 * 60 * 1000);
+          return { data: { ...session, expiresAt } };
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
+    // The real minimum comes from the admin password policy, enforced in the API's auth route.
+    minPasswordLength: 6,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       await passwordResetSender?.({ email: user.email, url });

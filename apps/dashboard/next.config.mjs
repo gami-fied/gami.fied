@@ -1,3 +1,4 @@
+/* global process */
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -13,6 +14,8 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // Docker builds use a self-contained server. Symlinks make this awkward on Windows.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   allowedDevOrigins: ['127.0.0.1'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

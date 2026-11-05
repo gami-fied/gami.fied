@@ -3,7 +3,7 @@
 Integrate Gami.Fied Community Engine via cURL / REST in 8 simple steps.
 
 ## Step 1: Obtain an API Key
-In Gami.Fied Dashboard -> **Developer** -> **API Keys**, click **Create API Key**. Copy your server-side API key (`gami_pk_live_...`).
+In Gami.Fied Dashboard -> **Developer** -> **API Keys**, click **Create API Key**. Copy your server-side API key (`gami_live_...`).
 
 ## Step 2: Identify your Project ID
 Find your Project ID in the Dashboard header or URL (e.g. `prj_123456789`).
@@ -12,9 +12,9 @@ Find your Project ID in the Dashboard header or URL (e.g. `prj_123456789`).
 Send an activity event using cURL:
 
 ```bash
-curl -X POST https://gamiapi.fied.cc/v1/events \
+curl -X POST https://api.example.com/v1/events \
   -H "Content-Type: application/json" \
-  -H "x-api-key: gami_pk_live_REPLACE_ME" \
+  -H "x-api-key: gami_live_REPLACE_ME" \
   -H "Idempotency-Key: test_evt_001" \
   -d '{
     "event": "purchase",
@@ -56,7 +56,7 @@ Check **XP & Progression** tab for user `user_123` to verify 100 XP awarded.
 ## Step 8: Error Handling
 Test invalid API key:
 ```bash
-curl -i -X POST https://gamiapi.fied.cc/v1/events \
+curl -i -X POST https://api.example.com/v1/events \
   -H "x-api-key: invalid_key"
 ```
 Response:

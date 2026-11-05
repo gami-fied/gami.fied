@@ -68,6 +68,12 @@ export function resolveDateRange(options?: DateRangeOptions): { start: Date; end
   return { start, end, preset };
 }
 
+/** Spreadsheets run cells starting with these characters as formulas, so text is prefixed. */
+function neutraliseFormula(val: unknown): string {
+  const text = String(val ?? '');
+  return typeof val === 'string' && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
 export async function getOverviewAnalytics(db: NodePgDatabase<Record<string, unknown>>, projectId: string, options?: DateRangeOptions) {
   const { start, end, preset } = resolveDateRange(options);
 
@@ -378,7 +384,7 @@ export async function getExportCsvData(
   const { start, end, preset } = resolveDateRange(options);
   const maxCap = 5000;
 
-  const escapeCell = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+  const escapeCell = (val: unknown) => `"${neutraliseFormula(val).replace(/"/g, '""')}"`;
   const formatLine = (cells: unknown[]) => cells.map(escapeCell).join(',');
 
   const typeLower = (exportType || 'all').toLowerCase();

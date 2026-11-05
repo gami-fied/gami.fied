@@ -16,6 +16,7 @@ export const eventOutbox = pgTable(
       .notNull(),
     publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
     lastError: text('last_error'),
+    replayId: text('replay_id'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },

@@ -183,6 +183,20 @@
       "when": 1793900000000,
       "tag": "0025_xp_ledger_action_index",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793990000000,
+      "tag": "0026_replay_and_webhook_rotation",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794000000000,
+      "tag": "0027_platform_backups_and_snapshot",
+      "breakpoints": true
     }
   ]
 }

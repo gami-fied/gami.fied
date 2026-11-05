@@ -17,11 +17,8 @@ export default function AdminSecurityPage() {
 
   const [form, setForm] = useState({
     requireEmailOtpVerification: false,
-    sessionExpirationMinutes: 1440,
     maxSessionLifetimeHours: 168,
     loginRateLimit: 60,
-    apiRateLimit: 1000,
-    eventIngestionRateLimit: 10000,
     maxFailedLoginAttempts: 5,
     lockoutDurationMinutes: 15,
     passwordMinLength: 8,
@@ -194,29 +191,15 @@ export default function AdminSecurityPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider">
-                2. Session &amp; Inactivity Lifetime Policies
+                2. Session Lifetime Policy
               </CardTitle>
-              <CardDescription>Configure session timeout and max lifetime limits.</CardDescription>
+              <CardDescription>Users sign in again after this long. Applies to new sessions.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-                    Session Inactivity Timeout (minutes)
-                  </label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="10080"
-                    value={form.sessionExpirationMinutes}
-                    onChange={(e) =>
-                      setForm({ ...form, sessionExpirationMinutes: parseInt(e.target.value, 10) || 1440 })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
-                    Max Absolute Session Lifetime (hours)
+                    Session Lifetime (hours)
                   </label>
                   <Input
                     type="number"

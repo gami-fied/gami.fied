@@ -24,12 +24,12 @@ export async function dispatchPendingOutboxEvents(limit = 50, forceNow?: Date): 
 
     for (const record of pendingRecords) {
       try {
-        // Deterministic jobId = record.eventId to prevent duplicate queue jobs
+        // A deterministic jobId prevents duplicate jobs. A replay needs its own, or BullMQ drops it.
         await queue.add(
           'process-event',
-          { eventId: record.eventId },
+          { eventId: record.eventId, replay: record.replayId !== null },
           {
-            jobId: record.eventId,
+            jobId: record.replayId ? `${record.eventId}-${record.replayId}` : record.eventId,
             attempts: cfg.attempts,
             backoff: {
               type: 'exponential',

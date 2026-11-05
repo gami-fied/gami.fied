@@ -44,7 +44,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: gami-migration-prod
-    command: ["pnpm", "db:migrate"]
+    command: ["node", "node_modules/@gami/database/dist/migrate.js"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
       NODE_ENV: production
@@ -76,6 +76,21 @@ services:
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       PLATFORM_BOOTSTRAP_SECRET: ${PLATFORM_BOOTSTRAP_SECRET}
       TRUST_PROXY: ${TRUST_PROXY:-false}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
+      ENCRYPTION_MASTER_KEY_PREVIOUS: ${ENCRYPTION_MASTER_KEY_PREVIOUS:-}
+      BACKUP_STORAGE_PATH: /app/storage/backups
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-}
+      RATE_LIMIT_IP_MAX: ${RATE_LIMIT_IP_MAX:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_ALLOW_SELF_SIGNED: ${SMTP_ALLOW_SELF_SIGNED:-false}
+    volumes:
+      - backups_prod_data:/app/storage/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,8 +119,18 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       NODE_ENV: production
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3001}
       ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
+      ENCRYPTION_MASTER_KEY_PREVIOUS: ${ENCRYPTION_MASTER_KEY_PREVIOUS:-}
       OUTBOX_POLL_INTERVAL_MS: 1000
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_ALLOW_SELF_SIGNED: ${SMTP_ALLOW_SELF_SIGNED:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,6 +163,7 @@ services:
       - gami-prod-network
 
 volumes:
+  backups_prod_data:
   postgres_prod_data:
     name: gami_postgres_prod_data
   redis_prod_data:

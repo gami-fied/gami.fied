@@ -1,6 +1,7 @@
 import { auth, setPasswordResetSender } from '@gami/database';
 import type { FastifyInstance } from 'fastify';
 import { OtpCooldownError, sendOtpEmailToUser } from './otp.js';
+import { checkAuthPolicy, recordSignInResult } from './policy.js';
 import { sendPlatformEmail } from '../services/platform-email.js';
 import { ServerConfigService } from '../services/server-config.service.js';
 
@@ -49,7 +50,25 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: ['GET', 'HEAD'].includes(request.method) ? undefined : body,
     });
 
+    const authBody = request.body as { email?: string; password?: string; newPassword?: string };
+
+    if (request.method === 'POST') {
+      const denial = await checkAuthPolicy({
+        path: url.pathname,
+        ip: request.ip,
+        body: authBody,
+        headers: reqHeaders,
+      });
+      if (denial) {
+        return reply.status(denial.status).send({ code: denial.code, message: denial.message });
+      }
+    }
+
     const response = await auth.handler(webReq);
+
+    if (request.method === 'POST' && url.pathname.endsWith('/sign-in/email') && authBody?.email) {
+      await recordSignInResult(authBody.email, response.ok);
+    }
 
     // If sign-up via email succeeded, check if Platform Email OTP Verification is enabled
     if (

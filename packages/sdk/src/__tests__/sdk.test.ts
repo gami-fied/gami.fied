@@ -43,7 +43,7 @@ describe('@gami.fied/sdk - Client & Unit Test Suite', () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ success: true, eventId: 'evt_1' }),
+      text: async () => JSON.stringify({ id: 'evt_1', status: 'accepted', duplicate: false }),
       headers: new Headers(),
     });
     global.fetch = mockFetch;
@@ -70,7 +70,7 @@ describe('@gami.fied/sdk - Client & Unit Test Suite', () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ success: true, eventId: 'evt_100', status: 'pending' }),
+      text: async () => JSON.stringify({ id: 'evt_100', status: 'accepted', duplicate: false }),
       headers: new Headers(),
     });
     global.fetch = mockFetch;
@@ -84,8 +84,8 @@ describe('@gami.fied/sdk - Client & Unit Test Suite', () => {
       properties: { amount: 99.99 },
     });
 
-    expect(res.success).toBe(true);
-    expect(res.eventId).toBe('evt_100');
+    expect(res.status).toBe('accepted');
+    expect(res.id).toBe('evt_100');
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.event).toBe('purchase');

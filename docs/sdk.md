@@ -21,7 +21,7 @@ import { Gami } from '@gami.fied/sdk';
 
 const gami = new Gami({
   apiKey: process.env.GAMI_API_KEY!,
-  baseUrl: 'https://gamiapi.fied.cc', // Optional, defaults to http://localhost:3001
+  baseUrl: 'https://api.example.com', // Optional, defaults to http://localhost:3001
 });
 ```
 
@@ -61,3 +61,25 @@ try {
   }
 }
 ```
+
+## Verifying webhooks
+
+Each delivery carries `X-Gami-Timestamp` and `X-Gami-Signature-V2`. The signature covers both the timestamp and the body, so a captured delivery can't be replayed later. `verifyWebhook` checks both, and rejects anything older than 5 minutes by default.
+
+```ts
+import { verifyWebhook } from '@gami.fied/sdk';
+
+// rawBody is the body exactly as received, before JSON parsing.
+export function isValidDelivery(rawBody: string, headers: Record<string, string>) {
+  return verifyWebhook({
+    rawBody,
+    secret: process.env.GAMI_WEBHOOK_SECRET!,
+    timestamp: headers['x-gami-timestamp']!,
+    signature: headers['x-gami-signature-v2']!,
+  });
+}
+```
+
+When you rotate a secret, deliveries are signed with both the new and old secrets for 24 hours, so you can switch without missing any.
+
+After 20 deliveries in a row use up all their retries, the endpoint is disabled and its owners are emailed if SMTP is set up. Turning it back on resets the count.

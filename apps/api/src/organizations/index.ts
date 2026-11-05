@@ -1,4 +1,4 @@
-import { db, member, organizations, isUniqueViolation } from '@gami/database';
+import { db, member, organizations, isUniqueViolation , getPlatformSettings, users } from '@gami/database';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireAuth, requireOrgMember, requireOrgRole } from '../authorization/index.js';
@@ -12,6 +12,21 @@ export async function organizationRoutes(fastify: FastifyInstance) {
   fastify.post('/api/organizations', async (request, reply) => {
     const session = await requireAuth(request, reply);
     if (!session) return;
+
+    const { allowOrgCreation } = await getPlatformSettings('registration');
+    if (!allowOrgCreation) {
+      const [creator] = await db
+        .select({ isPlatformAdmin: users.isPlatformAdmin })
+        .from(users)
+        .where(eq(users.id, session.user.id));
+      if (!creator?.isPlatformAdmin) {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          code: 'ORG_CREATION_DISABLED',
+          message: 'Organization creation is disabled on this instance',
+        });
+      }
+    }
 
     const { name, slug } = (request.body as { name?: string; slug?: string }) || {};
 

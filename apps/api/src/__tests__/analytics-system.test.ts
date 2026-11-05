@@ -69,7 +69,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
       method: 'GET',
       url: `/api/projects/${projectIdA}/analytics/overview?range=7d`,
       headers: {
-        'x-api-key': rawApiKeyA || 'gami_pk_live_sample_key_123',
+        'x-api-key': rawApiKeyA || 'gami_live_sample_key_123',
       },
     });
 
@@ -93,7 +93,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
         method: 'GET',
         url: `/api/projects/${projectIdA}/analytics/users?range=${r}`,
         headers: {
-          'x-api-key': rawApiKeyA || 'gami_pk_live_sample_key_123',
+          'x-api-key': rawApiKeyA || 'gami_live_sample_key_123',
         },
       });
       expect(res.statusCode).toBe(200);
@@ -108,7 +108,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
       method: 'GET',
       url: `/api/projects/${projectIdA}/analytics/export?type=all`,
       headers: {
-        'x-api-key': rawApiKeyA || 'gami_pk_live_sample_key_123',
+        'x-api-key': rawApiKeyA || 'gami_live_sample_key_123',
       },
     });
 
@@ -120,7 +120,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
 
   it('5. SDK Analytics Client Compatibility', async () => {
     const sdk = new Gami({
-      apiKey: rawApiKeyA || 'gami_pk_live_sample_key_123',
+      apiKey: rawApiKeyA || 'gami_live_sample_key_123',
       baseUrl: 'http://localhost:3001',
     });
 

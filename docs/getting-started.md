@@ -108,48 +108,49 @@ Gami.Fied provides an isomorphic TypeScript SDK (`@gami.fied/sdk`) that works in
 pnpm add @gami.fied/sdk
 ```
 
-### Initializing Client
+### Sending an event and reading progress
 
 ```typescript
-import { GamiClient } from '@gami.fied/sdk';
+import { Gami } from '@gami.fied/sdk';
 
-const gami = new GamiClient({
+const gami = new Gami({
   baseUrl: 'http://localhost:3001',
-  apiKey: 'gami_live_your_project_api_key', // Obtain from Dashboard -> API Keys
+  apiKey: 'gami_live_your_project_api_key',
 });
+
+const projectId = 'prj_your_project_id';
+
+// Send a user event. Rules and challenges run in the background.
+const event = await gami.events.track({
+  projectId,
+  userId: 'usr_12345',
+  type: 'lesson_completed',
+  properties: { lessonId: 'les_99', score: 100 },
+});
+
+console.log('Accepted event:', event.id);
+
+// Read the user's progress. This needs a key with the levels:read scope.
+const progress = await gami.levels.getUserProgress({ projectId, userId: 'usr_12345' });
+console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 
-### Event Ingestion & Gamification Trigger
+### Fetching a leaderboard
 
 ```typescript
-// Ingest a user activity event
-const response = await gami.ingestEvent({
-  userId: 'usr_1001',
-  eventType: 'lesson_completed',
-  data: { lessonId: 'les_42', score: 95 },
-});
+import { Gami } from '@gami.fied/sdk';
 
-console.log('Event Ingested:', response.eventId);
-```
+const gami = new Gami({ baseUrl: 'http://localhost:3001', apiKey: 'gami_live_REPLACE_ME' });
 
-### Fetching User XP & Progression
+const leaderboard = await gami.leaderboards.list({ projectId: 'prj_123', limit: 10 });
 
-```typescript
-const userXp = await gami.getUserXp('usr_1001');
-
-console.log(`Current Balance: ${userXp.balance} XP`);
-console.log(`Current Level: ${userXp.level.currentLevel} (${userXp.level.name})`);
-console.log(`Progress to Next Level: ${userXp.level.progressPercent}%`);
-```
-
-### Fetching Leaderboards
-
-```typescript
-const leaderboard = await gami.getLeaderboard('leaderboard_global_xp', {
-  limit: 10,
-});
-
-leaderboard.entries.forEach((entry, idx) => {
-  console.log(`#${entry.rank} - User: ${entry.userId} (${entry.score} pts)`);
+leaderboard.entries.forEach((entry) => {
+  console.log(`#${entry.rank} ${entry.externalId}: ${entry.xp} XP`);
 });
 ```
+
+Only users with XP are ranked, and deactivated users are hidden.
+
+## Environment files
+
+The apps read `.env` from the repository root. `.env.local` is not loaded, so copy values you need into `.env`. Variables set in your shell also work, because `turbo.json` passes them through.

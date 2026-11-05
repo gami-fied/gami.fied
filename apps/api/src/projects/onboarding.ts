@@ -9,12 +9,12 @@ import {
   levels,
   notifications,
   rules,
-  serverConfigs,
   webhookEndpoints,
 } from '@gami/database';
 import { count, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireProjectAccess } from '../authorization/index.js';
+import { ServerConfigService } from '../services/server-config.service.js';
 
 export async function projectOnboardingRoutes(fastify: FastifyInstance) {
   // GET /api/projects/:projectId/onboarding - Backend-driven setup checklist detector
@@ -36,7 +36,7 @@ export async function projectOnboardingRoutes(fastify: FastifyInstance) {
         [notifRow],
         [webhookRow],
         [integRow],
-        [smtpConfigRow],
+        hasSmtpConfig,
       ] = await Promise.all([
         db.select({ count: count() }).from(apiKeys).where(eq(apiKeys.projectId, projectId)),
         db.select({ count: count() }).from(endUsers).where(eq(endUsers.projectId, projectId)),
@@ -48,13 +48,8 @@ export async function projectOnboardingRoutes(fastify: FastifyInstance) {
         db.select({ count: count() }).from(notifications).where(eq(notifications.projectId, projectId)),
         db.select({ count: count() }).from(webhookEndpoints).where(eq(webhookEndpoints.projectId, projectId)),
         db.select({ count: count() }).from(integrations).where(eq(integrations.projectId, projectId)),
-        db.select().from(serverConfigs).where(eq(serverConfigs.key, 'smtp_config')),
+        ServerConfigService.isSmtpConfigured(),
       ]);
-
-      const smtpVal = smtpConfigRow?.value as Record<string, unknown> | undefined;
-      const hasSmtpConfig =
-        Boolean(process.env.SMTP_HOST && process.env.SMTP_HOST !== 'localhost') ||
-        Boolean(smtpVal && smtpVal.host && typeof smtpVal.host === 'string' && smtpVal.host.trim().length > 0);
 
       const steps = [
         {

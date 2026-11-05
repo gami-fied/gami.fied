@@ -7,17 +7,19 @@ FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm build
+RUN pnpm exec turbo build --filter=@gami/worker...
+# Copies only this app and its production dependencies, with no pnpm needed at runtime.
+RUN pnpm --filter @gami/worker deploy --prod --legacy /prod
 
-FROM base AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
-COPY --from=builder /app /app
+COPY --from=builder /prod /app
 
 USER nodejs
 
-CMD ["node", "apps/worker/dist/index.js"]
+CMD ["node", "dist/index.js"]

@@ -30,39 +30,10 @@ import {
   xpLedger,
   type PlatformBackupRecord,
 } from '@gami/database';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { createAuditLog } from '../../audit-logs/index.js';
 
 const BACKUP_DIR = path.resolve(process.cwd(), process.env.BACKUP_STORAGE_PATH || 'storage/backups');
-
-export async function ensurePlatformBackupsTable(): Promise<void> {
-  try {
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS platform_backups (
-        id text PRIMARY KEY,
-        filename text NOT NULL,
-        file_path text NOT NULL,
-        size_bytes bigint DEFAULT 0 NOT NULL,
-        backup_type text DEFAULT 'manual' NOT NULL,
-        status text DEFAULT 'creating' NOT NULL,
-        verification_status text DEFAULT 'unverified' NOT NULL,
-        checksum_sha256 text,
-        encrypted boolean DEFAULT false NOT NULL,
-        encryption_algorithm text,
-        app_version text DEFAULT '0.1.0' NOT NULL,
-        schema_version integer DEFAULT 1 NOT NULL,
-        duration_ms integer,
-        created_by_actor_id text NOT NULL,
-        expires_at timestamp with time zone,
-        metadata jsonb,
-        created_at timestamp with time zone DEFAULT now() NOT NULL,
-        updated_at timestamp with time zone DEFAULT now() NOT NULL
-      );
-    `);
-  } catch (err) {
-    console.warn('[Backups] Could not ensure platform_backups table:', err);
-  }
-}
 
 export function getBackupStorageDir(): string {
   if (!fs.existsSync(BACKUP_DIR)) {
@@ -80,6 +51,47 @@ export function sanitizeFilename(filename: string): string {
   return safeBase;
 }
 
+/** The first key encrypts. The others only decrypt, for rotated keys and older backups. */
+function backupKeys(): Buffer[] {
+  const secrets = [
+    process.env.ENCRYPTION_MASTER_KEY,
+    process.env.ENCRYPTION_MASTER_KEY_PREVIOUS,
+    process.env.BETTER_AUTH_SECRET,
+  ].filter(Boolean) as string[];
+
+  if (secrets.length === 0) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_MASTER_KEY is required to encrypt backups');
+    }
+    secrets.push('local-development-only-backup-key');
+  }
+  return secrets.map((secret) => crypto.createHash('sha256').update(secret).digest());
+}
+
+function encryptBackup(content: string): Buffer {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', backupKeys()[0]!, iv);
+  const encrypted = Buffer.concat([cipher.update(content, 'utf-8'), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
+}
+
+function decryptBackup(file: Buffer): Buffer {
+  const iv = file.subarray(0, 12);
+  const authTag = file.subarray(12, 28);
+  const encrypted = file.subarray(28);
+
+  for (const key of backupKeys()) {
+    try {
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(authTag);
+      return Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    } catch {
+      // Try the next key
+    }
+  }
+  throw new Error('Backup could not be decrypted with the configured keys');
+}
+
 export function computeFileChecksum(filePath: string): string {
   const fileBuffer = fs.readFileSync(filePath);
   return crypto.createHash('sha256').update(fileBuffer).digest('hex');
@@ -90,7 +102,6 @@ export async function createPlatformBackup(params: {
   backupType?: 'manual' | 'scheduled' | 'safety';
   encrypt?: boolean;
 }): Promise<PlatformBackupRecord> {
-  await ensurePlatformBackupsTable();
   const storageDir = getBackupStorageDir();
   const timestamp = Date.now();
   const backupId = `bkp_${timestamp}_${crypto.randomBytes(4).toString('hex')}`;
@@ -98,6 +109,8 @@ export async function createPlatformBackup(params: {
   const filePath = path.join(storageDir, filename);
 
   const startTime = Date.now();
+  // Backups hold password hashes and API key hashes, so plain files are an explicit choice.
+  const encrypt = params.encrypt ?? true;
 
   // 1. Insert database record with status 'creating'
   await db
@@ -110,8 +123,8 @@ export async function createPlatformBackup(params: {
       backupType: params.backupType || 'manual',
       status: 'creating',
       verificationStatus: 'unverified',
-      encrypted: params.encrypt || false,
-      encryptionAlgorithm: params.encrypt ? 'aes-256-gcm' : null,
+      encrypted: encrypt,
+      encryptionAlgorithm: encrypt ? 'aes-256-gcm' : null,
       appVersion: '0.1.0',
       schemaVersion: 1,
       createdByActorId: params.actorId,
@@ -125,7 +138,6 @@ export async function createPlatformBackup(params: {
       projectsList,
       usersList,
       accountList,
-      sessionList,
       memberList,
       invitationList,
       apiKeysList,
@@ -149,7 +161,6 @@ export async function createPlatformBackup(params: {
       db.select().from(projects),
       db.select().from(users),
       db.select().from(account),
-      db.select().from(session),
       db.select().from(member),
       db.select().from(invitation),
       db.select().from(apiKeys),
@@ -183,7 +194,6 @@ export async function createPlatformBackup(params: {
         projects: projectsList,
         users: usersList,
         account: accountList,
-        session: sessionList,
         member: memberList,
         invitation: invitationList,
         apiKeys: apiKeysList,
@@ -207,14 +217,8 @@ export async function createPlatformBackup(params: {
 
     let fileData: string | Buffer = JSON.stringify(dumpPayload, null, 2);
 
-    if (params.encrypt) {
-      const secretKey = crypto.createHash('sha256').update(process.env.BETTER_AUTH_SECRET || 'gami_backup_default_secret_32bytes').digest();
-      const iv = crypto.randomBytes(12);
-      const cipher = crypto.createCipheriv('aes-256-gcm', secretKey, iv);
-      const encryptedData = Buffer.concat([cipher.update(fileData, 'utf-8'), cipher.final()]);
-      const authTag = cipher.getAuthTag();
-
-      fileData = Buffer.concat([iv, authTag, encryptedData]);
+    if (encrypt) {
+      fileData = encryptBackup(fileData);
     }
 
     fs.writeFileSync(filePath, fileData);
@@ -248,7 +252,7 @@ export async function createPlatformBackup(params: {
       metadata: {
         backupType: params.backupType || 'manual',
         sizeBytes: stats.size,
-        encrypted: params.encrypt || false,
+        encrypted: encrypt,
         durationMs,
       },
     });
@@ -271,7 +275,6 @@ export async function createPlatformBackup(params: {
 }
 
 export async function listPlatformBackups(): Promise<PlatformBackupRecord[]> {
-  await ensurePlatformBackupsTable();
   return db.select().from(platformBackups).orderBy(desc(platformBackups.createdAt));
 }
 
@@ -383,17 +386,10 @@ export async function restorePlatformBackup(params: {
   // 3. Decrypt and Parse Backup File Data
   const sanitized = sanitizeFilename(record.filename);
   const targetPath = path.join(getBackupStorageDir(), sanitized);
-  let fileBuffer = fs.readFileSync(targetPath);
+  let fileBuffer: Buffer = fs.readFileSync(targetPath);
 
   if (record.encrypted) {
-    const secretKey = crypto.createHash('sha256').update(process.env.BETTER_AUTH_SECRET || 'gami_backup_default_secret_32bytes').digest();
-    const iv = fileBuffer.subarray(0, 12);
-    const authTag = fileBuffer.subarray(12, 28);
-    const encryptedData = fileBuffer.subarray(28);
-
-    const decipher = crypto.createDecipheriv('aes-256-gcm', secretKey, iv);
-    decipher.setAuthTag(authTag);
-    fileBuffer = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+    fileBuffer = decryptBackup(fileBuffer);
   }
 
   const dumpPayload = JSON.parse(fileBuffer.toString('utf-8'));

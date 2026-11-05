@@ -507,6 +507,11 @@ export function WebhooksView() {
                         ⚠ {ep.failureCount} failure{ep.failureCount !== 1 ? 's' : ''}
                       </div>
                     )}
+                    {ep.disabledReason && (
+                      <div className="mt-1 text-[10px] text-rose-400 font-semibold">
+                        {ep.disabledReason}
+                      </div>
+                    )}
                   </td>
 
                   {/* Events — collapse after 2 with "+N more" */}

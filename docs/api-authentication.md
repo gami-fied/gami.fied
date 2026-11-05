@@ -8,7 +8,7 @@ Public server-to-server API endpoints require the `x-api-key` header:
 
 ```http
 POST /v1/events HTTP/1.1
-Host: gamiapi.fied.cc
+Host: api.example.com
 Content-Type: application/json
 x-api-key: gami_live_REPLACE_ME
 ```

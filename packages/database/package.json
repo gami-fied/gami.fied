@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": ["dist", "drizzle"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -26,7 +27,8 @@
     "@gami/config": "workspace:*",
     "better-auth": "^1.6.27",
     "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@gami/challenges": "workspace:*",

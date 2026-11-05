@@ -11,19 +11,22 @@ RUN pnpm install --frozen-lockfile
 # It must be passed at build time because next.config.mjs is evaluated during `next build`.
 ARG API_URL=http://api:3001
 ENV API_URL=${API_URL}
-RUN pnpm build
+ENV NEXT_OUTPUT=standalone
+RUN pnpm exec turbo build --filter=@gami/dashboard...
 
-FROM base AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV API_URL=http://api:3001
+ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app /app
+COPY --from=builder /app/apps/dashboard/.next/standalone ./
+COPY --from=builder /app/apps/dashboard/.next/static ./apps/dashboard/.next/static
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["pnpm", "--filter", "@gami/dashboard", "start"]
+CMD ["node", "apps/dashboard/server.js"]

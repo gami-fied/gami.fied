@@ -1,4 +1,4 @@
-import { apiKeys, db } from '@gami/database';
+import { apiKeys, db, getPlatformSettings } from '@gami/database';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -35,6 +35,15 @@ export async function apiKeyManagementRoutes(fastify: FastifyInstance) {
       const { projectId } = request.params;
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
+
+      const { allowApiKeyCreation } = await getPlatformSettings('registration');
+      if (!allowApiKeyCreation) {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          code: 'API_KEY_CREATION_DISABLED',
+          message: 'API key creation is disabled on this instance',
+        });
+      }
 
       const parsed = createKeySchema.safeParse(request.body ?? {});
       if (!parsed.success) {

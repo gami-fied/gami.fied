@@ -54,10 +54,10 @@ export async function adminStorageRoutes(fastify: FastifyInstance) {
         db.select({ count: count() }).from(integrationDeliveries).where(eq(integrationDeliveries.status, 'delivered')),
         db.select({ count: count() }).from(integrationDeliveries).where(eq(integrationDeliveries.status, 'failed')),
         db.select({ count: count() }).from(emailNotificationOutbox),
-        db.select({ count: count() }).from(emailNotificationOutbox).where(eq(emailNotificationOutbox.status, 'sent')),
+        db.select({ count: count() }).from(emailNotificationOutbox).where(eq(emailNotificationOutbox.status, 'completed')),
         db.select({ count: count() }).from(emailNotificationOutbox).where(eq(emailNotificationOutbox.status, 'failed')),
         db.select({ count: count() }).from(eventOutbox),
-        db.select({ count: count() }).from(eventOutbox).where(eq(eventOutbox.status, 'completed')),
+        db.select({ count: count() }).from(eventOutbox).where(eq(eventOutbox.status, 'published')),
         db.select({ count: count() }).from(eventOutbox).where(eq(eventOutbox.status, 'failed')),
         db.select({ count: count() }).from(ruleExecutions),
         db.select({ count: count() }).from(auditLogs),
@@ -167,7 +167,7 @@ export async function adminStorageRoutes(fastify: FastifyInstance) {
       }
 
       if (target === 'email_outbox' || target === 'all_completed_logs') {
-        const conditions = [eq(emailNotificationOutbox.status, 'sent')];
+        const conditions = [eq(emailNotificationOutbox.status, 'completed')];
         if (cutoffDate) conditions.push(lte(emailNotificationOutbox.createdAt, cutoffDate));
         const res = await db.delete(emailNotificationOutbox).where(and(...conditions)).returning({ id: emailNotificationOutbox.id });
         deletedCount += res.length;

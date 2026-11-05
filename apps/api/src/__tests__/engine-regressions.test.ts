@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { createServer, type Server } from 'http';
+import { createServer, type IncomingHttpHeaders, type Server } from 'http';
 import type { AddressInfo } from 'net';
 import {
   achievements,
@@ -7,6 +7,7 @@ import {
   challenges,
   db,
   endUsers,
+  eventOutbox,
   events,
   levels,
   member,
@@ -22,14 +23,21 @@ import {
   webhookSubscriptions,
   xpLedger,
 } from '@gami/database';
+import { verifyWebhook } from '@gami.fied/sdk';
 import { getLeaderboard, getUserRank } from '@gami/leaderboards';
+import { dispatchPendingOutboxEvents, getEventQueue } from '@gami/queue';
 import { encryptSecret } from '@gami/webhooks';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { dispatchPendingChallengeRewards } from '../../../worker/src/challenge-processor.js';
 import { executeRuleForEvent } from '../../../worker/src/executor.js';
-import { dispatchPendingWebhooks } from '../../../worker/src/webhook-dispatcher.js';
+import { processEventJob } from '../../../worker/src/processor.js';
+import {
+  dispatchPendingWebhooks,
+  MAX_CONSECUTIVE_ENDPOINT_FAILURES,
+} from '../../../worker/src/webhook-dispatcher.js';
 import { buildServer } from '../index.js';
+import { createApiKey } from '../services/api-key.service.js';
 
 describe('Engine regressions', () => {
   let app: Awaited<ReturnType<typeof buildServer>>;
@@ -183,7 +191,7 @@ describe('Engine regressions', () => {
 
     it('records a non-match as skipped rather than failed', async () => {
       const rule = await makeRule([{ type: 'award_xp', params: { amount: 1 } }], {
-        field: 'score',
+        field: 'payload.score',
         operator: 'greater_than',
         value: 90,
       });
@@ -196,7 +204,7 @@ describe('Engine regressions', () => {
 
     it('stores the real error when a rule cannot be evaluated', async () => {
       const rule = await makeRule([{ type: 'award_xp', params: { amount: 1 } }], {
-        field: 'score',
+        field: 'payload.score',
         operator: 'in',
         value: 'a,b',
       });
@@ -434,6 +442,82 @@ describe('Engine regressions', () => {
       expect(rows.every((row) => row.availableAt.getTime() > Date.now())).toBe(true);
     });
 
+    it('signs the timestamp, and with both secrets during a rotation', async () => {
+      const headers: IncomingHttpHeaders[] = [];
+      const bodies: string[] = [];
+      const url = await listen((req, res) => {
+        let body = '';
+        req.on('data', (chunk) => (body += chunk));
+        req.on('end', () => {
+          headers.push(req.headers);
+          bodies.push(body);
+          res.end();
+        });
+      });
+      await subscribe(url, ['xp.awarded']);
+
+      await queue(1);
+      await dispatchPendingWebhooks(50);
+      const check = (index: number, secret: string) =>
+        verifyWebhook({
+          rawBody: bodies[index]!,
+          secret,
+          timestamp: headers[index]!['x-gami-timestamp'] as string,
+          signature: headers[index]!['x-gami-signature-v2'] as string,
+        });
+      await expect(check(0, 'whsec_test_secret')).resolves.toBe(true);
+
+      await db
+        .update(webhookEndpoints)
+        .set({
+          encryptedSecret: encryptSecret('whsec_new_secret'),
+          previousEncryptedSecret: encryptSecret('whsec_test_secret'),
+          previousSecretExpiresAt: new Date(Date.now() + 60_000),
+        })
+        .where(eq(webhookEndpoints.id, endpointId));
+
+      await queue(1);
+      await dispatchPendingWebhooks(50);
+      await expect(check(1, 'whsec_new_secret')).resolves.toBe(true);
+      await expect(check(1, 'whsec_test_secret')).resolves.toBe(true);
+    });
+
+    it('disables an endpoint after sustained failure, and a success resets the count', async () => {
+      let status = 200;
+      const url = await listen((_req, res) => {
+        res.statusCode = status;
+        res.end();
+      });
+      await subscribe(url, ['xp.awarded']);
+      await db
+        .update(webhookEndpoints)
+        .set({ failureCount: 5 })
+        .where(eq(webhookEndpoints.id, endpointId));
+
+      await queue(1);
+      await dispatchPendingWebhooks(50);
+      const endpoint = async () => {
+        const [row] = await db
+          .select()
+          .from(webhookEndpoints)
+          .where(eq(webhookEndpoints.id, endpointId));
+        return row!;
+      };
+      expect((await endpoint()).failureCount).toBe(0);
+
+      status = 404;
+      await db
+        .update(webhookEndpoints)
+        .set({ failureCount: MAX_CONSECUTIVE_ENDPOINT_FAILURES - 1 })
+        .where(eq(webhookEndpoints.id, endpointId));
+      await queue(1);
+      await dispatchPendingWebhooks(50);
+
+      const disabled = await endpoint();
+      expect(disabled.active).toBe(false);
+      expect(disabled.disabledReason).toContain('HTTP 404');
+    });
+
     it('sends xp.awarded and level.up for rule-based XP', async () => {
       const url = await listen((_req, res) => res.end());
       await subscribe(url, ['xp.awarded', 'level.up']);
@@ -444,6 +528,184 @@ describe('Engine regressions', () => {
 
       const types = (await statuses()).map((row) => row.eventType).sort();
       expect(types).toEqual(['level.up', 'xp.awarded']);
+    });
+  });
+
+  describe('event ingestion', () => {
+    let apiKey: string;
+
+    const send = (payload: Record<string, unknown>) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/events',
+        headers: { 'x-api-key': apiKey },
+        payload,
+      });
+
+    beforeAll(async () => {
+      apiKey = (await createApiKey(projectId, 'Ingest', ['*'])).rawSecret;
+    });
+
+    it('treats a retry as a duplicate when only the key order differs', async () => {
+      const idempotency_key = `key_${randomUUID()}`;
+      const first = await send({
+        event: 'order',
+        idempotency_key,
+        payload: { b: 1, a: { d: 2, c: [1, { z: 1, y: 2 }] } },
+      });
+      const retry = await send({
+        event: 'order',
+        idempotency_key,
+        payload: { a: { c: [1, { y: 2, z: 1 }], d: 2 }, b: 1 },
+      });
+
+      expect(first.statusCode).toBe(202);
+      expect(retry.statusCode).toBe(202);
+      expect(JSON.parse(retry.payload)).toMatchObject({
+        id: JSON.parse(first.payload).id,
+        duplicate: true,
+      });
+    });
+
+    it('still rejects a changed payload under the same key', async () => {
+      const idempotency_key = `key_${randomUUID()}`;
+      await send({ event: 'order', idempotency_key, payload: { total: 1 } });
+      const res = await send({ event: 'order', idempotency_key, payload: { total: 2 } });
+      expect(res.statusCode).toBe(409);
+    });
+
+    it('applies the same deactivated-user check on the dashboard test route', async () => {
+      const externalId = `off_${suffix}`;
+      await db.insert(endUsers).values({
+        id: `usr_off_${suffix}`,
+        projectId,
+        externalId,
+        active: false,
+      });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/events/test`,
+        headers: { cookie },
+        payload: { event: 'order', user_id: externalId },
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('rejects an invalid date filter with 400', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/projects/${projectId}/events?startDate=not-a-date`,
+        headers: { cookie },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('lists events that exhausted their retries', async () => {
+      const event = await makeEvent('dead_letter_test');
+      await db.insert(eventOutbox).values({
+        id: `out_dead_${suffix}`,
+        eventId: event.id,
+        status: 'failed',
+        attempts: 10,
+        lastError: 'Redis unavailable',
+      });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/projects/${projectId}/events/dead-letter`,
+        headers: { cookie },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const row = JSON.parse(res.payload).data.find(
+        (item: { eventId: string }) => item.eventId === event.id
+      );
+      expect(row).toMatchObject({ attempts: 10, lastError: 'Redis unavailable' });
+    });
+  });
+
+  describe('replay', () => {
+    const replay = async (eventId: string) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/events/${eventId}/replay`,
+        headers: { cookie },
+      });
+      expect(res.statusCode).toBe(200);
+      return JSON.parse(res.payload) as { replayId: string; outboxId: string };
+    };
+
+    it('queues a new job for a processed event, and never repeats completed rules', async () => {
+      const type = `replay_${suffix}`;
+      const rule = await makeRule([{ type: 'award_xp', params: { amount: 3 } }]);
+      await db.update(rules).set({ trigger: type }).where(eq(rules.id, rule.id));
+
+      const event = await makeEvent(type);
+      await db.insert(eventOutbox).values({
+        id: `out_rpl_${suffix}`,
+        eventId: event.id,
+        status: 'published',
+      });
+      await processEventJob(event.id);
+      const afterFirstRun = await xpTotal();
+
+      // A rule added later is the reason to replay, and it must run without repeating the first.
+      const added = await makeRule([{ type: 'award_xp', params: { amount: 4 } }]);
+      await db.update(rules).set({ trigger: type }).where(eq(rules.id, added.id));
+
+      const { replayId, outboxId } = await replay(event.id);
+      expect(outboxId).toBe(`out_rpl_${suffix}`);
+
+      const [outbox] = await db.select().from(eventOutbox).where(eq(eventOutbox.eventId, event.id));
+      expect(outbox).toMatchObject({ status: 'pending', replayId });
+
+      await dispatchPendingOutboxEvents(50);
+      const job = await getEventQueue().getJob(`${event.id}-${replayId}`);
+      expect(job?.data).toMatchObject({ eventId: event.id, replay: true });
+      await job?.remove();
+
+      await processEventJob(event.id, { replay: true });
+      expect(await xpTotal()).toBe(afterFirstRun + 4);
+    });
+
+    it('re-evaluates a rule that did not match before', async () => {
+      const type = `replay_edit_${suffix}`;
+      const rule = await makeRule([{ type: 'award_xp', params: { amount: 2 } }], {
+        field: 'payload.score',
+        operator: 'greater_than',
+        value: 90,
+      });
+      await db.update(rules).set({ trigger: type }).where(eq(rules.id, rule.id));
+      const event = await makeEvent(type, { score: 50 });
+
+      await processEventJob(event.id);
+      const before = await xpTotal();
+
+      await db
+        .update(rules)
+        .set({ conditions: { field: 'payload.score', operator: 'greater_than', value: 10 } })
+        .where(eq(rules.id, rule.id));
+
+      await processEventJob(event.id);
+      expect(await xpTotal()).toBe(before);
+
+      await processEventJob(event.id, { replay: true });
+      expect(await xpTotal()).toBe(before + 2);
+    });
+  });
+
+  describe('XP adjustment by external ID', () => {
+    it('accepts the external ID in the path', async () => {
+      const before = await xpTotal();
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/users/eng_${suffix}/xp/adjust`,
+        headers: { cookie },
+        payload: { amount: 2, reason: 'by external id' },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(await xpTotal()).toBe(before + 2);
     });
   });
 

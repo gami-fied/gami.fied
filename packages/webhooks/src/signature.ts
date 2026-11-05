@@ -107,3 +107,15 @@ export function verifyHmacSignature(
 
   return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
 }
+
+/**
+ * Signs `<timestamp>.<body>`, so a captured delivery cannot be replayed later.
+ * Receivers check the timestamp is recent, for example with `verifyWebhook` from the SDK.
+ */
+export function calculateTimestampedSignature(
+  rawBody: string,
+  secret: string,
+  timestamp: number
+): string {
+  return calculateHmacSignature(`${timestamp}.${rawBody}`, secret);
+}

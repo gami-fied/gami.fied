@@ -12,8 +12,8 @@ pnpm add @gami.fied/sdk
 import { Gami, GamiError } from '@gami.fied/sdk';
 
 const gami = new Gami({
-  apiKey: process.env.GAMI_API_KEY || 'gami_pk_live_REPLACE_ME',
-  baseUrl: 'https://gamiapi.fied.cc',
+  apiKey: process.env.GAMI_API_KEY || 'gami_live_REPLACE_ME',
+  baseUrl: 'https://api.example.com',
 });
 
 async function main() {

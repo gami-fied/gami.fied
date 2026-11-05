@@ -1,13 +1,13 @@
 import crypto from 'crypto';
-import { db, endUsers, eventOutbox, events, isUniqueViolation } from '@gami/database';
-import { createWebhookDelivery } from '@gami/webhooks';
-import { eq, and, desc, gte, lte } from 'drizzle-orm';
+import { db, eventOutbox, events } from '@gami/database';
+import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
 import { hasScope } from '../authorization/permissions.js';
 import { checkRateLimit } from '../middleware/rate-limiter.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
+import { ingestEvent } from '../services/event-ingestion.js';
 
 const eventIngestionSchema = z.object({
   event: z.string().min(1).max(128),
@@ -20,6 +20,24 @@ const eventIngestionSchema = z.object({
     .transform((val) => (val ? new Date(val) : new Date())),
   idempotency_key: z.string().max(128).optional(),
 });
+
+const listEventsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(20)
+    .transform((value) => Math.min(value, 100)),
+  type: z.string().optional(),
+  userId: z.string().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
+const IDEMPOTENCY_MISMATCH_MESSAGE =
+  'The Idempotency-Key has already been used with a different request payload.';
+const USER_DEACTIVATED_MESSAGE = 'User account is deactivated in this project';
 
 export async function eventRoutes(fastify: FastifyInstance) {
   // Public Event Ingestion Endpoint (Requires x-api-key)
@@ -144,203 +162,34 @@ export async function eventRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // Pre-check for existing idempotent request & payload collision
-    if (idempotencyKey) {
-      const [existingEvent] = await db
-        .select()
-        .from(events)
-        .where(and(eq(events.projectId, project.id), eq(events.idempotencyKey, idempotencyKey)));
+    const result = await ingestEvent({
+      projectId: project.id,
+      eventType,
+      externalUserId,
+      payload,
+      occurredAt,
+      idempotencyKey,
+    });
 
-      if (existingEvent) {
-        const existingPayloadStr = JSON.stringify(existingEvent.payload || {});
-        const incomingPayloadStr = JSON.stringify(payload || {});
-        const isPayloadMatch =
-          existingEvent.type === eventType && existingPayloadStr === incomingPayloadStr;
-
-        if (!isPayloadMatch) {
-          return reply.status(409).send({
-            error: {
-              code: 'IDEMPOTENCY_KEY_MISMATCH',
-              message:
-                'The Idempotency-Key has already been used with a different request payload.',
-            },
-            message: 'The Idempotency-Key has already been used with a different request payload.',
-            code: 'IDEMPOTENCY_KEY_MISMATCH',
-          });
-        }
-
-        return reply.status(202).send({
-          id: existingEvent.id,
-          status: 'accepted',
-          duplicate: true,
-        });
-      }
-    }
-
-    // Concurrency-Safe End-User Resolution & Deactivation Check
-    let internalUserId: string | null = null;
-    if (externalUserId) {
-      const [existingUser] = await db
-        .select()
-        .from(endUsers)
-        .where(and(eq(endUsers.projectId, project.id), eq(endUsers.externalId, externalUserId)));
-
-      if (existingUser) {
-        if (!existingUser.active) {
-          return reply.status(403).send({
-            error: {
-              code: 'FORBIDDEN',
-              message: 'User account is deactivated in this project',
-            },
-            message: 'User account is deactivated in this project',
-            code: 'FORBIDDEN',
-          });
-        }
-        internalUserId = existingUser.id;
-      } else {
-        const newUserId = `usr_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-        await db
-          .insert(endUsers)
-          .values({
-            id: newUserId,
-            projectId: project.id,
-            externalId: externalUserId,
-            active: true,
-          })
-          .onConflictDoNothing();
-
-        const [resolvedUser] = await db
-          .select({ id: endUsers.id, active: endUsers.active })
-          .from(endUsers)
-          .where(and(eq(endUsers.projectId, project.id), eq(endUsers.externalId, externalUserId)));
-
-        if (resolvedUser) {
-          if (!resolvedUser.active) {
-            return reply.status(403).send({
-              error: {
-                code: 'FORBIDDEN',
-                message: 'User account is deactivated in this project',
-              },
-              message: 'User account is deactivated in this project',
-              code: 'FORBIDDEN',
-            });
-          }
-          internalUserId = resolvedUser.id;
-
-          await createWebhookDelivery(db, {
-            projectId: project.id,
-            eventId: resolvedUser.id,
-            eventType: 'user.created',
-            userId: resolvedUser.id,
-            data: { externalId: externalUserId },
-          });
-        }
-      }
-    }
-
-    // Idempotent Event Record & Outbox Atomic Transaction
-    const newEventId = `evt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-    const newOutboxId = `out_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-
-    try {
-      const result = await db.transaction(async (tx) => {
-        if (idempotencyKey) {
-          const [existing] = await tx
-            .select()
-            .from(events)
-            .where(
-              and(eq(events.projectId, project.id), eq(events.idempotencyKey, idempotencyKey))
-            );
-
-          if (existing) {
-            const existingPayloadStr = JSON.stringify(existing.payload || {});
-            const incomingPayloadStr = JSON.stringify(payload || {});
-            if (existing.type !== eventType || existingPayloadStr !== incomingPayloadStr) {
-              throw new Error('IDEMPOTENCY_KEY_MISMATCH');
-            }
-            return {
-              id: existing.id,
-              status: 'accepted',
-              duplicate: true,
-            };
-          }
-        }
-
-        const [createdEvent] = await tx
-          .insert(events)
-          .values({
-            id: newEventId,
-            projectId: project.id,
-            userId: internalUserId,
-            type: eventType,
-            payload,
-            idempotencyKey: idempotencyKey || null,
-            occurredAt,
-          })
-          .returning();
-
-        if (!createdEvent) {
-          throw new Error('Failed to insert event record');
-        }
-
-        await tx.insert(eventOutbox).values({
-          id: newOutboxId,
-          eventId: createdEvent.id,
-          status: 'pending',
-        });
-
-        return {
-          id: createdEvent.id,
-          status: 'accepted',
-          duplicate: false,
-        };
+    if (result.outcome === 'idempotency_mismatch') {
+      return reply.status(409).send({
+        error: { code: 'IDEMPOTENCY_KEY_MISMATCH', message: IDEMPOTENCY_MISMATCH_MESSAGE },
+        message: IDEMPOTENCY_MISMATCH_MESSAGE,
+        code: 'IDEMPOTENCY_KEY_MISMATCH',
       });
-
-      return reply.status(202).send(result);
-    } catch (err: unknown) {
-      if ((err as Error)?.message === 'IDEMPOTENCY_KEY_MISMATCH') {
-        return reply.status(409).send({
-          error: {
-            code: 'IDEMPOTENCY_KEY_MISMATCH',
-            message:
-              'The Idempotency-Key has already been used with a different request payload.',
-          },
-          message: 'The Idempotency-Key has already been used with a different request payload.',
-          code: 'IDEMPOTENCY_KEY_MISMATCH',
-        });
-      }
-
-      if (isUniqueViolation(err) && idempotencyKey) {
-        const [existingEvent] = await db
-          .select()
-          .from(events)
-          .where(and(eq(events.projectId, project.id), eq(events.idempotencyKey, idempotencyKey)));
-
-        if (existingEvent) {
-          const existingPayloadStr = JSON.stringify(existingEvent.payload || {});
-          const incomingPayloadStr = JSON.stringify(payload || {});
-          if (existingEvent.type !== eventType || existingPayloadStr !== incomingPayloadStr) {
-            return reply.status(409).send({
-              error: {
-                code: 'IDEMPOTENCY_KEY_MISMATCH',
-                message:
-                  'The Idempotency-Key has already been used with a different request payload.',
-              },
-              message:
-                'The Idempotency-Key has already been used with a different request payload.',
-              code: 'IDEMPOTENCY_KEY_MISMATCH',
-            });
-          }
-
-          return reply.status(202).send({
-            id: existingEvent.id,
-            status: 'accepted',
-            duplicate: true,
-          });
-        }
-      }
-      throw err;
     }
+
+    if (result.outcome === 'user_deactivated') {
+      return reply.status(403).send({
+        error: { code: 'FORBIDDEN', message: USER_DEACTIVATED_MESSAGE },
+        message: USER_DEACTIVATED_MESSAGE,
+        code: 'FORBIDDEN',
+      });
+    }
+
+    return reply
+      .status(202)
+      .send({ id: result.id, status: 'accepted', duplicate: result.duplicate });
   });
 
   // Dashboard Control Center: Authenticated Test Event Ingestion (Session Cookie Auth)
@@ -368,133 +217,85 @@ export async function eventRoutes(fastify: FastifyInstance) {
         idempotency_key: idempotencyKey,
       } = parseResult.data;
 
-      let internalUserId: string | null = null;
-      if (externalUserId) {
-        const newUserId = `usr_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-        await db
-          .insert(endUsers)
-          .values({
-            id: newUserId,
-            projectId,
-            externalId: externalUserId,
-          })
-          .onConflictDoNothing();
+      const result = await ingestEvent({
+        projectId,
+        eventType,
+        externalUserId,
+        payload,
+        occurredAt,
+        idempotencyKey,
+      });
 
-        const [resolvedUser] = await db
-          .select({ id: endUsers.id })
-          .from(endUsers)
-          .where(and(eq(endUsers.projectId, projectId), eq(endUsers.externalId, externalUserId)));
-
-        internalUserId = resolvedUser?.id || null;
-      }
-
-      const newEventId = `evt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-      const newOutboxId = `out_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-
-      try {
-        const result = await db.transaction(async (tx) => {
-          if (idempotencyKey) {
-            const [existing] = await tx
-              .select()
-              .from(events)
-              .where(
-                and(eq(events.projectId, projectId), eq(events.idempotencyKey, idempotencyKey))
-              );
-
-            if (existing) {
-              return {
-                id: existing.id,
-                status: 'accepted',
-                duplicate: true,
-              };
-            }
-          }
-
-          const [createdEvent] = await tx
-            .insert(events)
-            .values({
-              id: newEventId,
-              projectId,
-              userId: internalUserId,
-              type: eventType,
-              payload,
-              idempotencyKey: idempotencyKey || null,
-              occurredAt,
-            })
-            .returning();
-
-          if (!createdEvent) {
-            throw new Error('Failed to insert event record');
-          }
-
-          await tx.insert(eventOutbox).values({
-            id: newOutboxId,
-            eventId: createdEvent.id,
-            status: 'pending',
-          });
-
-          return {
-            id: createdEvent.id,
-            status: 'accepted',
-            duplicate: false,
-          };
+      if (result.outcome === 'idempotency_mismatch') {
+        return reply.status(409).send({
+          error: 'Conflict',
+          code: 'IDEMPOTENCY_KEY_MISMATCH',
+          message: IDEMPOTENCY_MISMATCH_MESSAGE,
         });
-
-        return reply.status(202).send(result);
-      } catch (err: unknown) {
-        if (isUniqueViolation(err) && idempotencyKey) {
-          const [existingEvent] = await db
-            .select()
-            .from(events)
-            .where(and(eq(events.projectId, projectId), eq(events.idempotencyKey, idempotencyKey)));
-
-          if (existingEvent) {
-            return reply.status(202).send({
-              id: existingEvent.id,
-              status: 'accepted',
-              duplicate: true,
-            });
-          }
-        }
-        throw err;
       }
+
+      if (result.outcome === 'user_deactivated') {
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', code: 'FORBIDDEN', message: USER_DEACTIVATED_MESSAGE });
+      }
+
+      return reply
+        .status(202)
+        .send({ id: result.id, status: 'accepted', duplicate: result.duplicate });
     }
   );
 
   // Dashboard: List Events for a Project (Paginated & Filtered)
-  fastify.get<{
-    Params: { projectId: string };
-    Querystring: {
-      page?: string;
-      limit?: string;
-      type?: string;
-      userId?: string;
-      startDate?: string;
-      endDate?: string;
-    };
-  }>('/api/projects/:projectId/events', async (request, reply) => {
+  fastify.get<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/events/dead-letter',
+    async (request, reply) => {
+      const { projectId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const failed = await db
+        .select({
+          eventId: events.id,
+          type: events.type,
+          occurredAt: events.occurredAt,
+          attempts: eventOutbox.attempts,
+          lastError: eventOutbox.lastError,
+          failedAt: eventOutbox.updatedAt,
+        })
+        .from(eventOutbox)
+        .innerJoin(events, eq(eventOutbox.eventId, events.id))
+        .where(and(eq(events.projectId, projectId), eq(eventOutbox.status, 'failed')))
+        .orderBy(desc(eventOutbox.updatedAt))
+        .limit(100);
+
+      return reply.send({ data: failed });
+    }
+  );
+
+  fastify.get<{ Params: { projectId: string } }>('/api/projects/:projectId/events', async (request, reply) => {
     const { projectId } = request.params;
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    const page = Math.max(1, Number(request.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 20));
+    const query = listEventsQuerySchema.safeParse(request.query);
+    if (!query.success) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid query parameters',
+        details: query.error.format(),
+      });
+    }
+
+    const { page, limit, type, userId, startDate, endDate } = query.data;
     const offset = (page - 1) * limit;
 
     const conditions = [eq(events.projectId, projectId)];
 
-    if (request.query.type) {
-      conditions.push(eq(events.type, request.query.type));
-    }
-    if (request.query.userId) {
-      conditions.push(eq(events.userId, request.query.userId));
-    }
-    if (request.query.startDate) {
-      conditions.push(gte(events.occurredAt, new Date(request.query.startDate)));
-    }
-    if (request.query.endDate) {
-      conditions.push(lte(events.occurredAt, new Date(request.query.endDate)));
-    }
+    if (type) conditions.push(eq(events.type, type));
+    if (userId) conditions.push(eq(events.userId, userId));
+    if (startDate) conditions.push(gte(events.occurredAt, startDate));
+    if (endDate) conditions.push(lte(events.occurredAt, endDate));
 
     const eventList = await db
       .select()
@@ -552,39 +353,31 @@ export async function eventRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Not Found', message: 'Event not found' });
       }
 
-      // Check existing outbox record for this event
-      const [existingOutbox] = await db
-        .select()
-        .from(eventOutbox)
-        .where(eq(eventOutbox.eventId, eventId));
-
-      let outboxId = existingOutbox?.id;
-
-      if (existingOutbox && (existingOutbox.status === 'failed' || existingOutbox.status === 'processing')) {
-        // Unprocessed/failed event -> reset status back to pending
-        await db
-          .update(eventOutbox)
-          .set({
+      // Replay runs whatever has not completed: failed rules, rules added since, and rules that
+      // did not match before. Completed rules never run twice, so XP cannot be awarded again.
+      const replayId = `rpl_${crypto.randomBytes(8).toString('hex')}`;
+      const [outbox] = await db
+        .insert(eventOutbox)
+        .values({
+          id: `out_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+          eventId: targetEvent.id,
+          status: 'pending',
+          replayId,
+        })
+        .onConflictDoUpdate({
+          target: eventOutbox.eventId,
+          set: {
             status: 'pending',
             attempts: 0,
-            availableAt: new Date(),
+            availableAt: sql`now()`,
+            publishedAt: null,
+            lastError: null,
+            replayId,
             updatedAt: new Date(),
-          })
-          .where(eq(eventOutbox.id, existingOutbox.id));
-      } else {
-        // Processed event -> re-enqueue intent with unique outbox entry while preserving eventId lineage
-        outboxId = `out_replay_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-        await db
-          .insert(eventOutbox)
-          .values({
-            id: outboxId,
-            eventId: targetEvent.id,
-            status: 'pending',
-            attempts: 0,
-            availableAt: new Date(),
-          })
-          .onConflictDoNothing();
-      }
+          },
+        })
+        .returning({ id: eventOutbox.id });
+      const outboxId = outbox?.id;
 
       const { createAuditLog } = await import('../audit-logs/index.js');
       await createAuditLog(db, {
@@ -598,14 +391,16 @@ export async function eventRoutes(fastify: FastifyInstance) {
           eventId,
           eventType: targetEvent.type,
           outboxId,
+          replayId,
           replayedAt: new Date().toISOString(),
         },
       });
 
       return reply.send({
-        message: `Event "${eventId}" queued for replay successfully. Side-effect idempotency guards remain active.`,
+        message: `Event "${eventId}" queued for replay. Rules that already completed will not run again.`,
         eventId,
         outboxId,
+        replayId,
         replayedAt: new Date().toISOString(),
       });
     }

@@ -13,10 +13,10 @@
 ## Key Features
 
 - ⚡ **Event-Driven Rules Engine**: Trigger XP, achievements, and quest progress automatically via custom event payloads.
-- 🏆 **Gamification Core**: Balances, XP ledgers, leveling curves, streak tracking, and real-time leaderboards.
-- 🎯 **Quests & Challenges**: Multi-step challenge progression with idempotent reward outbox processing.
+- 🏆 **Gamification Core**: Balances, XP ledgers, levels, achievements, and leaderboards.
+- 🎯 **Challenges**: Counter-based challenges with idempotent reward outbox processing.
 - 🔔 **Multi-Channel Delivery**: In-app notifications, transactional SMTP emails, webhooks (with HMAC SHA-256 signatures), and Discord embeds.
-- 🛡️ **Enterprise Security & Isolation**: Multi-tenant organization/project scoping, RBAC permissions, encrypted vault secrets (AES-256-GCM), and platform admin controls.
+- 🛡️ **Security & Isolation**: Multi-tenant organization/project scoping, RBAC permissions, encrypted vault secrets (AES-256-GCM), and platform admin controls.
 - 💻 **Isomorphic TypeScript SDK**: Official `@gami.fied/sdk` with automatic retries, strict typing, and zero runtime dependencies.
 
 ---
@@ -120,25 +120,28 @@ pnpm add @gami.fied/sdk
 Initialize the client and record an event:
 
 ```typescript
-import { GamiClient } from '@gami.fied/sdk';
+import { Gami } from '@gami.fied/sdk';
 
-const gami = new GamiClient({
+const gami = new Gami({
   baseUrl: 'http://localhost:3001',
   apiKey: 'gami_live_your_project_api_key',
 });
 
-// Ingest a user event to trigger XP and challenge evaluation
-const result = await gami.ingestEvent({
+const projectId = 'prj_your_project_id';
+
+// Send a user event. Rules and challenges run in the background.
+const event = await gami.events.track({
+  projectId,
   userId: 'usr_12345',
-  eventType: 'lesson_completed',
-  data: { lessonId: 'les_99', score: 100 },
+  type: 'lesson_completed',
+  properties: { lessonId: 'les_99', score: 100 },
 });
 
-console.log('Ingested Event ID:', result.eventId);
+console.log('Accepted event:', event.id);
 
-// Retrieve user XP and level details
-const userXp = await gami.getUserXp('usr_12345');
-console.log(`User Level: ${userXp.level.currentLevel}, XP: ${userXp.balance}`);
+// Read the user's progress. This needs a key with the levels:read scope.
+const progress = await gami.levels.getUserProgress({ projectId, userId: 'usr_12345' });
+console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 
 ---
@@ -168,7 +171,7 @@ Comprehensive documentation is available in the [`docs/`](./docs) folder:
 - 🔔 [Notifications, Webhooks & Integrations](./docs/notifications-and-integrations.md)
 - ⚙️ [Platform Administration & Audit Logs](./docs/platform-administration.md)
 - 🐳 [Production Deployment & Troubleshooting](./docs/deployment-and-production.md)
-- 📜 [Master Technical System Inventory](./docs/CURRENT_IMPLEMENTATION.md)
+- 🧭 [Architecture & Security Model](./docs/architecture.md)
 
 ---
 

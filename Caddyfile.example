@@ -1,0 +1,15 @@
+# Example reverse proxy with automatic TLS. Run Caddy on the host or add it to Compose.
+# Set in .env:
+#   BETTER_AUTH_URL=https://api.example.com
+#   NEXT_PUBLIC_APP_URL=https://app.example.com
+#   NEXT_PUBLIC_API_URL=https://api.example.com
+#   TRUST_PROXY=true
+# Then remove the published ports for api and dashboard in docker-compose.yml.
+
+app.example.com {
+	reverse_proxy dashboard:3000
+}
+
+api.example.com {
+	reverse_proxy api:3001
+}

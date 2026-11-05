@@ -33,7 +33,7 @@ const DEFAULT_SPEC: OpenApiSpec = {
     version: '0.1.0',
     description: 'Canonical developer and project-scoped API reference for Gami.Fied Community Engine.',
   },
-  servers: [{ url: 'https://gamiapi.fied.cc', description: 'Production API Engine' }],
+  servers: [{ url: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001' }],
   paths: {
     '/v1/events': {
       post: {
@@ -44,7 +44,7 @@ const DEFAULT_SPEC: OpenApiSpec = {
             in: 'header',
             name: 'x-api-key',
             required: true,
-            description: 'Project Server-Side API Key (starts with gami_pk_live_)',
+            description: 'Project Server-Side API Key (starts with gami_live_)',
           },
           {
             in: 'header',
@@ -169,7 +169,7 @@ export default function ApiDocsPage() {
       <div className="bg-zinc-900 border border-zinc-800 p-4 flex items-center justify-between gap-4 text-xs font-mono text-zinc-300">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>Public API Key Header: <code className="text-emerald-400 font-bold">x-api-key: gami_pk_live_...</code></span>
+          <span>Public API Key Header: <code className="text-emerald-400 font-bold">x-api-key: gami_live_...</code></span>
         </div>
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-cyan-400 shrink-0" />

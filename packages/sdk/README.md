@@ -38,94 +38,76 @@ yarn add @gami.fied/sdk
 ```typescript
 import { Gami } from '@gami.fied/sdk';
 
-// Initialize Gami.Fied Client
 const gami = new Gami({
-  baseUrl: 'http://localhost:3001', // or your self-hosted API domain e.g. https://api.gami.fied.cc
+  baseUrl: process.env.GAMI_API_URL!, // Your API address, for example http://localhost:3001
   apiKey: process.env.GAMI_API_KEY!,
 });
 
-// 1. Ingest a user event
-async function handleUserPurchase(userId: string, amount: number) {
-  const result = await gami.events.track({
-    userId,
-    eventKey: 'order_completed',
-    attributes: {
-      amount,
-      currency: 'USD',
-    },
-  });
+const projectId = 'prj_123';
 
-  console.log(`Event processed! Execution time: ${result.executionTimeMs}ms`);
-}
+// 1. Track what a user did. Rules, XP and achievements run in the background.
+const event = await gami.events.track({
+  projectId,
+  userId: 'user_123',
+  type: 'order_completed',
+  properties: { amount: 4999, currency: 'USD' },
+});
+console.log(`Accepted event ${event.id}`);
 
-// 2. Fetch user XP balance and progression level
-async function getUserProfile(userId: string) {
-  const progress = await gami.users.getProgress(userId);
-  console.log(`User Level: ${progress.level.currentLevel} | XP: ${progress.xp.totalXp}`);
-}
+// 2. Read their progress
+const progress = await gami.levels.getUserProgress({ projectId, userId: 'user_123' });
+console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 
----
-
-## Core Resources & Methods
-
-### 1. Events (`gami.events`)
-- `gami.events.track({ userId, eventKey, attributes?, idempotencyKey? })`: Track a user action and trigger rules evaluation.
-- `gami.events.replay({ eventId })`: Replay an event to re-evaluate gamification rules.
-
-### 2. Users & Progress (`gami.users`)
-- `gami.users.getProgress(userId)`: Retrieve total XP, current level, progress percentage to next level, and completed achievements.
-- `gami.users.list({ limit?, page?, search? })`: List end users inside project.
-- `gami.users.create({ externalId, email?, name? })`: Provision or link an end user.
-
-### 3. XP & Ledgers (`gami.xp`)
-- `gami.xp.get(userId)`: Fetch XP summary and balance.
-- `gami.xp.adjust({ userId, amount, reason })`: Manually award or deduct XP.
-- `gami.xp.getLedger(userId, { limit?, page? })`: View audit ledger entries for XP transactions.
-
-### 4. Leaderboards (`gami.leaderboards`)
-- `gami.leaderboards.get({ leaderboardId, period?, limit? })`: Fetch global or project leaderboards.
-- `gami.leaderboards.getUserRank(leaderboardId, userId, { period? })`: Get user rank and score.
-
-### 5. Achievements & Challenges (`gami.achievements` & `gami.challenges`)
-- `gami.achievements.listUserAchievements(userId)`: List unlocked achievements and badges for user.
-- `gami.challenges.listUserChallenges(userId)`: Track user progress on multi-step challenges and quests.
-
-### 6. Notifications (`gami.notifications`)
-- `gami.notifications.list(userId, { limit?, unreadOnly? })`: Retrieve in-app notifications for end user.
-- `gami.notifications.markRead(userId, notificationId)`: Mark specific notification as read.
-- `gami.notifications.markAllRead(userId)`: Mark all user notifications as read.
-
-### 7. Webhooks & Integrations (`gami.webhooks` & `gami.integrations`)
-- `gami.webhooks.list()`: Manage destination webhook endpoints.
-- `gami.webhooks.test({ webhookId })`: Send test payload to verify HMAC signature setup.
-- `gami.integrations.list()`: Manage external channel connections (e.g. Discord bot embeds).
+New API keys can only send events (`events:write`). Create the key with more scopes to read data, as in step 2. See [API authentication](../../docs/api-authentication.md).
 
 ---
 
-## Error Handling
+## Core resources
 
-All SDK API requests throw typed `GamiError` subclasses:
+Every method takes one object, and project resources need `projectId`.
+
+| Resource | Methods |
+| :--- | :--- |
+| `gami.events` | `track` |
+| `gami.users` | `list`, `get`, `getByExternalId`, `create`, `update`, `delete` |
+| `gami.xp` | `getBalance`, `getLedger`, `getSummary`, `adjust` |
+| `gami.levels` | `list`, `get`, `create`, `update`, `summary`, `getUserProgress` |
+| `gami.leaderboards` | `list`, `getUserRank` |
+| `gami.achievements` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
+| `gami.challenges` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
+
+`gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. `gami.organizations` needs a signed-in session, so API keys get 403.
+
+To verify incoming webhooks, use `verifyWebhook`. See [the SDK guide](../../docs/sdk.md).
+
+---
+
+## Error handling
+
+All API requests throw typed `GamiError` subclasses:
 
 ```typescript
-import { 
-  Gami, 
-  GamiAuthenticationError, 
-  GamiValidationError, 
-  GamiRateLimitError 
+import {
+  Gami,
+  GamiAuthenticationError,
+  GamiRateLimitError,
+  GamiValidationError,
 } from '@gami.fied/sdk';
 
+const gami = new Gami({ baseUrl: 'http://localhost:3001', apiKey: 'gami_live_REPLACE_ME' });
+
 try {
-  await gami.events.track({ userId: 'u_123', eventKey: 'signup' });
+  await gami.events.track({ projectId: 'prj_123', userId: 'user_123', type: 'signup' });
 } catch (err) {
   if (err instanceof GamiAuthenticationError) {
-    console.error('Invalid API Key provided');
+    console.error('Invalid API key');
   } else if (err instanceof GamiValidationError) {
-    console.error('Invalid event attributes payload:', err.message);
+    console.error('Invalid event:', err.message);
   } else if (err instanceof GamiRateLimitError) {
-    console.error('Rate limited. Retry after seconds:', err.retryAfterSeconds);
+    console.error('Rate limited, try again shortly');
   } else {
-    console.error('An unexpected error occurred:', err);
+    throw err;
   }
 }
 ```

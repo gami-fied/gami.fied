@@ -213,7 +213,7 @@ describe('Milestone 23 — Developer Experience & API Platform', () => {
 
   it('6. SDK Compatibility & gami.events.ingest()', async () => {
     const sdk = new Gami({
-      apiKey: rawApiKeyA || 'gami_pk_live_sample_key_123',
+      apiKey: rawApiKeyA || 'gami_live_sample_key_123',
       baseUrl: 'http://localhost:3001',
     });
 

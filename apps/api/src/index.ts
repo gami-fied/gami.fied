@@ -1,3 +1,5 @@
+import { startBackupScheduler } from './admin/backups/backup-scheduler.js';
+import { unsubscribeRoutes } from './notifications/unsubscribe.js';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { defaultConfig, validateProductionConfig } from '@gami/config';
@@ -83,7 +85,7 @@ export async function buildServer() {
 
   // Register CORS for Dashboard and external clients
   await fastify.register(cors, {
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: getAllowedOrigins(),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
@@ -248,6 +250,7 @@ export async function buildServer() {
   // Register Email OTP Verification & User Profile endpoints
   await fastify.register(otpRoutes);
   await fastify.register(userProfileRoutes);
+  await fastify.register(unsubscribeRoutes);
 
   // Register Project Analytics & Reporting endpoints (/api/projects/:projectId/analytics/*)
   await fastify.register(analyticsRoutes);
@@ -257,18 +260,37 @@ export async function buildServer() {
 
 export const buildApp = buildServer;
 
+/** The dashboard's address, anything in TRUSTED_ORIGINS, and localhost outside production. */
+function getAllowedOrigins(): string[] {
+  const configured = [
+    process.env['NEXT_PUBLIC_APP_URL'],
+    ...(process.env['TRUSTED_ORIGINS']?.split(',') ?? []),
+  ];
+  const local =
+    process.env['NODE_ENV'] === 'production'
+      ? []
+      : ['http://localhost:3000', 'http://localhost:3001'];
+
+  return [
+    ...new Set([...local, ...configured.map((origin) => origin?.trim()).filter(Boolean)]),
+  ] as string[];
+}
+
 async function start() {
   validateProductionConfig();
 
+  // A failed migration means the code and schema disagree, so the API must not serve traffic.
   try {
     await runMigrations();
   } catch (err) {
-    console.error('[API] Migration check during startup:', err);
+    console.error('[API] Migration failed, refusing to start:', err);
+    process.exit(1);
   }
   const app = await buildServer();
   try {
     await app.listen({ port: defaultConfig.port, host: '0.0.0.0' });
     app.log.info(`🚀 API server listening on http://0.0.0.0:${defaultConfig.port}`);
+    startBackupScheduler();
 
     const handleShutdown = async (signal: string) => {
       app.log.info(`[API] Received ${signal}, closing Fastify server gracefully...`);

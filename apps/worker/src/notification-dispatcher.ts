@@ -1,5 +1,6 @@
 import { db, notificationOutbox, notifications } from '@gami/database';
-import { and, asc, eq, inArray, lte, lt, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { claimDueRows, exponentialBackoffMs, reclaimStaleRows } from './outbox.js';
 
 export const MAX_NOTIFICATION_OUTBOX_ATTEMPTS = 10;
 export const STALE_PROCESSING_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -21,55 +22,16 @@ export async function dispatchPendingNotifications(
   forceNow?: Date
 ): Promise<DispatcherStats> {
   const now = forceNow || new Date();
-  const staleThreshold = new Date(now.getTime() - STALE_PROCESSING_THRESHOLD_MS);
 
   // 1. Reclaim stale processing records (crash recovery)
-  const recoveredRecords = await db
-    .update(notificationOutbox)
-    .set({
-      status: 'pending',
-      processingAt: sql`NULL`,
-      updatedAt: now,
-    })
-    .where(
-      and(
-        eq(notificationOutbox.status, 'processing'),
-        lt(notificationOutbox.processingAt, staleThreshold)
-      )
-    )
-    .returning({ id: notificationOutbox.id });
+  const recoveredCount = await reclaimStaleRows(
+    notificationOutbox,
+    STALE_PROCESSING_THRESHOLD_MS,
+    now
+  );
 
-  const recoveredCount = recoveredRecords.length;
-
-  // 2. Claim due records in one transaction, so a second worker cannot pick up the same rows
-  const candidateRecords = await db.transaction(async (tx) => {
-    const due = await tx
-      .select()
-      .from(notificationOutbox)
-      .where(
-        and(
-          eq(notificationOutbox.status, 'pending'),
-          lte(notificationOutbox.availableAt, forceNow ?? sql`now()`)
-        )
-      )
-      .orderBy(asc(notificationOutbox.availableAt), asc(notificationOutbox.id))
-      .limit(limit)
-      .for('update', { skipLocked: true });
-
-    if (due.length > 0) {
-      await tx
-        .update(notificationOutbox)
-        .set({ status: 'processing', processingAt: now, updatedAt: now })
-        .where(
-          inArray(
-            notificationOutbox.id,
-            due.map((record) => record.id)
-          )
-        );
-    }
-
-    return due;
-  });
+  // 2. Claim due records
+  const candidateRecords = await claimDueRows(notificationOutbox, limit, forceNow);
 
   let completedCount = 0;
   let failedCount = 0;
@@ -122,9 +84,7 @@ export async function dispatchPendingNotifications(
           })
           .where(eq(notificationOutbox.id, record.id));
       } else {
-        // Calculate exponential backoff: min(5 min, 1s * 2^attempts)
-        const backoffMs = Math.min(300000, 1000 * Math.pow(2, nextAttempts));
-        const nextAvailable = new Date(now.getTime() + backoffMs);
+        const nextAvailable = new Date(now.getTime() + exponentialBackoffMs(nextAttempts));
 
         await db
           .update(notificationOutbox)

@@ -43,9 +43,10 @@ export default function DeveloperPage() {
   }, [selectedProject?.id]);
 
   const projectId = selectedProject?.id || 'prj_123456789';
-  const sampleCurl = `curl -X POST https://gamiapi.fied.cc/v1/events \\
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const sampleCurl = `curl -X POST ${apiUrl}/v1/events \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: gami_pk_live_REPLACE_ME" \\
+  -H "x-api-key: gami_live_REPLACE_ME" \\
   -H "Idempotency-Key: evt_${Date.now()}" \\
   -d '{
     "event": "purchase",

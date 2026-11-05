@@ -18,7 +18,8 @@ coverage/
 .gitignore
 .editorconfig
 README.md
-docs/
+docs/*
+!docs/openapi.json
 
 # Logs and temp files
 *.log

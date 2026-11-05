@@ -104,3 +104,29 @@ pnpm --filter @gami/api test src/__tests__/production-smoke-test.test.ts
 ### Webhooks Retrying / Failing
 - Ensure target endpoint returns HTTP 2xx within configured timeout (default 5000ms).
 - Check `webhook_deliveries` log table for HTTP response body and error message.
+
+## Reverse proxy and TLS
+
+Run the stack behind a proxy that terminates TLS. `Caddyfile.example` is a working starting point. Set `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_API_URL` to your public addresses, and `TRUST_PROXY=true`. Browsers can call the API from `NEXT_PUBLIC_APP_URL` and anything in `TRUSTED_ORIGINS`.
+
+## Instance settings
+
+Settings live in the admin API, under `PATCH /api/admin/config` with `category` and `payload`. A save replaces the whole category. Changes reach other processes within 30 seconds.
+
+| Category | Settings |
+| :--- | :--- |
+| `security` | `requireEmailOtpVerification`, `maxSessionLifetimeHours`, `loginRateLimit`, `maxFailedLoginAttempts`, `lockoutDurationMinutes`, `passwordMinLength`, `requireNumbers`, `requireSpecialChars` |
+| `registration` | `allowPublicRegistration`, `allowOrgCreation`, `allowApiKeyCreation`, `allowWebhookCreation`, `allowGlobalEmailNotifications` |
+| `rate_limits` | `perIpLimit`, `perProjectLimit`, `windowMs` |
+| `notifications` | `enabled`, `defaultEmailNotifications`, `maxDailyEmailsPerUser`, `retryAttempts` |
+| `webhooks` | `enabled`, `maxWebhooksPerProject`, `defaultTimeoutMs`, `maxRetryAttempts` |
+| `integrations` | `enabled`, `allowDiscordIntegration` |
+| `retention` | See [Data retention](./data-retention.md) |
+
+When `allowPublicRegistration` is off, the first account and invited emails can still sign up. When `allowOrgCreation` is off, only platform admins can create organizations.
+
+Rate limits use the saved value, then `RATE_LIMIT_IP_MAX`, `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW`, then defaults of 600 per IP and 1,000 per project each minute.
+
+SMTP uses the settings saved in the admin UI, or the `SMTP_*` variables. Certificates are verified unless you set `SMTP_ALLOW_SELF_SIGNED=true`.
+
+Organization imports accept up to 100 MB. Change this with `ORG_IMPORT_MAX_BYTES`.

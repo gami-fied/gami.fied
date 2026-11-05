@@ -71,15 +71,21 @@ async function runAction(
 
 export async function executeRuleForEvent(
   rule: DBConfiguredRule,
-  eventData: EventData
+  eventData: EventData,
+  options: { replay?: boolean } = {}
 ): Promise<RuleExecutionResult> {
-  // 1. Idempotency Check: a finished rule is never run twice for the same event
+  // 1. Idempotency Check: a completed rule never runs twice for the same event. A replay does
+  // look again at rules that did not match, because the rule may have been edited since.
   const [existingExecution] = await db
     .select()
     .from(ruleExecutions)
     .where(and(eq(ruleExecutions.ruleId, rule.id), eq(ruleExecutions.eventId, eventData.id)));
 
-  if (existingExecution?.status === 'completed' || existingExecution?.status === 'skipped') {
+  const finished =
+    existingExecution?.status === 'completed' ||
+    (existingExecution?.status === 'skipped' && !options.replay);
+
+  if (finished) {
     console.log(
       `[RuleExecutor] Idempotency skip: Rule ${rule.id} already finished for event ${eventData.id}`
     );

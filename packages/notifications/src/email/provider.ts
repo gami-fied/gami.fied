@@ -21,7 +21,8 @@ export class SmtpEmailProvider implements EmailProvider {
           }
         : undefined,
       tls: {
-        rejectUnauthorized: false, // Fail-safe for local testing / self-signed SMTP
+        // Certificates are verified unless an operator opts out for a self-signed server.
+        rejectUnauthorized: process.env.SMTP_ALLOW_SELF_SIGNED !== 'true',
       },
     });
   }
@@ -34,6 +35,7 @@ export class SmtpEmailProvider implements EmailProvider {
       subject: message.subject,
       html: message.html,
       text: message.text,
+      headers: message.headers,
     });
   }
 

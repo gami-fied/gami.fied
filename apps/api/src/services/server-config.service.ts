@@ -1,4 +1,16 @@
-import { db, serverConfigs } from '@gami/database';
+import {
+  clearPlatformSettingsCache,
+  db,
+  getPlatformSettings,
+  integrationSettingsSchema,
+  notificationSettingsSchema,
+  rateLimitSettingsSchema,
+  registrationSettingsSchema,
+  retentionSettingsSchema,
+  securitySettingsSchema,
+  serverConfigs,
+  webhookSettingsSchema,
+} from '@gami/database';
 import { encryptSecret } from '@gami/webhooks';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -14,63 +26,15 @@ export const smtpConfigSchema = z.object({
   secure: z.boolean().optional().default(false),
 });
 
-export const securityConfigSchema = z.object({
-  requireEmailOtpVerification: z.boolean().default(false),
-  sessionExpirationMinutes: z.number().int().min(1).max(10080).default(1440),
-  maxSessionLifetimeHours: z.number().int().min(1).max(720).default(168),
-  loginRateLimit: z.number().int().min(1).max(1000).default(60),
-  apiRateLimit: z.number().int().min(1).max(100000).default(1000),
-  eventIngestionRateLimit: z.number().int().min(1).max(100000).default(10000),
-  maxFailedLoginAttempts: z.number().int().min(1).max(50).default(5),
-  lockoutDurationMinutes: z.number().int().min(1).max(1440).default(15),
-  passwordMinLength: z.number().int().min(6).max(128).default(8),
-  requireNumbers: z.boolean().default(false),
-  requireSpecialChars: z.boolean().default(false),
-});
-
-export const registrationConfigSchema = z.object({
-  allowPublicRegistration: z.boolean().default(true),
-  allowOrgCreation: z.boolean().default(true),
-  allowApiKeyCreation: z.boolean().default(true),
-  allowWebhookCreation: z.boolean().default(true),
-  allowGlobalEmailNotifications: z.boolean().default(true),
-});
-
-export const rateLimitsConfigSchema = z.object({
-  perIpLimit: z.number().int().min(1).default(100),
-  perProjectLimit: z.number().int().min(1).default(1000),
-  windowMs: z.number().int().min(1000).default(60000),
-});
-
-export const notificationsConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  defaultEmailNotifications: z.boolean().default(false),
-  maxDailyEmailsPerUser: z.number().int().min(1).max(1000).default(50),
-  retryAttempts: z.number().int().min(0).max(20).default(5),
-});
-
-export const webhooksConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  maxWebhooksPerProject: z.number().int().min(1).max(500).default(50),
-  defaultTimeoutMs: z.number().int().min(500).max(60000).default(5000),
-  maxRetryAttempts: z.number().int().min(0).max(20).default(5),
-});
-
-export const integrationsConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  allowExternalSso: z.boolean().default(true),
-  allowSlackIntegration: z.boolean().default(true),
-  allowDiscordIntegration: z.boolean().default(true),
-});
-
 export const ALLOWED_CONFIG_SCHEMAS: Record<string, z.ZodSchema> = {
   smtp: smtpConfigSchema,
-  security: securityConfigSchema,
-  registration: registrationConfigSchema,
-  rate_limits: rateLimitsConfigSchema,
-  notifications: notificationsConfigSchema,
-  webhooks: webhooksConfigSchema,
-  integrations: integrationsConfigSchema,
+  security: securitySettingsSchema,
+  registration: registrationSettingsSchema,
+  rate_limits: rateLimitSettingsSchema,
+  notifications: notificationSettingsSchema,
+  webhooks: webhookSettingsSchema,
+  integrations: integrationSettingsSchema,
+  retention: retentionSettingsSchema,
 };
 
 export class ServerConfigService {
@@ -141,11 +105,7 @@ export class ServerConfigService {
     }
 
     if (category === 'security' && processedPayload.requireEmailOtpVerification === true) {
-      const smtpCfg = await this.getConfig<Record<string, unknown>>('smtp');
-      const hasSmtp =
-        Boolean(process.env.SMTP_HOST && process.env.SMTP_HOST !== 'localhost') ||
-        Boolean(smtpCfg && smtpCfg.host && typeof smtpCfg.host === 'string' && (smtpCfg.host as string).trim().length > 0);
-      if (!hasSmtp) {
+      if (!(await this.isSmtpConfigured())) {
         throw new Error('SMTP server must be configured before enabling Email OTP Verification.');
       }
     }
@@ -176,6 +136,8 @@ export class ServerConfigService {
         },
       });
 
+    clearPlatformSettingsCache();
+
     // Log security audit event
     try {
       await createAuditLog(db, {
@@ -194,14 +156,14 @@ export class ServerConfigService {
     return this.getConfigStatus(category);
   }
 
-  public static async getIntegrationsConfig(): Promise<{
-    enabled: boolean;
-    allowExternalSso: boolean;
-    allowSlackIntegration: boolean;
-    allowDiscordIntegration: boolean;
-  }> {
-    const cfg = await this.getConfig<Record<string, unknown>>('integrations');
-    const parse = integrationsConfigSchema.safeParse(cfg || {});
-    return parse.success ? parse.data : integrationsConfigSchema.parse({});
+  public static getIntegrationsConfig() {
+    return getPlatformSettings('integrations');
+  }
+
+  /** True when mail can be sent, from either the admin settings or the environment. */
+  public static async isSmtpConfigured(): Promise<boolean> {
+    const smtp = await this.getConfig<{ host?: unknown }>('smtp');
+    const savedHost = typeof smtp?.host === 'string' && smtp.host.trim().length > 0;
+    return savedHost || Boolean(process.env.SMTP_HOST && process.env.SMTP_HOST !== 'localhost');
   }
 }

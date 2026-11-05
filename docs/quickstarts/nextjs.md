@@ -10,7 +10,7 @@ import { Gami } from '@gami.fied/sdk';
 
 const gami = new Gami({
   apiKey: process.env.GAMI_API_KEY!,
-  baseUrl: process.env.GAMI_API_URL || 'https://gamiapi.fied.cc',
+  baseUrl: process.env.GAMI_API_URL || 'https://api.example.com',
 });
 
 export async function trackUserPurchase(userId: string, amount: number) {
