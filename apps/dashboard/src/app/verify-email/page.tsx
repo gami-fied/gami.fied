@@ -94,7 +94,7 @@ export default function VerifyEmailPage() {
 
       if (res.ok) {
         setSuccess('A new 6-digit OTP code has been sent to your email.');
-        setCooldown(30);
+        setCooldown(60);
       } else {
         const err = await res.json().catch(() => ({}));
         setError(err.message || 'Failed to resend OTP code');

@@ -10,7 +10,7 @@ export const webhookEndpoints = pgTable(
       .references(() => projects.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     url: text('url').notNull(),
-    secretHash: text('secret_hash').notNull(),
+    encryptedSecret: text('encrypted_secret').notNull(),
     active: boolean('active').default(true).notNull(),
     description: text('description'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),

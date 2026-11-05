@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.2.0",
     "@gami/challenges": "workspace:*",
     "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",

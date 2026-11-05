@@ -27,7 +27,7 @@ function AcceptInvitationContent() {
   // New Account Registration state if user is unauthenticated
   const [showRegister, setShowRegister] = useState(false);
   const [name, setName] = useState('');
-  const [password, setPassword] = useState('Password123!');
+  const [password, setPassword] = useState('');
   const [regLoading, setRegLoading] = useState(false);
 
   useEffect(() => {
@@ -211,6 +211,8 @@ function AcceptInvitationContent() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  minLength={8}
                   required
                 />
                 <Button type="submit" variant="primary" size="sm" isLoading={regLoading} className="w-full bg-orange-500 hover:bg-orange-600">

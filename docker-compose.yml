@@ -8,9 +8,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gami_prod}
       POSTGRES_USER: ${POSTGRES_USER:-gami}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,13 +25,13 @@ services:
     image: redis:7-alpine
     container_name: gami-redis-prod
     restart: unless-stopped
-    command: redis-server --appendonly yes
-    ports:
-      - '${REDIS_PORT:-6379}:6379'
+    command: ['sh', '-c', 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
     volumes:
       - redis_prod_data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -68,6 +66,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       PORT: 3001
       HOST: 0.0.0.0
       NODE_ENV: production
@@ -76,6 +75,7 @@ services:
       ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       PLATFORM_BOOTSTRAP_SECRET: ${PLATFORM_BOOTSTRAP_SECRET}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,6 +101,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       NODE_ENV: production
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}

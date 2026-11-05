@@ -1,61 +1,21 @@
-import dns from 'dns';
+import dns, { type LookupAddress, type LookupAllOptions, type LookupOptions } from 'dns';
 import net from 'net';
+import ipaddr from 'ipaddr.js';
+import { Agent, fetch as undiciFetch, type RequestInit, type Response } from 'undici';
 
 /**
- * Checks whether an IP address belongs to a private, loopback, link-local, or cloud metadata range.
+ * Only globally routable addresses are allowed. Classifying by range covers private,
+ * loopback, link-local, carrier-grade NAT, benchmarking, multicast and reserved space,
+ * in every IPv4 and IPv6 spelling, including IPv4-mapped IPv6.
  */
 export function isPrivateOrBlockedIp(ip: string): boolean {
-  // Normalize IPv4-mapped IPv6 address (e.g. ::ffff:127.0.0.1 -> 127.0.0.1)
-  if (ip.startsWith('::ffff:')) {
-    ip = ip.substring(7);
-  }
+  const candidate = ip.replace(/^\[|\]$/g, '');
+  if (!ipaddr.isValid(candidate)) return true;
 
-  // IPv4 Checks
-  if (net.isIPv4(ip)) {
-    const parts = ip.split('.').map(Number);
-    const p0 = parts[0] ?? 0;
-    const p1 = parts[1] ?? 0;
-
-    // 0.0.0.0/8 (Broadcast/Current network)
-    if (p0 === 0) return true;
-
-    const allowLocal = process.env.ALLOW_LOCAL_WEBHOOKS === 'true';
-
-    // 127.0.0.0/8 (Loopback)
-    if (p0 === 127) return !allowLocal;
-
-    // 10.0.0.0/8 (RFC1918 Private)
-    if (p0 === 10) return true;
-
-    // 172.16.0.0/12 (RFC1918 Private: 172.16.0.0 – 172.31.255.255)
-    if (p0 === 172 && p1 >= 16 && p1 <= 31) return true;
-
-    // 192.168.0.0/16 (RFC1918 Private)
-    if (p0 === 192 && p1 === 168) return true;
-
-    // 169.254.0.0/16 (Link-Local & Cloud Metadata e.g. 169.254.169.254)
-    if (p0 === 169 && p1 === 254) return true;
-
-    return false;
-  }
-
-  // IPv6 Checks
-  if (net.isIPv6(ip)) {
-    const normalized = ip.toLowerCase();
-
-    // ::1 (Loopback) or :: (Unspecified)
-    if (normalized === '::1' || normalized === '::') return true;
-
-    // fe80::/10 (Link-Local)
-    if (normalized.startsWith('fe80:')) return true;
-
-    // fc00::/7 (Unique Local Address - ULA)
-    if (normalized.startsWith('fc00:') || normalized.startsWith('fd00:')) return true;
-
-    return false;
-  }
-
-  return true; // Reject unrecognized IP format
+  const range = ipaddr.process(candidate).range();
+  if (range === 'unicast') return false;
+  if (range === 'loopback') return process.env.ALLOW_LOCAL_WEBHOOKS !== 'true';
+  return true;
 }
 
 /**
@@ -83,7 +43,7 @@ export async function validateWebhookUrl(rawUrl: string): Promise<{ valid: boole
     return { valid: false, error: 'Production webhooks require HTTPS protocol' };
   }
 
-  const hostname = parsed.hostname.toLowerCase();
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   const allowLocal = process.env.ALLOW_LOCAL_WEBHOOKS === 'true';
 
   // Hostname string checks
@@ -127,12 +87,12 @@ export async function validateWebhookUrl(rawUrl: string): Promise<{ valid: boole
 }
 
 /**
- * Re-resolves and validates target IP address immediately prior to HTTP delivery
- * to mitigate DNS rebinding attacks.
+ * Validates the target immediately before delivery, so a blocked destination is reported
+ * as a clear failure. The connection itself is protected by `fetchWithSsrfProtection`.
  */
 export async function resolveAndValidateTargetIp(rawUrl: string): Promise<string> {
   const parsed = new URL(rawUrl);
-  const hostname = parsed.hostname;
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
 
   if (net.isIP(hostname)) {
     if (isPrivateOrBlockedIp(hostname)) {
@@ -159,4 +119,50 @@ export async function resolveAndValidateTargetIp(rawUrl: string): Promise<string
     throw new Error(`DNS resolution returned empty records array for ${hostname}`);
   }
   return firstRecord.address;
+}
+
+type LookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  address: string | LookupAddress[],
+  family?: number
+) => void;
+
+/**
+ * DNS lookup used for the actual socket. Addresses are checked here, at connect time, so a
+ * hostname cannot pass validation and then rebind to an internal address for the connection.
+ */
+export function guardedLookup(
+  hostname: string,
+  options: LookupOptions,
+  callback: LookupCallback
+): void {
+  const lookupOptions: LookupAllOptions = { ...options, all: true };
+
+  dns.lookup(hostname, lookupOptions, (err, addresses) => {
+    if (err) {
+      callback(err, '');
+      return;
+    }
+
+    const blocked = addresses.find((record) => isPrivateOrBlockedIp(record.address));
+    const first = addresses[0];
+    if (blocked || !first) {
+      const reason = blocked ? `forbidden IP (${blocked.address})` : 'no addresses';
+      callback(new Error(`SSRF Shield: Hostname ${hostname} resolved to ${reason}`), '');
+      return;
+    }
+
+    if (options.all) {
+      callback(null, addresses);
+    } else {
+      callback(null, first.address, first.family);
+    }
+  });
+}
+
+const ssrfSafeAgent = new Agent({ connect: { lookup: guardedLookup as never } });
+
+/** Sends an outbound request whose connection can only reach public addresses. */
+export function fetchWithSsrfProtection(url: string, init: RequestInit): Promise<Response> {
+  return undiciFetch(url, { ...init, dispatcher: ssrfSafeAgent });
 }

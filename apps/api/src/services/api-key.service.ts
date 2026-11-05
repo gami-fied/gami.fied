@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { apiKeys, db, organizations, projects } from '@gami/database';
 import { and, eq, isNull } from 'drizzle-orm';
+import { DEFAULT_API_KEY_SCOPES } from '../authorization/permissions.js';
 
 export interface GeneratedApiKey {
   id: string;
@@ -20,7 +21,7 @@ export function hashApiKey(rawSecret: string): string {
 export async function createApiKey(
   projectId: string,
   name: string,
-  scopes: string[] = ['*'],
+  scopes: string[] = DEFAULT_API_KEY_SCOPES,
   expiresAt?: Date | null
 ): Promise<GeneratedApiKey> {
   const secretBytes = crypto.randomBytes(32).toString('hex');
@@ -53,7 +54,7 @@ export async function createApiKey(
     name: newKey.name,
     keyPrefix: newKey.keyPrefix,
     rawSecret,
-    scopes: (newKey.scopes as string[]) || ['*'],
+    scopes: newKey.scopes as string[],
     expiresAt: newKey.expiresAt,
     createdAt: newKey.createdAt,
   };

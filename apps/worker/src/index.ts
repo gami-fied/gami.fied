@@ -1,3 +1,4 @@
+import { validateProductionConfig } from '@gami/config';
 import {
   getQueueConfig,
   getRedisConnection,
@@ -10,6 +11,8 @@ import { registerAchievementActions } from './actions/award-achievement.js';
 import { registerXpActions } from './actions/award-xp.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
+
+validateProductionConfig(process.env, { service: 'worker' });
 
 // Register Actions in generic ActionRegistry
 registerXpActions();

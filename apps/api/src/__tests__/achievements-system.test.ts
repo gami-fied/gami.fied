@@ -47,7 +47,7 @@ describe('Milestone 8 — Achievement System & End-to-End Integration Suite', ()
     const prjA = JSON.parse(prjResA.payload);
     projIdA = prjA.id;
 
-    const keyDataA = await createApiKey(projIdA, 'Key Ach A');
+    const keyDataA = await createApiKey(projIdA, 'Key Ach A', ['*']);
     apiKeySecretA = keyDataA.rawSecret;
 
     // 3. Create Project B in Org A
@@ -60,7 +60,7 @@ describe('Milestone 8 — Achievement System & End-to-End Integration Suite', ()
     const prjB = JSON.parse(prjResB.payload);
     projIdB = prjB.id;
 
-    await createApiKey(projIdB, 'Key Ach B');
+    await createApiKey(projIdB, 'Key Ach B', ['*']);
   });
 
   afterAll(async () => {

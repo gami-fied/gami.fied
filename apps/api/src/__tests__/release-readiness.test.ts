@@ -217,7 +217,7 @@ describe('Milestone 26 — Release Readiness & Security Audit Test Suite', () =>
     });
 
     const { createApiKey } = await import('../services/api-key.service.js');
-    const suspKeyObj = await createApiKey(suspendedProjId, 'Suspended Key');
+    const suspKeyObj = await createApiKey(suspendedProjId, 'Suspended Key', ['*']);
 
     const res = await app.inject({
       method: 'POST',

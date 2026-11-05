@@ -169,6 +169,13 @@
       "when": 1793800000000,
       "tag": "0023_align_rule_and_invitation_nullability",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793810000000,
+      "tag": "0024_webhook_secret_rename_and_tenant_keys",
+      "breakpoints": true
     }
   ]
 }

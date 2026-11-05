@@ -35,8 +35,8 @@ describe('Milestone 23 — Developer Experience & API Platform', () => {
       ]);
 
       const { createApiKey } = await import('../services/api-key.service.js');
-      const keyA = await createApiKey(projectIdA, 'Key A');
-      const keyB = await createApiKey(projectIdB, 'Key B');
+      const keyA = await createApiKey(projectIdA, 'Key A', ['*']);
+      const keyB = await createApiKey(projectIdB, 'Key B', ['*']);
       rawApiKeyA = keyA.rawSecret;
       rawApiKeyB = keyB.rawSecret;
       dbAvailable = true;

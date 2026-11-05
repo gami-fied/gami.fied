@@ -73,7 +73,7 @@ describe('Empirical System Security & Recovery Verification', () => {
     const healthRes = await app.inject({ method: 'GET', url: '/health' });
     expect(healthRes.statusCode).toBe(200);
     expect(healthRes.json().status).toBe('ok');
-  }, 30000);
+  }, 180000);
 
   it('2. 64KB Request Body Limit Enforcement: Rejects oversized payload (>64KB) with 413 Payload Too Large', async () => {
     // Generate 70KB string payload

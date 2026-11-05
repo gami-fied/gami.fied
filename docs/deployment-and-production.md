@@ -18,6 +18,12 @@ docker compose up -d --build
 
 ---
 
+The stack refuses to start without `POSTGRES_PASSWORD` and `REDIS_PASSWORD`. Postgres and Redis are not published on the host, so reach them through the Compose network.
+
+Set `TRUST_PROXY=true` only behind a reverse proxy that overwrites `X-Forwarded-*` headers. Without such a proxy, clients could forge their IP address.
+
+To rotate `ENCRYPTION_MASTER_KEY`, set the new value and move the old one to `ENCRYPTION_MASTER_KEY_PREVIOUS`. Existing secrets keep decrypting, and you can remove the old key once they have all been saved again.
+
 ## 2. Production Environment Variable Checklist
 
 | Environment Variable | Description | Example |

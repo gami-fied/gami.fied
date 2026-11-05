@@ -49,7 +49,7 @@ describe('Milestone 7 — XP / Points System & End-to-End Test Suite', () => {
     const prjA = JSON.parse(prjResA.payload);
     projIdA = prjA.id;
 
-    const keyDataA = await createApiKey(projIdA, 'Key A');
+    const keyDataA = await createApiKey(projIdA, 'Key A', ['*']);
     apiKeySecretA = keyDataA.rawSecret;
 
     // 3. Create Org B & Project B
@@ -71,7 +71,7 @@ describe('Milestone 7 — XP / Points System & End-to-End Test Suite', () => {
     const prjB = JSON.parse(prjResB.payload);
     projIdB = prjB.id;
 
-    const keyDataB = await createApiKey(projIdB, 'Key B');
+    const keyDataB = await createApiKey(projIdB, 'Key B', ['*']);
     apiKeySecretB = keyDataB.rawSecret;
   });
 

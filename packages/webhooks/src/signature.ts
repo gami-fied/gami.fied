@@ -1,9 +1,29 @@
 import crypto from 'crypto';
 
-const DEFAULT_MASTER_KEY =
-  process.env.ENCRYPTION_MASTER_KEY ||
-  process.env.WEBHOOK_MASTER_KEY ||
-  'gami_webhook_master_encryption_key_32bytes!!';
+const DEV_MASTER_KEY = 'local-development-only-encryption-key';
+
+function getMasterKey(): string {
+  const key = process.env.ENCRYPTION_MASTER_KEY || process.env.WEBHOOK_MASTER_KEY;
+  if (key) return key;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ENCRYPTION_MASTER_KEY is required in production');
+  }
+  return DEV_MASTER_KEY;
+}
+
+function decryptWithKey(encryptedPayload: string, masterKey: string): string {
+  const key = crypto.createHash('sha256').update(masterKey).digest();
+
+  const [ivHex, authTagHex, encryptedText] = encryptedPayload.split(':');
+  if (!ivHex || !authTagHex || !encryptedText) {
+    throw new Error('Invalid encrypted secret format');
+  }
+
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+
+  return decipher.update(encryptedText, 'hex', 'utf8') + decipher.final('utf8');
+}
 
 /**
  * Generates a cryptographically secure raw secret for a webhook endpoint.
@@ -24,7 +44,7 @@ export function hashSecret(secret: string): string {
  * Encrypts a webhook secret symmetrically using AES-256-GCM for secure database storage.
  */
 export function encryptSecret(secret: string, customMasterKey?: string): string {
-  const masterKey = customMasterKey || DEFAULT_MASTER_KEY;
+  const masterKey = customMasterKey || getMasterKey();
   const key = crypto.createHash('sha256').update(masterKey).digest();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -38,32 +58,19 @@ export function encryptSecret(secret: string, customMasterKey?: string): string 
 }
 
 /**
- * Decrypts a stored webhook secret in-memory for HMAC signing during worker dispatch.
+ * Decrypts a stored secret in memory. During a key rotation, values written with the old
+ * key still decrypt through ENCRYPTION_MASTER_KEY_PREVIOUS until they are re-saved.
  */
 export function decryptSecret(encryptedPayload: string, customMasterKey?: string): string {
-  if (!encryptedPayload.includes(':')) {
-    // Fallback if raw secret was stored directly (e.g. in test mocks)
-    return encryptedPayload;
+  const masterKey = customMasterKey || getMasterKey();
+
+  try {
+    return decryptWithKey(encryptedPayload, masterKey);
+  } catch (err) {
+    const previousKey = process.env.ENCRYPTION_MASTER_KEY_PREVIOUS;
+    if (!customMasterKey && previousKey) return decryptWithKey(encryptedPayload, previousKey);
+    throw err;
   }
-
-  const masterKey = customMasterKey || DEFAULT_MASTER_KEY;
-  const key = crypto.createHash('sha256').update(masterKey).digest();
-
-  const [ivHex, authTagHex, encryptedText] = encryptedPayload.split(':');
-  if (!ivHex || !authTagHex || !encryptedText) {
-    throw new Error('Invalid encrypted secret format');
-  }
-
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(authTag);
-
-  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-
-  return decrypted;
 }
 
 /**

@@ -22,7 +22,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | Phase | Goal | Done / Total | Status |
 | :--- | :--- | :---: | :--- |
 | 0 | Baseline: green CI, runnable stack | 11 / 15 | In progress, the rest need Docker or a CI run |
-| 1 | Security and tenant safety | 0 / 23 | Not started |
+| 1 | Security and tenant safety | 19 / 23 | In progress, 3 partly done, 1 moved to FEAT-17 |
 | 2 | Core engine correctness | 0 / 32 | Not started |
 | 3 | Make every promise true | 0 / 26 | Not started |
 | 4 | Developer experience | 0 / 16 | Not started |
@@ -147,38 +147,38 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 1.1 Account security
 
-- [ ] **SEC-01** `P0` Email verification bypass. [otp.ts:124](apps/api/src/auth/otp.ts:124) and [otp.ts:148](apps/api/src/auth/otp.ts:148) accept any `email` in the body, then mark the session user verified. A user with a fake address can request a code for a mailbox they control. Ignore the body and always use the session email. `[code]`
-- [ ] **SEC-02** `P0` OTP brute force. There is no attempt limit or rate limit on `/api/auth/otp/verify`, and a 6-digit code lives for 15 minutes. Add per-user attempt counts, lockout, and a resend limit. `[code]`
-- [ ] **SEC-03** `P0` OTP uses `Math.random()` at [otp.ts:21](apps/api/src/auth/otp.ts:21) and is stored in plain text. Use `crypto.randomInt`, store a hash, and compare in constant time. `[code]`
-- [ ] **SEC-04** `P1` The OTP requirement is enforced only by a browser redirect in [dashboard-shell.tsx](apps/dashboard/src/components/layout/dashboard-shell.tsx). An unverified user can call the API directly. Enforce it in `requireAuth`. `[code]`
-- [ ] **SEC-05** `P1` Add forgotten-password and reset flows. No reset code exists in the API or the UI, so a locked-out user has no self-service recovery. `[ran]`
-- [ ] **SEC-06** `P2` Remove the OTP code from the email subject line, where it shows in lock-screen previews. `/otp/send` should also stop reporting "sent" when SMTP is missing. `[code]`
+- [x] **SEC-01** `P0` Email verification bypass. [otp.ts:124](apps/api/src/auth/otp.ts:124) and [otp.ts:148](apps/api/src/auth/otp.ts:148) accept any `email` in the body, then mark the session user verified. A user with a fake address can request a code for a mailbox they control. Ignore the body and always use the session email. `[code]`
+- [x] **SEC-02** `P0` OTP brute force. There is no attempt limit or rate limit on `/api/auth/otp/verify`, and a 6-digit code lives for 15 minutes. Add per-user attempt counts, lockout, and a resend limit. `[code]`
+- [x] **SEC-03** `P0` OTP uses `Math.random()` at [otp.ts:21](apps/api/src/auth/otp.ts:21) and is stored in plain text. Use `crypto.randomInt`, store a hash, and compare in constant time. `[code]`
+- [x] **SEC-04** `P1` The OTP requirement is enforced only by a browser redirect in [dashboard-shell.tsx](apps/dashboard/src/components/layout/dashboard-shell.tsx). An unverified user can call the API directly. Enforce it in `requireAuth`. `[code]`
+- [x] **SEC-05** `P1` Add forgotten-password and reset flows. No reset code exists in the API or the UI, so a locked-out user has no self-service recovery. `[ran]`
+- [x] **SEC-06** `P2` Remove the OTP code from the email subject line, where it shows in lock-screen previews. `/otp/send` should also stop reporting "sent" when SMTP is missing. `[code]`
 
 ### 1.2 API keys and authorization
 
-- [ ] **SEC-07** `P0` API key scopes are never enforced. No route passes `requiredScope`, and the create route cannot set scopes. Define scopes such as `events:write`, `users:read` and `admin`, default new keys to `events:write`, and require a scope on every route. `[ran]`
-- [ ] **SEC-08** `P0` Project API keys get `owner` over the whole organization at [authorization/index.ts:102](apps/api/src/authorization/index.ts:102). One leaked key can delete the organization, export every project, or manage members. Block API keys from all organization routes. `[code]`
-- [ ] **SEC-09** `P0` API keys get `admin` on project routes at [authorization/index.ts:239](apps/api/src/authorization/index.ts:239), so a key can mint more keys, delete the project, and create webhooks that exfiltrate data. Key management must require a user session. `[code]`
-- [ ] **SEC-10** `P1` Any project `member` can create, edit or delete rules, which award XP. [rules/index.ts](apps/api/src/rules/index.ts) has no role check, unlike levels and challenges. `[ran]`
-- [ ] **SEC-11** `P1` Replace scattered role checks with one declarative permission map, so a missing check is impossible. Generate the docs matrix from it. `[code]`
-- [ ] **SEC-12** `P1` Cross-tenant write. [xp/index.ts:161](apps/api/src/xp/index.ts:161) inserts the path `userId` with `onConflictDoNothing`, and the ledger foreign key has no project check. A user ID from another project passes. Verify the user belongs to the project, and add composite foreign keys. `[code]`
-- [ ] **SEC-13** `P1` Add key expiry and scopes to the create route and dashboard, plus rotation with an overlap window. List responses should include scopes and expiry. `[code]`
-- [ ] **SEC-14** `P2` Separate test and live keys by environment. `[code]`
+- [x] **SEC-07** `P0` API key scopes are never enforced. No route passes `requiredScope`, and the create route cannot set scopes. Define scopes such as `events:write`, `users:read` and `admin`, default new keys to `events:write`, and require a scope on every route. `[ran]` Done. New keys default to `events:write`. Existing keys keep `*`, so review them.
+- [x] **SEC-08** `P0` Project API keys get `owner` over the whole organization at [authorization/index.ts:102](apps/api/src/authorization/index.ts:102). One leaked key can delete the organization, export every project, or manage members. Block API keys from all organization routes. `[code]` Done. This is a breaking change: `gami.organizations` in the SDK now needs a signed-in session.
+- [x] **SEC-09** `P0` API keys get `admin` on project routes at [authorization/index.ts:239](apps/api/src/authorization/index.ts:239), so a key can mint more keys, delete the project, and create webhooks that exfiltrate data. Key management must require a user session. `[code]`
+- [x] **SEC-10** `P1` Any project `member` can create, edit or delete rules, which award XP. [rules/index.ts](apps/api/src/rules/index.ts) has no role check, unlike levels and challenges. `[ran]`
+- [~] **SEC-11** `P1` Replace scattered role checks with one declarative permission map, so a missing check is impossible. Generate the docs matrix from it. `[code]` Done: `apps/api/src/authorization/permissions.ts` protects new routes by default. Left: remove the older checks that now duplicate it, and generate the docs matrix (TRUTH-08).
+- [x] **SEC-12** `P1` Cross-tenant write. [xp/index.ts:161](apps/api/src/xp/index.ts:161) inserts the path `userId` with `onConflictDoNothing`, and the ledger foreign key has no project check. A user ID from another project passes. Verify the user belongs to the project, and add composite foreign keys. `[code]` Done. An adjustment for an unknown user now returns 404 instead of creating one, and four tables have composite foreign keys.
+- [x] **SEC-13** `P1` Add key expiry and scopes to the create route and dashboard, plus rotation with an overlap window. List responses should include scopes and expiry. `[code]`
+- [-] **SEC-14** `P2` Separate test and live keys by environment. `[code]` Dropped here: it depends on project environments, so it moves to FEAT-17.
 
 ### 1.3 Network and SSRF
 
-- [ ] **SEC-15** `P0` DNS rebinding remains possible. [webhook-dispatcher.ts:168](apps/worker/src/webhook-dispatcher.ts:168) validates an IP, then `fetch` resolves the host again. Pin the validated IP with a custom undici dispatcher. `[code]`
-- [ ] **SEC-16** `P1` Close the SSRF blocklist gaps in [security.ts:50](packages/webhooks/src/security.ts:50). `fd12::`, `fe90::`, `::ffff:7f00:1` (hex-mapped IPv4), `100.64.0.0/10` and `198.18.0.0/15` all pass. Use a proper CIDR library such as `ipaddr.js`. `[code]`
-- [ ] **SEC-17** `P1` Stop trusting `x-forwarded-host` and `x-forwarded-proto` from any client in [auth/index.ts:13](apps/api/src/auth/index.ts:13). Honour them only behind a configured proxy. `[code]`
-- [ ] **SEC-18** `P2` Remove the internal `destinationUrl` from proxy error responses in [route.ts:42](apps/dashboard/src/app/api/[...path]/route.ts:42) and its `/v1` copy. `[code]`
-- [ ] **SEC-19** `P2` Add security headers (CSP, HSTS, frame denial) to the API and dashboard, and global IP rate limits. Only `/v1/events` has a limiter. `[ran]`
+- [x] **SEC-15** `P0` DNS rebinding remains possible. [webhook-dispatcher.ts:168](apps/worker/src/webhook-dispatcher.ts:168) validates an IP, then `fetch` resolves the host again. Pin the validated IP with a custom undici dispatcher. `[code]`
+- [x] **SEC-16** `P1` Close the SSRF blocklist gaps in [security.ts:50](packages/webhooks/src/security.ts:50). `fd12::`, `fe90::`, `::ffff:7f00:1` (hex-mapped IPv4), `100.64.0.0/10` and `198.18.0.0/15` all pass. Use a proper CIDR library such as `ipaddr.js`. `[code]`
+- [x] **SEC-17** `P1` Stop trusting `x-forwarded-host` and `x-forwarded-proto` from any client in [auth/index.ts:13](apps/api/src/auth/index.ts:13). Honour them only behind a configured proxy. `[code]` Done. Set `TRUST_PROXY=true` only behind a proxy that overwrites these headers.
+- [x] **SEC-18** `P2` Remove the internal `destinationUrl` from proxy error responses in [route.ts:42](apps/dashboard/src/app/api/[...path]/route.ts:42) and its `/v1` copy. `[code]`
+- [~] **SEC-19** `P2` Add security headers (CSP, HSTS, frame denial) to the API and dashboard, and global IP rate limits. Only `/v1/events` has a limiter. `[ran]` Headers and the IP limit are live. Left: a full script CSP, which needs nonces. The current CSP covers framing, base URI, objects and form targets only.
 
 ### 1.4 Secrets and production configuration
 
-- [ ] **SEC-20** `P0` The production compose publishes Postgres and an unauthenticated Redis on all host interfaces. Remove the `ports` entries for both and enable `requirepass`. `[code]`
-- [ ] **SEC-21** `P1` `validateProductionConfig` accepts the `.env.example` placeholders such as `your-random-32-byte-secret-key-goes-here`. Reject them, require strong key lengths, and require `PLATFORM_BOOTSTRAP_SECRET` to be set. `[code]`
-- [ ] **SEC-23** `P1` The invitation sign-up form pre-fills the password `Password123!` in [accept-invitation/page.tsx](apps/dashboard/src/app/accept-invitation/page.tsx). Anyone who keeps it has a publicly known password. Start empty and enforce the password policy. `[code]`
-- [ ] **SEC-22** `P2` Remove source-code default secrets and the plain-text fallback in `decryptSecret`. Add a key ID to encrypted values so the master key can be rotated. Rename the `secret_hash` column, which holds an encrypted value. `[code]`
+- [~] **SEC-20** `P0` The production compose publishes Postgres and an unauthenticated Redis on all host interfaces. Remove the `ports` entries for both and enable `requirepass`. `[code]` Written, not yet run because Docker is not on this machine (BASE-14).
+- [x] **SEC-21** `P1` `validateProductionConfig` accepts the `.env.example` placeholders such as `your-random-32-byte-secret-key-goes-here`. Reject them, require strong key lengths, and require `PLATFORM_BOOTSTRAP_SECRET` to be set. `[code]`
+- [x] **SEC-23** `P1` The invitation sign-up form pre-fills the password `Password123!` in [accept-invitation/page.tsx](apps/dashboard/src/app/accept-invitation/page.tsx). Anyone who keeps it has a publicly known password. Start empty and enforce the password policy. `[code]`
+- [x] **SEC-22** `P2` Remove source-code default secrets and the plain-text fallback in `decryptSecret`. Add a key ID to encrypted values so the master key can be rotated. Rename the `secret_hash` column, which holds an encrypted value. `[code]` Done, with `ENCRYPTION_MASTER_KEY_PREVIOUS` for rotation instead of a stored key ID. Rotated values are only re-encrypted when next saved.
 
 ---
 
@@ -379,7 +379,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [ ] **UX-29** `P2` Add a user timeline showing events, rules fired, XP, badges and deliveries on one screen.
 - [ ] **UX-30** `P2` Add global search (Cmd+K), and bulk actions on users.
 - [ ] **UX-32** `P2` The rule test panel reads `actionsExecuted`, but the evaluator returns `actions`, so matched rules never list their actions. `[code]`
-- [ ] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. Show skeletons until data arrives. `[ran]`
+- [ ] **UX-33** `P1` Analytics and the Developer page show `0` for every metric while loading, which looks like real data on a slow connection. On the live run, analytics showed 0 users with 5 present. The API keys page also says "No API keys" while loading. Show skeletons until data arrives. `[ran]`
 - [ ] **UX-34** `P2` At phone width the top bar cuts off the project switcher. `[ran]`
 - [ ] **UX-31** `P3` Add polish: better empty states with next steps, unsaved-change warnings, and skeletons that match their content.
 
@@ -435,7 +435,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [ ] **FEAT-14** `P2` Anti-abuse: per-user caps, cooldowns, velocity checks, anomaly flags, and shadow-banning from rankings.
 - [ ] **FEAT-15** `P2` Rule versioning, draft and publish, rollback, and environment promotion.
 - [ ] **FEAT-16** `P2` Rule simulation: backtest a rule against past events, and show XP inflation before launch.
-- [ ] **FEAT-17** `P2` Project environments (staging and production) with config promotion.
+- [ ] **FEAT-17** `P2` Project environments (staging and production) with config promotion, including separate test and live API keys (from SEC-14).
 - [ ] **FEAT-18** `P2` Inbound connectors for Segment, RudderStack, Stripe and GitHub.
 - [ ] **FEAT-19** `P3` Referral and invite rewards.
 - [ ] **FEAT-20** `P3` Social features: activity feed, sharing cards and kudos.

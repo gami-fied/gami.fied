@@ -50,7 +50,10 @@ Platform Admins can enforce platform-wide **Email OTP Verification** upon new us
 1. Enabled via `/admin/security` (`requireEmailOtpVerification: true`).
 2. Require active SMTP server configuration.
 3. Newly registered users are automatically redirected to `/verify-email` and prompted for a 6-digit OTP code sent via Nodemailer.
-4. OTP tokens automatically expire after 10 minutes.
+4. OTP codes expire after 15 minutes. A code is stored only as a hash, is destroyed after 5 wrong guesses, and can only be used by the signed-in user it was sent to.
+5. The policy is enforced by the API as well as the dashboard. Unverified users get `403 EMAIL_NOT_VERIFIED`. Platform admin routes are exempt, so a broken SMTP setup cannot lock everyone out.
+
+Users can reset a forgotten password from `/forgot-password`. This needs working SMTP, and a successful reset signs the user out everywhere.
 
 ---
 

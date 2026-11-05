@@ -1,4 +1,13 @@
-import { bigint, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  foreignKey,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { endUsers } from './end-users.js';
 import { events } from './events.js';
 import { projects } from './projects.js';
@@ -28,6 +37,11 @@ export const xpLedger = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
+    foreignKey({
+      name: 'xp_ledger_project_user_fk',
+      columns: [table.projectId, table.userId],
+      foreignColumns: [endUsers.projectId, endUsers.id],
+    }).onDelete('cascade'),
     uniqueIndex('xp_ledger_rule_execution_unique').on(table.ruleExecutionId),
     uniqueIndex('xp_ledger_proj_idempotency_unique').on(table.projectId, table.idempotencyKey),
     index('xp_ledger_proj_user_created_idx').on(table.projectId, table.userId, table.createdAt),
@@ -50,6 +64,11 @@ export const userXpBalances = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
+    foreignKey({
+      name: 'user_xp_balances_project_user_fk',
+      columns: [table.projectId, table.userId],
+      foreignColumns: [endUsers.projectId, endUsers.id],
+    }).onDelete('cascade'),
     uniqueIndex('user_xp_balances_proj_user_unique').on(table.projectId, table.userId),
     index('idx_user_xp_balances_project_total_xp_user').on(
       table.projectId,

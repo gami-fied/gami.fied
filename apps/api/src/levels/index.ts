@@ -2,7 +2,7 @@ import { db, endUsers, levels, userXpBalances } from '@gami/database';
 import { calculateLevel, validateLevelDefinitions } from '@gami/progression';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
+import { requireProjectAccess } from '../authorization/index.js';
 
 export async function levelRoutes(fastify: FastifyInstance) {
   // Create Level (Owner/Admin)
@@ -13,11 +13,6 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
       const { level, name, description, iconUrl, requiredXp, enabled } =
         (request.body as {
@@ -141,11 +136,6 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
       const [existingLevel] = await db
         .select()
@@ -233,11 +223,6 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
       const [existingLevel] = await db
         .select()

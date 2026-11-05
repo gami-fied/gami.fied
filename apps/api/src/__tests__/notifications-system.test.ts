@@ -64,7 +64,7 @@ describe('Milestone 13 — Notifications & Reward Delivery Foundation System Tes
     });
     projIdA = JSON.parse(prjResA.payload).id;
 
-    const keyDataA = await createApiKey(projIdA, 'Key Notif A');
+    const keyDataA = await createApiKey(projIdA, 'Key Notif A', ['*']);
     apiKeySecretA = keyDataA.rawSecret;
 
     // 3. Create Project B in Org A

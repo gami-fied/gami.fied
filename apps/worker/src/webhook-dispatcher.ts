@@ -1,5 +1,10 @@
 import { db, webhookEndpoints, webhookOutbox } from '@gami/database';
-import { calculateHmacSignature, decryptSecret, resolveAndValidateTargetIp } from '@gami/webhooks';
+import {
+  calculateHmacSignature,
+  decryptSecret,
+  fetchWithSsrfProtection,
+  resolveAndValidateTargetIp,
+} from '@gami/webhooks';
 import { and, eq, lt, lte, or, sql } from 'drizzle-orm';
 
 export const MAX_WEBHOOK_ATTEMPTS = 10;
@@ -154,7 +159,7 @@ export async function dispatchPendingWebhooks(
 
       // Calculate HMAC-SHA256 signature
       const rawBody = JSON.stringify(record.payload);
-      const secret = decryptSecret(endpoint.secretHash);
+      const secret = decryptSecret(endpoint.encryptedSecret);
       const signature = calculateHmacSignature(rawBody, secret);
 
       let responseStatus: number | null = null;
@@ -165,7 +170,7 @@ export async function dispatchPendingWebhooks(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), DEFAULT_WEBHOOK_TIMEOUT_MS);
 
-        const response = await fetch(endpoint.url, {
+        const response = await fetchWithSsrfProtection(endpoint.url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

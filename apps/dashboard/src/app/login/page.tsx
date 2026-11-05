@@ -109,6 +109,12 @@ export default function LoginPage() {
                 required
               />
 
+              <div className="text-right">
+                <Link href="/forgot-password" className="text-xs text-orange-400 hover:underline">
+                  Forgot your password?
+                </Link>
+              </div>
+
               <Button type="submit" variant="primary" isLoading={loading} className="w-full">
                 <Lock className="w-4 h-4" />
                 Sign In to Dashboard

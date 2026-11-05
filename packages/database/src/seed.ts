@@ -49,7 +49,14 @@ async function rotateDemoApiKey(): Promise<string> {
 
   await db
     .insert(apiKeys)
-    .values({ id: API_KEY_ID, projectId: PROJECT_ID, name: 'Demo API Key', keyPrefix, keyHash })
+    .values({
+      id: API_KEY_ID,
+      projectId: PROJECT_ID,
+      name: 'Demo API Key',
+      keyPrefix,
+      keyHash,
+      scopes: ['*'],
+    })
     .onConflictDoUpdate({
       target: apiKeys.id,
       set: { keyPrefix, keyHash, revokedAt: null, updatedAt: new Date() },

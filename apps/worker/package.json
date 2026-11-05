@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@gami/challenges": "workspace:*",
+    "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
     "@gami/integrations": "workspace:*",
     "@gami/notifications": "workspace:*",

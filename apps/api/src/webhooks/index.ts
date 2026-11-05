@@ -71,7 +71,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       }
 
       const rawSecret = generateWebhookSecret();
-      const secretHash = encryptSecret(rawSecret);
+      const encryptedSecret = encryptSecret(rawSecret);
       const endpointId = `whk_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
       const [newEndpoint] = await db
@@ -81,7 +81,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
           projectId,
           name,
           url,
-          secretHash,
+          encryptedSecret,
           active: true,
           description: description || null,
         })
@@ -367,12 +367,12 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       }
 
       const newRawSecret = generateWebhookSecret();
-      const newSecretHash = encryptSecret(newRawSecret);
+      const newEncryptedSecret = encryptSecret(newRawSecret);
 
       await db
         .update(webhookEndpoints)
         .set({
-          secretHash: newSecretHash,
+          encryptedSecret: newEncryptedSecret,
           updatedAt: new Date(),
         })
         .where(

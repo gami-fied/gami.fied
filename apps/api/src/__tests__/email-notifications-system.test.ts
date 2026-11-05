@@ -62,7 +62,7 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
       email: 'sys.test@example.com',
     });
 
-    const apiKeyResult = await createApiKey(testProjectId, 'Email Test Key');
+    const apiKeyResult = await createApiKey(testProjectId, 'Email Test Key', ['*']);
     apiKeySecret = apiKeyResult.rawSecret;
   });
 

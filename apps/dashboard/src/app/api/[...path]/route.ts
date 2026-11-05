@@ -39,7 +39,7 @@ async function handleProxy(
   } catch (err) {
     console.error(`[API Proxy Error] Failed to proxy ${request.method} ${destinationUrl}:`, err);
     return NextResponse.json(
-      { error: 'Backend API Service Unavailable', destinationUrl },
+      { error: 'Backend API Service Unavailable' },
       { status: 503 }
     );
   }

@@ -19,6 +19,7 @@ export const endUsers = pgTable(
   },
   (table) => [
     uniqueIndex('end_users_project_external_id_idx').on(table.projectId, table.externalId),
+    uniqueIndex('end_users_project_id_id_unique').on(table.projectId, table.id),
     index('end_users_project_id_idx').on(table.projectId),
     index('end_users_project_created_idx').on(table.projectId, table.createdAt),
     index('end_users_project_name_idx').on(table.projectId, table.name),

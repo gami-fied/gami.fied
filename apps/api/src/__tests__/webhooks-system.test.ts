@@ -115,7 +115,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
     projectId = JSON.parse(projRes.payload).id;
 
     // 5. Create API Key & SDK
-    const apiKeyObj = await createApiKey(projectId, 'Webhook System Test Key');
+    const apiKeyObj = await createApiKey(projectId, 'Webhook System Test Key', ['*']);
     apiKeySecret = apiKeyObj.rawSecret;
 
     gamiSdk = new Gami({
@@ -134,7 +134,8 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
   });
 
   it('1. Webhook URL Security: Rejects invalid or SSRF forbidden URLs', async () => {
-    // Localhost / Loopback
+    // Localhost / Loopback, which this suite otherwise allows for its mock receiver
+    delete process.env.ALLOW_LOCAL_WEBHOOKS;
     const resLocal = await app.inject({
       method: 'POST',
       url: `/api/projects/${projectId}/webhooks`,
@@ -145,6 +146,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
         events: ['xp.awarded'],
       },
     });
+    process.env.ALLOW_LOCAL_WEBHOOKS = 'true';
     expect(resLocal.statusCode).toBe(400);
 
     // Private RFC1918 IP
@@ -215,7 +217,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
     const ep = body[0];
     expect(ep.id).toBe(createdEndpointId);
     expect(ep.secret).toBeUndefined();
-    expect(ep.secretHash).toBeUndefined();
+    expect(ep.encryptedSecret).toBeUndefined();
   });
 
   it('4. Get Single Webhook Endpoint via SDK', async () => {

@@ -54,7 +54,7 @@ describe('@gami.fied/sdk - Live API Integration Test Suite', () => {
     projId = prj.id;
 
     // 3. Generate API Key
-    const keyData = await createApiKey(projId, 'SDK Live Integration Key');
+    const keyData = await createApiKey(projId, 'SDK Live Integration Key', ['*']);
     apiKeySecret = keyData.rawSecret;
 
     // 4. Instantiate Gami SDK client against live Fastify server

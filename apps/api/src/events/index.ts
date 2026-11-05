@@ -4,7 +4,8 @@ import { createWebhookDelivery } from '@gami/webhooks';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
+import { requireProjectAccess } from '../authorization/index.js';
+import { hasScope } from '../authorization/permissions.js';
 import { checkRateLimit } from '../middleware/rate-limiter.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 
@@ -69,6 +70,18 @@ export async function eventRoutes(fastify: FastifyInstance) {
           requestId: reqId,
         },
         message: 'Organization account is suspended',
+        code: 'FORBIDDEN',
+      });
+    }
+
+    if (!hasScope((authResult.key.scopes as string[]) ?? [], 'events:write')) {
+      return reply.status(403).send({
+        error: {
+          code: 'FORBIDDEN',
+          message: 'API key lacks required scope "events:write"',
+          requestId: reqId,
+        },
+        message: 'API key lacks required scope "events:write"',
         code: 'FORBIDDEN',
       });
     }
@@ -531,11 +544,6 @@ export async function eventRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
       const [targetEvent] = await db
         .select()

@@ -1,4 +1,5 @@
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import { defaultConfig, validateProductionConfig } from '@gami/config';
 import { checkDatabaseHealth, runMigrations } from '@gami/database';
 import { checkRedisHealth } from '@gami/queue';
@@ -44,6 +45,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { analyticsRoutes } from './analytics/index.js';
 import { globalErrorHandler } from './middleware/error-handler.js';
+import { ipRateLimitHook } from './middleware/rate-limiter.js';
 import { requestTracingHook } from './middleware/request-tracing.js';
 
 export async function buildServer() {
@@ -52,10 +54,15 @@ export async function buildServer() {
       level: process.env.NODE_ENV === 'test' ? 'silent' : 'info',
     },
     bodyLimit: 65536, // Enforce 64KB max request body limit across API
+    // Only honour X-Forwarded-* when a trusted reverse proxy sets them.
+    trustProxy: process.env.TRUST_PROXY === 'true',
   });
 
   // Request tracing & correlation ID propagation
   fastify.addHook('onRequest', requestTracingHook);
+
+  // Per-IP ceiling for all routes except health checks
+  fastify.addHook('onRequest', ipRateLimitHook);
 
   // Global standardized API error handler
   fastify.setErrorHandler(globalErrorHandler);
@@ -71,6 +78,8 @@ export async function buildServer() {
     const route = request.routeOptions?.url || request.url;
     processMetrics.recordHttpRequest(request.method, route, reply.statusCode, durationMs);
   });
+
+  await fastify.register(helmet);
 
   // Register CORS for Dashboard and external clients
   await fastify.register(cors, {

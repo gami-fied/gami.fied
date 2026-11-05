@@ -33,7 +33,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
       ]);
 
       const { createApiKey } = await import('../services/api-key.service.js');
-      const keyA = await createApiKey(projectIdA, 'Analytics Key A');
+      const keyA = await createApiKey(projectIdA, 'Analytics Key A', ['*']);
       rawApiKeyA = keyA.rawSecret;
       dbAvailable = true;
     } catch {

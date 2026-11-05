@@ -52,7 +52,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
     const prjA = JSON.parse(prjResA.payload);
     projIdA = prjA.id;
 
-    const keyDataA = await createApiKey(projIdA, 'Key A');
+    const keyDataA = await createApiKey(projIdA, 'Key A', ['*']);
     apiKeySecretA = keyDataA.rawSecret;
 
     // 2. Create Organization B & Project B
@@ -72,7 +72,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       slug: `rules-prj-b-${Date.now()}`,
     });
 
-    await createApiKey(projIdB, 'Key B');
+    await createApiKey(projIdB, 'Key B', ['*']);
   });
 
   afterAll(async () => {
@@ -301,7 +301,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       enabled: true,
     });
 
-    const keyFail = await createApiKey(projIdFail, 'Fail Key');
+    const keyFail = await createApiKey(projIdFail, 'Fail Key', ['*']);
 
     const ingestRes = await app.inject({
       method: 'POST',

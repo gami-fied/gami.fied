@@ -2,6 +2,10 @@
 
 Official isomorphic Node.js / TypeScript SDK for Gami.Fied Community Engine.
 
+
+> [!NOTE]
+> The SDK authenticates with a project API key, so it can only reach what the key's scopes allow. New keys are limited to `events:write`. Organization methods and API key management need a signed-in user and return 403 with an API key.
+
 ## Installation
 
 ```bash

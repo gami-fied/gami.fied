@@ -2,7 +2,7 @@ import { account, db, users } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { requireAuthSession } from '../authorization/index.js';
+import { requireSession } from '../authorization/index.js';
 
 const updateProfileSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
@@ -14,7 +14,7 @@ const updateProfileSchema = z.object({
 export async function userProfileRoutes(fastify: FastifyInstance) {
   // GET /api/user/profile - Fetch authenticated user profile & preferences
   fastify.get('/api/user/profile', async (request, reply) => {
-    const authResult = await requireAuthSession(request, reply);
+    const authResult = await requireSession(request, reply);
     if (!authResult) return;
 
     const [userRow] = await db
@@ -44,7 +44,7 @@ export async function userProfileRoutes(fastify: FastifyInstance) {
 
   // PUT /api/user/profile - Update authenticated user profile & subscription preferences
   fastify.put('/api/user/profile', async (request, reply) => {
-    const authResult = await requireAuthSession(request, reply);
+    const authResult = await requireSession(request, reply);
     if (!authResult) return;
 
     const parseResult = updateProfileSchema.safeParse(request.body);

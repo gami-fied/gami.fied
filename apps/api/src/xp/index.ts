@@ -154,15 +154,14 @@ export async function xpRoutes(fastify: FastifyInstance) {
           .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
       }
 
-      // Auto-ensure end-user exists in this project
-      await db
-        .insert(endUsers)
-        .values({
-          id: userId,
-          projectId,
-          externalId: userId,
-        })
-        .onConflictDoNothing();
+      const [targetUser] = await db
+        .select({ id: endUsers.id })
+        .from(endUsers)
+        .where(and(eq(endUsers.id, userId), eq(endUsers.projectId, projectId)));
+
+      if (!targetUser) {
+        return reply.status(404).send({ error: 'Not Found', message: 'End user not found' });
+      }
 
       const parseResult = adjustXpSchema.safeParse(request.body);
       if (!parseResult.success) {
