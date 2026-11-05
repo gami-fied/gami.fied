@@ -23,7 +23,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | :--- | :--- | :---: | :--- |
 | 0 | Baseline: green CI, runnable stack | 11 / 15 | In progress, the rest need Docker or a CI run |
 | 1 | Security and tenant safety | 19 / 23 | In progress, 3 partly done, 1 moved to FEAT-17 |
-| 2 | Core engine correctness | 0 / 32 | Not started |
+| 2 | Core engine correctness | 22 / 32 | In progress, 2 partly done |
 | 3 | Make every promise true | 0 / 26 | Not started |
 | 4 | Developer experience | 0 / 16 | Not started |
 | 5 | Dashboard UI and UX | 0 / 34 | Not started |
@@ -196,51 +196,51 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 ### 2.2 Replay and outbox
 
 - [ ] **ENG-05** `P1` Replay does nothing for processed events but reports success. `event_outbox.event_id` is unique, so the insert at [events/index.ts:580](apps/api/src/events/index.ts:580) is dropped, and the BullMQ `jobId` also dedupes. Rule executions then skip anything completed. Design real replay with a replay ID and a clear choice of what re-runs. `[code]`
-- [ ] **ENG-06** `P1` Event outbox has no terminal failure state. Attempts are not raised on reclaim, and failures retry forever. Add a max attempt count and a dead-letter view. `[code]`
-- [ ] **ENG-07** `P2` The event outbox query has no `ORDER BY`, so ordering is not guaranteed and rows can starve. Order by `available_at, id`. `[code]`
+- [~] **ENG-06** `P1` Event outbox has no terminal failure state. Attempts are not raised on reclaim, and failures retry forever. Add a max attempt count and a dead-letter view. `[code]` Done: events stop after 10 attempts with status `failed`. Left: raise attempts on reclaim, and add the dead-letter view.
+- [x] **ENG-07** `P2` The event outbox query has no `ORDER BY`, so ordering is not guaranteed and rows can starve. Order by `available_at, id`. `[code]`
 - [ ] **ENG-08** `P2` Build one generic claim, dispatch, retry helper. Six outboxes each repeat this logic with different bugs. `[code]`
 
 ### 2.3 Rule execution
 
-- [ ] **ENG-09** `P1` Confirmed live. Non-matching rules are recorded as `failed` at [executor.ts:68](apps/worker/src/executor.ts:68). Every event writes a row for every enabled rule, with most marked failed, which bloats the table and pollutes health data. Filter by trigger in SQL, and record `skipped`. `[code]`
-- [ ] **ENG-10** `P1` A rule with two `award_xp` actions silently loses the second. `xp_ledger_rule_execution_unique` allows one row per execution, and the 23505 error is meant to be treated as a harmless duplicate (see ENG-31, which currently makes it fail instead). Add an action index to the unique key. `[code]`
-- [ ] **ENG-11** `P1` Rule-based XP sends no `xp.awarded` or `level.up` webhook. The executor at [executor.ts:84](apps/worker/src/executor.ts:84) has its own inline copy, and `executeAwardXpAction` is never used for rules. Its registry handler would always throw. Make one `awardXp` service for rules, rewards and manual adjustments. `[code]`
-- [ ] **ENG-12** `P1` Rule evaluation errors are logged as "did not match", and unknown action types are marked `completed` with no effect. Store the real error, and reject unknown actions when the rule is saved. `[code]`
-- [ ] **ENG-13** `P2` Check on save that referenced achievement keys exist, and warn when they are disabled. `[code]`
+- [x] **ENG-09** `P1` Confirmed live. Non-matching rules are recorded as `failed` at [executor.ts:68](apps/worker/src/executor.ts:68). Every event writes a row for every enabled rule, with most marked failed, which bloats the table and pollutes health data. Filter by trigger in SQL, and record `skipped`. `[code]`
+- [x] **ENG-10** `P1` A rule with two `award_xp` actions silently loses the second. `xp_ledger_rule_execution_unique` allows one row per execution, and the 23505 error is meant to be treated as a harmless duplicate (see ENG-31, which currently makes it fail instead). Add an action index to the unique key. `[code]` Done with migration 0025, which also stops a rule losing its second achievement.
+- [x] **ENG-11** `P1` Rule-based XP sends no `xp.awarded` or `level.up` webhook. The executor at [executor.ts:84](apps/worker/src/executor.ts:84) has its own inline copy, and `executeAwardXpAction` is never used for rules. Its registry handler would always throw. Make one `awardXp` service for rules, rewards and manual adjustments. `[code]` Done: `@gami/rewards` is now the only code that writes XP and grants rule and challenge achievements.
+- [x] **ENG-12** `P1` Rule evaluation errors are logged as "did not match", and unknown action types are marked `completed` with no effect. Store the real error, and reject unknown actions when the rule is saved. `[code]` Done. `log` and other unknown actions now fail instead of doing nothing, so existing rules using them show as failed.
+- [x] **ENG-13** `P2` Check on save that referenced achievement keys exist, and warn when they are disabled. `[code]` Done. Disabled keys return a `warnings` list on save. The dashboard does not show it yet.
 
 ### 2.4 XP, levels and achievements
 
-- [ ] **ENG-14** `P1` Manual XP adjustment fails for external IDs. If the path ID is an existing `externalId`, the user insert is skipped and the ledger insert then fails with a 500. Resolve users properly (see DX-01). `[code]`
-- [ ] **ENG-15** `P1` Negative adjustments can push a balance below zero, while progression treats it as zero. Decide on a floor and enforce it in the transaction. `[code]`
-- [ ] **ENG-16** `P2` Level-ups include disabled levels. [calculator.ts:113](packages/progression/src/calculator.ts:113) loops over every number, producing "Level N" notices for levels that are switched off. Iterate over active levels. `[code]`
-- [ ] **ENG-17** `P2` `nextLevel` in the progress API assumes `level + 1`, which is wrong when a level is disabled. `[code]`
+- [~] **ENG-14** `P1` Manual XP adjustment fails for external IDs. If the path ID is an existing `externalId`, the user insert is skipped and the ledger insert then fails with a 500. Resolve users properly (see DX-01). `[code]` An unknown ID now returns 404 rather than 500. Left: accepting external IDs (DX-01).
+- [x] **ENG-15** `P1` Negative adjustments can push a balance below zero, while progression treats it as zero. Decide on a floor and enforce it in the transaction. `[code]` Done: a deduction below zero returns 422 `INSUFFICIENT_XP` and writes nothing.
+- [x] **ENG-16** `P2` Level-ups include disabled levels. [calculator.ts:113](packages/progression/src/calculator.ts:113) loops over every number, producing "Level N" notices for levels that are switched off. Iterate over active levels. `[code]`
+- [x] **ENG-17** `P2` `nextLevel` in the progress API assumes `level + 1`, which is wrong when a level is disabled. `[code]`
 
-- [ ] **ENG-29** `P1` The rule builder saves `in` and `not_in` values as a comma-separated string, while the evaluator requires an array. `in` never matches and `not_in` never excludes. Split the list when saving, and reject non-array values in validation. `[code]`
+- [x] **ENG-29** `P1` The rule builder saves `in` and `not_in` values as a comma-separated string, while the evaluator requires an array. `in` never matches and `not_in` never excludes. Split the list when saving, and reject non-array values in validation. `[code]` Done: the builder always saves arrays, and validation rejects anything else. List values are saved as strings, so `in` will not match a numeric payload value.
 
 ### 2.5 Challenges
 
-- [ ] **ENG-18** `P1` Challenge rewards send no webhooks. XP rewards skip `xp.awarded` and `level.up`, and achievement rewards skip `achievement.unlocked`. ENG-11's shared service fixes this. `[code]`
-- [ ] **ENG-19** `P1` Reward failure handling is broken. In [challenge-processor.ts](apps/worker/src/challenge-processor.ts), a database error aborts the shared transaction, so the catch block's update also fails and all 50 rewards roll back. Process each record in its own transaction or savepoint. `[code]`
-- [ ] **ENG-20** `P2` Rewards for a missing or disabled achievement are marked complete with nothing granted. Record this as a failure. Skip the balance update if the ledger insert was a conflict, which is unconditional today at line 82. `[code]`
+- [x] **ENG-18** `P1` Challenge rewards send no webhooks. XP rewards skip `xp.awarded` and `level.up`, and achievement rewards skip `achievement.unlocked`. ENG-11's shared service fixes this. `[code]`
+- [x] **ENG-19** `P1` Reward failure handling is broken. In [challenge-processor.ts](apps/worker/src/challenge-processor.ts), a database error aborts the shared transaction, so the catch block's update also fails and all 50 rewards roll back. Process each record in its own transaction or savepoint. `[code]`
+- [x] **ENG-20** `P2` Rewards for a missing or disabled achievement are marked complete with nothing granted. Record this as a failure. Skip the balance update if the ledger insert was a conflict, which is unconditional today at line 82. `[code]`
 
 ### 2.6 Delivery
 
-- [ ] **ENG-21** `P0` Webhook HTTP calls run inside one database transaction at [webhook-dispatcher.ts:87](apps/worker/src/webhook-dispatcher.ts:87). A batch of 50 slow endpoints can hold a transaction and connection for about 8 minutes and stall every later step of the poller. Claim rows, commit, send in parallel with per-endpoint limits, then record results. The email and integration dispatchers already work this way. `[code]`
-- [ ] **ENG-22** `P1` Permanent webhook failures retry anyway. The query at [webhook-dispatcher.ts:74](apps/worker/src/webhook-dispatcher.ts:74) reselects `failed` rows under 10 attempts with no backoff, so a 404 is retried on each poll. Separate `failed` from `dead`. `[code]`
+- [x] **ENG-21** `P0` Webhook HTTP calls run inside one database transaction at [webhook-dispatcher.ts:87](apps/worker/src/webhook-dispatcher.ts:87). A batch of 50 slow endpoints can hold a transaction and connection for about 8 minutes and stall every later step of the poller. Claim rows, commit, send in parallel with per-endpoint limits, then record results. The email and integration dispatchers already work this way. `[code]`
+- [x] **ENG-22** `P1` Permanent webhook failures retry anyway. The query at [webhook-dispatcher.ts:74](apps/worker/src/webhook-dispatcher.ts:74) reselects `failed` rows under 10 attempts with no backoff, so a 404 is retried on each poll. Separate `failed` from `dead`. `[code]` Done: `failed` is now final and a retry stays `pending`, so no separate `dead` status was needed.
 - [ ] **ENG-23** `P2` Add a timestamp to the webhook signature to stop replay attacks, publish a verification helper in the SDK, and support secret rotation. `[code]`
 - [ ] **ENG-24** `P2` Automatically disable endpoints after sustained failure and notify the owner. `failureCount` is only stored. `[code]`
 
-- [ ] **ENG-28** `P1` [notifications/src/service.ts](packages/notifications/src/service.ts) catches errors from a query inside the caller's transaction. A failed integration insert aborts that transaction, so the commit then fails and the XP award is lost. Phase 0 added a log line, but the catch needs a savepoint or a move outside the transaction. `[code]`
+- [x] **ENG-28** `P1` [notifications/src/service.ts](packages/notifications/src/service.ts) catches errors from a query inside the caller's transaction. A failed integration insert aborts that transaction, so the commit then fails and the XP award is lost. Phase 0 added a log line, but the catch needs a savepoint or a move outside the transaction. `[code]`
 
-- [ ] **ENG-30** `P2` Workers compare database timestamps with the app clock. `available_at` defaults to the database's `now()`, but [notification-dispatcher.ts:23](apps/worker/src/notification-dispatcher.ts:23) and others use `new Date()`, so clock skew delays rows. A 3.4 second skew failed a test. Other dispatchers hide this with 10 to 60 second buffers. Compare using the database clock everywhere. `[ran]`
-- [ ] **ENG-31** `P1` Every unique-violation check is broken. All 13 sites test `error.code === '23505'`, but Drizzle wraps errors and the code is on `error.cause`. Repeat badge awards are marked `failed` (12 of 16 demo runs of the badge rules that were not plain non-matches). Duplicate slugs should return 409 but will probably return 500, and concurrent idempotent events and XP adjustments lose their fallback. Add one `isUniqueViolation()` helper with tests. `[ran]`
-- [ ] **ENG-32** `P1` The notification dispatcher releases its row locks before doing the work. `FOR UPDATE SKIP LOCKED` runs in a transaction that ends immediately, so two workers can claim the same rows. `[code]`
+- [x] **ENG-30** `P2` Workers compare database timestamps with the app clock. `available_at` defaults to the database's `now()`, but [notification-dispatcher.ts:23](apps/worker/src/notification-dispatcher.ts:23) and others use `new Date()`, so clock skew delays rows. A 3.4 second skew failed a test. Other dispatchers hide this with 10 to 60 second buffers. Compare using the database clock everywhere. `[ran]`
+- [x] **ENG-31** `P1` Every unique-violation check is broken. All 13 sites test `error.code === '23505'`, but Drizzle wraps errors and the code is on `error.cause`. Repeat badge awards are marked `failed` (12 of 16 demo runs of the badge rules that were not plain non-matches). Duplicate slugs should return 409 but will probably return 500, and concurrent idempotent events and XP adjustments lose their fallback. Add one `isUniqueViolation()` helper with tests. `[ran]`
+- [x] **ENG-32** `P1` The notification dispatcher releases its row locks before doing the work. `FOR UPDATE SKIP LOCKED` runs in a transaction that ends immediately, so two workers can claim the same rows. `[code]`
 
 ### 2.7 Leaderboards
 
-- [ ] **ENG-25** `P1` `::int` casts in [service.ts:86](packages/leaderboards/src/service.ts:86) will overflow past 2.1 billion XP because the column is `bigint`, turning the leaderboard into a 500. Cast to `bigint`. `[code]`
-- [ ] **ENG-26** `P1` Deactivated users still appear in leaderboards, and zero-XP users are ranked. Filter both by default. `[code]`
-- [ ] **ENG-27** `P2` Fix or remove `getLeaderboardAroundUser`, which returns a page rather than a window and has no route. `[code]`
+- [x] **ENG-25** `P1` `::int` casts in [service.ts:86](packages/leaderboards/src/service.ts:86) will overflow past 2.1 billion XP because the column is `bigint`, turning the leaderboard into a 500. Cast to `bigint`. `[code]`
+- [x] **ENG-26** `P1` Deactivated users still appear in leaderboards, and zero-XP users are ranked. Filter both by default. `[code]` Done. A user with no XP in the period is unranked, and `getUserRank` returns `rank: null`.
+- [x] **ENG-27** `P2` Fix or remove `getLeaderboardAroundUser`, which returns a page rather than a window and has no route. `[code]` Done: removed, because nothing used it. Rebuild it if a window view is wanted.
 
 ---
 

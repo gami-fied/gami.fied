@@ -34,11 +34,17 @@ export async function processEventJob(eventId: string): Promise<{
     occurredAt: evt.occurredAt,
   };
 
-  // 2. Load enabled rules strictly scoped to event.projectId, ordered by created_at ASC, id ASC
+  // 2. Load enabled rules for this event type, scoped to event.projectId, oldest first
   const projectRules = await db
     .select()
     .from(rules)
-    .where(and(eq(rules.projectId, evt.projectId), eq(rules.enabled, true)))
+    .where(
+      and(
+        eq(rules.projectId, evt.projectId),
+        eq(rules.enabled, true),
+        eq(rules.trigger, evt.type)
+      )
+    )
     .orderBy(asc(rules.createdAt), asc(rules.id));
 
   console.log(

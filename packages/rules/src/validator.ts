@@ -1,4 +1,15 @@
-import { Condition, Operator, RuleDefinition, SAFETY_LIMITS, SimpleCondition } from './types.js';
+import {
+  ActionDefinition,
+  Condition,
+  Operator,
+  RuleDefinition,
+  SAFETY_LIMITS,
+  SimpleCondition,
+} from './types.js';
+
+/** Action types the worker can run. Anything else would never have an effect. */
+export const SUPPORTED_ACTION_TYPES = ['award_xp', 'award_achievement'] as const;
+export const MAX_XP_PER_ACTION = 1_000_000;
 
 const ALLOWED_OPERATORS: Set<Operator> = new Set([
   'equals',
@@ -36,6 +47,9 @@ function countAndCheckConditions(
     }
     if (!cond.field || typeof cond.field !== 'string') {
       throw new Error('Condition field must be a non-empty string');
+    }
+    if ((cond.operator === 'in' || cond.operator === 'not_in') && !Array.isArray(cond.value)) {
+      throw new Error(`Operator "${cond.operator}" requires an array of values`);
     }
     return { count: 1, maxDepth: depth };
   }
@@ -111,4 +125,40 @@ export function validateRuleDefinition(rule: unknown): RuleDefinition {
   }
 
   return def;
+}
+
+function checkSavedAction(action: ActionDefinition): void {
+  if (action.type === 'award_xp') {
+    const amount = action.params?.['amount'];
+    if (
+      typeof amount !== 'number' ||
+      !Number.isInteger(amount) ||
+      amount <= 0 ||
+      amount > MAX_XP_PER_ACTION
+    ) {
+      throw new Error(`award_xp amount must be an integer between 1 and ${MAX_XP_PER_ACTION}`);
+    }
+  } else if (action.type === 'award_achievement') {
+    if (typeof action.params?.['achievementKey'] !== 'string' || !action.params['achievementKey']) {
+      throw new Error('award_achievement requires an achievementKey');
+    }
+  } else {
+    throw new Error(`Unsupported action type: ${action.type}`);
+  }
+}
+
+/** Stricter than evaluation: rejects anything that could be saved but could never run. */
+export function validateRuleForSave(rule: unknown): RuleDefinition {
+  const definition = validateRuleDefinition(rule);
+  definition.actions.forEach(checkSavedAction);
+  return definition;
+}
+
+/** The achievement keys a rule's actions refer to. */
+export function getReferencedAchievementKeys(actions: ActionDefinition[]): string[] {
+  const keys = actions
+    .filter((action) => action.type === 'award_achievement')
+    .map((action) => action.params?.['achievementKey'])
+    .filter((key): key is string => typeof key === 'string');
+  return [...new Set(keys)];
 }

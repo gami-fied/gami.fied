@@ -96,7 +96,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
             { field: 'payload.score', operator: 'greater_than', value: 100 },
           ],
         },
-        actions: [{ type: 'log', params: { msg: 'Boss Defeated' } }],
+        actions: [{ type: 'award_xp', params: { amount: 10 } }],
         enabled: true,
       },
     });
@@ -138,7 +138,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       payload: {
         name: 'Always Reward',
         trigger: 'lesson.completed',
-        actions: [{ type: 'log', params: { msg: 'Lesson completed' } }],
+        actions: [{ type: 'award_xp', params: { amount: 10 } }],
       },
     });
 
@@ -155,7 +155,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
         rule: {
           trigger: 'task.completed',
           conditions: { field: 'payload.difficulty', operator: 'equals', value: 'hard' },
-          actions: [{ type: 'grant_xp', params: { amount: 100 } }],
+          actions: [{ type: 'award_xp', params: { amount: 100 } }],
         },
         event: {
           type: 'task.completed',
@@ -186,7 +186,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'E2E Task Rule',
       trigger: 'task.completed',
       conditions: { field: 'payload.difficulty', operator: 'equals', value: 'hard' },
-      actions: [{ type: 'log' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -197,6 +197,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       headers: { 'x-api-key': apiKeySecretA },
       payload: {
         event: 'task.completed',
+        user_id: 'rule_test_user',
         payload: { difficulty: 'hard', score: 200 },
       },
     });
@@ -239,7 +240,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'Project B Task Rule',
       trigger: 'task.completed',
       conditions: { field: 'payload.difficulty', operator: 'equals', value: 'hard' },
-      actions: [{ type: 'log_b' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -250,6 +251,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       headers: { 'x-api-key': apiKeySecretA },
       payload: {
         event: 'task.completed',
+        user_id: 'rule_test_user',
         payload: { difficulty: 'hard' },
       },
     });
@@ -285,7 +287,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'Malformed Rule C',
       trigger: 'test.fail',
       conditions: { field: 'payload.score', operator: 'invalid_op' as unknown as 'equals' },
-      actions: [{ type: 'log' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -297,7 +299,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'Good Rule D',
       trigger: 'test.fail',
       conditions: { field: 'payload.valid', operator: 'equals', value: true },
-      actions: [{ type: 'log' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -309,6 +311,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       headers: { 'x-api-key': keyFail.rawSecret },
       payload: {
         event: 'test.fail',
+        user_id: 'rule_test_user',
         payload: { valid: true },
       },
     });

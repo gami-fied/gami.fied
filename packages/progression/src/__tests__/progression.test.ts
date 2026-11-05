@@ -111,6 +111,15 @@ describe('@gami/progression - Validation & Calculation Unit Suite', () => {
   });
 
   describe('Level Crossing Detection', () => {
+    it('skips disabled levels', () => {
+      const levels = [
+        { level: 1, name: 'One', requiredXp: 0 },
+        { level: 2, name: 'Two', requiredXp: 100, enabled: false },
+        { level: 3, name: 'Three', requiredXp: 200 },
+      ];
+      expect(getLevelsCrossed(0, 250, levels)).toEqual([3]);
+    });
+
     it('returns empty array when XP does not cross level threshold (0 -> 50)', () => {
       const crossed = getLevelsCrossed(0, 50, defaultLevels);
       expect(crossed).toHaveLength(0);

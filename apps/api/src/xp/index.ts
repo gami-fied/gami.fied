@@ -1,8 +1,5 @@
-import crypto from 'crypto';
-import { db, endUsers, levels, userXpBalances, xpLedger } from '@gami/database';
-import { createNotificationIntent, generateLevelUpSourceId } from '@gami/notifications';
-import { getLevelsCrossed } from '@gami/progression';
-import { createWebhookDelivery } from '@gami/webhooks';
+import { awardXp, InsufficientXpError } from '@gami/rewards';
+import { db, endUsers, userXpBalances, xpLedger } from '@gami/database';
 import { eq, and, desc, sql, count } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -176,123 +173,41 @@ export async function xpRoutes(fastify: FastifyInstance) {
       const { amount, reason, metadata, idempotencyKey: bodyIdempotencyKey } = parseResult.data;
       const idempotencyKey = headerIdempotencyKey || bodyIdempotencyKey || null;
 
-      const ledgerId = `xpl_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-      const balanceId = `xpb_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
       const fullReason = `manual_adjustment: ${reason}`;
 
       try {
         const createdEntry = await db.transaction(async (tx) => {
-          // Idempotency check if idempotencyKey provided
-          if (idempotencyKey) {
+          const findExisting = async () => {
+            if (!idempotencyKey) return undefined;
             const [existing] = await tx
               .select()
               .from(xpLedger)
               .where(
                 and(eq(xpLedger.projectId, projectId), eq(xpLedger.idempotencyKey, idempotencyKey))
               );
+            return existing;
+          };
 
-            if (existing) {
-              return { ...existing, duplicate: true };
-            }
-          }
+          const existing = await findExisting();
+          if (existing) return { ...existing, duplicate: true };
 
-          const [newEntry] = await tx
-            .insert(xpLedger)
-            .values({
-              id: ledgerId,
-              projectId,
-              userId,
-              idempotencyKey,
-              amount,
-              reason: fullReason,
-              metadata: metadata || {},
-            })
-            .returning();
-
-          const [upsertedBalance] = await tx
-            .insert(userXpBalances)
-            .values({
-              id: balanceId,
-              projectId,
-              userId,
-              totalXp: amount,
-            })
-            .onConflictDoUpdate({
-              target: [userXpBalances.projectId, userXpBalances.userId],
-              set: {
-                totalXp: sql`user_xp_balances.total_xp + ${amount}`,
-                updatedAt: new Date(),
-              },
-            })
-            .returning();
-
-          const newXp = upsertedBalance ? upsertedBalance.totalXp : amount;
-          const previousXp = Math.max(0, newXp - amount);
-
-          // 1. Create xp_awarded notification intent & webhook outbox intent
-          await createNotificationIntent(tx, {
+          const result = await awardXp(tx, {
             projectId,
             userId,
-            type: 'xp_awarded',
-            data: { amount, reason: fullReason },
-            sourceType: 'xp_awarded',
-            sourceId: ledgerId,
+            amount,
+            reason: fullReason,
+            metadata,
+            idempotencyKey,
           });
 
-          await createWebhookDelivery(tx, {
-            projectId,
-            eventId: ledgerId,
-            eventType: 'xp.awarded',
-            userId,
-            data: { amount, newBalance: newXp, reason: fullReason },
-          });
-
-          // 2. Calculate and create level_up notification intents if levels crossed
-          const projectLevels = await tx
-            .select()
-            .from(levels)
-            .where(eq(levels.projectId, projectId));
-
-          if (projectLevels.length > 0) {
-            const crossed = getLevelsCrossed(previousXp, newXp, projectLevels);
-            const activeLevelsSorted = projectLevels
-              .filter((l) => l.enabled !== false)
-              .sort((a, b) => a.level - b.level);
-
-            for (const lvlNumber of crossed) {
-              const lvlDef = activeLevelsSorted.find((l) => l.level === lvlNumber);
-              const levelName = lvlDef ? lvlDef.name : `Level ${lvlNumber}`;
-              const sourceId = generateLevelUpSourceId(projectId, userId, lvlNumber);
-
-              await createNotificationIntent(tx, {
-                projectId,
-                userId,
-                type: 'level_up',
-                data: {
-                  previousLevel: lvlNumber - 1,
-                  newLevel: lvlNumber,
-                  levelName,
-                },
-                sourceType: 'level_up',
-                sourceId,
-              });
-
-              await createWebhookDelivery(tx, {
-                projectId,
-                eventId: sourceId,
-                eventType: 'level.up',
-                userId,
-                data: {
-                  previousLevel: lvlNumber - 1,
-                  newLevel: lvlNumber,
-                  levelName,
-                  xp: newXp,
-                },
-              });
-            }
+          if (result.duplicate) {
+            // A concurrent request with the same key won the insert.
+            const winner = await findExisting();
+            if (!winner) throw new Error('XP ledger conflict without a matching entry');
+            return { ...winner, duplicate: true };
           }
 
-          return { ...newEntry, duplicate: false };
+          return { ...result.entry, duplicate: false };
         });
 
         if (!createdEntry.duplicate) {
@@ -311,18 +226,12 @@ export async function xpRoutes(fastify: FastifyInstance) {
         const statusCode = createdEntry.duplicate ? 200 : 201;
         return reply.status(statusCode).send(createdEntry);
       } catch (err: unknown) {
-        const error = err as { code?: string };
-        if (error.code === '23505' && idempotencyKey) {
-          const [existing] = await db
-            .select()
-            .from(xpLedger)
-            .where(
-              and(eq(xpLedger.projectId, projectId), eq(xpLedger.idempotencyKey, idempotencyKey))
-            );
-
-          if (existing) {
-            return reply.status(200).send({ ...existing, duplicate: true });
-          }
+        if (err instanceof InsufficientXpError) {
+          return reply.status(422).send({
+            error: 'Unprocessable Entity',
+            code: 'INSUFFICIENT_XP',
+            message: 'This adjustment would take the balance below zero',
+          });
         }
         throw err;
       }

@@ -5,7 +5,7 @@ import {
   SmtpEmailProvider,
 } from '@gami/notifications';
 import { decryptSecret } from '@gami/webhooks';
-import { and, eq, lte } from 'drizzle-orm';
+import { and, eq, lte, sql } from 'drizzle-orm';
 
 let cachedSmtpProvider: SmtpEmailProvider | null = null;
 let lastSmtpFetchTime = 0;
@@ -89,7 +89,6 @@ export async function dispatchPendingEmailNotifications(
   batchLimit = 50,
   forceNow?: Date
 ): Promise<{ processedCount: number; completedCount: number; failedCount: number }> {
-  const now = forceNow || new Date();
 
   // 1. Select pending outbox records using FOR UPDATE SKIP LOCKED
   const pendingRecords = await db.transaction(async (tx) => {
@@ -99,7 +98,7 @@ export async function dispatchPendingEmailNotifications(
       .where(
         and(
           eq(emailNotificationOutbox.status, 'pending'),
-          lte(emailNotificationOutbox.availableAt, now)
+          lte(emailNotificationOutbox.availableAt, forceNow ?? sql`now()`)
         )
       )
       .limit(batchLimit);

@@ -176,6 +176,13 @@
       "when": 1793810000000,
       "tag": "0024_webhook_secret_rename_and_tenant_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793900000000,
+      "tag": "0025_xp_ledger_action_index",
+      "breakpoints": true
     }
   ]
 }

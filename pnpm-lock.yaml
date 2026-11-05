@@ -71,6 +71,9 @@ importers:
       '@gami/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@gami/rewards':
+        specifier: workspace:*
+        version: link:../../packages/rewards
       '@gami/rules':
         specifier: workspace:*
         version: link:../../packages/rules
@@ -193,6 +196,9 @@ importers:
       '@gami/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@gami/rewards':
+        specifier: workspace:*
+        version: link:../../packages/rewards
       '@gami/rules':
         specifier: workspace:*
         version: link:../../packages/rules
@@ -373,6 +379,28 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  packages/rewards:
+    dependencies:
+      '@gami/database':
+        specifier: workspace:*
+        version: link:../database
+      '@gami/notifications':
+        specifier: workspace:*
+        version: link:../notifications
+      '@gami/progression':
+        specifier: workspace:*
+        version: link:../progression
+      '@gami/webhooks':
+        specifier: workspace:*
+        version: link:../webhooks
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(kysely@0.29.5)(postgres@3.4.9)
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/rules:
     devDependencies:

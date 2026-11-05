@@ -74,7 +74,7 @@ export async function dispatchPendingIntegrations(
       .where(
         and(
           eq(integrationDeliveries.status, 'pending'),
-          lte(integrationDeliveries.availableAt, now)
+          lte(integrationDeliveries.availableAt, sql`now()`)
         )
       )
       .limit(batchSize)

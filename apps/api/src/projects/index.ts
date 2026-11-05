@@ -1,4 +1,4 @@
-import { db, levels, member, projects, projectMembers } from '@gami/database';
+import { db, levels, member, projects, projectMembers, isUniqueViolation } from '@gami/database';
 import { getDefaultLevelDefinitions } from '@gami/progression';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -60,8 +60,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
 
       return reply.status(201).send(newPrj);
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      if (error.code === '23505') {
+      if (isUniqueViolation(err)) {
         return reply
           .status(409)
           .send({ error: 'Conflict', message: 'Project slug already exists in this organization' });
@@ -187,8 +186,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
 
       return reply.send(updatedPrj);
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      if (error.code === '23505') {
+      if (isUniqueViolation(err)) {
         return reply
           .status(409)
           .send({ error: 'Conflict', message: 'Project slug already exists in this organization' });

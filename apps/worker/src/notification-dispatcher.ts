@@ -1,5 +1,5 @@
 import { db, notificationOutbox, notifications } from '@gami/database';
-import { and, eq, lte, lt, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, lte, lt, sql } from 'drizzle-orm';
 
 export const MAX_NOTIFICATION_OUTBOX_ATTEMPTS = 10;
 export const STALE_PROCESSING_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -41,25 +41,34 @@ export async function dispatchPendingNotifications(
 
   const recoveredCount = recoveredRecords.length;
 
-  // 2. Select & lock candidate records atomically
+  // 2. Claim due records in one transaction, so a second worker cannot pick up the same rows
   const candidateRecords = await db.transaction(async (tx) => {
-    return await tx
+    const due = await tx
       .select()
       .from(notificationOutbox)
       .where(
         and(
-          or(
-            and(eq(notificationOutbox.status, 'pending'), lte(notificationOutbox.availableAt, now)),
-            and(
-              eq(notificationOutbox.status, 'failed'),
-              lte(notificationOutbox.availableAt, now),
-              lt(notificationOutbox.attempts, MAX_NOTIFICATION_OUTBOX_ATTEMPTS)
-            )
-          )
+          eq(notificationOutbox.status, 'pending'),
+          lte(notificationOutbox.availableAt, forceNow ?? sql`now()`)
         )
       )
+      .orderBy(asc(notificationOutbox.availableAt), asc(notificationOutbox.id))
       .limit(limit)
       .for('update', { skipLocked: true });
+
+    if (due.length > 0) {
+      await tx
+        .update(notificationOutbox)
+        .set({ status: 'processing', processingAt: now, updatedAt: now })
+        .where(
+          inArray(
+            notificationOutbox.id,
+            due.map((record) => record.id)
+          )
+        );
+    }
+
+    return due;
   });
 
   let completedCount = 0;
@@ -67,16 +76,6 @@ export async function dispatchPendingNotifications(
 
   for (const record of candidateRecords) {
     try {
-      // Mark as processing with timestamp
-      await db
-        .update(notificationOutbox)
-        .set({
-          status: 'processing',
-          processingAt: now,
-          updatedAt: now,
-        })
-        .where(eq(notificationOutbox.id, record.id));
-
       // In-app delivery verification: verify notification exists in database
       const [targetNotification] = await db
         .select()

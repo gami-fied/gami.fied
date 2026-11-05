@@ -1,4 +1,4 @@
-import { db, member, organizations } from '@gami/database';
+import { db, member, organizations, isUniqueViolation } from '@gami/database';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireAuth, requireOrgMember, requireOrgRole } from '../authorization/index.js';
@@ -46,8 +46,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
         role: 'owner',
       });
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      if (error.code === '23505') {
+      if (isUniqueViolation(err)) {
         return reply
           .status(409)
           .send({ error: 'Conflict', message: 'Organization slug already exists' });
@@ -124,8 +123,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
 
       return reply.send(updatedOrg);
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      if (error.code === '23505') {
+      if (isUniqueViolation(err)) {
         return reply
           .status(409)
           .send({ error: 'Conflict', message: 'Organization slug already exists' });

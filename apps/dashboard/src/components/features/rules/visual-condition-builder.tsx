@@ -218,7 +218,12 @@ export function buildRulesEngineConditions(
 
   const simpleConditions: SimpleCondition[] = conditions.map((c) => {
     let typedValue: unknown = c.value;
-    if (
+    if (['in', 'not_in'].includes(c.operator) && typeof c.value === 'string') {
+      typedValue = c.value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+    } else if (
       ['greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'].includes(
         c.operator
       )
@@ -229,11 +234,6 @@ export function buildRulesEngineConditions(
       typedValue = true;
     } else if (c.value === 'false') {
       typedValue = false;
-    } else if (['in', 'not_in'].includes(c.operator) && typeof c.value === 'string') {
-      typedValue = c.value
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
     }
 
     const simple: SimpleCondition = {

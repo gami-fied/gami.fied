@@ -1,7 +1,13 @@
 import crypto from 'crypto';
-import { db, rules } from '@gami/database';
-import { evaluateRule, validateRuleDefinition, EventData } from '@gami/rules';
-import { eq, and, asc } from 'drizzle-orm';
+import { achievements, db, rules } from '@gami/database';
+import {
+  ActionDefinition,
+  evaluateRule,
+  EventData,
+  getReferencedAchievementKeys,
+  validateRuleForSave,
+} from '@gami/rules';
+import { eq, and, asc, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
@@ -28,6 +34,31 @@ const previewRuleSchema = z.object({
   }),
 });
 
+/** Missing achievements block the save. Disabled ones only warn, because they can be re-enabled. */
+async function checkAchievementReferences(
+  projectId: string,
+  actions: ActionDefinition[]
+): Promise<{ error?: string; warnings: string[] }> {
+  const keys = getReferencedAchievementKeys(actions);
+  if (keys.length === 0) return { warnings: [] };
+
+  const found = await db
+    .select({ key: achievements.key, enabled: achievements.enabled })
+    .from(achievements)
+    .where(and(eq(achievements.projectId, projectId), inArray(achievements.key, keys)));
+
+  const missing = keys.filter((key) => !found.some((row) => row.key === key));
+  if (missing.length > 0) {
+    return { error: `Unknown achievement keys: ${missing.join(', ')}`, warnings: [] };
+  }
+
+  return {
+    warnings: found
+      .filter((row) => !row.enabled)
+      .map((row) => `Achievement "${row.key}" is disabled, so this rule will fail until it is enabled`),
+  };
+}
+
 export async function ruleRoutes(fastify: FastifyInstance) {
   // 1. Create Rule
   fastify.post<{ Params: { projectId: string } }>(
@@ -50,7 +81,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
 
       // Validate Rule Definition via @gami/rules
       try {
-        validateRuleDefinition({
+        validateRuleForSave({
           trigger: ruleData.trigger,
           conditions: ruleData.conditions,
           actions: ruleData.actions,
@@ -60,6 +91,14 @@ export async function ruleRoutes(fastify: FastifyInstance) {
           error: 'Bad Request',
           message: (err as Error).message || 'Invalid rule definition',
         });
+      }
+
+      const references = await checkAchievementReferences(
+        projectId,
+        ruleData.actions as unknown as ActionDefinition[]
+      );
+      if (references.error) {
+        return reply.status(400).send({ error: 'Bad Request', message: references.error });
       }
 
       const ruleId = `r_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -78,7 +117,9 @@ export async function ruleRoutes(fastify: FastifyInstance) {
         })
         .returning();
 
-      return reply.status(201).send(newRule);
+      return reply
+        .status(201)
+        .send(references.warnings.length > 0 ? { ...newRule, warnings: references.warnings } : newRule);
     }
   );
 
@@ -151,7 +192,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
 
       // Validate merged rule definition if trigger/conditions/actions are updated
       try {
-        validateRuleDefinition({
+        validateRuleForSave({
           trigger: patch.trigger ?? existingRule.trigger,
           conditions: patch.conditions ?? existingRule.conditions ?? undefined,
           actions: patch.actions ?? (existingRule.actions as unknown[]),
@@ -161,6 +202,14 @@ export async function ruleRoutes(fastify: FastifyInstance) {
           error: 'Bad Request',
           message: (err as Error).message || 'Invalid rule definition',
         });
+      }
+
+      const references = await checkAchievementReferences(
+        projectId,
+        (patch.actions ?? existingRule.actions) as unknown as ActionDefinition[]
+      );
+      if (references.error) {
+        return reply.status(400).send({ error: 'Bad Request', message: references.error });
       }
 
       const [updatedRule] = await db
@@ -178,7 +227,11 @@ export async function ruleRoutes(fastify: FastifyInstance) {
         .where(eq(rules.id, ruleId))
         .returning();
 
-      return reply.send(updatedRule);
+      return reply.send(
+        references.warnings.length > 0
+          ? { ...updatedRule, warnings: references.warnings }
+          : updatedRule
+      );
     }
   );
 

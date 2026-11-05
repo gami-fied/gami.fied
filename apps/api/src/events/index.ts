@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { db, endUsers, eventOutbox, events } from '@gami/database';
+import { db, endUsers, eventOutbox, events, isUniqueViolation } from '@gami/database';
 import { createWebhookDelivery } from '@gami/webhooks';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -310,8 +310,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const error = err as { code?: string };
-      if (error.code === '23505' && idempotencyKey) {
+      if (isUniqueViolation(err) && idempotencyKey) {
         const [existingEvent] = await db
           .select()
           .from(events)
@@ -443,8 +442,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
 
         return reply.status(202).send(result);
       } catch (err: unknown) {
-        const error = err as { code?: string };
-        if (error.code === '23505' && idempotencyKey) {
+        if (isUniqueViolation(err) && idempotencyKey) {
           const [existingEvent] = await db
             .select()
             .from(events)

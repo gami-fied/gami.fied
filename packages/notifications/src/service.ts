@@ -147,41 +147,43 @@ export async function createNotificationIntent<T extends NotificationType>(
 
     // C) External Integration Delivery Intents (e.g. Discord)
     try {
-      const activeIntegrations = await tx
-        .select()
-        .from(integrations)
-        .where(
-          and(
-            eq(integrations.projectId, params.projectId),
-            eq(integrations.enabled, true),
-            eq(integrations.status, 'active')
-          )
-        );
+      await tx.transaction(async (savepoint) => {
+        const activeIntegrations = await savepoint
+          .select()
+          .from(integrations)
+          .where(
+            and(
+              eq(integrations.projectId, params.projectId),
+              eq(integrations.enabled, true),
+              eq(integrations.status, 'active')
+            )
+          );
 
-      for (const intg of activeIntegrations) {
-        const cfg = (intg.config as Record<string, unknown>) || {};
-        const enabledEvents = Array.isArray(cfg.enabledEvents)
-          ? (cfg.enabledEvents as string[])
-          : [];
+        for (const intg of activeIntegrations) {
+          const cfg = (intg.config as Record<string, unknown>) || {};
+          const enabledEvents = Array.isArray(cfg.enabledEvents)
+            ? (cfg.enabledEvents as string[])
+            : [];
 
-        if (enabledEvents.length === 0 || enabledEvents.includes(params.type)) {
-          const deliveryId = `idel_${randomUUID()}`;
-          await tx
-            .insert(integrationDeliveries)
-            .values({
-              id: deliveryId,
-              integrationId: intg.id,
-              projectId: params.projectId,
-              notificationId: inserted.id,
-              eventId: null,
-              eventType: params.type,
-              status: 'pending',
-              attempts: 0,
-              availableAt: new Date(),
-            })
-            .onConflictDoNothing();
+          if (enabledEvents.length === 0 || enabledEvents.includes(params.type)) {
+            const deliveryId = `idel_${randomUUID()}`;
+            await savepoint
+              .insert(integrationDeliveries)
+              .values({
+                id: deliveryId,
+                integrationId: intg.id,
+                projectId: params.projectId,
+                notificationId: inserted.id,
+                eventId: null,
+                eventType: params.type,
+                status: 'pending',
+                attempts: 0,
+                availableAt: new Date(),
+              })
+              .onConflictDoNothing();
+          }
         }
-      }
+      });
     } catch (err) {
       console.error('[Notifications] Failed to queue integration deliveries:', err);
     }

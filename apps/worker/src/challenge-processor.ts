@@ -1,235 +1,134 @@
 import { randomUUID } from 'crypto';
 import {
-  achievements,
   challengeEventProgress,
   challengeRewardOutbox,
   challenges,
   db,
-  levels,
-  userAchievements,
   userChallengeProgress,
-  userXpBalances,
-  xpLedger,
 } from '@gami/database';
 import { ChallengeReward } from '@gami/challenges';
 import {
   createNotificationIntent,
   generateChallengeCompletionSourceId,
-  generateLevelUpSourceId,
 } from '@gami/notifications';
-import { getLevelsCrossed } from '@gami/progression';
+import { awardXp, grantAchievement, type RewardTransaction } from '@gami/rewards';
 import { createWebhookDelivery } from '@gami/webhooks';
 import { EventData } from '@gami/rules';
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
+
+type ChallengeRewardOutbox = typeof challengeRewardOutbox.$inferSelect;
+
+export const MAX_CHALLENGE_REWARD_ATTEMPTS = 10;
+
+async function grantChallengeReward(
+  tx: RewardTransaction,
+  record: ChallengeRewardOutbox
+): Promise<void> {
+  const payload = record.rewardPayload as ChallengeReward;
+  const { projectId, userId, eventId, challengeId } = record;
+  const metadata = { challengeId, outboxId: record.id };
+
+  if (record.rewardType === 'xp') {
+    await awardXp(tx, {
+      projectId,
+      userId,
+      amount: (payload as { amount: number }).amount,
+      reason: `Challenge reward: ${challengeId}`,
+      metadata,
+      eventId,
+      idempotencyKey: record.id,
+      webhookData: { challengeId },
+    });
+  } else if (record.rewardType === 'achievement') {
+    await grantAchievement(tx, {
+      projectId,
+      userId,
+      achievementKey: (payload as { achievementKey: string }).achievementKey,
+      metadata,
+      eventId,
+    });
+  } else {
+    throw new Error(`Unsupported reward type: ${record.rewardType}`);
+  }
+}
+
+async function recordRewardFailure(
+  record: ChallengeRewardOutbox,
+  err: unknown,
+  forceNow?: Date
+): Promise<void> {
+  const attempts = record.attempts + 1;
+  const backoffMs = Math.min(300000, 1000 * Math.pow(2, attempts));
+
+  await db
+    .update(challengeRewardOutbox)
+    .set({
+      status: attempts >= MAX_CHALLENGE_REWARD_ATTEMPTS ? 'failed' : 'pending',
+      attempts,
+      availableAt: forceNow
+        ? new Date(forceNow.getTime() + backoffMs)
+        : sql`now() + ${backoffMs} * interval '1 millisecond'`,
+      lastError: (err as Error).message || 'Failed to dispatch reward',
+      updatedAt: new Date(),
+    })
+    .where(eq(challengeRewardOutbox.id, record.id));
+}
 
 /**
- * Dispatches pending challenge completion rewards from challenge_reward_outbox.
- * Uses SELECT ... FOR UPDATE SKIP LOCKED to allow safe concurrent multi-worker processing.
- * Executes reward side-effects and marks outbox status = 'completed' atomically.
- * Uses outbox.id as the deterministic idempotency key to guarantee exactly-once effects.
+ * Dispatches pending challenge rewards from challenge_reward_outbox, each in its own transaction,
+ * so one bad reward cannot roll back the others. SKIP LOCKED keeps multiple workers apart, and
+ * outbox.id is the idempotency key that makes each reward take effect exactly once.
  */
 export async function dispatchPendingChallengeRewards(
   limit = 50,
   forceNow?: Date
 ): Promise<{ processedCount: number; completedCount: number }> {
-  const now = forceNow || new Date(Date.now() + 10000);
+  const now = forceNow ?? sql`now()`;
+  let processedCount = 0;
+  let completedCount = 0;
+  // A short backoff can pass during a slow batch, and one run should only try each reward once.
+  const attemptedIds: string[] = [];
 
-  return await db.transaction(async (tx) => {
-    // 1. Select pending outbox records using FOR UPDATE SKIP LOCKED
-    const pendingRecords = await tx
-      .select()
-      .from(challengeRewardOutbox)
-      .where(
-        and(
-          eq(challengeRewardOutbox.status, 'pending'),
-          lte(challengeRewardOutbox.availableAt, now)
-        )
-      )
-      .limit(limit)
-      .for('update', { skipLocked: true });
+  for (let i = 0; i < limit; i++) {
+    let record: ChallengeRewardOutbox | undefined;
 
-    let completedCount = 0;
+    try {
+      await db.transaction(async (tx) => {
+        [record] = await tx
+          .select()
+          .from(challengeRewardOutbox)
+          .where(
+            and(
+              eq(challengeRewardOutbox.status, 'pending'),
+              lte(challengeRewardOutbox.availableAt, now),
+              notInArray(challengeRewardOutbox.id, attemptedIds)
+            )
+          )
+          .orderBy(asc(challengeRewardOutbox.availableAt), asc(challengeRewardOutbox.id))
+          .limit(1)
+          .for('update', { skipLocked: true });
 
-    for (const record of pendingRecords) {
-      try {
-        const payload = record.rewardPayload as ChallengeReward;
+        if (!record) return;
+        attemptedIds.push(record.id);
 
-        if (record.rewardType === 'xp') {
-          const xpAmount = (payload as { amount: number }).amount;
-          const ledgerId = `xpl_cro_${randomUUID()}`;
-          const balanceId = `uxb_cro_${randomUUID()}`;
-
-          // Insert into xp_ledger using record.id as the idempotency key
-          await tx
-            .insert(xpLedger)
-            .values({
-              id: ledgerId,
-              projectId: record.projectId,
-              userId: record.userId,
-              eventId: record.eventId,
-              ruleId: null,
-              ruleExecutionId: null,
-              idempotencyKey: record.id,
-              amount: xpAmount,
-              reason: `Challenge reward execution: ${record.challengeId}`,
-              metadata: { challengeId: record.challengeId, outboxId: record.id },
-            })
-            .onConflictDoNothing({
-              target: [xpLedger.projectId, xpLedger.idempotencyKey],
-            });
-
-          // Upsert user_xp_balances atomically with returning()
-          const [upsertedBalance] = await tx
-            .insert(userXpBalances)
-            .values({
-              id: balanceId,
-              projectId: record.projectId,
-              userId: record.userId,
-              totalXp: xpAmount,
-            })
-            .onConflictDoUpdate({
-              target: [userXpBalances.projectId, userXpBalances.userId],
-              set: {
-                totalXp: sql`user_xp_balances.total_xp + ${xpAmount}`,
-                updatedAt: new Date(),
-              },
-            })
-            .returning();
-
-          const newXp = upsertedBalance ? upsertedBalance.totalXp : xpAmount;
-          const previousXp = Math.max(0, newXp - xpAmount);
-
-          // Create xp_awarded notification intent
-          await createNotificationIntent(tx, {
-            projectId: record.projectId,
-            userId: record.userId,
-            type: 'xp_awarded',
-            data: { amount: xpAmount, reason: `Challenge reward: ${record.challengeId}` },
-            sourceType: 'xp_awarded',
-            sourceId: ledgerId,
-          });
-
-          // Calculate and create level_up notification intents
-          const projectLevels = await tx
-            .select()
-            .from(levels)
-            .where(eq(levels.projectId, record.projectId));
-
-          if (projectLevels.length > 0) {
-            const crossed = getLevelsCrossed(previousXp, newXp, projectLevels);
-            const activeLevelsSorted = projectLevels
-              .filter((l) => l.enabled !== false)
-              .sort((a, b) => a.level - b.level);
-
-            for (const lvlNumber of crossed) {
-              const lvlDef = activeLevelsSorted.find((l) => l.level === lvlNumber);
-              const levelName = lvlDef ? lvlDef.name : `Level ${lvlNumber}`;
-              const sourceId = generateLevelUpSourceId(record.projectId, record.userId, lvlNumber);
-
-              await createNotificationIntent(tx, {
-                projectId: record.projectId,
-                userId: record.userId,
-                type: 'level_up',
-                data: {
-                  previousLevel: lvlNumber - 1,
-                  newLevel: lvlNumber,
-                  levelName,
-                },
-                sourceType: 'level_up',
-                sourceId,
-              });
-            }
-          }
-        } else if (record.rewardType === 'achievement') {
-          const achievementKey = (payload as { achievementKey: string }).achievementKey;
-
-          // Resolve achievement definition within same project
-          const [achievementDef] = await tx
-            .select()
-            .from(achievements)
-            .where(
-              and(
-                eq(achievements.projectId, record.projectId),
-                eq(achievements.key, achievementKey)
-              )
-            );
-
-          if (achievementDef && achievementDef.enabled) {
-            const userAchId = `uach_cro_${randomUUID()}`;
-            const [insertedAch] = await tx
-              .insert(userAchievements)
-              .values({
-                id: userAchId,
-                projectId: record.projectId,
-                userId: record.userId,
-                achievementId: achievementDef.id,
-                eventId: record.eventId,
-                ruleExecutionId: null,
-                metadata: { challengeId: record.challengeId, outboxId: record.id },
-              })
-              .onConflictDoNothing({
-                target: [
-                  userAchievements.projectId,
-                  userAchievements.userId,
-                  userAchievements.achievementId,
-                ],
-              })
-              .returning();
-
-            if (insertedAch) {
-              await createNotificationIntent(tx, {
-                projectId: record.projectId,
-                userId: record.userId,
-                type: 'achievement_unlocked',
-                data: {
-                  achievementId: achievementDef.id,
-                  achievementKey: achievementDef.key,
-                  achievementName: achievementDef.name,
-                  iconUrl: achievementDef.iconUrl,
-                },
-                sourceType: 'achievement_unlocked',
-                sourceId: insertedAch.id,
-              });
-            }
-          }
-        } else {
-          throw new Error(`Unsupported reward type: ${record.rewardType}`);
-        }
-
-        // Atomically mark outbox record completed inside same transaction
+        await grantChallengeReward(tx, record);
         await tx
           .update(challengeRewardOutbox)
-          .set({
-            status: 'completed',
-            publishedAt: new Date(),
-            updatedAt: new Date(),
-          })
+          .set({ status: 'completed', publishedAt: new Date(), updatedAt: new Date() })
           .where(eq(challengeRewardOutbox.id, record.id));
+      });
 
-        completedCount++;
-      } catch (err: unknown) {
-        const errorMsg = (err as Error).message || 'Failed to dispatch reward';
-        const nextAttempts = record.attempts + 1;
-        const backoffMs = Math.min(300000, 1000 * Math.pow(2, nextAttempts));
-        const nextAvailable = new Date(now.getTime() + backoffMs);
-
-        await tx
-          .update(challengeRewardOutbox)
-          .set({
-            attempts: nextAttempts,
-            availableAt: nextAvailable,
-            lastError: errorMsg,
-            updatedAt: new Date(),
-          })
-          .where(eq(challengeRewardOutbox.id, record.id));
-      }
+      if (!record) break;
+      processedCount++;
+      completedCount++;
+    } catch (err: unknown) {
+      if (!record) throw err;
+      processedCount++;
+      await recordRewardFailure(record, err, forceNow);
     }
+  }
 
-    return {
-      processedCount: pendingRecords.length,
-      completedCount,
-    };
-  });
+  return { processedCount, completedCount };
 }
 
 /**
@@ -398,7 +297,6 @@ export async function processChallengesForEvent(
               rewardType: reward.type,
               rewardPayload: reward,
               status: 'pending',
-              availableAt: new Date(now.getTime() - 1000), // Guaranteed available for immediate dispatch
             });
           }
         }

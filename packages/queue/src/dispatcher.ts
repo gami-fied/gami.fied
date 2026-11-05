@@ -1,12 +1,14 @@
 import { db, eventOutbox } from '@gami/database';
-import { eq, and, lte } from 'drizzle-orm';
+import { asc, eq, and, lte, sql } from 'drizzle-orm';
 import { getEventQueue, getQueueConfig } from './index.js';
+
+export const MAX_EVENT_OUTBOX_ATTEMPTS = 10;
 
 export async function dispatchPendingOutboxEvents(limit = 50, forceNow?: Date): Promise<number> {
   const queue = getEventQueue();
   const cfg = getQueueConfig();
-  // Buffer to account for DB timestamp clock precision and retries
-  const now = forceNow || new Date(Date.now() + 60000);
+  // available_at defaults to the database clock, so compare against that clock too.
+  const now = forceNow ?? sql`now()`;
 
   return await db.transaction(async (tx) => {
     // Row-level locking with FOR UPDATE SKIP LOCKED ensures multi-instance concurrency safety
@@ -14,6 +16,7 @@ export async function dispatchPendingOutboxEvents(limit = 50, forceNow?: Date): 
       .select()
       .from(eventOutbox)
       .where(and(eq(eventOutbox.status, 'pending'), lte(eventOutbox.availableAt, now)))
+      .orderBy(asc(eventOutbox.availableAt), asc(eventOutbox.id))
       .limit(limit)
       .for('update', { skipLocked: true });
 
@@ -56,6 +59,7 @@ export async function dispatchPendingOutboxEvents(limit = 50, forceNow?: Date): 
         await tx
           .update(eventOutbox)
           .set({
+            status: nextAttempts >= MAX_EVENT_OUTBOX_ATTEMPTS ? 'failed' : 'pending',
             attempts: nextAttempts,
             lastError: errorMsg,
             availableAt: nextAvailable,

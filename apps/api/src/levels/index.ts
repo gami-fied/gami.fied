@@ -1,4 +1,4 @@
-import { db, endUsers, levels, userXpBalances } from '@gami/database';
+import { db, endUsers, levels, userXpBalances, isUniqueViolation } from '@gami/database';
 import { calculateLevel, validateLevelDefinitions } from '@gami/progression';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -77,8 +77,7 @@ export async function levelRoutes(fastify: FastifyInstance) {
 
         return reply.status(201).send(createdLevel);
       } catch (err: unknown) {
-        const error = err as { code?: string };
-        if (error.code === '23505') {
+        if (isUniqueViolation(err)) {
           return reply.status(409).send({
             error: 'Conflict',
             message: 'A level with this level number or required XP threshold already exists',
@@ -203,8 +202,7 @@ export async function levelRoutes(fastify: FastifyInstance) {
 
         return reply.send(updatedLevel);
       } catch (err: unknown) {
-        const error = err as { code?: string };
-        if (error.code === '23505') {
+        if (isUniqueViolation(err)) {
           return reply.status(409).send({
             error: 'Conflict',
             message: 'A level with this level number or required XP threshold already exists',
@@ -305,13 +303,17 @@ export async function levelRoutes(fastify: FastifyInstance) {
 
       const calcResult = calculateLevel(totalXp, activeLevels);
 
+      // Level numbers can have gaps when a level is disabled.
+      const nextDefinition = activeLevels
+        .filter((l) => l.level > calcResult.level)
+        .sort((a, b) => a.level - b.level)[0];
+
       const nextLevelObj =
-        calcResult.isMaxLevel || calcResult.nextLevelXp === null
+        calcResult.isMaxLevel || calcResult.nextLevelXp === null || !nextDefinition
           ? null
           : {
-              number: calcResult.level + 1,
-              name:
-                activeLevels.find((l) => l.level === calcResult.level + 1)?.name || 'Next Level',
+              number: nextDefinition.level,
+              name: nextDefinition.name,
               requiredXp: calcResult.nextLevelXp,
             };
 

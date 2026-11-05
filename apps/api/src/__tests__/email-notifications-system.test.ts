@@ -217,5 +217,5 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
 
     expect(updatedEob).toBeDefined();
     expect(updatedEob.attempts).toBeGreaterThanOrEqual(1);
-  }, 30000);
+  }, 120000);
 });

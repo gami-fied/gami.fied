@@ -151,7 +151,7 @@ describe('Security regressions', () => {
         method: 'POST',
         url: `/api/projects/${projectId}/rules`,
         headers,
-        payload: { name: 'x', trigger: 'y', actions: [{ type: 'log' }] },
+        payload: { name: 'x', trigger: 'y', actions: [{ type: 'award_xp', params: { amount: 10 } }] },
       });
       expect(write.statusCode).toBe(403);
     });
@@ -178,7 +178,7 @@ describe('Security regressions', () => {
         method: 'POST',
         url: `/api/projects/${projectId}/rules`,
         headers,
-        payload: { name: 'Scoped', trigger: 'sec.test', actions: [{ type: 'log' }] },
+        payload: { name: 'Scoped', trigger: 'sec.test', actions: [{ type: 'award_xp', params: { amount: 10 } }] },
       });
       expect(create.statusCode).toBe(201);
     });
@@ -231,7 +231,7 @@ describe('Security regressions', () => {
         method: 'POST',
         url: `/api/projects/${projectId}/rules`,
         headers: { cookie: ownerCookie },
-        payload: { name: 'Owned', trigger: 'sec.role', actions: [{ type: 'log' }] },
+        payload: { name: 'Owned', trigger: 'sec.role', actions: [{ type: 'award_xp', params: { amount: 10 } }] },
       });
       expect(res.statusCode).toBe(201);
       const rule = JSON.parse(res.payload);
