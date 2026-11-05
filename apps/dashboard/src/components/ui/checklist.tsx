@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, Search, Square } from 'lucide-react';
+import { Check, Search } from 'lucide-react';
 
 export interface ChecklistItem<T extends string | number = string> {
   value: T;
@@ -75,14 +75,14 @@ export function Checklist<T extends string | number = string>({
   };
 
   return (
-    <div className={`border border-zinc-800 bg-zinc-950 font-mono text-xs rounded-none ${className}`}>
+    <div className={`border border-zinc-800 bg-zinc-950 text-xs rounded-none ${className}`}>
       {/* Header bar with counter and Select All */}
       {(title || showSelectAll || showSearch) && (
         <div className="flex flex-col gap-2 border-b border-zinc-800 bg-zinc-900/60 p-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {title && <span className="font-bold text-zinc-200 uppercase tracking-wider">{title}</span>}
-              <span className="border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-emerald-400 font-mono">
+              {title && <span className="font-bold text-zinc-200">{title}</span>}
+              <span className="border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-xs text-success-400">
                 {selectedValues.length} / {items.length} selected
               </span>
             </div>
@@ -91,7 +91,7 @@ export function Checklist<T extends string | number = string>({
               <button
                 type="button"
                 onClick={handleSelectAll}
-                className="text-[10px] uppercase font-bold text-zinc-400 hover:text-emerald-400 transition-colors"
+                className="text-xs font-bold text-zinc-400 hover:text-success-400 transition-colors"
               >
                 {allFilteredSelected ? 'Deselect All' : 'Select All'}
               </button>
@@ -100,13 +100,13 @@ export function Checklist<T extends string | number = string>({
 
           {showSearch && (
             <div className="relative">
-              <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-zinc-500" />
+              <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-zinc-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full border border-zinc-800 bg-zinc-950 pl-7 pr-2 py-1 text-[11px] text-zinc-200 focus:border-emerald-500 focus:outline-none placeholder:text-zinc-600 rounded-none"
+                className="w-full border border-zinc-800 bg-zinc-950 pl-7 pr-2 py-1 text-[11px] text-zinc-200 focus:border-success-500 focus:outline-none placeholder:text-zinc-400 rounded-none"
               />
             </div>
           )}
@@ -119,7 +119,7 @@ export function Checklist<T extends string | number = string>({
         style={{ maxHeight }}
       >
         {filteredItems.length === 0 ? (
-          <div className="p-4 text-center text-zinc-500 text-[11px]">
+          <div className="p-4 text-center text-zinc-400 text-[11px]">
             No matching items found.
           </div>
         ) : (
@@ -133,7 +133,7 @@ export function Checklist<T extends string | number = string>({
                   item.disabled
                     ? 'opacity-40 cursor-not-allowed bg-zinc-950'
                     : isSelected
-                    ? 'bg-emerald-950/20 text-emerald-200 hover:bg-emerald-950/30'
+                    ? 'bg-success-950/20 text-success-200 hover:bg-success-950/30'
                     : 'text-zinc-300 hover:bg-zinc-900/50'
                 }`}
               >
@@ -141,7 +141,7 @@ export function Checklist<T extends string | number = string>({
                 <div
                   className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-all rounded-none ${
                     isSelected
-                      ? 'border-emerald-500 bg-emerald-600 text-white'
+                      ? 'border-success-500 bg-success-600 text-on-accent'
                       : 'border-zinc-700 bg-zinc-900 text-transparent group-hover:border-zinc-500'
                   }`}
                 >
@@ -155,13 +155,13 @@ export function Checklist<T extends string | number = string>({
                       {item.label}
                     </span>
                     {item.badge && (
-                      <span className="shrink-0 border border-zinc-700 bg-zinc-900 px-1 py-0.2 text-[9px] uppercase text-zinc-400">
+                      <span className="shrink-0 border border-zinc-700 bg-zinc-900 px-1 py-0.2 text-xs text-zinc-400">
                         {item.badge}
                       </span>
                     )}
                   </div>
                   {item.description && (
-                    <p className="mt-0.5 text-[10px] text-zinc-400 leading-snug">
+                    <p className="mt-0.5 text-xs text-zinc-400 leading-snug">
                       {item.description}
                     </p>
                   )}

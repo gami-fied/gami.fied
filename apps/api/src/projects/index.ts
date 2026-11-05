@@ -1,13 +1,27 @@
-import { db, levels, member, projects, projectMembers } from '@gami/database';
+import { db, levels, member, projects, projectMembers, isUniqueViolation } from '@gami/database';
 import { getDefaultLevelDefinitions } from '@gami/progression';
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   requireAuth,
   requireOrgMember,
   requireOrgRole,
   requireProjectAccess,
 } from '../authorization/index.js';
+
+type SessionUserFlags = { role?: string; isPlatformAdmin?: boolean };
+
+const originSchema = z
+  .string()
+  .url()
+  .refine((value) => new URL(value).origin === value, 'Must be an origin, with no path');
+
+const updateProjectSchema = z.object({
+  name: z.string().min(1).max(128).optional(),
+  slug: z.string().min(1).max(128).optional(),
+  allowedOrigins: z.array(originSchema).max(50).optional(),
+});
 
 export async function projectRoutes(fastify: FastifyInstance) {
   // Create project
@@ -58,8 +72,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
 
       return reply.status(201).send(newPrj);
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      if (error.code === '23505') {
+      if (isUniqueViolation(err)) {
         return reply
           .status(409)
           .send({ error: 'Conflict', message: 'Project slug already exists in this organization' });
@@ -87,8 +100,8 @@ export async function projectRoutes(fastify: FastifyInstance) {
           .where(eq(projects.organizationId, targetOrgId));
 
         const isPlatformAdmin = Boolean(
-          (authResult.session?.user as any)?.role === 'admin' ||
-            (authResult.session?.user as any)?.isPlatformAdmin
+          (authResult.session?.user as SessionUserFlags | undefined)?.role === 'admin' ||
+            (authResult.session?.user as SessionUserFlags | undefined)?.isPlatformAdmin
         );
 
         // Platform Admin or Org Owner/Admin -> Full access to all org projects
@@ -135,7 +148,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       const orgIds = userMemberships.map((m) => m.organizationId);
       const prjs = await db.select().from(projects).where(inArray(projects.organizationId, orgIds));
 
-      if ((session.user as any).isPlatformAdmin) {
+      if ((session.user as SessionUserFlags).isPlatformAdmin) {
         return reply.send(prjs);
       }
 
@@ -168,13 +181,22 @@ export async function projectRoutes(fastify: FastifyInstance) {
         .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
     }
 
-    const { name, slug } = (request.body as { name?: string; slug?: string }) || {};
+    const parsed = updateProjectSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'BAD_REQUEST',
+        message: 'Invalid project update',
+        details: parsed.error.format(),
+      });
+    }
+    const { name, slug, allowedOrigins } = parsed.data;
 
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
     if (name) updateData['name'] = name;
     if (slug) updateData['slug'] = slug;
+    if (allowedOrigins) updateData['allowedOrigins'] = allowedOrigins;
 
     try {
       const [updatedPrj] = await db
@@ -185,8 +207,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
 
       return reply.send(updatedPrj);
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      if (error.code === '23505') {
+      if (isUniqueViolation(err)) {
         return reply
           .status(409)
           .send({ error: 'Conflict', message: 'Project slug already exists in this organization' });

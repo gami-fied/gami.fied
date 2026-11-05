@@ -6,15 +6,23 @@ This guide covers production deployment using Docker Compose, environment variab
 
 ## 1. Production Docker Compose Setup
 
-Gami provides a production-ready `docker-compose.production.yml` file that orchestrates PostgreSQL, Redis, API, Worker, and Dashboard services with health checks and restart policies.
+Gami provides a production-ready `docker-compose.yml` file that orchestrates PostgreSQL, Redis, API, Worker, and Dashboard services with health checks and restart policies.
 
 ### Run Production Stack
 
 ```bash
-docker compose -f docker-compose.production.yml up -d --build
+cp .env.production.example .env
+# Replace every placeholder in .env before starting
+docker compose up -d
 ```
 
 ---
+
+The stack refuses to start without `POSTGRES_PASSWORD` and `REDIS_PASSWORD`. Postgres and Redis are not published on the host, so reach them through the Compose network.
+
+Set `TRUST_PROXY=true` only behind a reverse proxy that overwrites `X-Forwarded-*` headers. Without such a proxy, clients could forge their IP address.
+
+To rotate `ENCRYPTION_MASTER_KEY`, set the new value and move the old one to `ENCRYPTION_MASTER_KEY_PREVIOUS`. Existing secrets keep decrypting, and you can remove the old key once they have all been saved again.
 
 ## 2. Production Environment Variable Checklist
 
@@ -96,3 +104,67 @@ pnpm --filter @gami/api test src/__tests__/production-smoke-test.test.ts
 ### Webhooks Retrying / Failing
 - Ensure target endpoint returns HTTP 2xx within configured timeout (default 5000ms).
 - Check `webhook_deliveries` log table for HTTP response body and error message.
+
+## Reverse proxy and TLS
+
+Run the stack behind a proxy that terminates TLS. `Caddyfile.example` is a working starting point. Set `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_API_URL` to your public addresses, and `TRUST_PROXY=true`. Browsers can call the API from `NEXT_PUBLIC_APP_URL` and anything in `TRUSTED_ORIGINS`.
+
+## Instance settings
+
+Settings live in the admin API, under `PATCH /api/admin/config` with `category` and `payload`. A save replaces the whole category. Changes reach other processes within 30 seconds.
+
+| Category | Settings |
+| :--- | :--- |
+| `security` | `requireEmailOtpVerification`, `maxSessionLifetimeHours`, `loginRateLimit`, `maxFailedLoginAttempts`, `lockoutDurationMinutes`, `passwordMinLength`, `requireNumbers`, `requireSpecialChars` |
+| `registration` | `allowPublicRegistration`, `allowOrgCreation`, `allowApiKeyCreation`, `allowWebhookCreation`, `allowGlobalEmailNotifications` |
+| `rate_limits` | `perIpLimit`, `perProjectLimit`, `windowMs` |
+| `notifications` | `enabled`, `defaultEmailNotifications`, `maxDailyEmailsPerUser`, `retryAttempts` |
+| `webhooks` | `enabled`, `maxWebhooksPerProject`, `defaultTimeoutMs`, `maxRetryAttempts` |
+| `integrations` | `enabled`, `allowDiscordIntegration` |
+| `retention` | See [Data retention](./data-retention.md) |
+
+When `allowPublicRegistration` is off, the first account and invited emails can still sign up. When `allowOrgCreation` is off, only platform admins can create organizations.
+
+Rate limits use the saved value, then `RATE_LIMIT_IP_MAX`, `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW`, then defaults of 600 per IP and 1,000 per project each minute.
+
+SMTP uses the settings saved in the admin UI, or the `SMTP_*` variables. Certificates are verified unless you set `SMTP_ALLOW_SELF_SIGNED=true`.
+
+Organization imports accept up to 100 MB. Change this with `ORG_IMPORT_MAX_BYTES`.
+
+## Installing from published images
+
+Each release publishes `gami-api`, `gami-worker` and `gami-dashboard` to the GitHub Container Registry for `linux/amd64` and `linux/arm64`, so there is nothing to build.
+
+1. From the [latest release](https://github.com/gami-fied/gami.fied/releases), download `docker-compose.yml` and `env.example`.
+2. Rename `env.example` to `.env`, and fill in every secret. Each one needs a long random value, for example from `openssl rand -hex 32`.
+3. Start it:
+
+```bash
+docker compose up -d
+```
+
+The dashboard is at `http://localhost:3000`. To upgrade, change `GAMI_VERSION` in `.env`, then run:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The compose file from a release is pinned to that version. In a checkout, it uses `latest`, which only exists after the first stable release, so set `GAMI_VERSION` or build from source:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
+Images have no address built in. The browser only talks to the dashboard, which reaches the API through `API_URL`, so the same image works on any domain.
+
+## Publishing a release
+
+Push a version tag. CI runs first, including booting the images and sending a real event through them, and nothing is published unless that passes.
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+A stable tag publishes `1.2.3`, `1.2`, `1` and `latest`. A pre-release such as `v1.2.3-rc.1` only publishes its exact version.

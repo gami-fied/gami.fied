@@ -13,3 +13,4 @@ export const defaultConfig: EnvironmentConfig = {
 export * from './env-loader.js';
 export * from './redact.js';
 export * from './validation.js';
+export * from './product.js';

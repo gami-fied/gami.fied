@@ -41,7 +41,9 @@ export async function promoteUserToPlatformAdmin(email: string): Promise<boolean
       metadata: { email: targetEmail, promotedAt: new Date().toISOString() },
       createdAt: new Date(),
     });
-  } catch {}
+  } catch (err) {
+    console.warn('Failed to write audit log:', err);
+  }
 
   console.log(`Success: User "${targetEmail}" (${targetUser.id}) has been promoted to Platform Administrator.`);
   return true;

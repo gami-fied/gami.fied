@@ -6,8 +6,8 @@ Integrate Gami.Fied Community Engine via Python `requests`.
 import requests
 import uuid
 
-API_KEY = "gami_pk_live_REPLACE_ME"
-API_URL = "https://gamiapi.fied.cc/v1/events"
+API_KEY = "gami_live_REPLACE_ME"
+API_URL = "https://api.example.com/v1/events"
 
 headers = {
     "Content-Type": "application/json",

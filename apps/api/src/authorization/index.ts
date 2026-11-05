@@ -2,6 +2,8 @@ import { auth, db, member, organizations, projectMembers, projects, users, Membe
 import { and, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { authenticateApiKey } from '../services/api-key.service.js';
+import { ServerConfigService } from '../services/server-config.service.js';
+import { hasScope, resolveProjectPermission } from './permissions.js';
 
 export function sendAuthError(
   request: FastifyRequest,
@@ -43,7 +45,8 @@ export async function getSession(request: FastifyRequest) {
   });
 }
 
-export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+/** Requires a signed-in user, whether or not their email is verified. */
+export async function requireSession(request: FastifyRequest, reply: FastifyReply) {
   const session = await getSession(request);
   if (!session || !session.user) {
     sendAuthError(request, reply, 401, 'UNAUTHORIZED', 'Authentication required');
@@ -52,7 +55,29 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   return session;
 }
 
-export { requireAuth as requireAuthSession };
+const OTP_POLICY_CACHE_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
+let otpPolicyCache: { required: boolean; expiresAt: number } | null = null;
+
+async function isEmailVerificationRequired(): Promise<boolean> {
+  if (otpPolicyCache && Date.now() < otpPolicyCache.expiresAt) return otpPolicyCache.required;
+
+  const cfg = await ServerConfigService.getConfig<Record<string, unknown>>('security');
+  const required = Boolean(cfg?.requireEmailOtpVerification);
+  otpPolicyCache = { required, expiresAt: Date.now() + OTP_POLICY_CACHE_MS };
+  return required;
+}
+
+/** Requires a signed-in user who has met the platform's email verification policy. */
+export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+  const session = await requireSession(request, reply);
+  if (!session) return null;
+
+  if (!session.user.emailVerified && (await isEmailVerificationRequired())) {
+    sendAuthError(request, reply, 403, 'EMAIL_NOT_VERIFIED', 'Verify your email address to continue');
+    return null;
+  }
+  return session;
+}
 
 export async function getOrgMembership(userId: string, organizationId: string) {
   const [m] = await db
@@ -75,34 +100,10 @@ export async function requireOrgMember(
   reply: FastifyReply,
   organizationId: string
 ) {
-  // Check API Key Header (x-api-key)
-  const rawApiKey = request.headers['x-api-key'] as string | undefined;
-  if (rawApiKey) {
-    const authResult = await authenticateApiKey(rawApiKey);
-    if (!authResult || authResult.project.organizationId !== organizationId) {
-      sendAuthError(request, reply, 401, 'UNAUTHORIZED', 'Invalid or unauthorized API key for this organization');
-      return null;
-    }
-
-    if (authResult.isSuspended) {
-      sendAuthError(request, reply, 403, 'FORBIDDEN', 'Organization account is suspended');
-      return null;
-    }
-
-    return {
-      session: {
-        session: { id: authResult.key.id, userId: `key_${authResult.key.id}` },
-        user: { id: `key_${authResult.key.id}`, email: 'apikey@system.local', name: authResult.key.name },
-      } as any,
-      user: { id: `key_${authResult.key.id}` },
-      membership: {
-        id: `m_apikey_${authResult.key.id}`,
-        userId: `key_${authResult.key.id}`,
-        organizationId: authResult.project.organizationId,
-        role: 'owner' as const,
-        createdAt: authResult.key.createdAt,
-      },
-    };
+  // API keys belong to one project, so they never act on an organization.
+  if (request.headers['x-api-key']) {
+    sendAuthError(request, reply, 403, 'FORBIDDEN', 'API keys cannot access organization endpoints');
+    return null;
   }
 
   const session = await requireAuth(request, reply);
@@ -200,9 +201,13 @@ export async function checkUserProjectAccess(
 export async function requireProjectAccess(
   request: FastifyRequest,
   reply: FastifyReply,
-  projectId: string,
-  requiredScope?: string
+  projectId: string
 ) {
+  const permission = resolveProjectPermission(
+    request.method,
+    request.routeOptions.url ?? request.url
+  );
+
   // 1. Check API Key Header (x-api-key)
   const rawApiKey = request.headers['x-api-key'] as string | undefined;
   if (rawApiKey) {
@@ -217,15 +222,13 @@ export async function requireProjectAccess(
       return null;
     }
 
-    // Check scope if specified
-    const keyScopes = (authResult.key.scopes as string[]) || ['*'];
-    if (
-      requiredScope &&
-      !keyScopes.includes('*') &&
-      !keyScopes.includes('full') &&
-      !keyScopes.includes(requiredScope)
-    ) {
-      sendAuthError(request, reply, 403, 'FORBIDDEN', `API key lacks required scope "${requiredScope}"`);
+    if (permission.sessionOnly) {
+      sendAuthError(request, reply, 403, 'FORBIDDEN', 'This endpoint requires a signed-in user');
+      return null;
+    }
+
+    if (!hasScope((authResult.key.scopes as string[]) ?? [], permission.scope)) {
+      sendAuthError(request, reply, 403, 'FORBIDDEN', `API key lacks required scope "${permission.scope}"`);
       return null;
     }
 
@@ -264,17 +267,21 @@ export async function requireProjectAccess(
     return null;
   }
 
-  return {
-    session,
-    project: prj,
-    membership: access.membership || {
-      id: `m_${session.user.id}`,
-      organizationId: prj.organizationId,
-      userId: session.user.id,
-      role: access.isPlatformAdmin ? 'owner' : 'member',
-      createdAt: new Date(),
-    },
+  const membership = access.membership || {
+    id: `m_${session.user.id}`,
+    organizationId: prj.organizationId,
+    userId: session.user.id,
+    role: access.isPlatformAdmin ? 'owner' : 'member',
+    createdAt: new Date(),
   };
+
+  const isAdmin = access.isPlatformAdmin || ['owner', 'admin'].includes(membership.role);
+  if (permission.minRole === 'admin' && !isAdmin) {
+    sendAuthError(request, reply, 403, 'FORBIDDEN', 'Insufficient role permissions');
+    return null;
+  }
+
+  return { session, project: prj, membership };
 }
 
 /**

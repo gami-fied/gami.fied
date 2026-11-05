@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 import type { CreateUserInput, UpdateUserInput, User } from '@gami/types';
 
@@ -37,7 +38,7 @@ export function useUsers(
           query.set('search', s.trim());
         }
 
-        const res = await fetch(`/api/projects/${projectId}/users?${query.toString()}`, {
+        const res = await apiFetch(`/api/projects/${projectId}/users?${query.toString()}`, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -69,7 +70,7 @@ export function useUsers(
   const createUser = async (input: CreateUserInput) => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/users`, {
+    const res = await apiFetch(`/api/projects/${projectId}/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -88,7 +89,7 @@ export function useUsers(
   const updateUser = async (userId: string, input: UpdateUserInput) => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/users/${userId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -107,7 +108,7 @@ export function useUsers(
   const deactivateUser = async (userId: string) => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/users/${userId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/users/${userId}`, {
       method: 'DELETE',
     });
 

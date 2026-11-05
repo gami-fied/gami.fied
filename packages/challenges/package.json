@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,10 +18,7 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@gami/config": "workspace:*",
-    "@gami/database": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"

@@ -133,8 +133,8 @@ describe('Fastify API HTTP Route Integration - Tenant Isolation & IDOR Tests', (
       headers: { cookie: cookieA },
     });
     expect(crossGetOrgRes.statusCode).toBe(403);
-    expect(JSON.parse(crossGetOrgRes.payload)).toEqual({
-      error: 'Forbidden',
+    expect(JSON.parse(crossGetOrgRes.payload)).toMatchObject({
+      code: 'FORBIDDEN',
       message: 'Access to organization denied',
     });
 
@@ -145,8 +145,8 @@ describe('Fastify API HTTP Route Integration - Tenant Isolation & IDOR Tests', (
       headers: { cookie: cookieA },
     });
     expect(crossGetPrjRes.statusCode).toBe(404);
-    expect(JSON.parse(crossGetPrjRes.payload)).toEqual({
-      error: 'Not Found',
+    expect(JSON.parse(crossGetPrjRes.payload)).toMatchObject({
+      code: 'NOT_FOUND',
       message: 'Project not found',
     });
 

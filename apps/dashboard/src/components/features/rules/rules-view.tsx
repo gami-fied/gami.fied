@@ -1,5 +1,7 @@
 'use client';
 
+import { RuleTraceDialog } from './rule-trace-dialog';
+import { useToast } from '@/components/ui/toast';
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useRules, RuleRecord } from '@/hooks/use-rules';
@@ -25,6 +27,7 @@ import {
   Play,
   SlidersHorizontal,
   Code2,
+  Search,
   Trash2,
   Edit2,
   CheckCircle2,
@@ -36,7 +39,37 @@ import {
 import { evaluateRule } from '@gami/rules';
 import { motion } from 'motion/react';
 
+interface StoredCondition {
+  field?: string;
+  fact?: string;
+  operator?: string;
+  value?: unknown;
+}
+
+interface StoredConditions {
+  all?: StoredCondition[];
+  any?: StoredCondition[];
+}
+
+interface StoredAction {
+  type?: string;
+  amount?: number;
+  achievementId?: string;
+  achievementKey?: string;
+  params?: { amount?: number; achievementId?: string; achievementKey?: string };
+}
+
+interface RuleTestResult {
+  ruleId?: string;
+  ruleName?: string;
+  trigger?: string;
+  matched?: boolean;
+  actions?: StoredAction[];
+  [key: string]: unknown;
+}
+
 export function RulesView() {
+  const toast = useToast();
   const { selectedProject, selectedOrg } = useDashboard();
   const projectId = selectedProject?.id || null;
   const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
@@ -49,6 +82,7 @@ export function RulesView() {
   // Modal / Form state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RuleRecord | null>(null);
+  const [tracingRule, setTracingRule] = useState<RuleRecord | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<'visual' | 'json'>('visual');
   const [submitting, setSubmitting] = useState(false);
@@ -101,7 +135,9 @@ export function RulesView() {
       2
     )
   );
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<RuleTestResult[] | { error: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (projectId) {
@@ -122,31 +158,31 @@ export function RulesView() {
     }
   }, [editingRule]);
 
-  const parseConditionsToVisual = (conditionsObj: any) => {
+  const parseConditionsToVisual = (conditionsObj: StoredConditions | null | undefined) => {
     if (!conditionsObj) {
       setMatchMode('all');
       setVisualConditions([]);
       return;
     }
     const isAny = Array.isArray(conditionsObj.any);
-    const condList = isAny ? conditionsObj.any : conditionsObj.all || [];
+    const condList = (isAny ? conditionsObj.any : conditionsObj.all) ?? [];
     setMatchMode(isAny ? 'any' : 'all');
 
-    const mapped: VisualCondition[] = condList.map((c: any, index: number) => ({
+    const mapped: VisualCondition[] = condList.map((c, index) => ({
       id: `c_${index}_${Date.now()}`,
       field: c.field || c.fact || '',
-      operator: c.operator || 'equals',
+      operator: (c.operator || 'equals') as VisualCondition['operator'],
       value: String(c.value ?? ''),
     }));
     setVisualConditions(mapped);
   };
 
-  const parseActionsToVisual = (actionsArr: any[]) => {
+  const parseActionsToVisual = (actionsArr: StoredAction[]) => {
     if (!Array.isArray(actionsArr)) {
       setVisualActions([createActionObj('award_xp', 100)]);
       return;
     }
-    const mapped: VisualAction[] = actionsArr.map((a: any) => {
+    const mapped: VisualAction[] = actionsArr.map((a) => {
       if (a.type === 'award_xp') {
         return createActionObj('award_xp', a.params?.amount || a.amount || 100);
       }
@@ -166,7 +202,7 @@ export function RulesView() {
   const buildRulesEngineConditions = (mode: 'all' | 'any', conds: VisualCondition[]) => {
     if (conds.length === 0) return null;
     const formatted = conds.map((c) => {
-      let val: any = c.value;
+      let val: string | number | boolean = c.value;
       if (c.value === 'true') val = true;
       else if (c.value === 'false') val = false;
       else if (!isNaN(Number(c.value)) && c.value.trim() !== '') val = Number(c.value);
@@ -212,20 +248,6 @@ export function RulesView() {
         { id: `c_1_${Date.now()}`, field: 'payload.amount', operator: 'greater_than', value: '50' },
       ]);
       setVisualActions([createActionObj('award_xp', 250)]);
-    } else if (presetKey === 'streak') {
-      setName('7-Day Streak Reward');
-      setTrigger('streak_maintained');
-      setDescription('Awards 500 XP when user maintains a 7-day activity streak');
-      setMatchMode('all');
-      setVisualConditions([
-        {
-          id: `c_1_${Date.now()}`,
-          field: 'payload.days',
-          operator: 'greater_than_or_equal',
-          value: '7',
-        },
-      ]);
-      setVisualActions([createActionObj('award_xp', 500)]);
     }
   };
 
@@ -243,8 +265,8 @@ export function RulesView() {
     setSubmitting(true);
     setFormError(null);
 
-    let conditionsObj: Record<string, unknown> | null = null;
-    let actionsObj: Record<string, unknown>[] = [];
+    let conditionsObj: Record<string, unknown> | null;
+    let actionsObj: Record<string, unknown>[];
 
     try {
       if (editorMode === 'visual') {
@@ -258,8 +280,9 @@ export function RulesView() {
         actionsObj = JSON.parse(rawActionsJson);
       }
 
+      let saved: { warnings?: string[] } | null;
       if (editingRule) {
-        await updateRule(editingRule.id, {
+        saved = await updateRule(editingRule.id, {
           name,
           description,
           trigger,
@@ -268,7 +291,7 @@ export function RulesView() {
         });
         setEditingRule(null);
       } else {
-        await createRule({
+        saved = await createRule({
           name,
           description,
           trigger,
@@ -277,6 +300,7 @@ export function RulesView() {
         });
         setIsCreateOpen(false);
       }
+      saved?.warnings?.forEach((warning) => toast.warning('Rule saved with a warning', warning));
     } catch (err: unknown) {
       setFormError((err as Error).message || 'Failed to save rule definition');
     } finally {
@@ -347,7 +371,7 @@ export function RulesView() {
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Configure IF/THEN event rules for{' '}
-            <span className="text-orange-400 font-semibold">{selectedProject.name}</span>
+            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
           </p>
         </div>
 
@@ -358,7 +382,7 @@ export function RulesView() {
               onClick={() => setActiveTab('rules')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                 activeTab === 'rules'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-brand-500 text-on-accent shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -369,7 +393,7 @@ export function RulesView() {
               onClick={() => setActiveTab('simulator')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                 activeTab === 'simulator'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-brand-500 text-on-accent shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -394,7 +418,7 @@ export function RulesView() {
               setEditingRule(null);
               setIsCreateOpen(true);
             }}
-            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
           >
             <Plus className="w-4 h-4" />
             Create Rule
@@ -403,7 +427,7 @@ export function RulesView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none">
+        <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
           {error}
         </div>
       )}
@@ -416,9 +440,9 @@ export function RulesView() {
               <TableSkeleton rows={6} />
             ) : rules.length === 0 ? (
               <div className="py-16 text-center space-y-3">
-                <Zap className="w-10 h-10 text-zinc-600 mx-auto" />
+                <Zap className="w-10 h-10 text-zinc-400 mx-auto" />
                 <h3 className="text-sm font-semibold text-zinc-300">No Rules Defined Yet</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                   Create your first gamification rule to automatically award XP or achievements when
                   events occur.
                 </p>
@@ -442,7 +466,7 @@ export function RulesView() {
                         <div>
                           <div className="text-xs font-semibold text-zinc-200">{rule.name}</div>
                           {rule.description && (
-                            <div className="text-[11px] text-zinc-500">{rule.description}</div>
+                            <div className="text-[11px] text-zinc-400">{rule.description}</div>
                           )}
                         </div>
                       </TableCell>
@@ -451,22 +475,22 @@ export function RulesView() {
                       </TableCell>
                       <TableCell className="text-xs text-zinc-400">
                         {rule.conditions ? (
-                          <span className="font-mono text-[11px] bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
-                            {Array.isArray((rule.conditions as any).all)
-                              ? `${(rule.conditions as any).all.length} IF (ALL)`
-                              : Array.isArray((rule.conditions as any).any)
-                                ? `${(rule.conditions as any).any.length} IF (ANY)`
+                          <span className="text-[11px] bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
+                            {Array.isArray((rule.conditions as StoredConditions).all)
+                              ? `${(rule.conditions as StoredConditions).all?.length} IF (ALL)`
+                              : Array.isArray((rule.conditions as StoredConditions).any)
+                                ? `${(rule.conditions as StoredConditions).any?.length} IF (ANY)`
                                 : 'Custom JSON'}
                           </span>
                         ) : (
-                          <span className="text-zinc-500 italic">Always executes</span>
+                          <span className="text-zinc-400 italic">Always executes</span>
                         )}
                       </TableCell>
                       <TableCell className="text-xs">
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(rule.actions) ? (
-                            rule.actions.map((act: any, idx: number) => (
-                              <Badge key={idx} variant="emerald" className="text-[10px]">
+                            (rule.actions as StoredAction[]).map((act, idx) => (
+                              <Badge key={idx} variant="emerald" className="text-xs">
                                 {act.type === 'award_xp'
                                   ? `+${act.params?.amount || act.amount} XP`
                                   : act.type}
@@ -482,9 +506,9 @@ export function RulesView() {
                           disabled={!isAdminOrOwner}
                           title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle rule status' : undefined}
                           onClick={() => isAdminOrOwner && handleToggleEnabled(rule)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border transition ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold border transition ${
                             rule.enabled
-                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/50'
+                              ? 'bg-success-950/60 text-success-300 border-success-800/50'
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                           } ${!isAdminOrOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
@@ -493,6 +517,15 @@ export function RulesView() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setTracingRule(rule)}
+                            className="p-2 text-zinc-400 hover:text-white transition"
+                            title="Why did this fire?"
+                            aria-label="Why did this fire?"
+                          >
+                            <Search className="w-4 h-4" />
+                          </button>
                           <button
                             disabled={!isAdminOrOwner}
                             onClick={() => {
@@ -503,7 +536,7 @@ export function RulesView() {
                             className={`p-1.5 transition ${
                               isAdminOrOwner
                                 ? 'text-zinc-400 hover:text-zinc-200'
-                                : 'opacity-30 cursor-not-allowed text-zinc-600'
+                                : 'opacity-30 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit rule' : 'Edit Rule'}
                           >
@@ -514,8 +547,8 @@ export function RulesView() {
                             onClick={() => isAdminOrOwner && setDeletingRuleId(rule.id)}
                             className={`p-1.5 transition ${
                               isAdminOrOwner
-                                ? 'text-zinc-400 hover:text-rose-400'
-                                : 'opacity-30 cursor-not-allowed text-zinc-600'
+                                ? 'text-zinc-400 hover:text-danger-400'
+                                : 'opacity-30 cursor-not-allowed text-zinc-400'
                             }`}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to delete rule' : 'Delete Rule'}
                           >
@@ -536,7 +569,7 @@ export function RulesView() {
           <Card className="bg-zinc-900/80 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Play className="w-4 h-4 text-emerald-400" />
+                <Play className="w-4 h-4 text-success-400" />
                 Simulated Event Payload
               </CardTitle>
               <CardDescription>
@@ -548,7 +581,7 @@ export function RulesView() {
                 rows={12}
                 value={testEventJson}
                 onChange={(e) => setTestEventJson(e.target.value)}
-                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-orange-500 font-mono text-xs bg-zinc-950/80 text-zinc-200"
+                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950/80 text-zinc-200"
               />
               <Button onClick={handleRunSimulator} className="w-full" variant="primary">
                 <Play className="w-4 h-4" />
@@ -560,20 +593,20 @@ export function RulesView() {
           <Card className="bg-zinc-900/80 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-orange-400" />
+                <ShieldCheck className="w-4 h-4 text-brand-400" />
                 Step-by-Step Evaluation Breakdown
               </CardTitle>
               <CardDescription>Visual execution breakdown for active rules.</CardDescription>
             </CardHeader>
             <CardContent>
               {testResults ? (
-                testResults.error ? (
-                  <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs rounded-none">
+                'error' in testResults ? (
+                  <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs rounded-none">
                     {testResults.error}
                   </div>
                 ) : Array.isArray(testResults) && testResults.length > 0 ? (
                   <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                    {testResults.map((res: any, idx: number) => (
+                    {testResults.map((res, idx) => (
                       <motion.div
                         key={res.ruleId || idx}
                         initial={{ opacity: 0, y: 10 }}
@@ -583,7 +616,7 @@ export function RulesView() {
                         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
                           <div>
                             <span className="text-xs font-bold text-zinc-100">{res.ruleName}</span>
-                            <div className="text-[10px] text-zinc-500 font-mono">
+                            <div className="text-xs text-zinc-400">
                               Trigger: {res.trigger}
                             </div>
                           </div>
@@ -601,11 +634,11 @@ export function RulesView() {
                             </span>
                             <span className="flex items-center gap-1 font-bold text-[11px]">
                               {res.matched ? (
-                                <span className="text-emerald-400 flex items-center gap-1">
+                                <span className="text-success-400 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Matched
                                 </span>
                               ) : (
-                                <span className="text-rose-400 flex items-center gap-1">
+                                <span className="text-danger-400 flex items-center gap-1">
                                   <XCircle className="w-3.5 h-3.5" /> Mismatched
                                 </span>
                               )}
@@ -614,15 +647,15 @@ export function RulesView() {
 
                           {/* Step 2: Actions Executed */}
                           {res.matched && (
-                            <div className="p-2.5 rounded-none bg-emerald-950/30 border border-emerald-800/40 space-y-1.5">
-                              <span className="text-emerald-300 font-bold text-[11px] flex items-center gap-1">
-                                <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+                            <div className="p-2.5 rounded-none bg-success-950/30 border border-success-800/40 space-y-1.5">
+                              <span className="text-success-300 font-bold text-[11px] flex items-center gap-1">
+                                <ArrowRight className="w-3.5 h-3.5 text-success-400" />
                                 Actions Executed:
                               </span>
                               <div className="flex flex-wrap gap-1.5">
-                                {Array.isArray(res.actionsExecuted) &&
-                                  res.actionsExecuted.map((act: any, i: number) => (
-                                    <Badge key={i} variant="emerald" className="text-[10px]">
+                                {Array.isArray(res.actions) &&
+                                  res.actions.map((act, i) => (
+                                    <Badge key={i} variant="emerald" className="text-xs">
                                       {act.type === 'award_xp'
                                         ? `+${act.params?.amount || act.amount} XP`
                                         : act.type}
@@ -636,12 +669,12 @@ export function RulesView() {
                     ))}
                   </div>
                 ) : (
-                  <div className="py-12 text-center text-xs text-zinc-500">
+                  <div className="py-12 text-center text-xs text-zinc-400">
                     No active rules to evaluate. Create and activate a rule first.
                   </div>
                 )
               ) : (
-                <div className="py-16 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-none">
+                <div className="py-16 text-center text-xs text-zinc-400 border border-dashed border-zinc-800 rounded-none">
                   Run the simulation to see step-by-step trigger matches and action execution cards.
                 </div>
               )}
@@ -662,7 +695,7 @@ export function RulesView() {
       >
         <form onSubmit={handleSaveRule} className="space-y-5 overflow-y-auto pr-1">
           {formError && (
-            <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none font-medium">
+            <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none font-medium">
               {formError}
             </div>
           )}
@@ -670,7 +703,7 @@ export function RulesView() {
           {/* Preset Buttons */}
           <div className="space-y-1.5">
             <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-orange-400" /> Rule Presets:
+              <Sparkles className="w-3 h-3 text-brand-400" /> Rule Presets:
             </span>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -687,20 +720,13 @@ export function RulesView() {
               >
                 Order Reward (+250 XP)
               </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset('streak')}
-                className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
-              >
-                7-Day Streak (+500 XP)
-              </button>
             </div>
           </div>
 
           {/* Builder Mode Toggle */}
           <div className="flex items-center justify-between bg-zinc-950/60 p-2 rounded-none border border-zinc-800">
             <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-              <SlidersHorizontal className="w-4 h-4 text-orange-400" />
+              <SlidersHorizontal className="w-4 h-4 text-brand-400" />
               Rule Builder Mode
             </span>
             <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
@@ -709,7 +735,7 @@ export function RulesView() {
                 onClick={() => setEditorMode('visual')}
                 className={`px-3 py-1 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                   editorMode === 'visual'
-                    ? 'bg-orange-500 text-white shadow-sm'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -733,7 +759,7 @@ export function RulesView() {
                 }}
                 className={`px-3 py-1 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
                   editorMode === 'json'
-                    ? 'bg-orange-500 text-white shadow-sm'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -777,12 +803,12 @@ export function RulesView() {
             />
           ) : (
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-zinc-300">Conditions JSON</label>
-              <textarea
+              <label htmlFor="rules-view-conditions-json" className="block text-xs font-semibold text-zinc-300">Conditions JSON</label>
+              <textarea id="rules-view-conditions-json"
                 rows={5}
                 value={rawConditionsJson}
                 onChange={(e) => setRawConditionsJson(e.target.value)}
-                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-orange-500 font-mono text-xs bg-zinc-950 text-zinc-200"
+                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950 text-zinc-200"
               />
             </div>
           )}
@@ -796,12 +822,12 @@ export function RulesView() {
             />
           ) : (
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-zinc-300">Actions JSON</label>
-              <textarea
+              <label htmlFor="rules-view-actions-json" className="block text-xs font-semibold text-zinc-300">Actions JSON</label>
+              <textarea id="rules-view-actions-json"
                 rows={5}
                 value={rawActionsJson}
                 onChange={(e) => setRawActionsJson(e.target.value)}
-                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-orange-500 font-mono text-xs bg-zinc-950 text-zinc-200"
+                className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950 text-zinc-200"
               />
             </div>
           )}
@@ -833,6 +859,13 @@ export function RulesView() {
         message="Are you sure you want to delete this rule? Active events will no longer trigger these actions."
         confirmText="Delete Rule"
       />
+      {tracingRule && selectedProject && (
+        <RuleTraceDialog
+          projectId={selectedProject.id}
+          rule={tracingRule}
+          onClose={() => setTracingRule(null)}
+        />
+      )}
     </div>
   );
 }

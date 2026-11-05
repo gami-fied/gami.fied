@@ -1,12 +1,38 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "DATABASE_URL",
+    "DATABASE_URL_TEST",
+    "REDIS_URL",
+    "REDIS_HOST",
+    "REDIS_PORT",
+    "REDIS_PASSWORD",
+    "PORT",
+    "API_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "ENCRYPTION_MASTER_KEY",
+    "ENCRYPTION_MASTER_KEY_PREVIOUS",
+    "PLATFORM_BOOTSTRAP_SECRET",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_API_URL",
+    "TRUSTED_ORIGINS",
+    "TRUST_PROXY",
+    "SMTP_*",
+    "RATE_LIMIT_*"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["NEXT_OUTPUT"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false
     },
     "typecheck": {
       "dependsOn": ["^build"]

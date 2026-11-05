@@ -1,4 +1,4 @@
-import type { HttpClient } from './http.js';
+import { projectPath, type HttpClient } from './http.js';
 import type {
   AchievementRecord,
   AchievementSummaryResponse,
@@ -16,13 +16,10 @@ export class AchievementsResource {
    * Calls GET /api/projects/:projectId/achievements
    */
   public async list(params: ListAchievementsParams): Promise<AchievementRecord[]> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.achievements.list()');
-    }
 
     const res = await this.http.request<AchievementRecord[] | { data: AchievementRecord[] }>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/achievements`,
+      path: projectPath(params.projectId, `/achievements`),
     });
 
     return Array.isArray(res) ? res : res.data || [];
@@ -33,16 +30,13 @@ export class AchievementsResource {
    * Calls GET /api/projects/:projectId/achievements/:achievementId
    */
   public async get(params: GetAchievementParams): Promise<AchievementRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.achievements.get()');
-    }
     if (!params.achievementId) {
       throw new Error('achievementId is required for gami.achievements.get()');
     }
 
     return this.http.request<AchievementRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/achievements/${params.achievementId}`,
+      path: projectPath(params.projectId, `/achievements/${params.achievementId}`),
     });
   }
 
@@ -50,14 +44,11 @@ export class AchievementsResource {
    * Get achievement metrics & summary analytics.
    * Calls GET /api/projects/:projectId/achievements/summary
    */
-  public async summary(params: { projectId: string }): Promise<AchievementSummaryResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.achievements.summary()');
-    }
+  public async summary(params: { projectId?: string }): Promise<AchievementSummaryResponse> {
 
     return this.http.request<AchievementSummaryResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/achievements/summary`,
+      path: projectPath(params.projectId, `/achievements/summary`),
     });
   }
 
@@ -66,16 +57,13 @@ export class AchievementsResource {
    * Calls GET /api/projects/:projectId/users/:userId/achievements
    */
   public async listForUser(params: ListUserAchievementsParams): Promise<UserAchievementRecord[]> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.achievements.listForUser()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.achievements.listForUser()');
     }
 
     return this.http.request<UserAchievementRecord[]>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/achievements`,
+      path: projectPath(params.projectId, `/users/${params.userId}/achievements`),
     });
   }
 
@@ -88,9 +76,6 @@ export class AchievementsResource {
     userId: string;
     achievementId: string;
   }): Promise<UserAchievementRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.achievements.getForUser()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.achievements.getForUser()');
     }
@@ -100,7 +85,7 @@ export class AchievementsResource {
 
     return this.http.request<UserAchievementRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/achievements/${params.achievementId}`,
+      path: projectPath(params.projectId, `/users/${params.userId}/achievements/${params.achievementId}`),
     });
   }
 }

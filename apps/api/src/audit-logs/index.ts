@@ -3,7 +3,7 @@ import { auditLogs, db } from '@gami/database';
 import { redactSensitiveData } from '@gami/config';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
+import { requireProjectAccess } from '../authorization/index.js';
 
 export interface CreateAuditLogParams {
   organizationId?: string | null;
@@ -72,11 +72,6 @@ export async function auditLogRoutes(fastify: FastifyInstance) {
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-      'owner',
-      'admin',
-    ]);
-    if (!orgAuth) return;
 
     const page = Math.max(1, parseInt(request.query.page || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '25', 10)));

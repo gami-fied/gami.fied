@@ -1,10 +1,13 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useState, useEffect, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDashboard } from '../features/context/dashboard-context';
 import { Sidebar } from './sidebar';
+import { ApiStatusBanner } from './api-status-banner';
+import { CommandPalette } from './command-palette';
 import { Topbar } from './topbar';
 import { OnboardingFlow } from '../features/onboarding/onboarding-flow';
 import { Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
@@ -14,6 +17,10 @@ const ADMIN_RESTRICTED_ROUTES: Record<string, { title: string; description: stri
   '/dashboard/organization/invitations': {
     title: 'Organization Pending Invitations',
     description: 'Viewing and managing pending team invitations requires Admin or Owner role in this organization.',
+  },
+  '/dashboard/organization/data': {
+    title: 'Data Management',
+    description: 'Exporting and importing organization data requires Admin or Owner role.',
   },
   '/dashboard/api-keys': {
     title: 'Project API Keys',
@@ -25,7 +32,7 @@ const ADMIN_RESTRICTED_ROUTES: Record<string, { title: string; description: stri
   },
   '/dashboard/integrations': {
     title: 'External Integrations & Channels',
-    description: 'Connecting external providers (Discord, Slack), editing embed templates, and replaying deliveries requires Admin or Owner role.',
+    description: 'Connecting Discord, editing embed templates, and replaying deliveries requires Admin or Owner role.',
   },
   '/dashboard/system': {
     title: 'System Health & Operations',
@@ -51,6 +58,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     selectedOrg,
     selectedProject,
     loadingOrgs,
+    projectsFailed,
     error,
     setError,
   } = useDashboard();
@@ -62,7 +70,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function checkOtpRequirement() {
       try {
-        const res = await fetch('/api/auth/otp/status');
+        const res = await apiFetch('/api/auth/otp/status');
         if (res.ok) {
           const data = await res.json();
           if (data.requireEmailOtpVerification && !data.emailVerified) {
@@ -82,8 +90,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   if (isPending || loadingOrgs) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400 gap-3 font-mono">
-        <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+      <div className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400 gap-3">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
         <span className="text-sm font-medium">Loading session & workspace data...</span>
       </div>
     );
@@ -92,12 +100,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   if (!session) return null;
 
   // Permission Guard Evaluation
-  const isPlatformAdmin = (session?.user as any)?.role === 'admin' || Boolean((session?.user as any)?.isPlatformAdmin);
+  const sessionUser = session?.user as { role?: string; isPlatformAdmin?: boolean } | undefined;
+  const isPlatformAdmin = sessionUser?.role === 'admin' || Boolean(sessionUser?.isPlatformAdmin);
   const orgRole = selectedOrg?.role || 'member';
   const isAdminOrOwner = isPlatformAdmin || ['owner', 'admin'].includes(orgRole);
 
   // If user has no orgs OR no projects in active org (for admins), render Onboarding Flow
-  const needsOnboarding = organizations.length === 0 || !selectedOrg || (isAdminOrOwner && !selectedProject);
+  const needsOnboarding =
+    !projectsFailed &&
+    (organizations.length === 0 || !selectedOrg || (isAdminOrOwner && !selectedProject));
 
   const matchedRestrictedRoute = Object.entries(ADMIN_RESTRICTED_ROUTES).find(([route]) =>
     pathname === route || pathname.startsWith(`${route}/`)
@@ -106,7 +117,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isAccessDenied = !isAdminOrOwner && Boolean(matchedRestrictedRoute);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex font-mono">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
       {/* Desktop Sidebar */}
       {!needsOnboarding && (
         <div className="hidden lg:block">
@@ -137,13 +148,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         }`}
       >
         <Topbar onMobileMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />
+        <CommandPalette />
+        <ApiStatusBanner />
 
         {error && (
-          <div className="m-6 mb-0 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs px-4 py-3 rounded-none flex items-center justify-between">
+          <div className="m-6 mb-0 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs px-4 py-3 rounded-none flex items-center justify-between">
             <span>{error}</span>
             <button
               onClick={() => setError(null)}
-              className="ml-4 text-rose-400 hover:text-rose-200 transition font-bold text-sm shrink-0"
+              className="ml-4 text-danger-400 hover:text-danger-200 transition font-bold text-sm shrink-0"
               aria-label="Dismiss error"
             >
               ✕
@@ -156,11 +169,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <OnboardingFlow />
           ) : isAccessDenied && matchedRestrictedRoute ? (
             <div className="py-20 px-6 text-center max-w-lg mx-auto space-y-6">
-              <div className="w-16 h-16 bg-rose-950/40 border border-rose-800/80 text-rose-400 flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-danger-950/40 border border-danger-800/80 text-danger-400 flex items-center justify-center mx-auto">
                 <ShieldAlert className="w-8 h-8" />
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-rose-400 border border-rose-800 px-2 py-0.5 bg-rose-950/60 inline-block mb-3">
+                <span className="text-xs font-bold text-danger-400 border border-danger-800 px-2 py-0.5 bg-danger-950/60 inline-block mb-3">
                   403 — ACCESS RESTRICTED
                 </span>
                 <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
@@ -173,7 +186,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               <div className="pt-2">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-on-accent text-xs font-bold transition"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Return to Dashboard Overview

@@ -1,9 +1,12 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
 
 export interface ApiKeyRecord {
   id: string;
   name: string;
   keyPrefix: string;
+  scopes: string[];
+  expiresAt: string | null;
   createdAt: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
@@ -14,11 +17,12 @@ export interface GeneratedApiKey {
   name: string;
   keyPrefix: string;
   rawSecret: string;
+  scopes: string[];
 }
 
 export function useApiKeys(projectId: string | null) {
   const [apiKeys, setApiKeys] = useState<ApiKeyRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchApiKeys = useCallback(async () => {
@@ -26,7 +30,7 @@ export function useApiKeys(projectId: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/api-keys`);
+      const res = await apiFetch(`/api/projects/${projectId}/api-keys`);
       if (res.ok) {
         setApiKeys(await res.json());
       } else {
@@ -40,12 +44,16 @@ export function useApiKeys(projectId: string | null) {
     }
   }, [projectId]);
 
-  const createApiKey = async (name: string): Promise<GeneratedApiKey> => {
+  const createApiKey = async (
+    name: string,
+    scopes: string[],
+    expiresAt?: string
+  ): Promise<GeneratedApiKey> => {
     if (!projectId) throw new Error('No project selected');
-    const res = await fetch(`/api/projects/${projectId}/api-keys`, {
+    const res = await apiFetch(`/api/projects/${projectId}/api-keys`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, scopes, expiresAt }),
     });
 
     if (res.ok) {
@@ -60,7 +68,7 @@ export function useApiKeys(projectId: string | null) {
 
   const revokeApiKey = async (keyId: string) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/api-keys/${keyId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/api-keys/${keyId}`, {
       method: 'DELETE',
     });
 
@@ -72,5 +80,22 @@ export function useApiKeys(projectId: string | null) {
     }
   };
 
-  return { apiKeys, loading, error, fetchApiKeys, createApiKey, revokeApiKey };
+  const rotateApiKey = async (keyId: string): Promise<GeneratedApiKey> => {
+    if (!projectId) throw new Error('No project selected');
+    const res = await apiFetch(`/api/projects/${projectId}/api-keys/${keyId}/rotate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    if (res.ok) {
+      const rotatedKey: GeneratedApiKey = await res.json();
+      await fetchApiKeys();
+      return rotatedKey;
+    }
+    const err = await res.json();
+    throw new Error(err.message || 'Failed to rotate API key');
+  };
+
+  return { apiKeys, loading, error, fetchApiKeys, createApiKey, revokeApiKey, rotateApiKey };
 }

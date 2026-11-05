@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,7 +19,6 @@
     "test": "vitest run src/__tests__"
   },
   "dependencies": {
-    "@gami/config": "workspace:*",
     "@gami/webhooks": "workspace:*"
   },
   "devDependencies": {

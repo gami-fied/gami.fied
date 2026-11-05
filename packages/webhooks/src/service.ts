@@ -1,5 +1,12 @@
 import crypto from 'crypto';
-import { db, endUsers, webhookEndpoints, webhookOutbox, webhookSubscriptions } from '@gami/database';
+import {
+  db,
+  endUsers,
+  getPlatformSettings,
+  webhookEndpoints,
+  webhookOutbox,
+  webhookSubscriptions,
+} from '@gami/database';
 import { and, eq } from 'drizzle-orm';
 import { buildWebhookPayload } from './payload.js';
 import type { WebhookEventType } from './types.js';
@@ -25,6 +32,9 @@ export async function createWebhookDelivery(
   params: CreateWebhookDeliveryParams
 ): Promise<number> {
   const { projectId, eventId, eventType, userId, externalUserId, data, createdAt } = params;
+
+  const { enabled } = await getPlatformSettings('webhooks', client);
+  if (!enabled) return 0;
 
   // 1. Query active endpoints for project subscribed to eventType
   const matchingEndpoints = await client

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './button';
@@ -25,6 +25,78 @@ const maxWidthClasses = {
   '4xl': 'max-w-4xl',
 };
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
+
+/** Traps focus, closes on Escape, locks scrolling, and gives focus back when it closes. */
+function useDialogBehaviour(
+  boxRef: React.RefObject<HTMLDivElement | null>,
+  isOpen: boolean,
+  onClose: () => void
+) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const box = boxRef.current;
+    if (box && !box.contains(document.activeElement)) {
+      (box.querySelector<HTMLElement>(FOCUSABLE) ?? box).focus();
+    }
+    return () => opener?.focus();
+  }, [boxRef, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Tab' || !boxRef.current) return;
+
+      const items = [...boxRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [boxRef, isOpen, onClose]);
+}
+
+/** For dialogs with their own layout. Adds the backdrop and the shared behaviour. */
+export function ModalFrame({
+  onClose,
+  label,
+  children,
+}: {
+  onClose: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  useDialogBehaviour(boxRef, true, onClose);
+
+  return (
+    <div
+      ref={boxRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Dialog({
   isOpen,
   onClose,
@@ -35,24 +107,14 @@ export function Dialog({
   maxWidth = '3xl',
 }: DialogProps) {
   const [mounted, setMounted] = useState(false);
+  const titleId = useId();
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  useDialogBehaviour(boxRef, isOpen && mounted, onClose);
 
   if (!isOpen || !mounted) return null;
 
@@ -67,11 +129,18 @@ export function Dialog({
 
       {/* Modal Content Box */}
       <div
+        ref={boxRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={`relative w-full ${maxWidthClasses[maxWidth]} bg-zinc-900 border border-zinc-800 rounded-none shadow-2xl z-10 overflow-hidden transform transition-all my-auto`}
       >
         <div className="flex items-center justify-between p-5 pb-4 border-b border-zinc-800/80">
           <div>
-            <h3 className="text-base font-semibold text-zinc-100 tracking-tight">{title}</h3>
+            <h3 id={titleId} className="text-base font-semibold text-zinc-100 tracking-tight">
+              {title}
+            </h3>
             {description && <p className="text-xs text-zinc-400 mt-1">{description}</p>}
           </div>
           <button
@@ -141,7 +210,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      <p className="text-sm text-zinc-300 leading-relaxed">{message}</p>
+      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{message}</p>
     </Dialog>
   );
 }

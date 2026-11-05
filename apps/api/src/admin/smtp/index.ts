@@ -13,7 +13,7 @@ const smtpConfigSchema = z.object({
   user: z.string().optional().default(''),
   password: z.string().optional().default(''),
   fromEmail: z.string().email('Invalid from email address'),
-  fromName: z.string().optional().default('Gami Engine'),
+  fromName: z.string().optional().default('Gami.Fied'),
   secure: z.boolean().optional().default(false),
 });
 
@@ -53,7 +53,7 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
       port: cfg.port || 587,
       user: cfg.user || null,
       fromEmail: cfg.fromEmail || null,
-      fromName: cfg.fromName || 'Gami Engine',
+      fromName: cfg.fromName || 'Gami.Fied',
       secure: Boolean(cfg.secure),
       passwordConfigured: Boolean(cfg.encryptedPassword),
       password: '[REDACTED]',
@@ -123,7 +123,11 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
     // Verify SMTP connection in background
     let decryptedPass = '';
     if (encryptedPassword) {
-      try { decryptedPass = decryptSecret(encryptedPassword); } catch {}
+      try {
+        decryptedPass = decryptSecret(encryptedPassword);
+      } catch (err) {
+        request.log.warn({ err }, 'Could not decrypt the stored SMTP password');
+      }
     }
 
     const provider = getSmtpProviderFromConfig({
@@ -249,7 +253,9 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
             status: 'success',
           },
         });
-      } catch {}
+      } catch (err) {
+        request.log.warn({ err }, 'Failed to write audit log');
+      }
 
       return reply.send({
         success: true,
@@ -272,7 +278,9 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
             error: errorMessage,
           },
         });
-      } catch {}
+      } catch (err) {
+        request.log.warn({ err }, 'Failed to write audit log');
+      }
 
       return reply.status(500).send({
         error: 'SMTP Delivery Failed',

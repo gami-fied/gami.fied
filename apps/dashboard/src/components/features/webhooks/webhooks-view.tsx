@@ -1,5 +1,7 @@
 'use client';
 
+import { ModalFrame } from '@/components/ui/dialog';
+import { formatDateTime } from '@/lib/format';
 import { useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useWebhooks } from '@/hooks/use-webhooks';
@@ -48,18 +50,18 @@ const WEBHOOK_EVENT_ITEMS: ChecklistItem<SdkWebhookEventType>[] = [
 
 // Event type → color mapping for consistent pill colors
 const EVENT_COLOR: Record<string, string> = {
-  'xp.awarded': 'bg-orange-950/60 text-orange-300 border-orange-800/60',
-  'achievement.unlocked': 'bg-purple-950/60 text-purple-300 border-purple-800/60',
-  'level.up': 'bg-amber-950/60 text-amber-300 border-amber-800/60',
-  'challenge.completed': 'bg-blue-950/60 text-blue-300 border-blue-800/60',
-  'user.created': 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60',
+  'xp.awarded': 'bg-brand-950/60 text-brand-300 border-brand-800/60',
+  'achievement.unlocked': 'bg-info-950/60 text-info-300 border-info-800/60',
+  'level.up': 'bg-warning-950/60 text-warning-300 border-warning-800/60',
+  'challenge.completed': 'bg-info-950/60 text-info-300 border-info-800/60',
+  'user.created': 'bg-success-950/60 text-success-300 border-success-800/60',
   'user.deactivated': 'bg-zinc-800 text-zinc-400 border-zinc-700',
 };
 
 function EventPill({ event }: { event: SdkWebhookEventType }) {
   const color = EVENT_COLOR[event] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700';
   return (
-    <span className={`inline-block border px-1.5 py-0.5 text-[10px] font-mono font-semibold whitespace-nowrap ${color}`}>
+    <span className={`inline-block border px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap ${color}`}>
       {event}
     </span>
   );
@@ -79,7 +81,7 @@ function EventList({ events, max = 2 }: { events: SdkWebhookEventType[]; max?: n
       {!expanded && overflow > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-          className="text-[10px] font-mono text-zinc-500 hover:text-orange-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
+          className="text-xs text-zinc-400 hover:text-brand-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
         >
           +{overflow} more
         </button>
@@ -87,7 +89,7 @@ function EventList({ events, max = 2 }: { events: SdkWebhookEventType[]; max?: n
       {expanded && overflow > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
-          className="text-[10px] font-mono text-zinc-500 hover:text-orange-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
+          className="text-xs text-zinc-400 hover:text-brand-400 transition border border-zinc-700 px-1.5 py-0.5 bg-zinc-900 whitespace-nowrap"
         >
           show less
         </button>
@@ -98,12 +100,10 @@ function EventList({ events, max = 2 }: { events: SdkWebhookEventType[]; max?: n
 
 // Compact overflow menu for secondary row actions
 function ActionsMenu({
-  ep,
   onHistory,
   onRotate,
   onDisable,
 }: {
-  ep: WebhookEndpointRecord;
   onHistory: () => void;
   onRotate: () => void;
   onDisable: () => void;
@@ -114,7 +114,7 @@ function ActionsMenu({
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] uppercase border border-zinc-700 font-mono tracking-wider"
+        className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs border border-zinc-700"
         title="More actions"
       >
         ⋯
@@ -127,19 +127,19 @@ function ActionsMenu({
           <div className="fixed right-16 mt-1 z-50 bg-zinc-950 border border-zinc-700 shadow-xl min-w-[160px] flex flex-col">
             <button
               onClick={() => { setOpen(false); onHistory(); }}
-              className="px-3 py-2 text-left text-[11px] font-mono text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+              className="px-3 py-2 text-left text-[11px] text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
             >
               📋 Delivery History
             </button>
             <button
               onClick={() => { setOpen(false); onRotate(); }}
-              className="px-3 py-2 text-left text-[11px] font-mono text-amber-300 hover:bg-amber-950/40 hover:text-amber-200 transition border-t border-zinc-800"
+              className="px-3 py-2 text-left text-[11px] text-warning-300 hover:bg-warning-950/40 hover:text-warning-200 transition border-t border-zinc-800"
             >
               🔑 Rotate Secret
             </button>
             <button
               onClick={() => { setOpen(false); onDisable(); }}
-              className="px-3 py-2 text-left text-[11px] font-mono text-red-400 hover:bg-red-950/40 hover:text-red-300 transition border-t border-zinc-800"
+              className="px-3 py-2 text-left text-[11px] text-danger-400 hover:bg-danger-950/40 hover:text-danger-300 transition border-t border-zinc-800"
             >
               ⊘ Disable Endpoint
             </button>
@@ -171,17 +171,17 @@ function ConfirmDialog({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-      <div className="w-full max-w-md border border-zinc-700 bg-zinc-950 p-6 space-y-4 font-mono shadow-2xl">
-        <h3 className="text-sm font-bold uppercase text-white tracking-wide">{title}</h3>
+      <div className="w-full max-w-md border border-zinc-700 bg-zinc-950 p-6 space-y-4 shadow-2xl">
+        <h3 className="text-sm font-bold text-white tracking-wide">{title}</h3>
         <p className="text-xs text-zinc-400 leading-relaxed">{message}</p>
         <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
           <button
             onClick={onCancel}
-            className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs uppercase border border-zinc-700"
+            className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs border border-zinc-700"
           >
             Cancel
           </button>
-          <button onClick={onConfirm} className={`px-4 py-1.5 text-xs font-bold uppercase ${confirmClass}`}>
+          <button onClick={onConfirm} className={`px-4 py-1.5 text-xs font-bold ${confirmClass}`}>
             {confirmLabel}
           </button>
         </div>
@@ -197,7 +197,6 @@ export function WebhooksView() {
     endpoints,
     loading,
     error,
-    refresh,
     createEndpoint,
     updateEndpoint,
     deleteEndpoint,
@@ -317,7 +316,7 @@ export function WebhooksView() {
       'Rotate Signing Secret',
       `Are you sure you want to rotate the signing secret for "${ep.name}"? All previous signatures will immediately fail — update your server-side webhook verification.`,
       'Rotate Secret',
-      'bg-amber-600 hover:bg-amber-500 text-white border border-amber-500',
+      'bg-warning-600 hover:bg-warning-500 text-on-accent border border-warning-500',
       async () => {
         setConfirmState(null);
         try {
@@ -369,7 +368,7 @@ export function WebhooksView() {
       'Disable Webhook Endpoint',
       `Are you sure you want to disable "${ep.name}"? No further deliveries will be attempted until you re-enable it.`,
       'Disable',
-      'bg-red-800 hover:bg-red-700 text-white border border-red-700',
+      'bg-danger-800 hover:bg-danger-700 text-on-accent border border-danger-700',
       async () => {
         setConfirmState(null);
         try {
@@ -390,46 +389,46 @@ export function WebhooksView() {
 
   if (!selectedProject) {
     return (
-      <div className="p-8 text-center font-mono text-zinc-400">
+      <div className="p-8 text-center text-zinc-400">
         Please select a project to manage webhooks.
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 font-mono text-zinc-100">
+    <div className="space-y-6 text-zinc-100">
 
       {/* Toast / Alert Banner */}
       {alertMsg && (
         <div
           className={`flex items-center justify-between px-4 py-3 text-xs border ${
             alertMsg.type === 'success'
-              ? 'bg-emerald-950/50 border-emerald-700/60 text-emerald-300'
-              : 'bg-red-950/50 border-red-700/60 text-red-300'
+              ? 'bg-success-950/50 border-success-700/60 text-success-300'
+              : 'bg-danger-950/50 border-danger-700/60 text-danger-300'
           }`}
         >
           <span>{alertMsg.msg}</span>
-          <button onClick={() => setAlertMsg(null)} className="text-zinc-500 hover:text-white ml-4 shrink-0">✕</button>
+          <button onClick={() => setAlertMsg(null)} className="text-zinc-400 hover:text-white ml-4 shrink-0">✕</button>
         </div>
       )}
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white uppercase">Webhook Endpoints</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white">Webhook Endpoints</h1>
           <p className="text-xs text-zinc-400 mt-1">
             Receive signed, durable HTTP notifications when gamification events occur in project{' '}
-            <span className="text-emerald-400">{selectedProject.name}</span>.
+            <span className="text-success-400">{selectedProject.name}</span>.
           </p>
         </div>
         <button
           disabled={!isAdminOrOwner}
           title={!isAdminOrOwner ? 'Requires Admin or Owner role to create webhooks' : undefined}
           onClick={() => isAdminOrOwner && handleOpenCreate()}
-          className={`shrink-0 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+          className={`shrink-0 px-4 py-2 text-xs font-semibold transition-colors ${
             isAdminOrOwner
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              : 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-50'
+              ? 'bg-success-600 hover:bg-success-500 text-on-accent'
+              : 'bg-zinc-800 text-zinc-400 border border-zinc-700 cursor-not-allowed opacity-50'
           }`}
         >
           + Add Endpoint
@@ -437,7 +436,7 @@ export function WebhooksView() {
       </div>
 
       {error && (
-        <div className="border border-red-800 bg-red-950/40 p-4 text-xs text-red-400">
+        <div className="border border-danger-800 bg-danger-950/40 p-4 text-xs text-danger-400">
           {error}
         </div>
       )}
@@ -458,7 +457,7 @@ export function WebhooksView() {
             <col style={{ width: '20%' }} />
           </colgroup>
 
-          <thead className="border-b border-zinc-800 bg-zinc-900/60 uppercase text-zinc-400 text-[10px] tracking-wider">
+          <thead className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
             <tr>
               <th className="px-4 py-3">Endpoint / URL</th>
               <th className="px-4 py-3">Subscribed Events</th>
@@ -471,20 +470,20 @@ export function WebhooksView() {
           <tbody className="divide-y divide-zinc-800/60">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                   <div className="flex items-center justify-center gap-2">
-                    <div className="w-3 h-3 border border-orange-500 border-t-transparent animate-spin" />
+                    <div className="w-3 h-3 border border-brand-500 border-t-transparent animate-spin" />
                     Loading webhook endpoints...
                   </div>
                 </td>
               </tr>
             ) : endpoints.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                   <div className="space-y-2">
                     <div className="text-2xl">📡</div>
                     <p>No webhook endpoints registered.</p>
-                    <p className="text-[11px] text-zinc-600">
+                    <p className="text-[11px] text-zinc-400">
                       Click &quot;+ Add Endpoint&quot; to configure your first webhook.
                     </p>
                   </div>
@@ -497,17 +496,22 @@ export function WebhooksView() {
                   {/* Name + URL */}
                   <td className="px-4 py-3">
                     <div className="font-semibold text-white text-xs">{ep.name}</div>
-                    <div className="text-zinc-500 text-[11px] truncate mt-0.5" title={ep.url}>
+                    <div className="text-zinc-400 text-[11px] truncate mt-0.5" title={ep.url}>
                       {ep.url}
                     </div>
                     {ep.description && (
-                      <div className="text-zinc-600 text-[10px] italic mt-0.5 truncate">
+                      <div className="text-zinc-400 text-xs italic mt-0.5 truncate">
                         {ep.description}
                       </div>
                     )}
                     {ep.failureCount > 0 && (
-                      <div className="mt-1 text-[10px] text-amber-400 font-semibold">
+                      <div className="mt-1 text-xs text-warning-400 font-semibold">
                         ⚠ {ep.failureCount} failure{ep.failureCount !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                    {ep.disabledReason && (
+                      <div className="mt-1 text-xs text-danger-400 font-semibold">
+                        {ep.disabledReason}
                       </div>
                     )}
                   </td>
@@ -523,10 +527,10 @@ export function WebhooksView() {
                       disabled={!isAdminOrOwner}
                       title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle webhook' : (ep.active ? 'Click to disable' : 'Click to enable')}
                       onClick={() => isAdminOrOwner && updateEndpoint(ep.id, { active: !ep.active })}
-                      className={`px-2 py-0.5 text-[10px] border uppercase tracking-wider font-bold whitespace-nowrap transition ${
+                      className={`px-2 py-0.5 text-xs border font-bold whitespace-nowrap transition ${
                         ep.active
-                          ? 'border-emerald-700 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40'
-                          : 'border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-600'
+                          ? 'border-success-700 bg-success-950/40 text-success-400 hover:bg-success-900/40'
+                          : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600'
                       } ${!isAdminOrOwner ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       {ep.active ? '● ACTIVE' : '○ OFF'}
@@ -534,13 +538,13 @@ export function WebhooksView() {
                   </td>
 
                   {/* Last Delivery */}
-                  <td className="px-4 py-3 text-zinc-500 text-[11px]">
+                  <td className="px-4 py-3 text-zinc-400 text-[11px]">
                     {ep.lastDeliveryAt ? (
-                      <span title={new Date(ep.lastDeliveryAt).toLocaleString()}>
+                      <span title={formatDateTime(ep.lastDeliveryAt)}>
                         {formatRelativeTime(ep.lastDeliveryAt)}
                       </span>
                     ) : (
-                      <span className="text-zinc-600 italic">Never</span>
+                      <span className="text-zinc-400 italic">Never</span>
                     )}
                   </td>
 
@@ -552,8 +556,8 @@ export function WebhooksView() {
                         disabled={!isAdminOrOwner}
                         onClick={() => isAdminOrOwner && handleTestWebhook(ep)}
                         title={!isAdminOrOwner ? 'Requires Admin or Owner role to test webhook' : undefined}
-                        className={`px-2.5 py-1 bg-zinc-800 text-[10px] uppercase border border-zinc-700 tracking-wider transition ${
-                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        className={`px-2.5 py-1 bg-zinc-800 text-xs border border-zinc-700 transition ${
+                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
                         Test
@@ -563,15 +567,14 @@ export function WebhooksView() {
                         disabled={!isAdminOrOwner}
                         onClick={() => isAdminOrOwner && handleOpenEdit(ep)}
                         title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit webhook' : undefined}
-                        className={`px-2.5 py-1 bg-zinc-800 text-[10px] uppercase border border-zinc-700 tracking-wider transition ${
-                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-600'
+                        className={`px-2.5 py-1 bg-zinc-800 text-xs border border-zinc-700 transition ${
+                          isAdminOrOwner ? 'hover:bg-zinc-700 text-zinc-200' : 'opacity-40 cursor-not-allowed text-zinc-400'
                         }`}
                       >
                         Edit
                       </button>
                       {/* Secondary: overflow ⋯ menu */}
                       <ActionsMenu
-                        ep={ep}
                         onHistory={() => handleViewDeliveries(ep)}
                         onRotate={() => handleRotateSecret(ep)}
                         onDisable={() => handleDisableEndpoint(ep)}
@@ -587,13 +590,13 @@ export function WebhooksView() {
 
       {/* ── Secret Reveal Modal ── */}
       {revealedSecret && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-lg border border-emerald-500/50 bg-zinc-950 p-6 space-y-4 font-mono text-zinc-100 shadow-2xl">
-            <h2 className="text-base font-bold text-emerald-400 uppercase tracking-wide">
+        <ModalFrame onClose={() => setRevealedSecret(null)} label="Webhook signing secret">
+          <div className="w-full max-w-lg border border-success-500/50 bg-zinc-950 p-6 space-y-4 text-zinc-100 shadow-2xl">
+            <h2 className="text-base font-bold text-success-400 tracking-wide">
               🔒 Webhook Signing Secret
             </h2>
-            <div className="border border-amber-800/80 bg-amber-950/30 p-3 text-xs text-amber-300 space-y-1">
-              <strong className="block text-amber-400 uppercase tracking-wider">⚠ Copy now — shown once only</strong>
+            <div className="border border-warning-800/80 bg-warning-950/30 p-3 text-xs text-warning-300 space-y-1">
+              <strong className="block text-warning-400">⚠ Copy now — shown once only</strong>
               <p>
                 Use this secret to verify incoming webhook payloads by comparing the{' '}
                 <code className="text-white bg-zinc-800 px-1">X-Gami-Signature</code> header
@@ -601,21 +604,21 @@ export function WebhooksView() {
               </p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase text-zinc-400 tracking-wider">Signing Secret</label>
+              <label className="text-xs text-zinc-400">Signing Secret</label>
               <div className="flex items-stretch gap-2">
                 <input
                   type="text"
                   readOnly
                   value={revealedSecret}
-                  className="flex-1 border border-zinc-700 bg-zinc-900 p-2.5 text-xs text-emerald-300 font-mono min-w-0"
+                  className="flex-1 border border-zinc-700 bg-zinc-900 p-2.5 text-xs text-success-300 min-w-0"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <button
                   onClick={() => copyToClipboard(revealedSecret)}
-                  className={`px-4 py-2 text-xs font-bold uppercase border transition shrink-0 ${
+                  className={`px-4 py-2 text-xs font-bold border transition shrink-0 ${
                     copiedSecret
-                      ? 'bg-emerald-800 border-emerald-600 text-emerald-200'
-                      : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white'
+                      ? 'bg-success-800 border-success-600 text-success-200'
+                      : 'bg-success-600 hover:bg-success-500 border-success-500 text-on-accent'
                   }`}
                 >
                   {copiedSecret ? '✓ Copied' : 'Copy'}
@@ -625,27 +628,27 @@ export function WebhooksView() {
             <div className="pt-2 flex justify-end border-t border-zinc-800">
               <button
                 onClick={() => setRevealedSecret(null)}
-                className="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2 text-xs uppercase tracking-wider border border-zinc-700"
+                className="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2 text-xs border border-zinc-700"
               >
                 I've saved it — Done
               </button>
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
 
       {/* ── Create / Edit Modal ── */}
       {(isCreateOpen || editingEndpoint) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-2xl border border-zinc-700 bg-zinc-950 font-mono text-zinc-100 shadow-2xl flex flex-col max-h-[90vh]">
+        <ModalFrame onClose={() => { setIsCreateOpen(false); setEditingEndpoint(null); }} label="Webhook endpoint">
+          <div className="w-full max-w-2xl border border-zinc-700 bg-zinc-950 text-zinc-100 shadow-2xl flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-white">
+              <h2 className="text-sm font-bold tracking-wide text-white">
                 {editingEndpoint ? `Edit: ${editingEndpoint.name}` : 'New Webhook Endpoint'}
               </h2>
               <button
                 onClick={() => { setIsCreateOpen(false); setEditingEndpoint(null); }}
-                className="text-zinc-500 hover:text-white text-xs uppercase px-2 py-1 border border-zinc-800 hover:border-zinc-600 transition"
+                className="text-zinc-400 hover:text-white text-xs px-2 py-1 border border-zinc-800 hover:border-zinc-600 transition"
               >
                 ✕
               </button>
@@ -654,7 +657,7 @@ export function WebhooksView() {
             {/* Scrollable body */}
             <div className="overflow-y-auto flex-1 px-6 py-5">
               {formError && (
-                <div className="mb-4 border border-red-800 bg-red-950/50 p-3 text-xs text-red-400">
+                <div className="mb-4 border border-danger-800 bg-danger-950/50 p-3 text-xs text-danger-400">
                   {formError}
                 </div>
               )}
@@ -666,50 +669,50 @@ export function WebhooksView() {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] uppercase text-zinc-400 mb-1 tracking-wider">
-                      Name <span className="text-red-500">*</span>
+                    <label htmlFor="webhooks-view-name" className="block text-xs text-zinc-400 mb-1">
+                      Name <span className="text-danger-500">*</span>
                     </label>
-                    <input
+                    <input id="webhooks-view-name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Production Receiver"
-                      className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white focus:border-emerald-500 focus:outline-none transition"
+                      className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white focus:border-success-500 focus:outline-none transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase text-zinc-400 mb-1 tracking-wider">
+                    <label htmlFor="webhooks-view-description" className="block text-xs text-zinc-400 mb-1">
                       Description
                     </label>
-                    <input
+                    <input id="webhooks-view-description"
                       type="text"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Internal notification pipeline"
-                      className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white focus:border-emerald-500 focus:outline-none transition"
+                      className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white focus:border-success-500 focus:outline-none transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 mb-1 tracking-wider">
-                    Target URL <span className="text-red-500">*</span>
+                  <label htmlFor="webhooks-view-target-url" className="block text-xs text-zinc-400 mb-1">
+                    Target URL <span className="text-danger-500">*</span>
                   </label>
-                  <input
+                  <input id="webhooks-view-target-url"
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://your-api.com/webhooks/gami"
-                    className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white focus:border-emerald-500 focus:outline-none transition font-mono"
+                    className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white focus:border-success-500 focus:outline-none transition"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase text-zinc-400 mb-2 tracking-wider">
-                    Event Subscriptions <span className="text-red-500">*</span>
-                    <span className="text-zinc-600 ml-2 normal-case">({selectedEvents.length} selected)</span>
+                  <label className="block text-xs text-zinc-400 mb-2">
+                    Event Subscriptions <span className="text-danger-500">*</span>
+                    <span className="text-zinc-400 ml-2 normal-case">({selectedEvents.length} selected)</span>
                   </label>
                   <Checklist<SdkWebhookEventType>
                     items={WEBHOOK_EVENT_ITEMS}
@@ -730,7 +733,7 @@ export function WebhooksView() {
               <button
                 type="button"
                 onClick={() => { setIsCreateOpen(false); setEditingEndpoint(null); }}
-                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 text-xs uppercase border border-zinc-700 transition"
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 text-xs border border-zinc-700 transition"
               >
                 Cancel
               </button>
@@ -738,31 +741,31 @@ export function WebhooksView() {
                 type="submit"
                 form="webhook-form"
                 disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 text-xs font-bold uppercase disabled:opacity-50 transition"
+                className="bg-success-600 hover:bg-success-500 text-on-accent px-5 py-2 text-xs font-bold disabled:opacity-50 transition"
               >
                 {submitting ? 'Saving...' : editingEndpoint ? 'Save Changes' : 'Create Webhook'}
               </button>
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
 
       {/* ── Delivery History Modal ── */}
       {selectedEndpointForDeliveries && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-5xl border border-zinc-800 bg-zinc-950 font-mono text-zinc-100 shadow-2xl max-h-[90vh] flex flex-col">
+        <ModalFrame onClose={() => setSelectedEndpointForDeliveries(null)} label="Webhook deliveries">
+          <div className="w-full max-w-5xl border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-2xl max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
               <div>
-                <h2 className="text-sm font-bold uppercase text-white tracking-wide">
+                <h2 className="text-sm font-bold text-white tracking-wide">
                   Delivery History
                 </h2>
-                <div className="text-[11px] text-emerald-400 mt-0.5">{selectedEndpointForDeliveries.name}</div>
-                <div className="text-[11px] text-zinc-500 truncate max-w-xl">{selectedEndpointForDeliveries.url}</div>
+                <div className="text-[11px] text-success-400 mt-0.5">{selectedEndpointForDeliveries.name}</div>
+                <div className="text-[11px] text-zinc-400 truncate max-w-xl">{selectedEndpointForDeliveries.url}</div>
               </div>
               <button
                 onClick={() => setSelectedEndpointForDeliveries(null)}
-                className="text-zinc-400 hover:text-white text-xs uppercase px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 transition"
+                className="text-zinc-400 hover:text-white text-xs px-3 py-1.5 border border-zinc-800 hover:border-zinc-600 transition"
               >
                 ✕ Close
               </button>
@@ -779,7 +782,7 @@ export function WebhooksView() {
                   <col style={{ width: '30%' }} />
                   <col style={{ width: '16%' }} />
                 </colgroup>
-                <thead className="border-b border-zinc-800 bg-zinc-900 uppercase text-zinc-400 text-[10px] tracking-wider sticky top-0">
+                <thead className="border-b border-zinc-800 bg-zinc-900 text-zinc-400 text-xs sticky top-0">
                   <tr>
                     <th className="px-4 py-2.5">Delivery ID</th>
                     <th className="px-4 py-2.5">Event Type</th>
@@ -792,23 +795,23 @@ export function WebhooksView() {
                 <tbody className="divide-y divide-zinc-800/60">
                   {deliveriesLoading ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
+                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">
                         <div className="flex items-center justify-center gap-2">
-                          <div className="w-3 h-3 border border-orange-500 border-t-transparent animate-spin" />
+                          <div className="w-3 h-3 border border-brand-500 border-t-transparent animate-spin" />
                           Loading deliveries...
                         </div>
                       </td>
                     </tr>
                   ) : deliveries.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-500">
+                      <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">
                         No delivery logs recorded yet.
                       </td>
                     </tr>
                   ) : (
                     deliveries.map((del) => (
                       <tr key={del.id} className="hover:bg-zinc-900/40 transition-colors">
-                        <td className="px-4 py-2.5 font-mono text-[10px] text-zinc-400 truncate" title={del.id}>
+                        <td className="px-4 py-2.5 font-mono text-xs text-zinc-400 truncate" title={del.id}>
                           {del.id.slice(0, 16)}…
                         </td>
                         <td className="px-4 py-2.5">
@@ -816,32 +819,32 @@ export function WebhooksView() {
                         </td>
                         <td className="px-4 py-2.5">
                           <span
-                            className={`px-1.5 py-0.5 text-[10px] uppercase font-bold border whitespace-nowrap ${
+                            className={`px-1.5 py-0.5 text-xs font-bold border whitespace-nowrap ${
                               del.status === 'delivered'
-                                ? 'bg-emerald-950 text-emerald-400 border-emerald-700'
+                                ? 'bg-success-950 text-success-400 border-success-700'
                                 : del.status === 'failed'
-                                ? 'bg-red-950 text-red-400 border-red-700'
-                                : 'bg-amber-950 text-amber-300 border-amber-700'
+                                ? 'bg-danger-950 text-danger-400 border-danger-700'
+                                : 'bg-warning-950 text-warning-300 border-warning-700'
                             }`}
                           >
                             {del.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-300 font-mono">{del.attempts}</td>
-                        <td className="px-4 py-2.5 text-red-400 text-[11px] truncate" title={del.lastError || ''}>
-                          {del.lastError || <span className="text-zinc-600">—</span>}
+                        <td className="px-4 py-2.5 text-zinc-300">{del.attempts}</td>
+                        <td className="px-4 py-2.5 text-danger-400 text-[11px] truncate" title={del.lastError || ''}>
+                          {del.lastError || <span className="text-zinc-400">—</span>}
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <span
-                              className="text-zinc-500 text-[11px] whitespace-nowrap"
-                              title={del.deliveredAt ? new Date(del.deliveredAt).toLocaleString() : new Date(del.createdAt).toLocaleString()}
+                              className="text-zinc-400 text-[11px] whitespace-nowrap"
+                              title={del.deliveredAt ? formatDateTime(del.deliveredAt) : formatDateTime(del.createdAt)}
                             >
                               {formatRelativeTime(del.deliveredAt || del.createdAt)}
                             </span>
                             <button
                               onClick={() => handleReplayDelivery(del.id)}
-                              className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] uppercase border border-zinc-700 whitespace-nowrap transition"
+                              className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs border border-zinc-700 whitespace-nowrap transition"
                             >
                               Replay
                             </button>
@@ -854,7 +857,7 @@ export function WebhooksView() {
               </table>
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
 
       {/* ── Confirm Dialog (replaces browser confirm()) ── */}

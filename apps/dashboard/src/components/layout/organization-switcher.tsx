@@ -37,7 +37,7 @@ export function OrganizationSwitcher() {
     value: org.id,
     label: org.name,
     sublabel: `${org.slug} • ${(org.role || 'member').toUpperCase()}`,
-    icon: <Building2 className="w-3.5 h-3.5 text-orange-400 shrink-0" />,
+    icon: <Building2 className="w-3.5 h-3.5 text-brand-400 shrink-0" />,
   }));
 
   return (
@@ -65,10 +65,10 @@ export function OrganizationSwitcher() {
         title="Create Organization"
         description="Add a new organization to manage team members, roles, and project access."
       >
-        <form onSubmit={handleCreateOrg} className="space-y-4 font-mono text-xs">
+        <form onSubmit={handleCreateOrg} className="space-y-4 text-xs">
           {error && (
-            <div className="p-3 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-              <span className="text-rose-400 font-bold">⚠</span>
+            <div className="p-3 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+              <span className="text-danger-400 font-bold">⚠</span>
               <span>{error}</span>
             </div>
           )}
@@ -108,7 +108,7 @@ export function OrganizationSwitcher() {
               variant="primary"
               size="sm"
               isLoading={loading}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-medium"
+              className="bg-brand-500 hover:bg-brand-600 text-on-accent font-medium"
             >
               Create Organization
             </Button>

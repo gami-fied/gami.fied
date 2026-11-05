@@ -12,9 +12,9 @@ Include the `Idempotency-Key` header with your request:
 
 ```http
 POST /v1/events HTTP/1.1
-Host: gamiapi.fied.cc
+Host: api.example.com
 Content-Type: application/json
-x-api-key: gami_pk_live_REPLACE_ME
+x-api-key: gami_live_REPLACE_ME
 Idempotency-Key: 7b9e1d2c-8a3f-4e5d-b6a1-9c8d7e6f5a4b
 
 {

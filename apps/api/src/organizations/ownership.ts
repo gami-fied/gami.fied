@@ -1,4 +1,4 @@
-import { auditLogs, db, member, organizations, users } from '@gami/database';
+import { auditLogs, db, member, users } from '@gami/database';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireOrgRole } from '../authorization/index.js';

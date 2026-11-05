@@ -1,5 +1,8 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import { Building2, Search, AlertOctagon, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +21,8 @@ interface AdminOrg {
 }
 
 export default function AdminOrganizationsPage() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const [orgs, setOrgs] = useState<AdminOrg[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +37,7 @@ export default function AdminOrganizationsPage() {
   const fetchOrgs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/organizations');
+      const res = await apiFetch('/api/admin/organizations');
       if (res.ok) {
         const data = await res.json();
         setOrgs(data.organizations || []);
@@ -53,20 +58,18 @@ export default function AdminOrganizationsPage() {
     const actionName = nextStatus === 'suspended' ? 'suspend' : 'reactivate';
 
     if (
-      !confirm(
-        `Are you sure you want to ${actionName} organization "${org.name}"?\n\n${
+      !await confirmAction({ message: `Are you sure you want to ${actionName} organization "${org.name}"?\n\n${
           nextStatus === 'suspended'
             ? 'All project API requests and event ingestions for this organization will be BLOCKED immediately.'
             : 'Normal API access for this organization will be restored immediately.'
-        }`
-      )
+        }` })
     ) {
       return;
     }
 
     setUpdatingId(org.id);
     try {
-      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+      const res = await apiFetch(`/api/admin/organizations/${org.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: nextStatus }),
@@ -76,10 +79,10 @@ export default function AdminOrganizationsPage() {
         await fetchOrgs();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.message || `Failed to ${actionName} organization`);
+        toast.error(err.message || `Failed to ${actionName} organization`);
       }
     } catch {
-      alert(`Network error trying to ${actionName} organization`);
+      toast.error(`Network error trying to ${actionName} organization`);
     } finally {
       setUpdatingId(null);
     }
@@ -101,11 +104,11 @@ export default function AdminOrganizationsPage() {
   });
 
   return (
-    <div className="space-y-6 font-mono text-zinc-100">
+    <div className="space-y-6 text-zinc-100">
       <div className="border-b border-zinc-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold uppercase text-white flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-rose-400" />
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-danger-400" />
             Platform Organizations
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -124,7 +127,7 @@ export default function AdminOrganizationsPage() {
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
             <Input
               type="text"
               placeholder="Search organizations..."
@@ -137,20 +140,20 @@ export default function AdminOrganizationsPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs">
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="py-12 flex items-center justify-center gap-3 text-zinc-400 text-xs">
-          <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-danger-500 border-t-transparent rounded-full animate-spin" />
           Loading organization directory...
         </div>
       ) : (
         <div className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 uppercase">
+            <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400">
               <tr>
                 <th className="px-4 py-3">Organization</th>
                 <th className="px-4 py-3">Slug</th>
@@ -163,7 +166,7 @@ export default function AdminOrganizationsPage() {
             <tbody className="divide-y divide-zinc-800/60">
               {filteredOrgs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                     No organizations found.
                   </td>
                 </tr>

@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback, useEffect } from 'react';
 
 export interface RuleRecord {
@@ -23,7 +24,7 @@ export function useRules(projectId: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/rules`);
+      const res = await apiFetch(`/api/projects/${projectId}/rules`);
       if (res.ok) {
         const json = await res.json();
         setRules(json.data || []);
@@ -53,7 +54,7 @@ export function useRules(projectId: string | null) {
     enabled?: boolean;
   }) => {
     if (!projectId) return null;
-    const res = await fetch(`/api/projects/${projectId}/rules`, {
+    const res = await apiFetch(`/api/projects/${projectId}/rules`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -79,7 +80,7 @@ export function useRules(projectId: string | null) {
     }>
   ) => {
     if (!projectId) return null;
-    const res = await fetch(`/api/projects/${projectId}/rules/${ruleId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/rules/${ruleId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
@@ -95,7 +96,7 @@ export function useRules(projectId: string | null) {
 
   const deleteRule = async (ruleId: string) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/rules/${ruleId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/rules/${ruleId}`, {
       method: 'DELETE',
     });
     if (res.ok) {
@@ -108,7 +109,7 @@ export function useRules(projectId: string | null) {
 
   const previewRule = async (rulePayload: unknown, eventPayload: unknown) => {
     if (!projectId) return null;
-    const res = await fetch(`/api/projects/${projectId}/rules/preview`, {
+    const res = await apiFetch(`/api/projects/${projectId}/rules/preview`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

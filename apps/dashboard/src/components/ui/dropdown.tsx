@@ -40,32 +40,32 @@ const variantStyles: Record<
   }
 > = {
   orange: {
-    focusRing: 'focus:ring-orange-500',
-    arrowActive: 'text-orange-400',
-    selectedOption: 'bg-orange-500/15 text-orange-400 font-semibold',
-    checkIcon: 'text-orange-400',
-    actionButton: 'text-orange-400 hover:bg-orange-950/40',
+    focusRing: 'focus:ring-brand-500',
+    arrowActive: 'text-brand-400',
+    selectedOption: 'bg-brand-500/15 text-brand-400 font-semibold',
+    checkIcon: 'text-brand-400',
+    actionButton: 'text-brand-400 hover:bg-brand-950/40',
   },
   emerald: {
-    focusRing: 'focus:ring-emerald-500',
-    arrowActive: 'text-emerald-400',
-    selectedOption: 'bg-emerald-500/15 text-emerald-400 font-semibold',
-    checkIcon: 'text-emerald-400',
-    actionButton: 'text-emerald-400 hover:bg-emerald-950/40',
+    focusRing: 'focus:ring-success-500',
+    arrowActive: 'text-success-400',
+    selectedOption: 'bg-success-500/15 text-success-400 font-semibold',
+    checkIcon: 'text-success-400',
+    actionButton: 'text-success-400 hover:bg-success-950/40',
   },
   cyan: {
-    focusRing: 'focus:ring-cyan-500',
-    arrowActive: 'text-cyan-400',
-    selectedOption: 'bg-cyan-500/15 text-cyan-400 font-semibold',
-    checkIcon: 'text-cyan-400',
-    actionButton: 'text-cyan-400 hover:bg-cyan-950/40',
+    focusRing: 'focus:ring-info-500',
+    arrowActive: 'text-info-400',
+    selectedOption: 'bg-info-500/15 text-info-400 font-semibold',
+    checkIcon: 'text-info-400',
+    actionButton: 'text-info-400 hover:bg-info-950/40',
   },
   rose: {
-    focusRing: 'focus:ring-rose-500',
-    arrowActive: 'text-rose-400',
-    selectedOption: 'bg-rose-500/15 text-rose-400 font-semibold',
-    checkIcon: 'text-rose-400',
-    actionButton: 'text-rose-400 hover:bg-rose-950/40',
+    focusRing: 'focus:ring-danger-500',
+    arrowActive: 'text-danger-400',
+    selectedOption: 'bg-danger-500/15 text-danger-400 font-semibold',
+    checkIcon: 'text-danger-400',
+    actionButton: 'text-danger-400 hover:bg-danger-950/40',
   },
 };
 
@@ -111,6 +111,19 @@ export function Dropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setIsOpen(false);
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const index = options.findIndex((option) => option.value === value);
+            const step = event.key === 'ArrowDown' ? 1 : -1;
+            const next = options[(index + step + options.length) % options.length];
+            if (next) onChange(next.value);
+          }
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={label ?? placeholder}
         className={clsx(
           'w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 text-xs font-medium rounded-none px-3 py-2 transition focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed select-none',
           styles.focusRing
@@ -121,7 +134,7 @@ export function Dropdown({
           {selectedOption ? (
             selectedOption.label
           ) : (
-            <span className="text-zinc-500">{placeholder}</span>
+            <span className="text-zinc-400">{placeholder}</span>
           )}
         </span>
         <ChevronDown
@@ -163,7 +176,7 @@ export function Dropdown({
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="truncate text-zinc-100 font-medium leading-tight">{opt.label}</span>
                         {opt.sublabel && (
-                          <span className="truncate text-[10px] text-zinc-400 font-normal leading-tight mt-0.5">
+                          <span className="truncate text-xs text-zinc-400 font-normal leading-tight mt-0.5">
                             {opt.sublabel}
                           </span>
                         )}
@@ -175,7 +188,7 @@ export function Dropdown({
               })}
 
               {options.length === 0 && (
-                <div className="px-3 py-2.5 text-xs text-zinc-500 text-center">
+                <div className="px-3 py-2.5 text-xs text-zinc-400 text-center">
                   No options available
                 </div>
               )}

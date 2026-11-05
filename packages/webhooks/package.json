@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,13 +15,14 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
-    "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
-    "@gami/types": "workspace:*",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "ipaddr.js": "^2.5.0",
+    "undici": "^8.12.3"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -1,0 +1,87 @@
+name: Release
+
+# Pushing a tag such as v1.2.3 tests the code, publishes the images, and creates a GitHub release.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    uses: ./.github/workflows/ci.yml
+
+  images:
+    name: Publish ${{ matrix.app }}
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        app: [api, worker, dashboard]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/gami-${{ matrix.app }}
+          # Pre-releases such as 1.2.3-rc.1 only get their exact tag, and never `latest`.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=Gami.Fied ${{ matrix.app }}
+            org.opencontainers.image.licenses=AGPL-3.0-only
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: GAMI_VERSION=${{ steps.meta.outputs.version }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  github-release:
+    name: Create GitHub release
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Pin the compose file to this release
+        run: |
+          version="${TAG#v}"
+          sed -i "s/GAMI_VERSION:-latest/GAMI_VERSION:-${version}/g" docker-compose.yml
+          sed -i "s#GAMI_REGISTRY:-ghcr.io/gami-fied#GAMI_REGISTRY:-ghcr.io/${GITHUB_REPOSITORY_OWNER}#g" docker-compose.yml
+          cp .env.production.example env.example
+      - name: Create the release
+        run: |
+          prerelease=""
+          if [[ "$TAG" == *-* ]]; then prerelease="--prerelease"; fi
+          gh release create "$TAG" docker-compose.yml env.example \
+            --title "Gami.Fied $TAG" \
+            --generate-notes \
+            --verify-tag \
+            $prerelease

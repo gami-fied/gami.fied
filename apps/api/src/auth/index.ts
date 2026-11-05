@@ -1,17 +1,27 @@
-import { auth } from '@gami/database';
+import { auth, setPasswordResetSender } from '@gami/database';
 import type { FastifyInstance } from 'fastify';
-import { sendOtpEmailToUser } from './otp.js';
+import { OtpCooldownError, sendOtpEmailToUser } from './otp.js';
+import { checkAuthPolicy, recordSignInResult } from './policy.js';
+import { sendPlatformEmail } from '../services/platform-email.js';
 import { ServerConfigService } from '../services/server-config.service.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  setPasswordResetSender(async ({ email, url }) => {
+    await sendPlatformEmail({
+      to: email,
+      subject: 'Reset your Gami.Fied password',
+      html: `<p>Use this link to reset your password. It expires in one hour.</p><p><a href="${url}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p>`,
+      text: `Use this link to reset your password. It expires in one hour: ${url}`,
+    });
+  });
+
   fastify.all('/api/auth/*', async (request, reply) => {
     if (request.method === 'OPTIONS') {
       return reply.status(200).send();
     }
 
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol || 'http';
-    const host = request.headers['x-forwarded-host'] || request.headers.host || 'localhost:3001';
-    const url = new URL(request.url, `${protocol}://${host}`);
+    // The public address comes from configuration, never from client-controlled headers.
+    const url = new URL(request.url, process.env['BETTER_AUTH_URL'] || 'http://localhost:3001');
 
     const reqHeaders = new Headers();
     Object.entries(request.headers).forEach(([key, val]) => {
@@ -24,6 +34,11 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
     });
 
+    // Better Auth rate limits by this header, so it must hold the address Fastify trusts.
+    reqHeaders.delete('x-forwarded-host');
+    reqHeaders.delete('x-forwarded-proto');
+    reqHeaders.set('x-forwarded-for', request.ip);
+
     let body: string | undefined = undefined;
     if (request.body && Object.keys(request.body as object).length > 0) {
       body = JSON.stringify(request.body);
@@ -35,7 +50,25 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: ['GET', 'HEAD'].includes(request.method) ? undefined : body,
     });
 
+    const authBody = request.body as { email?: string; password?: string; newPassword?: string };
+
+    if (request.method === 'POST') {
+      const denial = await checkAuthPolicy({
+        path: url.pathname,
+        ip: request.ip,
+        body: authBody,
+        headers: reqHeaders,
+      });
+      if (denial) {
+        return reply.status(denial.status).send({ code: denial.code, message: denial.message });
+      }
+    }
+
     const response = await auth.handler(webReq);
+
+    if (request.method === 'POST' && url.pathname.endsWith('/sign-in/email') && authBody?.email) {
+      await recordSignInResult(authBody.email, response.ok);
+    }
 
     // If sign-up via email succeeded, check if Platform Email OTP Verification is enabled
     if (
@@ -52,7 +85,9 @@ export async function authRoutes(fastify: FastifyInstance) {
           }
         }
       } catch (err) {
-        console.error('[Auth] Error triggering auto OTP dispatch on sign-up:', err);
+        if (!(err instanceof OtpCooldownError)) {
+          console.error('[Auth] Error triggering auto OTP dispatch on sign-up:', err);
+        }
       }
     }
 

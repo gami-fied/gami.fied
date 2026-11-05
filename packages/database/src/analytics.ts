@@ -1,24 +1,18 @@
 import {
   achievements,
-  challengeRewardOutbox,
-  challenges,
-  emailNotificationOutbox,
   endUsers,
-  eventOutbox,
   events,
   integrationDeliveries,
-  levels,
   notificationOutbox,
   notifications,
   ruleExecutions,
   rules,
   userAchievements,
   userChallengeProgress,
-  userXpBalances,
   webhookOutbox,
   xpLedger,
 } from './schema/index.js';
-import { and, count, desc, eq, gte, lte, sql, sum } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 export type DateRangePreset = '24h' | '7d' | '30d' | '90d' | 'custom';
@@ -72,6 +66,12 @@ export function resolveDateRange(options?: DateRangeOptions): { start: Date; end
   }
 
   return { start, end, preset };
+}
+
+/** Spreadsheets run cells starting with these characters as formulas, so text is prefixed. */
+function neutraliseFormula(val: unknown): string {
+  const text = String(val ?? '');
+  return typeof val === 'string' && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
 }
 
 export async function getOverviewAnalytics(db: NodePgDatabase<Record<string, unknown>>, projectId: string, options?: DateRangeOptions) {
@@ -384,7 +384,7 @@ export async function getExportCsvData(
   const { start, end, preset } = resolveDateRange(options);
   const maxCap = 5000;
 
-  const escapeCell = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+  const escapeCell = (val: unknown) => `"${neutraliseFormula(val).replace(/"/g, '""')}"`;
   const formatLine = (cells: unknown[]) => cells.map(escapeCell).join(',');
 
   const typeLower = (exportType || 'all').toLowerCase();

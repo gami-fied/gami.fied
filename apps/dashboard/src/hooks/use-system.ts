@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface SystemMetrics {
@@ -62,7 +63,7 @@ export function useSystemMetrics(projectId: string | null, pollInterval = 5000) 
   const fetchMetrics = useCallback(async () => {
     if (!projectId) return;
     try {
-      const res = await fetch(`/api/projects/${projectId}/system/metrics`);
+      const res = await apiFetch(`/api/projects/${projectId}/system/metrics`);
       if (res.ok) {
         setMetrics(await res.json());
         setError(null);

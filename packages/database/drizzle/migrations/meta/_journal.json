@@ -162,6 +162,48 @@
       "when": 1786662000000,
       "tag": "0022_add_user_subscribed_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793800000000,
+      "tag": "0023_align_rule_and_invitation_nullability",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793810000000,
+      "tag": "0024_webhook_secret_rename_and_tenant_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793900000000,
+      "tag": "0025_xp_ledger_action_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793990000000,
+      "tag": "0026_replay_and_webhook_rotation",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794000000000,
+      "tag": "0027_platform_backups_and_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794100000000,
+      "tag": "0028_project_allowed_origins",
+      "breakpoints": true
     }
   ]
 }

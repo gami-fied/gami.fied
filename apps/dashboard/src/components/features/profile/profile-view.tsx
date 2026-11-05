@@ -1,5 +1,8 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
+import { useConfirm } from '@/components/ui/confirm';
+import { authClient } from '@/lib/auth-client';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -7,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checklist, ChecklistItem } from '@/components/ui/checklist';
-import { User, Mail, Shield, CheckCircle2, Lock, Bell, AlertTriangle } from 'lucide-react';
+import { User, Shield, CheckCircle2, Lock, Bell, AlertTriangle } from 'lucide-react';
 
 interface UserProfileData {
   id: string;
@@ -22,6 +25,25 @@ interface UserProfileData {
 }
 
 export function ProfileView() {
+  const [deletePassword, setDeletePassword] = useState('');
+  const confirmAction = useConfirm();
+
+  const handleDeleteAccount = async () => {
+    const confirmed = await confirmAction({
+      title: 'Delete your account?',
+      message: "This can't be undone.",
+      confirmText: 'Delete Account',
+    });
+    if (!confirmed) return;
+
+    const result = await authClient.deleteUser({ password: deletePassword });
+    if (result.error) {
+      setError(result.error.message || 'Could not delete your account');
+      return;
+    }
+    window.location.href = '/login';
+  };
+
   const { session } = useDashboard();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [name, setName] = useState('');
@@ -29,15 +51,13 @@ export function ProfileView() {
   const [password, setPassword] = useState('');
   const [subscribedToSystemEmails, setSubscribedToSystemEmails] = useState(true);
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const fetchProfile = async () => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/user/profile');
+      const res = await apiFetch('/api/user/profile');
       if (res.ok) {
         const data: UserProfileData = await res.json();
         setProfile(data);
@@ -49,8 +69,6 @@ export function ProfileView() {
       }
     } catch {
       setError('Network error loading user profile');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -65,7 +83,7 @@ export function ProfileView() {
     setSuccessMsg(null);
 
     try {
-      const res = await fetch('/api/user/profile', {
+      const res = await apiFetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -119,13 +137,13 @@ export function ProfileView() {
   };
 
   return (
-    <div className="space-y-6 font-mono max-w-4xl text-zinc-100">
+    <div className="space-y-6 max-w-4xl text-zinc-100">
       {/* Header */}
       <div className="border-b border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-orange-400" />
-            <h1 className="text-xl font-bold uppercase tracking-wider text-white">
+            <User className="w-5 h-5 text-brand-400" />
+            <h1 className="text-xl font-bold text-white">
               User Profile &amp; Account Settings
             </h1>
           </div>
@@ -141,15 +159,15 @@ export function ProfileView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-4 bg-success-950/40 border border-success-800 text-success-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
@@ -158,8 +176,8 @@ export function ProfileView() {
         {/* Profile Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
-              <User className="w-4 h-4 text-orange-400" />
+            <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+              <User className="w-4 h-4 text-brand-400" />
               Personal Profile Credentials
             </CardTitle>
             <CardDescription>Update your display name, avatar, and security password.</CardDescription>
@@ -167,10 +185,10 @@ export function ProfileView() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="profile-view-full-name" className="block text-xs text-zinc-400 font-bold mb-1">
                   Full Name *
                 </label>
-                <Input
+                <Input id="profile-view-full-name"
                   type="text"
                   required
                   placeholder="Your Full Name"
@@ -180,7 +198,7 @@ export function ProfileView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label className="block text-xs text-zinc-400 font-bold mb-1">
                   Email Address
                 </label>
                 <div className="relative">
@@ -191,7 +209,7 @@ export function ProfileView() {
                     className="opacity-70 bg-zinc-950"
                   />
                   {profile?.emailVerified && (
-                    <span className="absolute right-3 top-2.5 text-[10px] text-emerald-400 font-bold uppercase flex items-center gap-1">
+                    <span className="absolute right-3 top-2.5 text-xs text-success-400 font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Verified
                     </span>
                   )}
@@ -199,10 +217,10 @@ export function ProfileView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="profile-view-avatar-image-url" className="block text-xs text-zinc-400 font-bold mb-1">
                   Avatar Image URL
                 </label>
-                <Input
+                <Input id="profile-view-avatar-image-url"
                   type="url"
                   placeholder="https://example.com/avatar.png"
                   value={image}
@@ -211,10 +229,10 @@ export function ProfileView() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-zinc-400 font-bold mb-1">
+                <label htmlFor="profile-view-new-password-optional" className="block text-xs text-zinc-400 font-bold mb-1">
                   New Password (Optional)
                 </label>
-                <Input
+                <Input id="profile-view-new-password-optional"
                   type="password"
                   placeholder="Leave blank to keep unchanged"
                   value={password}
@@ -228,8 +246,8 @@ export function ProfileView() {
         {/* Email Subscription Preferences using Custom Checklist Component */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wider flex items-center gap-2">
-              <Bell className="w-4 h-4 text-cyan-400" />
+            <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-info-400" />
               Email Notification Subscriptions
             </CardTitle>
             <CardDescription>
@@ -248,14 +266,14 @@ export function ProfileView() {
             />
 
             <div className="p-3 bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2">
-              <Lock className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              <Lock className="w-4 h-4 text-info-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <span className="font-bold text-white uppercase text-[11px] block">
+                <span className="font-bold text-white text-[11px] block">
                   Mandatory Security Guarantee
                 </span>
                 <p className="text-[11px] leading-relaxed text-zinc-400">
                   Email OTP Verification codes and security alert emails are critical transactional security events.
-                  They are <span className="text-cyan-400 font-bold">mandatory</span> and will NEVER be disabled or unsubscribed, even if optional system email notifications are turned off.
+                  They are <span className="text-info-400 font-bold">mandatory</span> and will NEVER be disabled or unsubscribed, even if optional system email notifications are turned off.
                 </p>
               </div>
             </div>
@@ -268,6 +286,39 @@ export function ProfileView() {
           </Button>
         </div>
       </form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-bold text-zinc-100">
+            Delete Account
+          </CardTitle>
+          <CardDescription>
+            This permanently removes your account. Transfer or delete any organizations you own
+            first.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label htmlFor="delete-password" className="block text-sm text-zinc-300 mb-1">
+            Enter your password to confirm
+          </label>
+          <div className="flex gap-3">
+            <Input
+              id="delete-password"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+            />
+            <Button
+              type="button"
+              variant="danger"
+              disabled={!deletePassword}
+              onClick={handleDeleteAccount}
+            >
+              Delete Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

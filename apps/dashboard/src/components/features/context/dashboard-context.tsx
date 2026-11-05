@@ -1,7 +1,8 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 
 export interface Organization {
@@ -16,6 +17,7 @@ export interface Project {
   organizationId: string;
   name: string;
   slug: string;
+  allowedOrigins?: string[];
 }
 
 interface DashboardContextType {
@@ -36,13 +38,19 @@ interface DashboardContextType {
   setError: (err: string | null) => void;
   loadingOrgs: boolean;
   loadingProjects: boolean;
+  /** True when projects could not load, which is different from having none. */
+  projectsFailed: boolean;
 }
+
+const ORG_STORAGE_KEY = 'gami.selectedOrgId';
+const PROJECT_STORAGE_KEY = 'gami.selectedProjectId';
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
@@ -51,6 +59,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectsFailed, setProjectsFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Keep a stable ref of current selected IDs to avoid unnecessary object reference updates
@@ -59,6 +68,24 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   selectedOrgIdRef.current = selectedOrg?.id || null;
   selectedProjectIdRef.current = selectedProject?.id || null;
+
+  // Remembered per browser, so a refresh returns to the same workspace.
+  useEffect(() => {
+    if (selectedOrg) localStorage.setItem(ORG_STORAGE_KEY, selectedOrg.id);
+  }, [selectedOrg]);
+
+  useEffect(() => {
+    if (selectedProject) localStorage.setItem(PROJECT_STORAGE_KEY, selectedProject.id);
+  }, [selectedProject]);
+
+  // Keeps the address shareable as `?project=<id>`, on every page.
+  useEffect(() => {
+    if (!selectedProject) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('project') === selectedProject.id) return;
+    url.searchParams.set('project', selectedProject.id);
+    window.history.replaceState(window.history.state, '', url);
+  }, [selectedProject, pathname]);
 
   // Unauthenticated user redirect protection
   useEffect(() => {
@@ -79,13 +106,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const fetchOrganizations = async (): Promise<Organization[]> => {
     setLoadingOrgs(true);
     try {
-      const res = await fetch('/api/organizations', { credentials: 'include' });
+      const res = await apiFetch('/api/organizations', { credentials: 'include' });
       if (res.ok) {
         const data: Organization[] = await res.json();
         setOrganizations(data);
 
         if (data.length > 0) {
-          const currentId = selectedOrgIdRef.current;
+          const currentId = selectedOrgIdRef.current ?? localStorage.getItem(ORG_STORAGE_KEY);
           const matchingOrg = currentId ? data.find((o) => o.id === currentId) : null;
           const targetOrg = matchingOrg || data[0] || null;
 
@@ -116,13 +143,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const fetchProjects = async (orgId: string): Promise<Project[]> => {
     setLoadingProjects(true);
     try {
-      const res = await fetch(`/api/projects?organizationId=${orgId}`, { credentials: 'include' });
+      const res = await apiFetch(`/api/projects?organizationId=${orgId}`, { credentials: 'include' });
       if (res.ok) {
         const data: Project[] = await res.json();
         setProjects(data);
+        setProjectsFailed(false);
 
         if (data.length > 0) {
-          const currentId = selectedProjectIdRef.current;
+          const linkedId = new URLSearchParams(window.location.search).get('project');
+          const currentId =
+            selectedProjectIdRef.current ?? linkedId ?? localStorage.getItem(PROJECT_STORAGE_KEY);
           const matchingProject = currentId ? data.find((p) => p.id === currentId) : null;
           const targetProject = matchingProject || data[0] || null;
 
@@ -137,6 +167,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         return data;
       }
     } catch {
+      setProjectsFailed(true);
       setError('Failed to fetch projects');
     } finally {
       setLoadingProjects(false);
@@ -145,7 +176,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   const createOrganization = async (name: string, slug: string): Promise<Organization> => {
-    const res = await fetch('/api/organizations', {
+    const res = await apiFetch('/api/organizations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -171,7 +202,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   const createProject = async (orgId: string, name: string, slug: string): Promise<Project> => {
-    const res = await fetch('/api/projects', {
+    const res = await apiFetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -217,6 +248,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setError,
         loadingOrgs,
         loadingProjects,
+        projectsFailed,
       }}
     >
       {children}

@@ -69,10 +69,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Logo Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-none bg-orange-500 items-center justify-center text-white">
+          <div className="inline-flex w-12 h-12 rounded-none bg-brand-500 items-center justify-center text-on-accent">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 font-mono">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
             Create Gami.Fied Account
           </h1>
           <p className="text-xs text-zinc-400">Set up your gamification control center</p>
@@ -86,7 +86,7 @@ export default function RegisterPage() {
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
               {error && (
-                <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none font-medium">
+                <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none font-medium">
                   {error}
                 </div>
               )}
@@ -116,6 +116,9 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <p className="text-xs text-zinc-400 mt-1">
+                Use at least 8 characters. A longer password is stronger.
+              </p>
 
               <Button type="submit" variant="primary" isLoading={loading} className="w-full">
                 <UserPlus className="w-4 h-4" />
@@ -125,7 +128,7 @@ export default function RegisterPage() {
           </CardContent>
           <CardFooter className="justify-center text-xs text-zinc-400">
             Already have an account?{' '}
-            <Link href="/login" className="text-orange-400 hover:underline font-semibold ml-1">
+            <Link href="/login" className="text-brand-400 hover:underline font-semibold ml-1">
               Sign in here
             </Link>
           </CardFooter>

@@ -8,7 +8,10 @@ import {
   processChallengesForEvent,
 } from './challenge-processor.js';
 
-export async function processEventJob(eventId: string): Promise<{
+export async function processEventJob(
+  eventId: string,
+  options: { replay?: boolean } = {}
+): Promise<{
   eventId: string;
   processedRulesCount: number;
   completedRulesCount: number;
@@ -34,11 +37,17 @@ export async function processEventJob(eventId: string): Promise<{
     occurredAt: evt.occurredAt,
   };
 
-  // 2. Load enabled rules strictly scoped to event.projectId, ordered by created_at ASC, id ASC
+  // 2. Load enabled rules for this event type, scoped to event.projectId, oldest first
   const projectRules = await db
     .select()
     .from(rules)
-    .where(and(eq(rules.projectId, evt.projectId), eq(rules.enabled, true)))
+    .where(
+      and(
+        eq(rules.projectId, evt.projectId),
+        eq(rules.enabled, true),
+        eq(rules.trigger, evt.type)
+      )
+    )
     .orderBy(asc(rules.createdAt), asc(rules.id));
 
   console.log(
@@ -49,7 +58,7 @@ export async function processEventJob(eventId: string): Promise<{
 
   // 3. Evaluate each rule with Failure Isolation
   for (const rule of projectRules) {
-    const res = await executeRuleForEvent(rule, eventData);
+    const res = await executeRuleForEvent(rule, eventData, options);
     if (res.status === 'completed') {
       completedCount++;
     }

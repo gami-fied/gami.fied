@@ -13,10 +13,10 @@
 ## Key Features
 
 - ⚡ **Event-Driven Rules Engine**: Trigger XP, achievements, and quest progress automatically via custom event payloads.
-- 🏆 **Gamification Core**: Balances, XP ledgers, leveling curves, streak tracking, and real-time leaderboards.
-- 🎯 **Quests & Challenges**: Multi-step challenge progression with idempotent reward outbox processing.
+- 🏆 **Gamification Core**: Balances, XP ledgers, levels, achievements, and leaderboards.
+- 🎯 **Challenges**: Counter-based challenges with idempotent reward outbox processing.
 - 🔔 **Multi-Channel Delivery**: In-app notifications, transactional SMTP emails, webhooks (with HMAC SHA-256 signatures), and Discord embeds.
-- 🛡️ **Enterprise Security & Isolation**: Multi-tenant organization/project scoping, RBAC permissions, encrypted vault secrets (AES-256-GCM), and platform admin controls.
+- 🛡️ **Security & Isolation**: Multi-tenant organization/project scoping, RBAC permissions, encrypted vault secrets (AES-256-GCM), and platform admin controls.
 - 💻 **Isomorphic TypeScript SDK**: Official `@gami.fied/sdk` with automatic retries, strict typing, and zero runtime dependencies.
 
 ---
@@ -41,8 +41,7 @@ gami-fied/
 │   ├── integrations/ # External integration providers (Discord)
 │   ├── queue/        # Shared BullMQ queue definitions
 │   ├── types/        # Monorepo TypeScript definitions
-│   ├── config/       # Shared environment & ESLint configurations
-│   └── ui/           # Shared UI design system & components
+│   └── config/       # Shared environment configuration
 └── docs/             # Complete technical & API documentation
 ```
 
@@ -64,7 +63,15 @@ cd gami.fied
 pnpm install
 ```
 
-### 2. Start Local Infrastructure (PostgreSQL & Redis)
+### 2. Create Your Environment File
+
+```bash
+cp .env.example .env
+```
+
+The defaults match the local Docker services. For deployments, use `.env.production.example`.
+
+### 3. Start Local Infrastructure (PostgreSQL & Redis)
 
 ```bash
 # Spin up PostgreSQL (port 5432) and Redis (port 6379)
@@ -74,13 +81,21 @@ pnpm infra:up
 pnpm infra:status
 ```
 
-### 3. Run Database Migrations
+### 4. Run Database Migrations
 
 ```bash
-pnpm --filter @gami/database migrate
+pnpm db:migrate:dev
 ```
 
-### 4. Start Development Applications
+### 5. Load Demo Data (Optional)
+
+```bash
+pnpm db:seed
+```
+
+This prints a demo dashboard login and a fresh API key.
+
+### 6. Start Development Applications
 
 ```bash
 pnpm dev
@@ -105,34 +120,43 @@ pnpm add @gami.fied/sdk
 Initialize the client and record an event:
 
 ```typescript
-import { GamiClient } from '@gami.fied/sdk';
+import { Gami } from '@gami.fied/sdk';
 
-const gami = new GamiClient({
+const gami = new Gami({
   baseUrl: 'http://localhost:3001',
   apiKey: 'gami_live_your_project_api_key',
 });
 
-// Ingest a user event to trigger XP and challenge evaluation
-const result = await gami.ingestEvent({
+const projectId = 'prj_your_project_id';
+
+// Send a user event. Rules and challenges run in the background.
+const event = await gami.events.track({
+  projectId,
   userId: 'usr_12345',
-  eventType: 'lesson_completed',
-  data: { lessonId: 'les_99', score: 100 },
+  type: 'lesson_completed',
+  properties: { lessonId: 'les_99', score: 100 },
 });
 
-console.log('Ingested Event ID:', result.eventId);
+console.log('Accepted event:', event.id);
 
-// Retrieve user XP and level details
-const userXp = await gami.getUserXp('usr_12345');
-console.log(`User Level: ${userXp.level.currentLevel}, XP: ${userXp.balance}`);
+// Read the user's progress. This needs a key with the levels:read scope.
+const progress = await gami.levels.getUserProgress({ projectId, userId: 'usr_12345' });
+console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
+
+---
+
+## Self-Hosting with Docker
+
+Published images are available, so you don't need to build anything. See [Installing from published images](./docs/deployment-and-production.md#installing-from-published-images).
 
 ---
 
 ## Verification & Code Quality
 
 ```bash
-# Run full unit test suite (20 test files, 155+ tests)
-pnpm --filter @gami/api test
+# Run all tests (PostgreSQL and Redis must be running)
+pnpm test
 
 # Run TypeScript type check across monorepo
 pnpm typecheck
@@ -153,7 +177,7 @@ Comprehensive documentation is available in the [`docs/`](./docs) folder:
 - 🔔 [Notifications, Webhooks & Integrations](./docs/notifications-and-integrations.md)
 - ⚙️ [Platform Administration & Audit Logs](./docs/platform-administration.md)
 - 🐳 [Production Deployment & Troubleshooting](./docs/deployment-and-production.md)
-- 📜 [Master Technical System Inventory](./docs/CURRENT_IMPLEMENTATION.md)
+- 🧭 [Architecture & Security Model](./docs/architecture.md)
 
 ---
 

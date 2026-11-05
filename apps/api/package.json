@@ -4,10 +4,12 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "openapi:generate": "tsx src/public/generate-openapi.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
@@ -16,6 +18,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.2.0",
     "@gami/challenges": "workspace:*",
     "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
@@ -24,14 +27,11 @@
     "@gami/notifications": "workspace:*",
     "@gami/progression": "workspace:*",
     "@gami/queue": "workspace:*",
+    "@gami/rewards": "workspace:*",
     "@gami/rules": "workspace:*",
-    "@gami/types": "workspace:*",
     "@gami/webhooks": "workspace:*",
-    "better-auth": "^1.6.27",
-    "bullmq": "^5.65.1",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.11.3",
-    "ioredis": "^5.8.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {

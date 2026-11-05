@@ -1,7 +1,7 @@
 import { db, emailNotificationOutbox } from '@gami/database';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { requireOrgRole, requireProjectAccess } from '../../authorization/index.js';
+import { requireProjectAccess } from '../../authorization/index.js';
 
 export async function emailDeliveryRoutes(fastify: FastifyInstance) {
   // Get Email Notification Deliveries (Owner/Admin)
@@ -18,11 +18,6 @@ export async function emailDeliveryRoutes(fastify: FastifyInstance) {
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-      'owner',
-      'admin',
-    ]);
-    if (!orgAuth) return;
 
     const page = Math.max(1, parseInt(request.query.page || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '20', 10)));

@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
 
 export interface EventRecord {
@@ -28,7 +29,7 @@ export function useEvents(projectId: string | null) {
         if (typeFilter) url += `&type=${encodeURIComponent(typeFilter)}`;
         if (userIdFilter) url += `&userId=${encodeURIComponent(userIdFilter)}`;
 
-        const res = await fetch(url);
+        const res = await apiFetch(url);
         if (res.ok) {
           const json = await res.json();
           setEvents(json.data || []);

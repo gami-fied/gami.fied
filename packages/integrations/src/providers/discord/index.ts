@@ -126,7 +126,7 @@ export class DiscordIntegrationProvider implements IntegrationProvider {
     }
   }
 
-  public async disconnect(config: IntegrationConfig): Promise<boolean> {
+  public async disconnect(): Promise<boolean> {
     return true;
   }
 

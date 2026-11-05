@@ -1,5 +1,10 @@
 'use client';
 
+import { EVENT_CHECKLIST_ITEMS, EVENT_TYPES, PLACEHOLDERS, DEFAULT_TEMPLATES } from './integration-constants';
+import { formatDateTime } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
+import { useConfirm } from '@/components/ui/confirm';
+import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import {
   Blocks,
@@ -11,13 +16,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   MessageSquare,
-  Activity,
   History,
   Sliders,
   RotateCcw,
   Sparkles,
   Code,
-  ShieldCheck,
   PlusCircle,
   Eye,
   Check,
@@ -29,123 +32,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { Input, Textarea } from '@/components/ui/input';
-import { Checklist, ChecklistItem } from '@/components/ui/checklist';
+import { Checklist } from '@/components/ui/checklist';
 import type { DiscordEmbedField, DiscordEmbedTemplate, IntegrationDeliveryRecord, IntegrationRecord } from '@gami.fied/sdk';
 
-const EVENT_CHECKLIST_ITEMS: ChecklistItem<string>[] = [
-  {
-    value: 'xp_awarded',
-    label: 'XP Awarded',
-    description: 'Triggered whenever an end-user receives XP via rules or manual adjustment.',
-    badge: 'XP System',
-  },
-  {
-    value: 'achievement_unlocked',
-    label: 'Achievement Unlocked',
-    description: 'Triggered when an end-user unlocks a new achievement badge.',
-    badge: 'Achievements',
-  },
-  {
-    value: 'level_up',
-    label: 'Level Up',
-    description: 'Triggered when an end-user crosses a level XP threshold and levels up.',
-    badge: 'Progression',
-  },
-  {
-    value: 'challenge_completed',
-    label: 'Challenge Completed',
-    description: 'Triggered when an end-user completes all target progress requirements for a quest.',
-    badge: 'Challenges',
-  },
-];
-
-const EVENT_TYPES = [
-  { id: 'xp_awarded', label: 'XP Awarded', badge: 'XP' },
-  { id: 'achievement_unlocked', label: 'Achievement Unlocked', badge: 'Achievement' },
-  { id: 'level_up', label: 'Level Up', badge: 'Progression' },
-  { id: 'challenge_completed', label: 'Challenge Completed', badge: 'Challenge' },
-];
-
-const PLACEHOLDERS: Record<string, Array<{ key: string; description: string }>> = {
-  xp_awarded: [
-    { key: '{{xp}}', description: 'Amount of XP awarded' },
-    { key: '{{currentXp}}', description: 'User total XP balance' },
-    { key: '{{currentLevel}}', description: 'User current level number' },
-    { key: '{{levelName}}', description: 'Title of current level' },
-    { key: '{{xpToNextLevel}}', description: 'XP needed for next level' },
-    { key: '{{progressPercent}}', description: 'Level progress %' },
-    { key: '{{userId}}', description: 'Internal user ID' },
-    { key: '{{userName}}', description: 'User display name' },
-    { key: '{{externalId}}', description: 'External user ID' },
-  ],
-  achievement_unlocked: [
-    { key: '{{achievementName}}', description: 'Name of unlocked achievement' },
-    { key: '{{achievementId}}', description: 'ID of achievement' },
-    { key: '{{achievementDescription}}', description: 'Achievement description' },
-    { key: '{{badgeIconUrl}}', description: 'Badge icon image URL' },
-    { key: '{{unlockedAt}}', description: 'Timestamp of unlock' },
-    { key: '{{userId}}', description: 'Internal user ID' },
-    { key: '{{userName}}', description: 'User display name' },
-    { key: '{{externalId}}', description: 'External user ID' },
-  ],
-  level_up: [
-    { key: '{{newLevel}}', description: 'New level number reached' },
-    { key: '{{levelName}}', description: 'Title of new level' },
-    { key: '{{previousLevel}}', description: 'Previous level number' },
-    { key: '{{requiredXp}}', description: 'XP required for level' },
-    { key: '{{userId}}', description: 'Internal user ID' },
-    { key: '{{userName}}', description: 'User display name' },
-    { key: '{{externalId}}', description: 'External user ID' },
-  ],
-  challenge_completed: [
-    { key: '{{challengeName}}', description: 'Name of completed challenge' },
-    { key: '{{challengeId}}', description: 'ID of challenge' },
-    { key: '{{challengeDescription}}', description: 'Challenge description' },
-    { key: '{{rewardXp}}', description: 'Bonus XP reward' },
-    { key: '{{userId}}', description: 'Internal user ID' },
-    { key: '{{userName}}', description: 'User display name' },
-    { key: '{{externalId}}', description: 'External user ID' },
-  ],
-};
-
-const DEFAULT_TEMPLATES: Record<string, DiscordEmbedTemplate> = {
-  xp_awarded: {
-    title: '⚡ XP Awarded',
-    description: '**{{userName}}** earned **{{xp}} XP**!',
-    color: '#F59E0B',
-    footerText: 'Gami Gamification Engine',
-    fields: [
-      { name: 'Current Level', value: 'Level {{currentLevel}} ({{levelName}})', inline: true },
-      { name: 'Progress', value: '{{progressPercent}} ({{xpToNextLevel}} XP needed)', inline: true },
-    ],
-  },
-  achievement_unlocked: {
-    title: '🏆 Achievement Unlocked!',
-    description: '🎉 **{{userName}}** unlocked **{{achievementName}}**!',
-    color: '#10B981',
-    footerText: 'Gami Gamification Engine',
-    fields: [{ name: 'Details', value: '{{achievementDescription}}', inline: false }],
-  },
-  level_up: {
-    title: '🎉 Level Up!',
-    description: '🚀 **{{userName}}** reached **Level {{newLevel}}**!',
-    color: '#06B6D4',
-    footerText: 'Gami Gamification Engine',
-    fields: [
-      { name: 'Title', value: '{{levelName}}', inline: true },
-      { name: 'Previous Level', value: 'Level {{previousLevel}}', inline: true },
-    ],
-  },
-  challenge_completed: {
-    title: '⚔️ Challenge Completed!',
-    description: '⚔️ **{{userName}}** completed **{{challengeName}}**!',
-    color: '#8B5CF6',
-    footerText: 'Gami Gamification Engine',
-    fields: [{ name: 'Reward', value: '+{{rewardXp}} Bonus XP', inline: true }],
-  },
-};
-
 export function IntegrationsView() {
+  const toast = useToast();
+  const confirmAction = useConfirm();
   const { selectedProject, selectedOrg } = useDashboard();
   const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
   const [integrations, setIntegrations] = useState<IntegrationRecord[]>([]);
@@ -189,7 +81,7 @@ export function IntegrationsView() {
     if (!selectedProject) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/projects/${selectedProject.id}/integrations`);
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/integrations`);
       if (res.ok) {
         const data = await res.json();
         setIntegrations(data.integrations || []);
@@ -218,7 +110,7 @@ export function IntegrationsView() {
     setFormError(null);
 
     try {
-      const res = await fetch(`/api/projects/${selectedProject.id}/integrations`, {
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/integrations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,18 +139,18 @@ export function IntegrationsView() {
   const handleTestIntegration = async (intg: IntegrationRecord) => {
     if (!selectedProject) return;
     try {
-      const res = await fetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}/test`, {
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}/test`, {
         method: 'POST',
       });
       if (res.ok) {
-        alert('Test notification successfully sent to Discord!');
+        toast.success('Test notification successfully sent to Discord!');
         await fetchIntegrations();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Test Failed: ${err.message || 'Failed to send test notification'}`);
+        toast.error(`Test Failed: ${err.message || 'Failed to send test notification'}`);
       }
     } catch {
-      alert('Network error testing Discord integration');
+      toast.error('Network error testing Discord integration');
     }
   };
 
@@ -266,7 +158,7 @@ export function IntegrationsView() {
     if (!selectedProject) return;
     const action = intg.enabled ? 'disable' : 'enable';
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${selectedProject.id}/integrations/${intg.id}/${action}`,
         { method: 'POST' }
       );
@@ -274,23 +166,23 @@ export function IntegrationsView() {
         await fetchIntegrations();
       }
     } catch {
-      alert(`Network error toggling integration status`);
+      toast.error(`Network error toggling integration status`);
     }
   };
 
   const handleDeleteIntegration = async (intg: IntegrationRecord) => {
     if (!selectedProject) return;
-    if (!confirm(`Are you sure you want to disconnect integration "${intg.name}"?`)) return;
+    if (!await confirmAction({ message: `Are you sure you want to disconnect integration "${intg.name}"?` })) return;
 
     try {
-      const res = await fetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}`, {
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}`, {
         method: 'DELETE',
       });
       if (res.ok) {
         await fetchIntegrations();
       }
     } catch {
-      alert('Network error deleting integration');
+      toast.error('Network error deleting integration');
     }
   };
 
@@ -299,7 +191,7 @@ export function IntegrationsView() {
     setActiveDeliveryModal(intg);
     setDeliveriesLoading(true);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${selectedProject.id}/integrations/${intg.id}/deliveries`
       );
       if (res.ok) {
@@ -307,6 +199,7 @@ export function IntegrationsView() {
         setDeliveries(data.deliveries || []);
       }
     } catch {
+      toast.error('Network error loading deliveries');
     } finally {
       setDeliveriesLoading(false);
     }
@@ -315,16 +208,16 @@ export function IntegrationsView() {
   const handleReplayDelivery = async (deliveryId: string) => {
     if (!selectedProject || !activeDeliveryModal) return;
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${selectedProject.id}/integrations/${activeDeliveryModal.id}/deliveries/${deliveryId}/replay`,
         { method: 'POST' }
       );
       if (res.ok) {
-        alert('Replay delivery intent queued successfully!');
+        toast.success('Replay delivery intent queued successfully!');
         await openDeliveriesModal(activeDeliveryModal);
       }
     } catch {
-      alert('Network error replaying delivery');
+      toast.error('Network error replaying delivery');
     }
   };
 
@@ -335,7 +228,7 @@ export function IntegrationsView() {
     setActiveModalTab('template');
     setConfigValidationError(null);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${selectedProject.id}/integrations/${intg.id}/templates`
       );
       if (res.ok) {
@@ -344,12 +237,15 @@ export function IntegrationsView() {
         setCustomTemplates(data.customTemplates || {});
       }
     } catch {
-      alert('Error fetching integration templates');
+      toast.error('Error fetching integration templates');
     }
   };
 
   // Update specific template field in state
-  const handleUpdateCurrentTemplateField = (field: keyof DiscordEmbedTemplate, value: any) => {
+  const handleUpdateCurrentTemplateField = (
+    field: keyof DiscordEmbedTemplate,
+    value: DiscordEmbedTemplate[keyof DiscordEmbedTemplate]
+  ) => {
     const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     setCustomTemplates({
       ...customTemplates,
@@ -371,7 +267,11 @@ export function IntegrationsView() {
   };
 
   // Update specific field inside template
-  const handleUpdateField = (idx: number, key: keyof DiscordEmbedField, val: any) => {
+  const handleUpdateField = (
+    idx: number,
+    key: keyof DiscordEmbedField,
+    val: DiscordEmbedField[keyof DiscordEmbedField]
+  ) => {
     const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     const fields = [...(activeTpl.fields || [])];
     if (fields[idx]) {
@@ -395,7 +295,7 @@ export function IntegrationsView() {
     setCustomTemplates(newTemplates);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${selectedProject.id}/integrations/${activeConfigModal.id}/templates/reset`,
         {
           method: 'POST',
@@ -409,7 +309,9 @@ export function IntegrationsView() {
           setCustomTemplates(data.integration.config.customTemplates);
         }
       }
-    } catch {}
+    } catch {
+      toast.error('Network error loading saved templates');
+    }
   };
 
   // Save templates & delivery controls to API
@@ -419,7 +321,7 @@ export function IntegrationsView() {
     setConfigValidationError(null);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/projects/${selectedProject.id}/integrations/${activeConfigModal.id}/templates`,
         {
           method: 'PUT',
@@ -457,24 +359,24 @@ export function IntegrationsView() {
 
   if (!selectedProject) {
     return (
-      <div className="p-8 text-center text-zinc-500 font-mono text-xs">
+      <div className="p-8 text-center text-zinc-400 text-xs">
         Please select a project to manage external integrations.
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 font-mono">
+    <div className="space-y-8">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            <Blocks className="w-5 h-5 text-emerald-400" />
+            <Blocks className="w-5 h-5 text-success-400" />
             Integrations & External Channels
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Connect project gamification events to external platforms (Discord, Slack, Teams) for{' '}
-            <span className="text-emerald-400 font-semibold">{selectedProject.name}</span>.
+            <span className="text-success-400 font-semibold">{selectedProject.name}</span>.
           </p>
         </div>
 
@@ -486,8 +388,8 @@ export function IntegrationsView() {
           onClick={() => isAdminOrOwner && setIsConnectOpen(true)}
           className={`text-white ${
             isAdminOrOwner
-              ? 'bg-emerald-600 hover:bg-emerald-500'
-              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700'
+              ? 'bg-success-600 hover:bg-success-500'
+              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
           }`}
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -496,35 +398,35 @@ export function IntegrationsView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
           {error}
         </div>
       )}
 
       {/* Connected Integrations */}
       <div className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-          <Radio className="w-4 h-4 text-emerald-400" />
+        <h2 className="text-xs font-bold text-success-400 flex items-center gap-2">
+          <Radio className="w-4 h-4 text-success-400" />
           Connected Integrations ({integrations.length})
         </h2>
 
         {loading ? (
-          <div className="py-12 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+          <div className="py-12 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-success-400" />
             Loading project integrations...
           </div>
         ) : integrations.length === 0 ? (
           <Card className="p-8 text-center bg-zinc-950/60 border-zinc-800/80">
-            <MessageSquare className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+            <MessageSquare className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-zinc-200">No Integrations Connected</h3>
-            <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
+            <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
               Connect Discord to deliver real-time custom embeds when users earn XP, unlock achievements, or level up.
             </p>
             <Button
               variant="secondary"
               size="sm"
-              className="mt-4 border-emerald-800 hover:bg-emerald-950/40 text-emerald-300"
+              className="mt-4 border-success-800 hover:bg-success-950/40 text-success-300"
               onClick={() => setIsConnectOpen(true)}
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
@@ -534,7 +436,7 @@ export function IntegrationsView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {integrations.map((intg) => {
-              const cfg = (intg.config as Record<string, any>) || {};
+              const cfg = (intg.config as Record<string, unknown>) || {};
               const activeEvents: string[] = (cfg.enabledEvents as string[]) || [];
               const customTplCount = cfg.customTemplates
                 ? Object.keys(cfg.customTemplates as Record<string, unknown>).length
@@ -550,7 +452,7 @@ export function IntegrationsView() {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-zinc-100">{intg.name}</h3>
-                          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                          <p className="text-xs text-zinc-400">
                             Provider: {intg.provider}
                           </p>
                         </div>
@@ -558,11 +460,11 @@ export function IntegrationsView() {
 
                       <div className="flex items-center gap-2">
                         {intg.enabled ? (
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 border border-emerald-800 bg-emerald-950/60 text-emerald-400 flex items-center gap-1">
+                          <span className="text-xs font-bold px-2 py-0.5 border border-success-800 bg-success-950/60 text-success-400 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Active
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-500">
+                          <span className="text-xs font-bold px-2 py-0.5 border border-zinc-800 bg-zinc-900 text-zinc-400">
                             Disabled
                           </span>
                         )}
@@ -578,10 +480,10 @@ export function IntegrationsView() {
                             return (
                               <span
                                 key={ev.id}
-                                className={`text-[9px] px-1.5 py-0.5 border ${
+                                className={`text-xs px-1.5 py-0.5 border ${
                                   isEvEnabled
-                                    ? 'bg-zinc-900 border-zinc-700 text-emerald-400'
-                                    : 'bg-zinc-950 border-zinc-900 text-zinc-600 line-through'
+                                    ? 'bg-zinc-900 border-zinc-700 text-success-400'
+                                    : 'bg-zinc-950 border-zinc-900 text-zinc-400 line-through'
                                 }`}
                               >
                                 {ev.label}
@@ -593,13 +495,13 @@ export function IntegrationsView() {
 
                       <div className="flex items-center justify-between text-zinc-400">
                         <span>Custom Embed Templates:</span>
-                        <span className="text-emerald-400 font-bold">
+                        <span className="text-success-400 font-bold">
                           {customTplCount > 0 ? `${customTplCount} Customized` : 'Using System Defaults'}
                         </span>
                       </div>
 
                       {intg.lastError && (
-                        <p className="text-[11px] text-rose-400 bg-rose-950/30 border border-rose-900 p-2 mt-1">
+                        <p className="text-[11px] text-danger-400 bg-danger-950/30 border border-danger-900 p-2 mt-1">
                           Last Error: {intg.lastError}
                         </p>
                       )}
@@ -616,11 +518,11 @@ export function IntegrationsView() {
                           onClick={() => isAdminOrOwner && openConfigModal(intg)}
                           className={`text-xs h-7 px-2.5 font-medium ${
                             isAdminOrOwner
-                              ? 'border-emerald-900/60 hover:bg-emerald-950/40 text-emerald-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              ? 'border-success-900/60 hover:bg-success-950/40 text-success-400'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
-                          <Sliders className="w-3 h-3 mr-1 text-emerald-400" />
+                          <Sliders className="w-3 h-3 mr-1 text-success-400" />
                           Configure Templates & Events
                         </Button>
                         <Button
@@ -632,10 +534,10 @@ export function IntegrationsView() {
                           className={`text-xs h-7 px-2.5 ${
                             isAdminOrOwner
                               ? 'border-zinc-800 hover:bg-zinc-900 text-zinc-300'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
-                          <Send className="w-3 h-3 mr-1 text-emerald-400" />
+                          <Send className="w-3 h-3 mr-1 text-success-400" />
                           Test
                         </Button>
                         <Button
@@ -644,7 +546,7 @@ export function IntegrationsView() {
                           onClick={() => openDeliveriesModal(intg)}
                           className="text-xs h-7 px-2.5 border-zinc-800 hover:bg-zinc-900 text-zinc-300"
                         >
-                          <History className="w-3 h-3 mr-1 text-cyan-400" />
+                          <History className="w-3 h-3 mr-1 text-info-400" />
                           Logs
                         </Button>
                       </div>
@@ -659,7 +561,7 @@ export function IntegrationsView() {
                           className={`text-xs h-7 px-2.5 ${
                             isAdminOrOwner
                               ? 'border-zinc-800 hover:bg-zinc-900 text-zinc-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
                           {intg.enabled ? 'Disable' : 'Enable'}
@@ -672,8 +574,8 @@ export function IntegrationsView() {
                           onClick={() => isAdminOrOwner && handleDeleteIntegration(intg)}
                           className={`text-xs h-7 px-2 ${
                             isAdminOrOwner
-                              ? 'border-rose-950 hover:bg-rose-950/40 text-rose-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-600 border-zinc-900'
+                              ? 'border-danger-950 hover:bg-danger-950/40 text-danger-400'
+                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
                           }`}
                         >
                           <Trash2 className="w-3 h-3" />
@@ -689,7 +591,7 @@ export function IntegrationsView() {
 
       {/* Available Integration Providers */}
       <div className="space-y-4 pt-6 border-t border-zinc-800">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+        <h2 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
           <Blocks className="w-4 h-4 text-zinc-400" />
           Available Integration Providers
         </h2>
@@ -704,7 +606,7 @@ export function IntegrationsView() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-zinc-100">Discord</h3>
-                  <span className="text-[10px] text-emerald-400 font-semibold uppercase">
+                  <span className="text-xs text-success-400 font-semibold">
                     Active Provider
                   </span>
                 </div>
@@ -717,59 +619,9 @@ export function IntegrationsView() {
               variant="primary"
               size="sm"
               onClick={() => setIsConnectOpen(true)}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-on-accent text-xs"
             >
               <Plus className="w-3.5 h-3.5 mr-1" /> Connect Discord
-            </Button>
-          </Card>
-
-          {/* Slack (Coming Soon) */}
-          <Card className="p-4 bg-zinc-950/50 border-zinc-900 flex flex-col justify-between space-y-4 opacity-75">
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-zinc-900 border border-zinc-800 text-zinc-500 flex items-center justify-center">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-300">Slack</h3>
-                    <span className="text-[10px] text-zinc-500 font-semibold uppercase">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
-                Post Gami gamification activity feeds and team leaderboards into Slack channels.
-              </p>
-            </div>
-            <Button disabled variant="secondary" size="sm" className="w-full text-xs opacity-50 cursor-not-allowed">
-              Coming Soon
-            </Button>
-          </Card>
-
-          {/* Microsoft Teams (Coming Soon) */}
-          <Card className="p-4 bg-zinc-950/50 border-zinc-900 flex flex-col justify-between space-y-4 opacity-75">
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-zinc-900 border border-zinc-800 text-zinc-500 flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-300">Microsoft Teams</h3>
-                    <span className="text-[10px] text-zinc-500 font-semibold uppercase">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
-                Send adaptive cards and achievement announcements directly to Microsoft Teams channels.
-              </p>
-            </div>
-            <Button disabled variant="secondary" size="sm" className="w-full text-xs opacity-50 cursor-not-allowed">
-              Coming Soon
             </Button>
           </Card>
         </div>
@@ -777,13 +629,13 @@ export function IntegrationsView() {
 
       {/* Connect Discord Dialog */}
       <Dialog isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} title="Connect Discord Integration">
-        <form onSubmit={handleCreateDiscordIntegration} className="space-y-4 font-mono text-xs">
+        <form onSubmit={handleCreateDiscordIntegration} className="space-y-4 text-xs">
           <p className="text-zinc-400 text-xs">
             Configure a Discord Channel Webhook URL to deliver real-time gamification embeds. Credentials are encrypted at rest using AES-256-GCM.
           </p>
 
           {formError && (
-            <div className="p-3 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs">
+            <div className="p-3 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">
               {formError}
             </div>
           )}
@@ -822,7 +674,7 @@ export function IntegrationsView() {
               variant="primary"
               size="sm"
               disabled={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white"
+              className="bg-success-600 hover:bg-success-500 text-on-accent"
             >
               {isSubmitting ? 'Connecting...' : 'Save & Connect'}
             </Button>
@@ -837,10 +689,10 @@ export function IntegrationsView() {
           onClose={() => setActiveConfigModal(null)}
           title={`Discord Integration Settings — ${activeConfigModal.name}`}
         >
-          <div className="space-y-5 font-mono text-xs max-h-[80vh] overflow-y-auto pr-1">
+          <div className="space-y-5 text-xs max-h-[80vh] overflow-y-auto pr-1">
             {configValidationError && (
-              <div className="p-3 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="p-3 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-danger-400" />
                 {configValidationError}
               </div>
             )}
@@ -853,11 +705,11 @@ export function IntegrationsView() {
                   onClick={() => setActiveModalTab('template')}
                   className={`px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
                     activeModalTab === 'template'
-                      ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/80'
+                      ? 'bg-success-950/60 text-success-400 border border-success-800/80'
                       : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
                   }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-warning-400" />
                   Embed Templates & Fields
                 </button>
                 <button
@@ -865,11 +717,11 @@ export function IntegrationsView() {
                   onClick={() => setActiveModalTab('events')}
                   className={`px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
                     activeModalTab === 'events'
-                      ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/80'
+                      ? 'bg-success-950/60 text-success-400 border border-success-800/80'
                       : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
                   }`}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success-400" />
                   Delivery Events ({enabledEvents.length}/4)
                 </button>
                 <button
@@ -877,11 +729,11 @@ export function IntegrationsView() {
                   onClick={() => setActiveModalTab('preview')}
                   className={`px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
                     activeModalTab === 'preview'
-                      ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/80'
+                      ? 'bg-success-950/60 text-success-400 border border-success-800/80'
                       : 'text-zinc-400 hover:text-zinc-200 border border-transparent'
                   }`}
                 >
-                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <Eye className="w-3.5 h-3.5 text-info-400" />
                   Live Preview & Placeholders
                 </button>
               </div>
@@ -929,8 +781,8 @@ export function IntegrationsView() {
                       onClick={() => setSelectedEventTab(ev.id)}
                       className={`px-3 py-2 text-xs font-bold transition border-b-2 ${
                         selectedEventTab === ev.id
-                          ? 'border-emerald-400 text-emerald-400 bg-emerald-950/20'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                          ? 'border-success-400 text-success-400 bg-success-950/20'
+                          : 'border-transparent text-zinc-400 hover:text-zinc-300'
                       }`}
                     >
                       {ev.label}
@@ -971,7 +823,7 @@ export function IntegrationsView() {
                         type="text"
                         value={getActiveTemplate().footerText || ''}
                         onChange={(e) => handleUpdateCurrentTemplateField('footerText', e.target.value)}
-                        placeholder="Gami Engine"
+                        placeholder="Gami.Fied"
                       />
                     </div>
                   </div>
@@ -979,8 +831,8 @@ export function IntegrationsView() {
                   {/* Embed Custom Fields Box List (High-Readability Vertically Stacked Cards) */}
                   <div className="space-y-3 bg-zinc-950/60 border border-zinc-800 p-3">
                     <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
-                      <span className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-success-400" />
                         Custom Embed Fields ({(getActiveTemplate().fields || []).length})
                       </span>
                       <Button
@@ -988,14 +840,14 @@ export function IntegrationsView() {
                         variant="secondary"
                         size="sm"
                         onClick={handleAddFieldToTemplate}
-                        className="text-[11px] h-6 px-2 border-emerald-800/80 hover:bg-emerald-950/40 text-emerald-400 font-medium"
+                        className="text-[11px] h-6 px-2 border-success-800/80 hover:bg-success-950/40 text-success-400 font-medium"
                       >
                         <PlusCircle className="w-3 h-3 mr-1" /> Add Field
                       </Button>
                     </div>
 
                     {(getActiveTemplate().fields || []).length === 0 ? (
-                      <p className="text-[11px] text-zinc-500 text-center py-6">
+                      <p className="text-[11px] text-zinc-400 text-center py-6">
                         No custom fields configured for this template. Click "Add Field" to add key-value metadata.
                       </p>
                     ) : (
@@ -1003,8 +855,8 @@ export function IntegrationsView() {
                         {(getActiveTemplate().fields || []).map((f, idx) => (
                           <div key={idx} className="p-3 bg-zinc-950/80 border border-zinc-800 space-y-3">
                             <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
-                              <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <span className="w-4 h-4 bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] flex items-center justify-center font-bold">
+                              <span className="text-[11px] font-bold text-success-400 flex items-center gap-1.5">
+                                <span className="w-4 h-4 bg-success-950 text-success-400 border border-success-800 text-xs flex items-center justify-center font-bold">
                                   {idx + 1}
                                 </span>
                                 Field #{idx + 1}
@@ -1016,7 +868,7 @@ export function IntegrationsView() {
                                     type="checkbox"
                                     checked={Boolean(f.inline)}
                                     onChange={(e) => handleUpdateField(idx, 'inline', e.target.checked)}
-                                    className="rounded-none border-zinc-700 text-emerald-500 focus:ring-0 bg-zinc-900"
+                                    className="rounded-none border-zinc-700 text-success-500 focus:ring-0 bg-zinc-900"
                                   />
                                   <span>Display Inline</span>
                                 </label>
@@ -1025,7 +877,7 @@ export function IntegrationsView() {
                                   variant="secondary"
                                   size="sm"
                                   onClick={() => handleRemoveField(idx)}
-                                  className="h-6 px-2 border-rose-950/80 hover:bg-rose-950/40 text-rose-400 text-[10px]"
+                                  className="h-6 px-2 border-danger-950/80 hover:bg-danger-950/40 text-danger-400 text-xs"
                                 >
                                   <Trash2 className="w-3 h-3 mr-1" /> Remove
                                 </Button>
@@ -1067,11 +919,11 @@ export function IntegrationsView() {
                 {/* Left: Expanded Placeholders Glossary */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                      <Code className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-bold text-success-400 flex items-center gap-1">
+                      <Code className="w-3.5 h-3.5 text-success-400" />
                       Placeholders for {EVENT_TYPES.find((e) => e.id === selectedEventTab)?.label}
                     </span>
-                    <span className="text-[10px] text-zinc-500">Click token to copy</span>
+                    <span className="text-xs text-zinc-400">Click token to copy</span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-1">
@@ -1079,16 +931,16 @@ export function IntegrationsView() {
                       <div
                         key={ph.key}
                         onClick={() => copyPlaceholderToClipboard(ph.key)}
-                        className="p-2 bg-zinc-900 border border-zinc-800 hover:border-emerald-700 transition cursor-pointer flex items-center justify-between"
+                        className="p-2 bg-zinc-900 border border-zinc-800 hover:border-success-700 transition cursor-pointer flex items-center justify-between"
                       >
                         <div>
-                          <code className="text-emerald-400 font-mono text-xs font-bold">{ph.key}</code>
-                          <p className="text-[10px] text-zinc-400 mt-0.5">{ph.description}</p>
+                          <code className="text-success-400 font-mono text-xs font-bold">{ph.key}</code>
+                          <p className="text-xs text-zinc-400 mt-0.5">{ph.description}</p>
                         </div>
 
-                        <div className="text-zinc-500 hover:text-zinc-200">
+                        <div className="text-zinc-400 hover:text-zinc-200">
                           {copiedKey === ph.key ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <Check className="w-3.5 h-3.5 text-success-400" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
@@ -1100,19 +952,19 @@ export function IntegrationsView() {
 
                 {/* Right: Discord Embed Live Preview Box */}
                 <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-bold text-warning-400 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-warning-400" />
                     Rendered Discord Embed Preview
                   </span>
 
                   <div className="p-4 bg-[#2f3136] rounded border border-zinc-700 text-zinc-200 font-sans space-y-2 shadow-inner">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
+                      <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-on-accent text-xs font-bold">
                         G
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white">Gami Bot</span>
-                        <span className="text-[9px] bg-indigo-600 text-white px-1 py-0.2 rounded ml-1.5 font-mono">
+                        <span className="text-xs bg-indigo-600 text-on-accent px-1 py-0.2 rounded ml-1.5">
                           BOT
                         </span>
                       </div>
@@ -1173,7 +1025,7 @@ export function IntegrationsView() {
                       )}
 
                       {getActiveTemplate().footerText && (
-                        <div className="pt-2 border-t border-zinc-700/50 text-[10px] text-zinc-400 flex items-center gap-1 font-mono">
+                        <div className="pt-2 border-t border-zinc-700/50 text-xs text-zinc-400 flex items-center gap-1">
                           {getActiveTemplate().footerText} • Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       )}
@@ -1200,7 +1052,7 @@ export function IntegrationsView() {
                 size="sm"
                 onClick={handleSaveConfig}
                 disabled={configSaving}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                className="bg-success-600 hover:bg-success-500 text-on-accent font-medium"
               >
                 {configSaving ? 'Saving Changes...' : 'Save Configuration & Templates'}
               </Button>
@@ -1216,11 +1068,11 @@ export function IntegrationsView() {
           onClose={() => setActiveDeliveryModal(null)}
           title={`Delivery History — ${activeDeliveryModal.name}`}
         >
-          <div className="space-y-4 font-mono text-xs max-h-[70vh] overflow-y-auto">
+          <div className="space-y-4 text-xs max-h-[70vh] overflow-y-auto">
             {deliveriesLoading ? (
-              <div className="py-8 text-center text-zinc-500">Loading delivery history...</div>
+              <div className="py-8 text-center text-zinc-400">Loading delivery history...</div>
             ) : deliveries.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500">No delivery logs found.</div>
+              <div className="py-8 text-center text-zinc-400">No delivery logs found.</div>
             ) : (
               <div className="space-y-2">
                 {deliveries.map((del) => (
@@ -1232,23 +1084,23 @@ export function IntegrationsView() {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-zinc-200">{del.eventType}</span>
                         <span
-                          className={`text-[10px] uppercase font-bold px-1.5 py-0.5 border ${
+                          className={`text-xs font-bold px-1.5 py-0.5 border ${
                             del.status === 'completed'
-                              ? 'border-emerald-800 bg-emerald-950/60 text-emerald-400'
+                              ? 'border-success-800 bg-success-950/60 text-success-400'
                               : del.status === 'failed'
-                              ? 'border-rose-800 bg-rose-950/60 text-rose-400'
+                              ? 'border-danger-800 bg-danger-950/60 text-danger-400'
                               : 'border-zinc-800 bg-zinc-950 text-zinc-400'
                           }`}
                         >
                           {del.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-500 mt-1">
-                        Attempts: {del.attempts} | {new Date(del.createdAt).toLocaleString()}
-                        {del.replayedAt && ` (Replayed: ${new Date(del.replayedAt).toLocaleString()})`}
+                      <p className="text-[11px] text-zinc-400 mt-1">
+                        Attempts: {del.attempts} | {formatDateTime(del.createdAt)}
+                        {del.replayedAt && ` (Replayed: ${formatDateTime(del.replayedAt)})`}
                       </p>
                       {del.lastError && (
-                        <p className="text-[10px] text-rose-400 mt-1 font-mono">{del.lastError}</p>
+                        <p className="text-xs text-danger-400 mt-1">{del.lastError}</p>
                       )}
                     </div>
 
@@ -1256,7 +1108,7 @@ export function IntegrationsView() {
                       variant="secondary"
                       size="sm"
                       onClick={() => handleReplayDelivery(del.id)}
-                      className="text-xs h-7 px-2 border-zinc-800 hover:bg-zinc-800 text-cyan-400"
+                      className="text-xs h-7 px-2 border-zinc-800 hover:bg-zinc-800 text-info-400"
                     >
                       <RefreshCw className="w-3 h-3 mr-1" /> Replay
                     </Button>

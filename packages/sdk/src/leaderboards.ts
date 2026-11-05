@@ -1,4 +1,4 @@
-import type { HttpClient } from './http.js';
+import { projectPath, type HttpClient } from './http.js';
 import type {
   GetUserRankParams,
   ListLeaderboardParams,
@@ -14,13 +14,10 @@ export class LeaderboardsResource {
    * Calls GET /api/projects/:projectId/leaderboards
    */
   public async list(params: ListLeaderboardParams): Promise<ListLeaderboardResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.leaderboards.list()');
-    }
 
     return this.http.request<ListLeaderboardResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/leaderboards`,
+      path: projectPath(params.projectId, `/leaderboard`),
       query: {
         period: params.period ?? 'all_time',
         page: params.page ?? 1,
@@ -35,16 +32,13 @@ export class LeaderboardsResource {
    * Calls GET /api/projects/:projectId/users/:userId/rank
    */
   public async getUserRank(params: GetUserRankParams): Promise<UserRankResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.leaderboards.getUserRank()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.leaderboards.getUserRank()');
     }
 
     return this.http.request<UserRankResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/rank`,
+      path: projectPath(params.projectId, `/leaderboard/${params.userId}`),
       query: {
         period: params.period ?? 'all_time',
       },

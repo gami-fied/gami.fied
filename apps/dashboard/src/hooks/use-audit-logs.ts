@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface AuditLogItem {
@@ -44,7 +45,7 @@ export function useAuditLogs(projectId: string | null, filters?: UseAuditLogsFil
           ...(filters?.endDate ? { endDate: filters.endDate } : {}),
         });
 
-        const res = await fetch(`/api/projects/${projectId}/audit-logs?${query}`);
+        const res = await apiFetch(`/api/projects/${projectId}/audit-logs?${query}`);
         if (res.ok) {
           const data = await res.json();
           setLogs(data.auditLogs || []);

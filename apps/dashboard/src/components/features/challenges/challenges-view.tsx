@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDateTime } from '@/lib/format';
+import { apiFetch } from '@/lib/api-client';
 import React, { useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useChallenges, useChallengeSummary, useUserChallenges } from '@/hooks/use-challenges';
@@ -169,7 +171,7 @@ export function ChallengesView() {
             rewards,
           };
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -195,12 +197,12 @@ export function ChallengesView() {
     if (!projectId) return;
     try {
       if (ch.enabled) {
-        await fetch(`/api/projects/${projectId}/challenges/${ch.id}`, {
+        await apiFetch(`/api/projects/${projectId}/challenges/${ch.id}`, {
           method: 'DELETE',
           credentials: 'include',
         });
       } else {
-        await fetch(`/api/projects/${projectId}/challenges/${ch.id}`, {
+        await apiFetch(`/api/projects/${projectId}/challenges/${ch.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -227,7 +229,7 @@ export function ChallengesView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
-            Challenges & Quests
+            Challenges
             <Badge variant="orange">Milestone 12</Badge>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
@@ -242,7 +244,7 @@ export function ChallengesView() {
               onClick={() => setActiveTab('management')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
                 activeTab === 'management'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-brand-500 text-on-accent shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -252,7 +254,7 @@ export function ChallengesView() {
               onClick={() => setActiveTab('user_lookup')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
                 activeTab === 'user_lookup'
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-brand-500 text-on-accent shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
@@ -266,7 +268,7 @@ export function ChallengesView() {
               disabled={!isAdminOrOwner}
               title={!isAdminOrOwner ? 'Requires Admin or Owner role to create challenges' : undefined}
               onClick={() => isAdminOrOwner && openCreateModal()}
-              className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border-zinc-700' : undefined}
+              className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
             >
               <Plus className="w-4 h-4" />
               Create Challenge
@@ -276,7 +278,7 @@ export function ChallengesView() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none flex items-center gap-2">
+        <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -287,7 +289,7 @@ export function ChallengesView() {
         <Card className="bg-zinc-900/80 border-zinc-800 p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Total Challenges</span>
-            <Target className="w-4 h-4 text-orange-400" />
+            <Target className="w-4 h-4 text-brand-400" />
           </div>
           <div className="text-2xl font-bold text-zinc-100">
             {summaryLoading ? '-' : summary?.totalChallenges || 0}
@@ -297,7 +299,7 @@ export function ChallengesView() {
         <Card className="bg-zinc-900/80 border-zinc-800 p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Active Challenges</span>
-            <Zap className="w-4 h-4 text-emerald-400" />
+            <Zap className="w-4 h-4 text-success-400" />
           </div>
           <div className="text-2xl font-bold text-zinc-100">
             {summaryLoading ? '-' : summary?.activeChallenges || 0}
@@ -307,7 +309,7 @@ export function ChallengesView() {
         <Card className="bg-zinc-900/80 border-zinc-800 p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Completed Instances</span>
-            <CheckCircle2 className="w-4 h-4 text-amber-400" />
+            <CheckCircle2 className="w-4 h-4 text-warning-400" />
           </div>
           <div className="text-2xl font-bold text-zinc-100">
             {summaryLoading ? '-' : summary?.totalCompletedInstances || 0}
@@ -317,7 +319,7 @@ export function ChallengesView() {
         <Card className="bg-zinc-900/80 border-zinc-800 p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Completion Rate</span>
-            <Sparkles className="w-4 h-4 text-purple-400" />
+            <Sparkles className="w-4 h-4 text-info-400" />
           </div>
           <div className="text-2xl font-bold text-zinc-100">
             {summaryLoading ? '-' : `${summary?.completionRate || 0}%`}
@@ -330,7 +332,7 @@ export function ChallengesView() {
         <Card className="bg-zinc-900/80 border-zinc-800">
           <CardHeader>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Target className="w-4 h-4 text-orange-400" />
+              <Target className="w-4 h-4 text-brand-400" />
               Project Challenges
             </CardTitle>
             <CardDescription>
@@ -347,7 +349,7 @@ export function ChallengesView() {
                   <Target className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-semibold text-zinc-200">No Challenges Defined</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                   Create your first counter challenge (e.g. &quot;Play 10 Games&quot;) to reward
                   your users automatically.
                 </p>
@@ -392,10 +394,10 @@ export function ChallengesView() {
                         <TableCell>
                           <div>
                             <div className="font-semibold text-xs text-zinc-100">{ch.name}</div>
-                            <div className="text-[11px] text-zinc-500 font-mono">{ch.key}</div>
+                            <div className="text-[11px] text-zinc-400 font-mono">{ch.key}</div>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-orange-400">
+                        <TableCell className="text-xs text-brand-400">
                           {ch.trigger}
                         </TableCell>
                         <TableCell className="font-bold text-xs text-zinc-200">
@@ -407,7 +409,7 @@ export function ChallengesView() {
                               <Badge
                                 key={i}
                                 variant={r.type === 'xp' ? 'orange' : 'amber'}
-                                className="text-[10px]"
+                                className="text-xs"
                               >
                                 {r.type === 'xp' ? (
                                   <span className="flex items-center gap-1">
@@ -421,12 +423,12 @@ export function ChallengesView() {
                               </Badge>
                             ))}
                             {(ch.rewards || []).length === 0 && (
-                              <span className="text-zinc-600 text-xs">No rewards</span>
+                              <span className="text-zinc-400 text-xs">No rewards</span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusVariant} className="text-[10px]">
+                          <Badge variant={statusVariant} className="text-xs">
                             {statusLabel}
                           </Badge>
                         </TableCell>
@@ -437,7 +439,7 @@ export function ChallengesView() {
                             disabled={!isAdminOrOwner}
                             onClick={() => isAdminOrOwner && openEditModal(ch)}
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit challenge' : 'Edit Challenge'}
-                            className={!isAdminOrOwner ? 'opacity-30 cursor-not-allowed text-zinc-600' : undefined}
+                            className={!isAdminOrOwner ? 'opacity-30 cursor-not-allowed text-zinc-400' : undefined}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </Button>
@@ -449,10 +451,10 @@ export function ChallengesView() {
                             title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle challenge' : (ch.enabled ? 'Disable' : 'Enable')}
                             className={
                               !isAdminOrOwner
-                                ? 'opacity-30 cursor-not-allowed text-zinc-600'
+                                ? 'opacity-30 cursor-not-allowed text-zinc-400'
                                 : ch.enabled
-                                ? 'text-rose-400 hover:text-rose-300'
-                                : 'text-emerald-400 hover:text-emerald-300'
+                                ? 'text-danger-400 hover:text-danger-300'
+                                : 'text-success-400 hover:text-success-300'
                             }
                           >
                             <Power className="w-3.5 h-3.5" />
@@ -471,7 +473,7 @@ export function ChallengesView() {
         <Card className="bg-zinc-900/80 border-zinc-800">
           <CardHeader>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-orange-400" />
+              <UserCheck className="w-4 h-4 text-brand-400" />
               End-User Challenge Progress
             </CardTitle>
             <CardDescription>
@@ -493,7 +495,7 @@ export function ChallengesView() {
             </form>
 
             {lookupError && (
-              <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none flex items-center gap-2">
+              <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{lookupError}</span>
               </div>
@@ -506,7 +508,7 @@ export function ChallengesView() {
                     <div className="font-bold text-sm text-zinc-100">
                       {userChallenges.name || 'Anonymous End-User'}
                     </div>
-                    <div className="text-xs text-zinc-500 font-mono">
+                    <div className="text-xs text-zinc-400">
                       {userChallenges.externalId} ({userChallenges.userId})
                     </div>
                   </div>
@@ -524,17 +526,17 @@ export function ChallengesView() {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-semibold text-xs text-zinc-100">{item.name}</div>
-                            <div className="text-[11px] text-zinc-500 font-mono">{item.key}</div>
+                            <div className="text-[11px] text-zinc-400 font-mono">{item.key}</div>
                           </div>
                           {item.completed ? (
                             <Badge
                               variant="emerald"
-                              className="text-[10px] flex items-center gap-1"
+                              className="text-xs flex items-center gap-1"
                             >
                               <CheckCircle2 className="w-3 h-3" /> Completed
                             </Badge>
                           ) : (
-                            <Badge variant="orange" className="text-[10px]">
+                            <Badge variant="orange" className="text-xs">
                               In Progress
                             </Badge>
                           )}
@@ -543,7 +545,7 @@ export function ChallengesView() {
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs font-semibold">
                             <span className="text-zinc-400">Progress</span>
-                            <span className="text-orange-400">
+                            <span className="text-brand-400">
                               {item.progress} / {item.target} ({item.percent}%)
                             </span>
                           </div>
@@ -551,9 +553,9 @@ export function ChallengesView() {
                         </div>
 
                         {item.completedAt && (
-                          <div className="text-[10px] text-zinc-500 flex items-center gap-1 pt-1 border-t border-zinc-800/80">
-                            <Calendar className="w-3 h-3 text-zinc-600" /> Completed on{' '}
-                            {new Date(item.completedAt).toLocaleString()}
+                          <div className="text-xs text-zinc-400 flex items-center gap-1 pt-1 border-t border-zinc-800/80">
+                            <Calendar className="w-3 h-3 text-zinc-400" /> Completed on{' '}
+                            {formatDateTime(item.completedAt)}
                           </div>
                         )}
                       </Card>
@@ -575,7 +577,7 @@ export function ChallengesView() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
-            <div className="p-3 bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs rounded-none font-medium">
+            <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none font-medium">
               {formError}
             </div>
           )}

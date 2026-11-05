@@ -21,21 +21,35 @@ export interface HttpRequestOptions {
   idempotencyKey?: string;
 }
 
+/** Paths for public resources, which use the key's project when no ID is given. */
+export function projectPath(projectId: string | undefined, path: string): string {
+  return projectId ? `/api/projects/${projectId}${path}` : `/v1${path}`;
+}
+
 export class HttpClient {
-  private readonly apiKey: string;
+  private readonly credentials: Record<string, string>;
   private readonly baseUrl: string;
   private readonly timeout: number;
   private readonly customHeaders: Record<string, string>;
   private readonly retryConfig: Required<RetryConfig>;
 
   constructor(config: GamiConfig) {
-    if (!config.apiKey || typeof config.apiKey !== 'string') {
+    if (config.apiKey && typeof window !== 'undefined' && !config.dangerouslyAllowBrowser) {
       throw new GamiAuthenticationError(
-        'Gami SDK client requires a valid apiKey string. Provide apiKey in GamiConfig.'
+        'API keys must stay on your server. Create an end-user token on your backend and pass it as endUserToken.'
       );
     }
 
-    this.apiKey = config.apiKey.trim();
+    if (config.apiKey) {
+      this.credentials = { 'x-api-key': config.apiKey.trim() };
+    } else if (config.endUserToken) {
+      this.credentials = { Authorization: `Bearer ${config.endUserToken.trim()}` };
+    } else {
+      throw new GamiAuthenticationError(
+        'Gami SDK client requires an apiKey or endUserToken. Provide one in GamiConfig.'
+      );
+    }
+
     // Default base URL is configurable and strip trailing slash
     const base = config.baseUrl || 'http://localhost:3001';
     this.baseUrl = base.replace(/\/+$/, '');
@@ -91,7 +105,7 @@ export class HttpClient {
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
-      'x-api-key': this.apiKey,
+      ...this.credentials,
       ...this.customHeaders,
       ...options.headers,
     };

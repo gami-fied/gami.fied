@@ -96,7 +96,9 @@ export async function adminSessionRoutes(fastify: FastifyInstance) {
           targetUserId,
         },
       });
-    } catch {}
+    } catch (err) {
+      request.log.warn({ err }, 'Failed to write audit log');
+    }
 
     return reply.send({
       message: `Revoked ${deletedSessions.length} session(s) for user ${targetUserId}`,

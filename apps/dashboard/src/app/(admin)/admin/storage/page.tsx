@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
 import {
   Database,
@@ -68,7 +69,7 @@ export default function AdminStoragePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/storage/metrics');
+      const res = await apiFetch('/api/admin/storage/metrics');
       if (res.ok) {
         const data = await res.json();
         setMetrics(data);
@@ -94,7 +95,7 @@ export default function AdminStoragePage() {
     setError(null);
 
     try {
-      const res = await fetch('/api/admin/storage/clean', {
+      const res = await apiFetch('/api/admin/storage/clean', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,30 +136,30 @@ export default function AdminStoragePage() {
   const getTableIcon = (id: string) => {
     switch (id) {
       case 'webhook_outbox':
-        return <Webhook className="w-4 h-4 text-purple-400" />;
+        return <Webhook className="w-4 h-4 text-info-400" />;
       case 'integration_deliveries':
-        return <Layers className="w-4 h-4 text-cyan-400" />;
+        return <Layers className="w-4 h-4 text-info-400" />;
       case 'email_outbox':
-        return <Mail className="w-4 h-4 text-emerald-400" />;
+        return <Mail className="w-4 h-4 text-success-400" />;
       case 'event_outbox':
-        return <Activity className="w-4 h-4 text-orange-400" />;
+        return <Activity className="w-4 h-4 text-brand-400" />;
       case 'rule_executions':
-        return <FileText className="w-4 h-4 text-amber-400" />;
+        return <FileText className="w-4 h-4 text-warning-400" />;
       case 'audit_logs':
-        return <ShieldAlert className="w-4 h-4 text-rose-400" />;
+        return <ShieldAlert className="w-4 h-4 text-danger-400" />;
       default:
         return <Database className="w-4 h-4 text-zinc-400" />;
     }
   };
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <Database className="w-5 h-5 text-rose-400" />
-            <h1 className="text-xl font-bold uppercase tracking-wider text-white">
+            <Database className="w-5 h-5 text-danger-400" />
+            <h1 className="text-xl font-bold text-white">
               Database Storage &amp; Maintenance
             </h1>
           </div>
@@ -196,24 +197,24 @@ export default function AdminStoragePage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center justify-between">
+        <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-danger-400 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-rose-400 hover:text-white text-xs">
+          <button onClick={() => setError(null)} className="text-danger-400 hover:text-white text-xs">
             ✕
           </button>
         </div>
       )}
 
       {actionSuccess && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs flex items-center justify-between">
+        <div className="p-4 bg-success-950/40 border border-success-800 text-success-300 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-white text-xs">
+          <button onClick={() => setActionSuccess(null)} className="text-success-400 hover:text-white text-xs">
             ✕
           </button>
         </div>
@@ -222,40 +223,40 @@ export default function AdminStoragePage() {
       {/* Summary Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-zinc-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Database Disk Size</span>
-            <HardDrive className="w-4 h-4 text-rose-400" />
+            <HardDrive className="w-4 h-4 text-danger-400" />
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
             {metrics?.databaseSizeBytes ? formatBytes(metrics.databaseSizeBytes) : 'PostgreSQL DB'}
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Total disk space allocated to the active PostgreSQL database instance.
           </p>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-zinc-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Total Logged Records</span>
-            <Layers className="w-4 h-4 text-orange-400" />
+            <Layers className="w-4 h-4 text-brand-400" />
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
             {calculateTotalRows().toLocaleString()} <span className="text-xs font-normal text-zinc-400">rows</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Combined total records stored across outboxes, delivery logs &amp; audit history.
           </p>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-zinc-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Log Category Services</span>
-            <Database className="w-4 h-4 text-emerald-400" />
+            <Database className="w-4 h-4 text-success-400" />
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
             {metrics?.tables ? Object.keys(metrics.tables).length : 6} <span className="text-xs font-normal text-zinc-400">monitored tables</span>
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             Independent log and history outboxes configured for automated maintenance.
           </p>
         </div>
@@ -263,7 +264,7 @@ export default function AdminStoragePage() {
 
       {/* Storage Service Breakdown Grid */}
       <div className="space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 border-b border-zinc-800/80 pb-2">
+        <h2 className="text-sm font-bold text-zinc-300 border-b border-zinc-800/80 pb-2">
           Monitored Storage Tables &amp; Maintenance Actions
         </h2>
 
@@ -272,7 +273,7 @@ export default function AdminStoragePage() {
             Loading storage &amp; table metrics...
           </div>
         ) : !metrics?.tables ? (
-          <div className="p-8 text-center text-xs text-zinc-500 bg-zinc-950 border border-zinc-800">
+          <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-950 border border-zinc-800">
             No table metrics available.
           </div>
         ) : (
@@ -289,11 +290,11 @@ export default function AdminStoragePage() {
                     <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         {getTableIcon(key)}
-                        <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider truncate">
+                        <h3 className="text-xs font-bold text-zinc-100 truncate">
                           {table.name}
                         </h3>
                       </div>
-                      <span className="text-xs font-bold text-rose-400 border border-rose-900 bg-rose-950/60 px-2 py-0.5 shrink-0">
+                      <span className="text-xs font-bold text-danger-400 border border-danger-900 bg-danger-950/60 px-2 py-0.5 shrink-0">
                         {table.totalRows.toLocaleString()} rows
                       </span>
                     </div>
@@ -305,14 +306,14 @@ export default function AdminStoragePage() {
                     {/* Breakdown metrics */}
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-[11px]">
-                        <span className="text-zinc-500 block uppercase text-[9px] tracking-wider">Completed / Sent</span>
-                        <span className="text-emerald-400 font-bold">
+                        <span className="text-zinc-400 block text-xs">Completed / Sent</span>
+                        <span className="text-success-400 font-bold">
                           {(table.completedRows ?? table.totalRows).toLocaleString()}
                         </span>
                       </div>
                       <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-[11px]">
-                        <span className="text-zinc-500 block uppercase text-[9px] tracking-wider">Failed / Error</span>
-                        <span className="text-rose-400 font-bold">
+                        <span className="text-zinc-400 block text-xs">Failed / Error</span>
+                        <span className="text-danger-400 font-bold">
                           {(table.failedRows ?? 0).toLocaleString()}
                         </span>
                       </div>
@@ -322,7 +323,7 @@ export default function AdminStoragePage() {
                   {/* Actions & Custom Dropdown Component for Retention Selection */}
                   <div className="space-y-3 pt-3 border-t border-zinc-800/80">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      <span className="text-xs font-bold text-zinc-400 block">
                         Retention Filter:
                       </span>
                       <Dropdown
@@ -348,9 +349,9 @@ export default function AdminStoragePage() {
                       }
                       disabled={table.totalRows === 0}
                       variant="outline"
-                      className="w-full flex items-center justify-center gap-1.5 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-800"
+                      className="w-full flex items-center justify-center gap-1.5 hover:bg-danger-950/60 hover:text-danger-300 hover:border-danger-800"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                      <Trash2 className="w-3.5 h-3.5 text-danger-400" />
                       Clean Table Logs
                     </Button>
                   </div>

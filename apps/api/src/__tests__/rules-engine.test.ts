@@ -52,7 +52,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
     const prjA = JSON.parse(prjResA.payload);
     projIdA = prjA.id;
 
-    const keyDataA = await createApiKey(projIdA, 'Key A');
+    const keyDataA = await createApiKey(projIdA, 'Key A', ['*']);
     apiKeySecretA = keyDataA.rawSecret;
 
     // 2. Create Organization B & Project B
@@ -72,7 +72,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       slug: `rules-prj-b-${Date.now()}`,
     });
 
-    await createApiKey(projIdB, 'Key B');
+    await createApiKey(projIdB, 'Key B', ['*']);
   });
 
   afterAll(async () => {
@@ -96,7 +96,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
             { field: 'payload.score', operator: 'greater_than', value: 100 },
           ],
         },
-        actions: [{ type: 'log', params: { msg: 'Boss Defeated' } }],
+        actions: [{ type: 'award_xp', params: { amount: 10 } }],
         enabled: true,
       },
     });
@@ -130,6 +130,22 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
     expect(invalidRes.statusCode).toBe(400);
   });
 
+  it('accepts a rule with no conditions', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projIdA}/rules`,
+      headers: { cookie: cookieA },
+      payload: {
+        name: 'Always Reward',
+        trigger: 'lesson.completed',
+        actions: [{ type: 'award_xp', params: { amount: 10 } }],
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(JSON.parse(res.payload).conditions).toBeNull();
+  });
+
   it('2. Rule Preview API: Preview operates in-memory and never creates DB records or executes actions', async () => {
     const previewRes = await app.inject({
       method: 'POST',
@@ -139,7 +155,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
         rule: {
           trigger: 'task.completed',
           conditions: { field: 'payload.difficulty', operator: 'equals', value: 'hard' },
-          actions: [{ type: 'grant_xp', params: { amount: 100 } }],
+          actions: [{ type: 'award_xp', params: { amount: 100 } }],
         },
         event: {
           type: 'task.completed',
@@ -170,7 +186,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'E2E Task Rule',
       trigger: 'task.completed',
       conditions: { field: 'payload.difficulty', operator: 'equals', value: 'hard' },
-      actions: [{ type: 'log' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -181,6 +197,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       headers: { 'x-api-key': apiKeySecretA },
       payload: {
         event: 'task.completed',
+        user_id: 'rule_test_user',
         payload: { difficulty: 'hard', score: 200 },
       },
     });
@@ -223,7 +240,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'Project B Task Rule',
       trigger: 'task.completed',
       conditions: { field: 'payload.difficulty', operator: 'equals', value: 'hard' },
-      actions: [{ type: 'log_b' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -234,6 +251,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       headers: { 'x-api-key': apiKeySecretA },
       payload: {
         event: 'task.completed',
+        user_id: 'rule_test_user',
         payload: { difficulty: 'hard' },
       },
     });
@@ -269,7 +287,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'Malformed Rule C',
       trigger: 'test.fail',
       conditions: { field: 'payload.score', operator: 'invalid_op' as unknown as 'equals' },
-      actions: [{ type: 'log' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
@@ -281,11 +299,11 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       name: 'Good Rule D',
       trigger: 'test.fail',
       conditions: { field: 'payload.valid', operator: 'equals', value: true },
-      actions: [{ type: 'log' }],
+      actions: [{ type: 'award_xp', params: { amount: 10 } }],
       enabled: true,
     });
 
-    const keyFail = await createApiKey(projIdFail, 'Fail Key');
+    const keyFail = await createApiKey(projIdFail, 'Fail Key', ['*']);
 
     const ingestRes = await app.inject({
       method: 'POST',
@@ -293,6 +311,7 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
       headers: { 'x-api-key': keyFail.rawSecret },
       payload: {
         event: 'test.fail',
+        user_id: 'rule_test_user',
         payload: { valid: true },
       },
     });

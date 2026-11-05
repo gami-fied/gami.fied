@@ -1,4 +1,4 @@
-import type { HttpClient } from './http.js';
+import { projectPath, type HttpClient } from './http.js';
 import type {
   AdjustXpParams,
   GetXpLedgerParams,
@@ -17,16 +17,13 @@ export class XpResource {
    * Calls GET /api/projects/:projectId/users/:userId/xp
    */
   public async getBalance(params: GetXpParams): Promise<XpBalanceResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.xp.getBalance()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.xp.getBalance()');
     }
 
     return this.http.request<XpBalanceResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/xp`,
+      path: projectPath(params.projectId, `/users/${params.userId}/xp`),
     });
   }
 
@@ -35,16 +32,13 @@ export class XpResource {
    * Calls GET /api/projects/:projectId/users/:userId/xp/ledger
    */
   public async getLedger(params: GetXpLedgerParams): Promise<XpLedgerResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.xp.getLedger()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.xp.getLedger()');
     }
 
     return this.http.request<XpLedgerResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/xp/ledger`,
+      path: projectPath(params.projectId, `/users/${params.userId}/xp/ledger`),
       query: {
         page: params.page ?? 1,
         limit: params.limit ?? 20,
@@ -56,14 +50,11 @@ export class XpResource {
    * Get project XP summary & top user metrics.
    * Calls GET /api/projects/:projectId/xp/summary
    */
-  public async getSummary(params: { projectId: string }): Promise<XpSummaryResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.xp.getSummary()');
-    }
+  public async getSummary(params: { projectId?: string }): Promise<XpSummaryResponse> {
 
     return this.http.request<XpSummaryResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/xp/summary`,
+      path: projectPath(params.projectId, `/xp/summary`),
     });
   }
 
@@ -74,9 +65,6 @@ export class XpResource {
    * reusing the exact same key across automatic retries.
    */
   public async adjust(params: AdjustXpParams): Promise<XpLedgerEntry> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.xp.adjust()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.xp.adjust()');
     }
@@ -94,7 +82,7 @@ export class XpResource {
 
     return this.http.request<XpLedgerEntry>({
       method: 'POST',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/xp/adjust`,
+      path: projectPath(params.projectId, `/users/${params.userId}/xp/adjust`),
       body: {
         amount: params.amount,
         reason: params.reason,

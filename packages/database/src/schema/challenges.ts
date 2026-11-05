@@ -1,5 +1,6 @@
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -58,6 +59,11 @@ export const userChallengeProgress = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
+    foreignKey({
+      name: 'user_challenge_progress_project_user_fk',
+      columns: [table.projectId, table.userId],
+      foreignColumns: [endUsers.projectId, endUsers.id],
+    }).onDelete('cascade'),
     uniqueIndex('user_challenge_progress_proj_user_challenge_unique').on(
       table.projectId,
       table.userId,

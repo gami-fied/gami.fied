@@ -98,7 +98,7 @@ export function VisualConditionBuilder({
       {/* Match Mode Selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-orange-400" />
+          <Layers className="w-4 h-4 text-brand-400" />
           <span className="text-xs font-semibold text-zinc-200">Condition Match Rule</span>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
@@ -107,7 +107,7 @@ export function VisualConditionBuilder({
             onClick={() => onMatchModeChange('all')}
             className={`px-3 py-1 text-xs font-semibold rounded-none transition ${
               matchMode === 'all'
-                ? 'bg-orange-500 text-white shadow-sm'
+                ? 'bg-brand-500 text-on-accent shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -118,7 +118,7 @@ export function VisualConditionBuilder({
             onClick={() => onMatchModeChange('any')}
             className={`px-3 py-1 text-xs font-semibold rounded-none transition ${
               matchMode === 'any'
-                ? 'bg-orange-500 text-white shadow-sm'
+                ? 'bg-brand-500 text-on-accent shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -137,7 +137,7 @@ export function VisualConditionBuilder({
               key={cond.id}
               className="p-3 bg-zinc-900/80 rounded-none border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
             >
-              <div className="text-[11px] font-bold text-zinc-500 w-6 shrink-0 text-center">
+              <div className="text-[11px] font-bold text-zinc-400 w-6 shrink-0 text-center">
                 {idx === 0 ? 'IF' : matchMode.toUpperCase()}
               </div>
 
@@ -178,7 +178,7 @@ export function VisualConditionBuilder({
               <button
                 type="button"
                 onClick={() => handleRemoveCondition(cond.id)}
-                className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-none transition shrink-0 self-center"
+                className="p-2 text-zinc-400 hover:text-danger-400 hover:bg-danger-950/40 rounded-none transition shrink-0 self-center"
                 title="Remove Condition"
               >
                 <Trash2 className="w-4 h-4" />
@@ -188,7 +188,7 @@ export function VisualConditionBuilder({
         })}
 
         {conditions.length === 0 && (
-          <div className="py-4 text-center text-xs text-zinc-500 border border-dashed border-zinc-800/80 rounded-none">
+          <div className="py-4 text-center text-xs text-zinc-400 border border-dashed border-zinc-800/80 rounded-none">
             No conditions added. This rule will match all events with trigger &quot;{matchMode}
             &quot;.
           </div>
@@ -218,7 +218,12 @@ export function buildRulesEngineConditions(
 
   const simpleConditions: SimpleCondition[] = conditions.map((c) => {
     let typedValue: unknown = c.value;
-    if (
+    if (['in', 'not_in'].includes(c.operator) && typeof c.value === 'string') {
+      typedValue = c.value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+    } else if (
       ['greater_than', 'greater_than_or_equal', 'less_than', 'less_than_or_equal'].includes(
         c.operator
       )
@@ -229,11 +234,6 @@ export function buildRulesEngineConditions(
       typedValue = true;
     } else if (c.value === 'false') {
       typedValue = false;
-    } else if (['in', 'not_in'].includes(c.operator) && typeof c.value === 'string') {
-      typedValue = c.value
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
     }
 
     const simple: SimpleCondition = {

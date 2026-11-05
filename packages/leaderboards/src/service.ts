@@ -73,7 +73,7 @@ export async function getLeaderboard(
   const search = options.search?.trim();
   const now = options.now || new Date();
 
-  let rawEntries: RawRow[] = [];
+  let rawEntries: RawRow[];
 
   if (period === 'all_time') {
     const query = sql`
@@ -83,12 +83,14 @@ export async function getLeaderboard(
           eu.external_id AS "externalId",
           eu.name AS "name",
           eu.avatar_url AS "avatarUrl",
-          COALESCE(uxb.total_xp, 0)::int AS "xp",
-          COALESCE(uxb.total_xp, 0)::int AS "totalXp",
+          COALESCE(uxb.total_xp, 0)::bigint AS "xp",
+          COALESCE(uxb.total_xp, 0)::bigint AS "totalXp",
           ROW_NUMBER() OVER (ORDER BY COALESCE(uxb.total_xp, 0) DESC, eu.id ASC)::int AS "rank"
         FROM ${endUsers} eu
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
+          AND eu.active = true
+          AND COALESCE(uxb.total_xp, 0) > 0
       )
       SELECT 
         "userId", "externalId", "name", "avatarUrl", "xp", "totalXp", "rank",
@@ -119,8 +121,8 @@ export async function getLeaderboard(
           eu.external_id AS "externalId",
           eu.name AS "name",
           eu.avatar_url AS "avatarUrl",
-          COALESCE(SUM(xl.amount), 0)::int AS "xp",
-          COALESCE(uxb.total_xp, 0)::int AS "totalXp"
+          COALESCE(SUM(xl.amount), 0)::bigint AS "xp",
+          COALESCE(uxb.total_xp, 0)::bigint AS "totalXp"
         FROM ${endUsers} eu
         LEFT JOIN ${xpLedger} xl ON eu.id = xl.user_id 
           AND xl.project_id = ${projectId}
@@ -128,7 +130,9 @@ export async function getLeaderboard(
           AND xl.created_at < ${endStr}::timestamptz
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
+          AND eu.active = true
         GROUP BY eu.id, eu.external_id, eu.name, eu.avatar_url, uxb.total_xp
+        HAVING COALESCE(SUM(xl.amount), 0) > 0
       ),
       global_ranks AS (
         SELECT 
@@ -211,13 +215,15 @@ export async function getUserRank(
           eu.external_id AS "externalId",
           eu.name AS "name",
           eu.avatar_url AS "avatarUrl",
-          COALESCE(uxb.total_xp, 0)::int AS "xp",
-          COALESCE(uxb.total_xp, 0)::int AS "totalXp",
+          COALESCE(uxb.total_xp, 0)::bigint AS "xp",
+          COALESCE(uxb.total_xp, 0)::bigint AS "totalXp",
           ROW_NUMBER() OVER (ORDER BY COALESCE(uxb.total_xp, 0) DESC, eu.id ASC)::int AS "rank",
           COUNT(*) OVER()::int AS "totalUsers"
         FROM ${endUsers} eu
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
+          AND eu.active = true
+          AND COALESCE(uxb.total_xp, 0) > 0
       )
       SELECT * FROM global_ranks WHERE "userId" = ${userId} OR "externalId" = ${userId}
     `;
@@ -239,8 +245,8 @@ export async function getUserRank(
           eu.external_id AS "externalId",
           eu.name AS "name",
           eu.avatar_url AS "avatarUrl",
-          COALESCE(SUM(xl.amount), 0)::int AS "xp",
-          COALESCE(uxb.total_xp, 0)::int AS "totalXp"
+          COALESCE(SUM(xl.amount), 0)::bigint AS "xp",
+          COALESCE(uxb.total_xp, 0)::bigint AS "totalXp"
         FROM ${endUsers} eu
         LEFT JOIN ${xpLedger} xl ON eu.id = xl.user_id 
           AND xl.project_id = ${projectId}
@@ -248,7 +254,9 @@ export async function getUserRank(
           AND xl.created_at < ${endStr}::timestamptz
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
+          AND eu.active = true
         GROUP BY eu.id, eu.external_id, eu.name, eu.avatar_url, uxb.total_xp
+        HAVING COALESCE(SUM(xl.amount), 0) > 0
       ),
       global_ranks AS (
         SELECT 
@@ -303,22 +311,4 @@ export async function getUserRank(
     totalUsers: rawRow.totalUsers ? Number(rawRow.totalUsers) : 0,
     entry,
   };
-}
-
-export async function getLeaderboardAroundUser(
-  projectId: string,
-  userId: string,
-  options: LeaderboardOptions = {}
-): Promise<LeaderboardResponse> {
-  const userRankInfo = await getUserRank(projectId, userId, options);
-  if (!userRankInfo.rank) {
-    return getLeaderboard(projectId, options);
-  }
-
-  const limit = Math.min(100, Math.max(1, options.limit || 20));
-  const userRank = userRankInfo.rank;
-  const startRank = Math.max(1, userRank - Math.floor(limit / 2));
-
-  const page = Math.floor((startRank - 1) / limit) + 1;
-  return getLeaderboard(projectId, { ...options, page, limit });
 }

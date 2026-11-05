@@ -1,3 +1,4 @@
+import { product } from '@gami/config';
 import {
   checkDatabaseHealth,
   db,
@@ -67,7 +68,7 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
     const lastBackup = allBackups[0] || null;
 
     return reply.send({
-      version: '0.1.0',
+      version: product.version,
       environment: process.env.NODE_ENV || 'development',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),

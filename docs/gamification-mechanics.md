@@ -82,7 +82,7 @@ Gami automatically calculates user levels from total XP using configured level c
 
 ## 6. Quests & Challenges
 
-Multi-step challenges require users to complete progress goals before expiration.
+Challenges count matching events until a target is reached, within an optional date window.
 
 - **Progress Deduplication**: `challenge_event_progress` guarantees events are counted at most once per challenge.
 - **Reward Outbox Pattern**: Upon completion, rewards (XP, Badges) are committed to `challenge_reward_outbox` for idempotent asynchronous execution.

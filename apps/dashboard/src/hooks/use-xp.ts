@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
 
 export interface XpSummary {
@@ -35,7 +36,7 @@ export function useXp(projectId: string | null) {
     if (!projectId) return;
     setLoadingSummary(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/xp/summary`);
+      const res = await apiFetch(`/api/projects/${projectId}/xp/summary`);
       if (res.ok) {
         setSummary(await res.json());
       }
@@ -52,8 +53,8 @@ export function useXp(projectId: string | null) {
       setLoadingLedger(true);
       try {
         const [balRes, ledgerRes] = await Promise.all([
-          fetch(`/api/projects/${projectId}/users/${userId.trim()}/xp`),
-          fetch(
+          apiFetch(`/api/projects/${projectId}/users/${userId.trim()}/xp`),
+          apiFetch(
             `/api/projects/${projectId}/users/${userId.trim()}/xp/ledger?page=${page}&limit=20`
           ),
         ]);
@@ -84,7 +85,7 @@ export function useXp(projectId: string | null) {
     idempotencyKey?: string
   ) => {
     if (!projectId) return;
-    const res = await fetch(`/api/projects/${projectId}/users/${userId}/xp/adjust`, {
+    const res = await apiFetch(`/api/projects/${projectId}/users/${userId}/xp/adjust`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

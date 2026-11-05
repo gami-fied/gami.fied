@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 import type {
   CreateWebhookParams,
@@ -23,7 +24,7 @@ export function useWebhooks(projectId: string | null) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/webhooks`);
+      const res = await apiFetch(`/api/projects/${projectId}/webhooks`);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || 'Failed to fetch webhooks');
@@ -47,7 +48,7 @@ export function useWebhooks(projectId: string | null) {
   ): Promise<WebhookEndpointRecord & { secret: string }> => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/webhooks`, {
+    const res = await apiFetch(`/api/projects/${projectId}/webhooks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -69,7 +70,7 @@ export function useWebhooks(projectId: string | null) {
   ): Promise<WebhookEndpointRecord> => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/webhooks/${webhookId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/webhooks/${webhookId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -88,7 +89,7 @@ export function useWebhooks(projectId: string | null) {
   const deleteEndpoint = async (webhookId: string): Promise<void> => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/webhooks/${webhookId}`, {
+    const res = await apiFetch(`/api/projects/${projectId}/webhooks/${webhookId}`, {
       method: 'DELETE',
     });
 
@@ -105,7 +106,7 @@ export function useWebhooks(projectId: string | null) {
   ): Promise<{ id: string; secret: string; message: string }> => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/webhooks/${webhookId}/rotate-secret`, {
+    const res = await apiFetch(`/api/projects/${projectId}/webhooks/${webhookId}/rotate-secret`, {
       method: 'POST',
     });
 
@@ -120,7 +121,7 @@ export function useWebhooks(projectId: string | null) {
   const testWebhook = async (webhookId: string): Promise<{ success: boolean; message: string }> => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(`/api/projects/${projectId}/webhooks/${webhookId}/test`, {
+    const res = await apiFetch(`/api/projects/${projectId}/webhooks/${webhookId}/test`, {
       method: 'POST',
     });
 
@@ -148,7 +149,7 @@ export function useWebhooks(projectId: string | null) {
     if (status) query.set('status', status);
     if (eventType) query.set('eventType', eventType);
 
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/projects/${projectId}/webhooks/${webhookId}/deliveries?${query.toString()}`
     );
 
@@ -166,7 +167,7 @@ export function useWebhooks(projectId: string | null) {
   ): Promise<{ success: boolean; message: string; newDeliveryId: string }> => {
     if (!projectId) throw new Error('No project selected');
 
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/projects/${projectId}/webhooks/${webhookId}/deliveries/${deliveryId}/replay`,
       { method: 'POST' }
     );

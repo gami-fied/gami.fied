@@ -1,16 +1,15 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   db,
   emailNotificationOutbox,
   endUsers,
   notificationOutbox,
   notificationPreferences,
-  notifications,
   organizations,
   projects,
   runMigrations,
 } from '@gami/database';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { renderEmailTemplate } from '../email/templates.js';
 import { createNotificationIntent } from '../service.js';
 

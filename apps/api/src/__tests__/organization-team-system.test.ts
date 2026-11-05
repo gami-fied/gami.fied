@@ -5,13 +5,10 @@ import {
   invitation,
   member,
   organizations,
-  projectMembers,
-  projects,
   runMigrations,
-  users,
 } from '@gami/database';
 import { Gami } from '@gami.fied/sdk';
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
@@ -33,7 +30,6 @@ describe('Milestone 21 — Organization & Team Management System Test Suite', ()
   let memberCookie: string;
   let memberUserId: string;
 
-  let otherOrgId: string;
   let projectId: string;
 
   beforeAll(async () => {
@@ -109,13 +105,12 @@ describe('Milestone 21 — Organization & Team Management System Test Suite', ()
     });
 
     // 5. Create Secondary Org for Isolation Tests
-    const createOtherOrgRes = await app.inject({
+    await app.inject({
       method: 'POST',
       url: '/api/organizations',
       headers: { cookie: ownerCookie },
       payload: { name: 'Other Isolated Org', slug: `other-org-${randomUUID().substring(0, 8)}` },
     });
-    otherOrgId = JSON.parse(createOtherOrgRes.payload).id;
   });
 
   afterAll(async () => {

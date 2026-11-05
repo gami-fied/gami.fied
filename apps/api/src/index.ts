@@ -1,5 +1,13 @@
+import { projectAlertRoutes } from './projects/alerts.js';
+import { errorFormatHook } from './middleware/error-format.js';
+import { addUserResolution } from './middleware/resolve-user.js';
+import { endUserRoutes } from './public/end-user.js';
+import { publicApiRoutes } from './public/gateway.js';
+import { startBackupScheduler } from './admin/backups/backup-scheduler.js';
+import { unsubscribeRoutes } from './notifications/unsubscribe.js';
 import cors from '@fastify/cors';
-import { defaultConfig, validateProductionConfig } from '@gami/config';
+import helmet from '@fastify/helmet';
+import { defaultConfig, product, validateProductionConfig } from '@gami/config';
 import { checkDatabaseHealth, runMigrations } from '@gami/database';
 import { checkRedisHealth } from '@gami/queue';
 import Fastify from 'fastify';
@@ -44,6 +52,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { analyticsRoutes } from './analytics/index.js';
 import { globalErrorHandler } from './middleware/error-handler.js';
+import { ipRateLimitHook } from './middleware/rate-limiter.js';
 import { requestTracingHook } from './middleware/request-tracing.js';
 
 export async function buildServer() {
@@ -52,10 +61,15 @@ export async function buildServer() {
       level: process.env.NODE_ENV === 'test' ? 'silent' : 'info',
     },
     bodyLimit: 65536, // Enforce 64KB max request body limit across API
+    // Only honour X-Forwarded-* when a trusted reverse proxy sets them.
+    trustProxy: process.env.TRUST_PROXY === 'true',
   });
 
   // Request tracing & correlation ID propagation
   fastify.addHook('onRequest', requestTracingHook);
+
+  // Per-IP ceiling for all routes except health checks
+  fastify.addHook('onRequest', ipRateLimitHook);
 
   // Global standardized API error handler
   fastify.setErrorHandler(globalErrorHandler);
@@ -72,9 +86,15 @@ export async function buildServer() {
     processMetrics.recordHttpRequest(request.method, route, reply.statusCode, durationMs);
   });
 
+  await fastify.register(helmet);
+
+  // Both apply to routes registered below.
+  fastify.addHook('onRoute', addUserResolution);
+  fastify.addHook('onSend', errorFormatHook);
+
   // Register CORS for Dashboard and external clients
-  await fastify.register(cors, {
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+  const dashboardCors = {
+    origin: getAllowedOrigins(),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
@@ -85,7 +105,17 @@ export async function buildServer() {
       'Idempotency-Key',
       'Cookie',
     ],
-  });
+  };
+  // End-user tokens are made for customers' sites. A preflight carries no token, so the site is
+  // checked against the project's allowlist on the real request.
+  const endUserCors = { origin: true, credentials: false, methods: ['GET', 'OPTIONS'] };
+
+  await fastify.register(
+    cors,
+    () => (request: { url?: string }, callback: (error: Error | null, options: object) => void) => {
+      callback(null, request.url?.startsWith('/v1/me') ? endUserCors : dashboardCors);
+    }
+  );
 
   // Serve OpenAPI 3.1 Specification JSON
   fastify.get('/openapi.json', async (_request, reply) => {
@@ -122,7 +152,7 @@ export async function buildServer() {
   fastify.get('/', async (_request, reply) => {
     return reply.status(200).send({
       name: 'Gami.Fied Community Engine API',
-      version: '0.1.0',
+      version: product.version,
       status: 'online',
       health: '/health',
       ready: '/ready',
@@ -235,10 +265,14 @@ export async function buildServer() {
 
   // Register Project Onboarding Checklist backend endpoint
   await fastify.register(projectOnboardingRoutes);
+  await fastify.register(projectAlertRoutes);
 
   // Register Email OTP Verification & User Profile endpoints
   await fastify.register(otpRoutes);
   await fastify.register(userProfileRoutes);
+  await fastify.register(unsubscribeRoutes);
+  await fastify.register(publicApiRoutes);
+  await fastify.register(endUserRoutes);
 
   // Register Project Analytics & Reporting endpoints (/api/projects/:projectId/analytics/*)
   await fastify.register(analyticsRoutes);
@@ -248,18 +282,37 @@ export async function buildServer() {
 
 export const buildApp = buildServer;
 
+/** The dashboard's address, anything in TRUSTED_ORIGINS, and localhost outside production. */
+function getAllowedOrigins(): string[] {
+  const configured = [
+    process.env['NEXT_PUBLIC_APP_URL'],
+    ...(process.env['TRUSTED_ORIGINS']?.split(',') ?? []),
+  ];
+  const local =
+    process.env['NODE_ENV'] === 'production'
+      ? []
+      : ['http://localhost:3000', 'http://localhost:3001'];
+
+  return [
+    ...new Set([...local, ...configured.map((origin) => origin?.trim()).filter(Boolean)]),
+  ] as string[];
+}
+
 async function start() {
   validateProductionConfig();
 
+  // A failed migration means the code and schema disagree, so the API must not serve traffic.
   try {
     await runMigrations();
   } catch (err) {
-    console.error('[API] Migration check during startup:', err);
+    console.error('[API] Migration failed, refusing to start:', err);
+    process.exit(1);
   }
   const app = await buildServer();
   try {
     await app.listen({ port: defaultConfig.port, host: '0.0.0.0' });
     app.log.info(`🚀 API server listening on http://0.0.0.0:${defaultConfig.port}`);
+    startBackupScheduler();
 
     const handleShutdown = async (signal: string) => {
       app.log.info(`[API] Received ${signal}, closing Fastify server gracefully...`);

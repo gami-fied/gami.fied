@@ -1,7 +1,5 @@
-import crypto from 'crypto';
 import {
   achievements,
-  auditLogs,
   challenges,
   db,
   endUsers,
@@ -14,13 +12,110 @@ import {
   rules,
   userAchievements,
   userChallengeProgress,
+  userXpBalances,
   webhookEndpoints,
   xpLedger,
 } from '@gami/database';
 import { eq, inArray } from 'drizzle-orm';
+import type { PgTable } from 'drizzle-orm/pg-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createAuditLog } from '../audit-logs/index.js';
-import { requireOrgRole, requirePlatformAdmin } from '../authorization/index.js';
+import { requireOrgRole } from '../authorization/index.js';
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Postgres limits the parameters in one statement, so large imports go in chunks. */
+async function insertChunks<T extends PgTable>(
+  tx: Transaction,
+  table: T,
+  rows: T['$inferInsert'][]
+): Promise<void> {
+  const CHUNK_SIZE = 500;
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    await tx.insert(table).values(rows.slice(i, i + CHUNK_SIZE));
+  }
+}
+
+/** The fields of an organization export that validation and import read. */
+interface OrgImportPackage {
+  format?: string;
+  version?: number;
+  manifest?: unknown;
+  projects?: { id: string; name: string; slug: string }[];
+  users?: {
+    id: string;
+    projectId: string;
+    externalId: string;
+    name?: string | null;
+    email?: string | null;
+  }[];
+  events?: {
+    id: string;
+    projectId: string;
+    userId?: string | null;
+    type: string;
+    payload?: Record<string, unknown>;
+    occurredAt: string;
+  }[];
+  xpLedger?: {
+    projectId: string;
+    userId: string;
+    eventId?: string | null;
+    amount: number;
+    reason: string;
+    metadata?: Record<string, unknown> | null;
+    createdAt?: string;
+  }[];
+  levels?: {
+    projectId: string;
+    level: number;
+    name: string;
+    requiredXp?: number;
+    minXp?: number;
+  }[];
+  userAchievements?: {
+    projectId: string;
+    userId: string;
+    achievementId: string;
+    awardedAt?: string;
+  }[];
+  userChallengeProgress?: {
+    projectId: string;
+    userId: string;
+    challengeId: string;
+    progress: number;
+    completed: boolean;
+    completedAt?: string | null;
+  }[];
+  achievements?: {
+    id: string;
+    projectId: string;
+    key: string;
+    name: string;
+    description?: string | null;
+    iconUrl?: string | null;
+    enabled?: boolean;
+  }[];
+  challenges?: {
+    id: string;
+    projectId: string;
+    key: string;
+    name: string;
+    trigger: string;
+    target?: number;
+    description?: string | null;
+    rewards?: unknown[];
+    enabled?: boolean;
+  }[];
+  rules?: {
+    projectId: string;
+    name: string;
+    trigger: string;
+    conditions?: unknown;
+    actions?: unknown[];
+    enabled?: boolean;
+  }[];
+}
 
 export async function organizationDataRoutes(fastify: FastifyInstance) {
   const exportHandler = async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
@@ -41,51 +136,36 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     const orgProjects = await db.select().from(projects).where(eq(projects.organizationId, organizationId));
     const projectIds = orgProjects.map((p) => p.id);
 
-    let orgUsers: any[] = [];
-    let orgEvents: any[] = [];
-    let orgXp: any[] = [];
-    let orgLevels: any[] = [];
-    let orgAchievements: any[] = [];
-    let orgUserAchievements: any[] = [];
-    let orgChallenges: any[] = [];
-    let orgChallengeProgress: any[] = [];
-    let orgRules: any[] = [];
-    let orgNotifications: any[] = [];
-    let orgWebhooks: any[] = [];
-    let orgIntegrations: any[] = [];
-    let orgAuditLogs: any[] = [];
-
-    if (projectIds.length > 0) {
-      [
-        orgUsers,
-        orgEvents,
-        orgXp,
-        orgLevels,
-        orgAchievements,
-        orgUserAchievements,
-        orgChallenges,
-        orgChallengeProgress,
-        orgRules,
-        orgNotifications,
-        orgWebhooks,
-        orgIntegrations,
-        orgAuditLogs,
-      ] = await Promise.all([
-        db.select().from(endUsers).where(inArray(endUsers.projectId, projectIds)),
-        db.select().from(events).where(inArray(events.projectId, projectIds)),
-        db.select().from(xpLedger).where(inArray(xpLedger.projectId, projectIds)),
-        db.select().from(levels).where(inArray(levels.projectId, projectIds)),
-        db.select().from(achievements).where(inArray(achievements.projectId, projectIds)),
-        db.select().from(userAchievements).where(inArray(userAchievements.projectId, projectIds)),
-        db.select().from(challenges).where(inArray(challenges.projectId, projectIds)),
-        db.select().from(userChallengeProgress).where(inArray(userChallengeProgress.projectId, projectIds)),
-        db.select().from(rules).where(inArray(rules.projectId, projectIds)),
-        db.select().from(notifications).where(inArray(notifications.projectId, projectIds)),
-        db.select().from(webhookEndpoints).where(inArray(webhookEndpoints.projectId, projectIds)),
-        db.select().from(integrations).where(inArray(integrations.projectId, projectIds)),
-        db.select().from(auditLogs).where(eq(auditLogs.organizationId, organizationId)),
-      ]);
-    }
+    const [
+      orgUsers,
+      orgEvents,
+      orgXp,
+      orgLevels,
+      orgAchievements,
+      orgUserAchievements,
+      orgChallenges,
+      orgChallengeProgress,
+      orgRules,
+      orgNotifications,
+      orgWebhooks,
+      orgIntegrations,
+    ] = await Promise.all([
+      db.select().from(endUsers).where(inArray(endUsers.projectId, projectIds)),
+      db.select().from(events).where(inArray(events.projectId, projectIds)),
+      db.select().from(xpLedger).where(inArray(xpLedger.projectId, projectIds)),
+      db.select().from(levels).where(inArray(levels.projectId, projectIds)),
+      db.select().from(achievements).where(inArray(achievements.projectId, projectIds)),
+      db.select().from(userAchievements).where(inArray(userAchievements.projectId, projectIds)),
+      db.select().from(challenges).where(inArray(challenges.projectId, projectIds)),
+      db
+        .select()
+        .from(userChallengeProgress)
+        .where(inArray(userChallengeProgress.projectId, projectIds)),
+      db.select().from(rules).where(inArray(rules.projectId, projectIds)),
+      db.select().from(notifications).where(inArray(notifications.projectId, projectIds)),
+      db.select().from(webhookEndpoints).where(inArray(webhookEndpoints.projectId, projectIds)),
+      db.select().from(integrations).where(inArray(integrations.projectId, projectIds)),
+    ]);
 
     // STRICT SECRET REDACTION SHIELD
     const sanitizedWebhooks = orgWebhooks.map((w) => ({
@@ -102,7 +182,7 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     const sanitizedIntegrations = orgIntegrations.map((i) => ({
       id: i.id,
       projectId: i.projectId,
-      type: i.type,
+      type: i.provider,
       name: i.name,
       enabled: i.enabled,
       credentialsConfigured: true, // Webhook URLs/Tokens redacted!
@@ -129,14 +209,14 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
       },
       projects: orgProjects.map((p) => ({ id: p.id, name: p.name, slug: p.slug })),
       users: orgUsers.map((u) => ({ id: u.id, projectId: u.projectId, externalId: u.externalId, name: u.name, email: u.email })),
-      events: orgEvents.map((e) => ({ id: e.id, projectId: e.projectId, userId: e.userId, type: e.type, occurredAt: e.occurredAt })),
-      xpLedger: orgXp.map((x) => ({ id: x.id, projectId: x.projectId, userId: x.userId, amount: x.amount, reason: x.reason })),
-      levels: orgLevels.map((l) => ({ id: l.id, projectId: l.projectId, level: l.level, name: l.name, minXp: l.minXp })),
-      achievements: orgAchievements.map((a) => ({ id: a.id, projectId: a.projectId, key: a.key, name: a.name, description: a.description })),
+      events: orgEvents.map((e) => ({ id: e.id, projectId: e.projectId, userId: e.userId, type: e.type, payload: e.payload, occurredAt: e.occurredAt })),
+      xpLedger: orgXp.map((x) => ({ id: x.id, projectId: x.projectId, userId: x.userId, eventId: x.eventId, amount: x.amount, reason: x.reason, metadata: x.metadata, createdAt: x.createdAt })),
+      levels: orgLevels.map((l) => ({ id: l.id, projectId: l.projectId, level: l.level, name: l.name, requiredXp: l.requiredXp })),
+      achievements: orgAchievements.map((a) => ({ id: a.id, projectId: a.projectId, key: a.key, name: a.name, description: a.description, iconUrl: a.iconUrl, enabled: a.enabled })),
       userAchievements: orgUserAchievements.map((ua) => ({ id: ua.id, projectId: ua.projectId, userId: ua.userId, achievementId: ua.achievementId, awardedAt: ua.awardedAt })),
-      challenges: orgChallenges.map((c) => ({ id: c.id, projectId: c.projectId, key: c.key, name: c.name, trigger: c.trigger, target: c.target })),
-      userChallengeProgress: orgChallengeProgress.map((ucp) => ({ id: ucp.id, projectId: ucp.projectId, userId: ucp.userId, challengeId: ucp.challengeId, progress: ucp.progress, completed: ucp.completed })),
-      rules: orgRules.map((r) => ({ id: r.id, projectId: r.projectId, key: r.key, name: r.name, trigger: r.trigger, enabled: r.enabled })),
+      challenges: orgChallenges.map((c) => ({ id: c.id, projectId: c.projectId, key: c.key, name: c.name, description: c.description, trigger: c.trigger, target: c.target, rewards: c.rewards, enabled: c.enabled })),
+      userChallengeProgress: orgChallengeProgress.map((ucp) => ({ id: ucp.id, projectId: ucp.projectId, userId: ucp.userId, challengeId: ucp.challengeId, progress: ucp.progress, completed: ucp.completed, completedAt: ucp.completedAt })),
+      rules: orgRules.map((r) => ({ id: r.id, projectId: r.projectId, name: r.name, trigger: r.trigger, conditions: r.conditions, actions: r.actions, enabled: r.enabled })),
       notifications: orgNotifications.map((n) => ({ id: n.id, projectId: n.projectId, userId: n.userId, type: n.type, title: n.title, message: n.message })),
       webhooks: sanitizedWebhooks,
       integrations: sanitizedIntegrations,
@@ -160,12 +240,12 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
       .send(exportPackage);
   };
 
-  const validateHandler = async (request: FastifyRequest<{ Params: { organizationId: string }; Body: any }>, reply: FastifyReply) => {
+  const validateHandler = async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
     const { organizationId } = request.params;
     const authResult = await requireOrgRole(request, reply, organizationId, ['owner', 'admin']);
     if (!authResult) return;
 
-    const payload = request.body as any;
+    const payload = request.body as OrgImportPackage | null;
     const warnings: string[] = [];
 
     if (!payload || payload.format !== 'gami-organization-export') {
@@ -205,12 +285,12 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     });
   };
 
-  const importHandler = async (request: FastifyRequest<{ Params: { organizationId: string }; Body: any }>, reply: FastifyReply) => {
+  const importHandler = async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
     const { organizationId } = request.params;
     const authResult = await requireOrgRole(request, reply, organizationId, ['owner', 'admin']);
     if (!authResult) return;
 
-    const payload = request.body as any;
+    const payload = request.body as OrgImportPackage | null;
 
     if (!payload || payload.format !== 'gami-organization-export' || payload.version !== 1) {
       return reply.status(400).send({
@@ -226,6 +306,8 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     const userIdMap = new Map<string, string>();
     const achievementIdMap = new Map<string, string>();
     const challengeIdMap = new Map<string, string>();
+    const eventIdMap = new Map<string, string>();
+    const counts: Record<string, number> = {};
 
     await db.transaction(async (tx) => {
       // 1. Remap Projects
@@ -273,6 +355,8 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
               key: `${a.key}_imp_${idx}`,
               name: a.name,
               description: a.description || null,
+              iconUrl: a.iconUrl ?? null,
+              enabled: a.enabled ?? true,
             });
           }
         }
@@ -292,6 +376,9 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
               name: c.name,
               trigger: c.trigger,
               target: c.target || 1,
+              description: c.description ?? null,
+              rewards: c.rewards ?? [],
+              enabled: c.enabled ?? true,
             });
           }
         }
@@ -307,11 +394,116 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
               projectId: targetProjId,
               name: r.name,
               trigger: r.trigger,
+              conditions: r.conditions ?? null,
+              actions: r.actions ?? [],
               enabled: r.enabled ?? true,
             });
           }
         }
       }
+
+      // 6. Remap Levels
+      await insertChunks(
+        tx,
+        levels,
+        (payload.levels ?? []).flatMap((l, idx) => {
+          const projectId = projectIdMap.get(l.projectId);
+          return projectId
+            ? [{
+                id: `lvl_imp_${timestamp}_${idx}`,
+                projectId,
+                level: l.level,
+                name: l.name,
+                requiredXp: l.requiredXp ?? l.minXp ?? 0,
+              }]
+            : [];
+        })
+      );
+      counts.levels = payload.levels?.length ?? 0;
+
+      // 7. Remap Events. Outbox rows are not created, so history is not processed a second time.
+      const importedEvents = (payload.events ?? []).flatMap((e, idx) => {
+        const projectId = projectIdMap.get(e.projectId);
+        if (!projectId) return [];
+        const id = `evt_imp_${timestamp}_${idx}`;
+        eventIdMap.set(e.id, id);
+        return [{
+          id,
+          projectId,
+          userId: e.userId ? (userIdMap.get(e.userId) ?? null) : null,
+          type: e.type,
+          payload: e.payload ?? {},
+          occurredAt: new Date(e.occurredAt),
+        }];
+      });
+      await insertChunks(tx, events, importedEvents);
+      counts.events = importedEvents.length;
+
+      // 8. Remap XP, and rebuild balances from the ledger so the two always agree
+      const totals = new Map<string, { projectId: string; userId: string; totalXp: number }>();
+      const importedXp = (payload.xpLedger ?? []).flatMap((x, idx) => {
+        const projectId = projectIdMap.get(x.projectId);
+        const userId = userIdMap.get(x.userId);
+        if (!projectId || !userId) return [];
+        const total = totals.get(userId) ?? { projectId, userId, totalXp: 0 };
+        total.totalXp += x.amount;
+        totals.set(userId, total);
+        return [{
+          id: `xpl_imp_${timestamp}_${idx}`,
+          projectId,
+          userId,
+          eventId: x.eventId ? (eventIdMap.get(x.eventId) ?? null) : null,
+          amount: x.amount,
+          reason: x.reason,
+          metadata: x.metadata ?? {},
+          createdAt: x.createdAt ? new Date(x.createdAt) : new Date(),
+        }];
+      });
+      await insertChunks(tx, xpLedger, importedXp);
+      await insertChunks(
+        tx,
+        userXpBalances,
+        [...totals.values()].map((total, idx) => ({ id: `xpb_imp_${timestamp}_${idx}`, ...total }))
+      );
+      counts.xpLedger = importedXp.length;
+
+      // 9. Remap awarded badges
+      const importedBadges = (payload.userAchievements ?? []).flatMap((ua, idx) => {
+        const projectId = projectIdMap.get(ua.projectId);
+        const userId = userIdMap.get(ua.userId);
+        const achievementId = achievementIdMap.get(ua.achievementId);
+        return projectId && userId && achievementId
+          ? [{
+              id: `uach_imp_${timestamp}_${idx}`,
+              projectId,
+              userId,
+              achievementId,
+              awardedAt: ua.awardedAt ? new Date(ua.awardedAt) : new Date(),
+            }]
+          : [];
+      });
+      await insertChunks(tx, userAchievements, importedBadges);
+      counts.userAchievements = importedBadges.length;
+
+      // 10. Remap challenge progress
+      const importedProgress = (payload.userChallengeProgress ?? []).flatMap((ucp, idx) => {
+        const projectId = projectIdMap.get(ucp.projectId);
+        const userId = userIdMap.get(ucp.userId);
+        const challengeId = challengeIdMap.get(ucp.challengeId);
+        return projectId && userId && challengeId
+          ? [{
+              id: `ucp_imp_${timestamp}_${idx}`,
+              projectId,
+              userId,
+              challengeId,
+              progress: ucp.progress,
+              completed: ucp.completed,
+              completedAt: ucp.completedAt ? new Date(ucp.completedAt) : null,
+            }]
+          : [];
+      });
+      await insertChunks(tx, userChallengeProgress, importedProgress);
+      counts.userChallengeProgress = importedProgress.length;
     });
 
     await createAuditLog(db, {
@@ -336,6 +528,7 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
         users: userIdMap.size,
         achievements: achievementIdMap.size,
         challenges: challengeIdMap.size,
+        ...counts,
       },
     });
   };
@@ -345,11 +538,14 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
   fastify.post('/v1/organizations/:organizationId/export', exportHandler);
   fastify.post('/api/v1/organizations/:organizationId/export', exportHandler);
 
-  fastify.post('/api/organizations/:organizationId/import/validate', validateHandler);
-  fastify.post('/v1/organizations/:organizationId/import/validate', validateHandler);
-  fastify.post('/api/v1/organizations/:organizationId/import/validate', validateHandler);
+  // Exports are far larger than the API's normal 64 KB body limit.
+  const largeBody = { bodyLimit: Number(process.env.ORG_IMPORT_MAX_BYTES) || 100 * 1024 * 1024 };
 
-  fastify.post('/api/organizations/:organizationId/import', importHandler);
-  fastify.post('/v1/organizations/:organizationId/import', importHandler);
-  fastify.post('/api/v1/organizations/:organizationId/import', importHandler);
+  fastify.post('/api/organizations/:organizationId/import/validate', largeBody, validateHandler);
+  fastify.post('/v1/organizations/:organizationId/import/validate', largeBody, validateHandler);
+  fastify.post('/api/v1/organizations/:organizationId/import/validate', largeBody, validateHandler);
+
+  fastify.post('/api/organizations/:organizationId/import', largeBody, importHandler);
+  fastify.post('/v1/organizations/:organizationId/import', largeBody, importHandler);
+  fastify.post('/api/v1/organizations/:organizationId/import', largeBody, importHandler);
 }

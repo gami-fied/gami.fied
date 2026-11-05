@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { achievements, db, userAchievements } from '@gami/database';
+import { achievements, db, userAchievements, isUniqueViolation } from '@gami/database';
 import { eq, and, desc, count, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -69,9 +69,7 @@ export async function achievementRoutes(fastify: FastifyInstance) {
 
         return reply.status(201).send(newAchievement);
       } catch (err: unknown) {
-        const error = err as { code?: string; cause?: { code?: string } };
-        const code = error.code || error.cause?.code;
-        if (code === '23505') {
+        if (isUniqueViolation(err)) {
           return reply.status(400).send({
             error: 'Bad Request',
             message: `Achievement key "${key}" already exists in project`,

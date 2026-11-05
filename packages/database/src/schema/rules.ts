@@ -12,7 +12,7 @@ export const rules = pgTable(
     description: text('description'),
     trigger: text('trigger').notNull(),
     conditions: jsonb('conditions'),
-    actions: jsonb('actions'),
+    actions: jsonb('actions').notNull(),
     enabled: boolean('enabled').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),

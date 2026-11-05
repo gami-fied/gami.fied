@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -12,7 +13,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
     "bullmq": "^5.65.1",
     "drizzle-orm": "^0.45.2",

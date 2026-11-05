@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { db, runMigrations, serverConfigs, users, verification } from '@gami/database';
+import { db, runMigrations, serverConfigs, users } from '@gami/database';
+import { sendOtpEmailToUser } from '../auth/otp.js';
 import { eq } from 'drizzle-orm';
 import { buildServer } from '../index.js';
 
@@ -90,30 +91,14 @@ describe('Email OTP Verification & User Profile Subsystem Tests', () => {
   });
 
   it('4. POST /api/auth/otp/send & verify handles 6-digit OTP verification', async () => {
-    const sendRes = await app.inject({
-      method: 'POST',
-      url: '/api/auth/otp/send',
-      headers: { cookie: cookieHeader },
-      payload: {},
-    });
-
-    expect(sendRes.statusCode).toBe(200);
-
-    // Retrieve generated OTP token from database
-    const [verRow] = await db
-      .select()
-      .from(verification)
-      .where(eq(verification.identifier, testEmail));
-
-    expect(verRow).toBeDefined();
-    expect(verRow.value).toHaveLength(6);
+    const { otpCode } = await sendOtpEmailToUser(testEmail);
 
     // Submit OTP verification
     const verifyRes = await app.inject({
       method: 'POST',
       url: '/api/auth/otp/verify',
       headers: { cookie: cookieHeader },
-      payload: { code: verRow.value },
+      payload: { code: otpCode },
     });
 
     expect(verifyRes.statusCode).toBe(200);

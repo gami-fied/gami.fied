@@ -3,7 +3,7 @@ import { challenges, db, endUsers, userChallengeProgress } from '@gami/database'
 import { validateChallengeInput } from '@gami/challenges';
 import { and, eq, sql } from 'drizzle-orm';
 import { FastifyInstance } from 'fastify';
-import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
+import { requireProjectAccess } from '../authorization/index.js';
 
 export async function challengeRoutes(fastify: FastifyInstance) {
   // 1. POST /api/projects/:projectId/challenges (Create challenge)
@@ -14,11 +14,6 @@ export async function challengeRoutes(fastify: FastifyInstance) {
     const access = await requireProjectAccess(request, reply, projectId);
     if (!access) return;
 
-    const roleAccess = await requireOrgRole(request, reply, access.project.organizationId, [
-      'owner',
-      'admin',
-    ]);
-    if (!roleAccess) return;
 
     const validation = validateChallengeInput(request.body);
     if (!validation.valid || !validation.sanitized) {
@@ -185,11 +180,6 @@ export async function challengeRoutes(fastify: FastifyInstance) {
     const access = await requireProjectAccess(request, reply, projectId);
     if (!access) return;
 
-    const roleAccess = await requireOrgRole(request, reply, access.project.organizationId, [
-      'owner',
-      'admin',
-    ]);
-    if (!roleAccess) return;
 
     const [existing] = await db
       .select()
@@ -236,11 +226,6 @@ export async function challengeRoutes(fastify: FastifyInstance) {
     const access = await requireProjectAccess(request, reply, projectId);
     if (!access) return;
 
-    const roleAccess = await requireOrgRole(request, reply, access.project.organizationId, [
-      'owner',
-      'admin',
-    ]);
-    if (!roleAccess) return;
 
     const [existing] = await db
       .select()

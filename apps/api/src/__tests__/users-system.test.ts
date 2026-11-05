@@ -98,7 +98,7 @@ describe('Milestone 15 — Users API & User Management System Test Suite', () =>
     projIdB = prjB.id;
 
     // 5. Generate API Key for Project A
-    const keyData = await createApiKey(projIdA, 'Users Test API Key');
+    const keyData = await createApiKey(projIdA, 'Users Test API Key', ['*']);
     apiKeySecretA = keyData.rawSecret;
 
     // 6. Instantiate Gami SDK client
@@ -153,7 +153,7 @@ describe('Milestone 15 — Users API & User Management System Test Suite', () =>
 
     expect(res.statusCode).toBe(409);
     const body = JSON.parse(res.payload);
-    expect(body.error).toBe('Conflict');
+    expect(body.error.code).toBe('CONFLICT');
   });
 
   it('3. List project users via GET /api/projects/:projectId/users', async () => {

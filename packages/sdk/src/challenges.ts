@@ -1,4 +1,4 @@
-import type { HttpClient } from './http.js';
+import { projectPath, type HttpClient } from './http.js';
 import type {
   ChallengeRecord,
   ChallengeSummaryResponse,
@@ -16,13 +16,10 @@ export class ChallengesResource {
    * Calls GET /api/projects/:projectId/challenges
    */
   public async list(params: ListChallengesParams): Promise<ChallengeRecord[]> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.challenges.list()');
-    }
 
     return this.http.request<ChallengeRecord[]>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/challenges`,
+      path: projectPath(params.projectId, `/challenges`),
     });
   }
 
@@ -31,16 +28,13 @@ export class ChallengesResource {
    * Calls GET /api/projects/:projectId/challenges/:challengeId
    */
   public async get(params: GetChallengeParams): Promise<ChallengeRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.challenges.get()');
-    }
     if (!params.challengeId) {
       throw new Error('challengeId is required for gami.challenges.get()');
     }
 
     return this.http.request<ChallengeRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/challenges/${params.challengeId}`,
+      path: projectPath(params.projectId, `/challenges/${params.challengeId}`),
     });
   }
 
@@ -48,14 +42,11 @@ export class ChallengesResource {
    * Get project challenge summary metrics.
    * Calls GET /api/projects/:projectId/challenges/summary
    */
-  public async summary(params: { projectId: string }): Promise<ChallengeSummaryResponse> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.challenges.summary()');
-    }
+  public async summary(params: { projectId?: string }): Promise<ChallengeSummaryResponse> {
 
     return this.http.request<ChallengeSummaryResponse>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/challenges/summary`,
+      path: projectPath(params.projectId, `/challenges/summary`),
     });
   }
 
@@ -66,16 +57,13 @@ export class ChallengesResource {
   public async listForUser(
     params: ListUserChallengesParams
   ): Promise<UserChallengeProgressRecord[]> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.challenges.listForUser()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.challenges.listForUser()');
     }
 
     return this.http.request<UserChallengeProgressRecord[]>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/challenges`,
+      path: projectPath(params.projectId, `/users/${params.userId}/challenges`),
     });
   }
 
@@ -88,9 +76,6 @@ export class ChallengesResource {
     userId: string;
     challengeId: string;
   }): Promise<UserChallengeProgressRecord> {
-    if (!params.projectId) {
-      throw new Error('projectId is required for gami.challenges.getForUser()');
-    }
     if (!params.userId) {
       throw new Error('userId is required for gami.challenges.getForUser()');
     }
@@ -100,7 +85,7 @@ export class ChallengesResource {
 
     return this.http.request<UserChallengeProgressRecord>({
       method: 'GET',
-      path: `/api/projects/${params.projectId}/users/${params.userId}/challenges/${params.challengeId}`,
+      path: projectPath(params.projectId, `/users/${params.userId}/challenges/${params.challengeId}`),
     });
   }
 }

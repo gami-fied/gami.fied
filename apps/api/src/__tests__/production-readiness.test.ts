@@ -9,9 +9,9 @@ import { createAuditLog } from '../audit-logs/index.js';
 
 describe('Milestone 17 — Production Readiness & Observability Test Suite', () => {
   let app: Awaited<ReturnType<typeof buildServer>>;
-  let testProjectId = 'prj_prod_test_123';
-  let testOrgId = 'org_prod_test_123';
-  let testUserId = 'usr_prod_test_123';
+  const testProjectId = 'prj_prod_test_123';
+  const testOrgId = 'org_prod_test_123';
+  const testUserId = 'usr_prod_test_123';
 
   beforeAll(async () => {
     await runMigrations();

@@ -1,4 +1,4 @@
-import { db, organizations, projects, apiKeys, events } from '@gami/database';
+import { db, organizations, projects } from '@gami/database';
 import { Gami } from '@gami.fied/sdk';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -35,8 +35,8 @@ describe('Milestone 23 — Developer Experience & API Platform', () => {
       ]);
 
       const { createApiKey } = await import('../services/api-key.service.js');
-      const keyA = await createApiKey(projectIdA, 'Key A');
-      const keyB = await createApiKey(projectIdB, 'Key B');
+      const keyA = await createApiKey(projectIdA, 'Key A', ['*']);
+      const keyB = await createApiKey(projectIdB, 'Key B', ['*']);
       rawApiKeyA = keyA.rawSecret;
       rawApiKeyB = keyB.rawSecret;
       dbAvailable = true;
@@ -213,7 +213,7 @@ describe('Milestone 23 — Developer Experience & API Platform', () => {
 
   it('6. SDK Compatibility & gami.events.ingest()', async () => {
     const sdk = new Gami({
-      apiKey: rawApiKeyA || 'gami_pk_live_sample_key_123',
+      apiKey: rawApiKeyA || 'gami_live_sample_key_123',
       baseUrl: 'http://localhost:3001',
     });
 

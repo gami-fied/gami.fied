@@ -1,8 +1,18 @@
-import { db, endUsers, levels, userXpBalances } from '@gami/database';
+import { db, endUsers, levels, userXpBalances, isUniqueViolation } from '@gami/database';
 import { calculateLevel, validateLevelDefinitions } from '@gami/progression';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { requireOrgRole, requireProjectAccess } from '../authorization/index.js';
+import { z } from 'zod';
+import { requireProjectAccess } from '../authorization/index.js';
+
+const createLevelSchema = z.object({
+  level: z.number().int().min(1),
+  name: z.string().min(1).max(128),
+  description: z.string().max(1024).optional(),
+  iconUrl: z.string().url().optional(),
+  requiredXp: z.number().int().min(0),
+  enabled: z.boolean().optional(),
+});
 
 export async function levelRoutes(fastify: FastifyInstance) {
   // Create Level (Owner/Admin)
@@ -13,28 +23,16 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
-      const { level, name, description, iconUrl, requiredXp, enabled } =
-        (request.body as {
-          level?: number;
-          name?: string;
-          description?: string;
-          iconUrl?: string;
-          requiredXp?: number;
-          enabled?: boolean;
-        }) || {};
-
-      if (level === undefined || !name || requiredXp === undefined) {
+      const parsedLevel = createLevelSchema.safeParse(request.body);
+      if (!parsedLevel.success) {
         return reply.status(400).send({
           error: 'Bad Request',
           message: 'level, name, and requiredXp are required fields',
+          details: parsedLevel.error.format(),
         });
       }
+      const { level, name, description, iconUrl, requiredXp, enabled } = parsedLevel.data;
 
       // Fetch existing levels for validation
       const existingLevels = await db.select().from(levels).where(eq(levels.projectId, projectId));
@@ -82,8 +80,7 @@ export async function levelRoutes(fastify: FastifyInstance) {
 
         return reply.status(201).send(createdLevel);
       } catch (err: unknown) {
-        const error = err as { code?: string };
-        if (error.code === '23505') {
+        if (isUniqueViolation(err)) {
           return reply.status(409).send({
             error: 'Conflict',
             message: 'A level with this level number or required XP threshold already exists',
@@ -141,11 +138,6 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
       const [existingLevel] = await db
         .select()
@@ -213,8 +205,7 @@ export async function levelRoutes(fastify: FastifyInstance) {
 
         return reply.send(updatedLevel);
       } catch (err: unknown) {
-        const error = err as { code?: string };
-        if (error.code === '23505') {
+        if (isUniqueViolation(err)) {
           return reply.status(409).send({
             error: 'Conflict',
             message: 'A level with this level number or required XP threshold already exists',
@@ -233,11 +224,6 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      const orgAuth = await requireOrgRole(request, reply, authResult.project.organizationId, [
-        'owner',
-        'admin',
-      ]);
-      if (!orgAuth) return;
 
       const [existingLevel] = await db
         .select()
@@ -320,13 +306,17 @@ export async function levelRoutes(fastify: FastifyInstance) {
 
       const calcResult = calculateLevel(totalXp, activeLevels);
 
+      // Level numbers can have gaps when a level is disabled.
+      const nextDefinition = activeLevels
+        .filter((l) => l.level > calcResult.level)
+        .sort((a, b) => a.level - b.level)[0];
+
       const nextLevelObj =
-        calcResult.isMaxLevel || calcResult.nextLevelXp === null
+        calcResult.isMaxLevel || calcResult.nextLevelXp === null || !nextDefinition
           ? null
           : {
-              number: calcResult.level + 1,
-              name:
-                activeLevels.find((l) => l.level === calcResult.level + 1)?.name || 'Next Level',
+              number: nextDefinition.level,
+              name: nextDefinition.name,
               requiredXp: calcResult.nextLevelXp,
             };
 

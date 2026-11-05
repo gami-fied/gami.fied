@@ -109,10 +109,8 @@ export function getLevelsCrossed(
     return [];
   }
 
-  const crossed: number[] = [];
-  for (let lvl = prevRes.level + 1; lvl <= newRes.level; lvl++) {
-    crossed.push(lvl);
-  }
-
-  return crossed;
+  return levelsInput
+    .filter((l) => l.enabled !== false && l.level > prevRes.level && l.level <= newRes.level)
+    .map((l) => l.level)
+    .sort((a, b) => a - b);
 }

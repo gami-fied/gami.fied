@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const targetApiBase =
     process.env.API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
@@ -22,40 +22,5 @@ export async function GET(_request: NextRequest) {
     console.error('[OpenAPI Proxy Error] Failed to fetch /openapi.json:', err);
   }
 
-  // Fallback OpenAPI specification if API container is starting
-  return NextResponse.json({
-    openapi: '3.1.0',
-    info: {
-      title: 'Gami.Fied Community Edition API',
-      version: '0.1.0',
-      description: 'Canonical developer and project-scoped API reference for Gami.Fied Community Engine.',
-    },
-    servers: [{ url: 'http://localhost:3001', description: 'Local API Server' }],
-    paths: {
-      '/v1/events': {
-        post: {
-          summary: 'Public Event Ingestion Endpoint',
-          description: 'Ingests a gamification event. Returns 202 Accepted upon enqueueing to the outbox.',
-        },
-      },
-      '/api/projects/{projectId}/metrics': {
-        get: {
-          summary: 'Project API Usage Metrics',
-          description: 'Returns total requests, event ingestion volume, and health stats.',
-        },
-      },
-      '/health': {
-        get: {
-          summary: 'Liveness Health Check',
-          description: 'Lightweight process liveness health check.',
-        },
-      },
-      '/ready': {
-        get: {
-          summary: 'Readiness Dependency Probe',
-          description: 'Probes PostgreSQL & Redis database connectivity.',
-        },
-      },
-    },
-  });
+  return NextResponse.json({ message: 'The API is not available' }, { status: 502 });
 }

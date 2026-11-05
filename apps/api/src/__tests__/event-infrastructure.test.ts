@@ -56,7 +56,7 @@ describe('Milestone 5 - Core Event Infrastructure & E2E Integration Suite', () =
     projId = prj.id;
 
     // 3. Create API Key
-    const keyData = await createApiKey(projId, 'Test Ingestion Key');
+    const keyData = await createApiKey(projId, 'Test Ingestion Key', ['*']);
     apiKeySecret = keyData.rawSecret;
   });
 

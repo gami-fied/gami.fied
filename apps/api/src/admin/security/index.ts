@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { requirePlatformAdmin } from '../../authorization/index.js';
-import { securityConfigSchema, ServerConfigService } from '../../services/server-config.service.js';
+import { ServerConfigService } from '../../services/server-config.service.js';
 
 export async function adminSecurityRoutes(fastify: FastifyInstance) {
   // GET /api/admin/security (Current Security Policies & Status)

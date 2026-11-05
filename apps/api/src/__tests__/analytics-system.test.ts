@@ -10,7 +10,6 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
   let projectIdA: string;
   let projectIdB: string;
   let rawApiKeyA: string;
-  let rawApiKeyB: string;
   let dbAvailable = false;
 
   beforeAll(async () => {
@@ -34,10 +33,8 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
       ]);
 
       const { createApiKey } = await import('../services/api-key.service.js');
-      const keyA = await createApiKey(projectIdA, 'Analytics Key A');
-      const keyB = await createApiKey(projectIdB, 'Analytics Key B');
+      const keyA = await createApiKey(projectIdA, 'Analytics Key A', ['*']);
       rawApiKeyA = keyA.rawSecret;
-      rawApiKeyB = keyB.rawSecret;
       dbAvailable = true;
     } catch {
       dbAvailable = false;
@@ -72,7 +69,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
       method: 'GET',
       url: `/api/projects/${projectIdA}/analytics/overview?range=7d`,
       headers: {
-        'x-api-key': rawApiKeyA || 'gami_pk_live_sample_key_123',
+        'x-api-key': rawApiKeyA || 'gami_live_sample_key_123',
       },
     });
 
@@ -96,7 +93,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
         method: 'GET',
         url: `/api/projects/${projectIdA}/analytics/users?range=${r}`,
         headers: {
-          'x-api-key': rawApiKeyA || 'gami_pk_live_sample_key_123',
+          'x-api-key': rawApiKeyA || 'gami_live_sample_key_123',
         },
       });
       expect(res.statusCode).toBe(200);
@@ -111,7 +108,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
       method: 'GET',
       url: `/api/projects/${projectIdA}/analytics/export?type=all`,
       headers: {
-        'x-api-key': rawApiKeyA || 'gami_pk_live_sample_key_123',
+        'x-api-key': rawApiKeyA || 'gami_live_sample_key_123',
       },
     });
 
@@ -123,7 +120,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
 
   it('5. SDK Analytics Client Compatibility', async () => {
     const sdk = new Gami({
-      apiKey: rawApiKeyA || 'gami_pk_live_sample_key_123',
+      apiKey: rawApiKeyA || 'gami_live_sample_key_123',
       baseUrl: 'http://localhost:3001',
     });
 

@@ -754,7 +754,7 @@ export async function integrationRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { projectId: string; integrationId: string } }>(
     '/api/projects/:projectId/integrations/:integrationId/templates/preview',
     async (request, reply) => {
-      const { projectId, integrationId } = request.params;
+      const { projectId } = request.params;
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 

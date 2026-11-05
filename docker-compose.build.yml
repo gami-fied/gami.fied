@@ -1,0 +1,23 @@
+# Builds the images from this checkout instead of downloading them:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+
+services:
+  migration:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile

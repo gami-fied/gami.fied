@@ -1,5 +1,7 @@
 'use client';
 
+import { usePublicApiUrl } from '@/hooks/use-public-api-url';
+import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useDashboard } from '@/components/features/context/dashboard-context';
@@ -28,14 +30,13 @@ interface ProjectMetrics {
 
 export default function DeveloperPage() {
   const { selectedProject } = useDashboard();
-  const [copiedKey, setCopiedKey] = useState(false);
   const [copiedPrj, setCopiedPrj] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
 
   useEffect(() => {
     if (!selectedProject?.id) return;
-    fetch(`/api/projects/${selectedProject.id}/metrics`, {
+    apiFetch(`/api/projects/${selectedProject.id}/metrics`, {
       credentials: 'include',
     })
       .then((res) => (res.ok ? res.json() : null))
@@ -44,9 +45,10 @@ export default function DeveloperPage() {
   }, [selectedProject?.id]);
 
   const projectId = selectedProject?.id || 'prj_123456789';
-  const sampleCurl = `curl -X POST https://gamiapi.fied.cc/v1/events \\
+  const apiUrl = usePublicApiUrl();
+  const sampleCurl = `curl -X POST ${apiUrl}/v1/events \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: gami_pk_live_REPLACE_ME" \\
+  -H "x-api-key: gami_live_REPLACE_ME" \\
   -H "Idempotency-Key: evt_${Date.now()}" \\
   -d '{
     "event": "purchase",
@@ -66,8 +68,8 @@ export default function DeveloperPage() {
       <div className="bg-zinc-900 border border-zinc-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <Code2 className="w-6 h-6 text-emerald-400" />
-            <h1 className="text-xl font-bold text-white font-mono tracking-tight">Developer Portal</h1>
+            <Code2 className="w-6 h-6 text-success-400" />
+            <h1 className="text-xl font-bold text-white tracking-tight">Developer Portal</h1>
           </div>
           <p className="text-xs text-zinc-400">
             Build, test, and integrate Gami.Fied Community Engine into your applications.
@@ -76,14 +78,14 @@ export default function DeveloperPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/developer/docs"
-            className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold flex items-center gap-2 transition"
+            className="px-3 py-2 bg-success-500/10 hover:bg-success-500/20 text-success-400 border border-success-500/30 text-xs font-semibold flex items-center gap-2 transition"
           >
             <FileText className="w-4 h-4" />
             API Reference Docs
           </Link>
           <Link
             href="/dashboard/api-keys"
-            className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-mono font-semibold flex items-center gap-2 transition"
+            className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-semibold flex items-center gap-2 transition"
           >
             <KeyRound className="w-4 h-4" />
             Manage API Keys
@@ -94,9 +96,9 @@ export default function DeveloperPage() {
       {/* Metrics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
             <span>Project ID</span>
-            <Layers className="w-4 h-4 text-emerald-400" />
+            <Layers className="w-4 h-4 text-success-400" />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-mono font-bold text-white truncate">{projectId}</span>
@@ -105,38 +107,38 @@ export default function DeveloperPage() {
               className="p-1 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition"
               title="Copy Project ID"
             >
-              {copiedPrj ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedPrj ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
             <span>Events Ingested</span>
-            <Activity className="w-4 h-4 text-orange-400" />
+            <Activity className="w-4 h-4 text-brand-400" />
           </div>
-          <div className="text-xl font-mono font-bold text-white">
-            {metrics ? metrics.eventsIngested.toLocaleString() : '0'}
+          <div className="text-xl font-bold text-white">
+            {metrics ? metrics.eventsIngested.toLocaleString() : '—'}
           </div>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
             <span>API Requests</span>
-            <Terminal className="w-4 h-4 text-cyan-400" />
+            <Terminal className="w-4 h-4 text-info-400" />
           </div>
-          <div className="text-xl font-mono font-bold text-white">
-            {metrics ? metrics.requests.received.toLocaleString() : '0'}
+          <div className="text-xl font-bold text-white">
+            {metrics ? metrics.requests.received.toLocaleString() : '—'}
           </div>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 p-4">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
             <span>API Status</span>
-            <Zap className="w-4 h-4 text-emerald-400" />
+            <Zap className="w-4 h-4 text-success-400" />
           </div>
-          <div className="text-sm font-mono font-bold text-emerald-400 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="text-sm font-bold text-success-400 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-success-400 animate-pulse" />
             100% Operational
           </div>
         </div>
@@ -144,8 +146,8 @@ export default function DeveloperPage() {
 
       {/* Quick Start Integration Wizard */}
       <div className="bg-zinc-900 border border-zinc-800 p-6 space-y-6">
-        <h2 className="text-base font-mono font-bold text-white flex items-center gap-2">
-          <Zap className="w-4 h-4 text-emerald-400" />
+        <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <Zap className="w-4 h-4 text-success-400" />
           Developer Quick Start Workflow
         </h2>
 
@@ -159,11 +161,11 @@ export default function DeveloperPage() {
             { step: '6', title: 'Verify Results', desc: 'Check user XP balance' },
           ].map((item, idx) => (
             <div key={item.step} className="bg-zinc-950 border border-zinc-800/80 p-3 relative">
-              <div className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest mb-1">
+              <div className="text-xs font-bold text-success-400 mb-1">
                 Step {item.step}
               </div>
-              <div className="text-xs font-mono font-bold text-white truncate">{item.title}</div>
-              <div className="text-[11px] text-zinc-500 mt-1 truncate">{item.desc}</div>
+              <div className="text-xs font-bold text-white truncate">{item.title}</div>
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">{item.desc}</div>
               {idx < 5 && (
                 <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 z-10">
                   <ArrowRight className="w-3.5 h-3.5 text-zinc-700" />
@@ -175,7 +177,7 @@ export default function DeveloperPage() {
 
         {/* cURL Example Code Box */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
+          <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Sample Event Ingestion cURL Request</span>
             <button
               onClick={() => copyToClipboard(sampleCurl, setCopiedCurl)}
@@ -183,8 +185,8 @@ export default function DeveloperPage() {
             >
               {copiedCurl ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Copied</span>
+                  <Check className="w-3.5 h-3.5 text-success-400" />
+                  <span className="text-success-400">Copied</span>
                 </>
               ) : (
                 <>
@@ -194,7 +196,7 @@ export default function DeveloperPage() {
               )}
             </button>
           </div>
-          <pre className="p-4 bg-zinc-950 border border-zinc-800 font-mono text-xs text-emerald-300 overflow-x-auto">
+          <pre className="p-4 bg-zinc-950 border border-zinc-800 font-mono text-xs text-success-300 overflow-x-auto">
             {sampleCurl}
           </pre>
         </div>

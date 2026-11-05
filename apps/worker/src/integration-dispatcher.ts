@@ -4,12 +4,13 @@ import {
   integrations,
   notifications,
   endUsers,
-  serverConfigs,
+  getPlatformSettings,
   userXpBalances,
   levels,
 } from '@gami/database';
 import { registry } from '@gami/integrations';
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { claimDueRows } from './outbox.js';
 
 export interface DispatchIntegrationsResult {
   dispatched: number;
@@ -25,22 +26,8 @@ export async function getGlobalIntegrationsConfig(): Promise<{
   enabled: boolean;
   discordEnabled: boolean;
 }> {
-  try {
-    const [row] = await db
-      .select()
-      .from(serverConfigs)
-      .where(eq(serverConfigs.key, 'integrations_config'));
-
-    if (row && row.value) {
-      const cfg = row.value as Record<string, unknown>;
-      return {
-        enabled: cfg.enabled !== false,
-        discordEnabled: cfg.allowDiscordIntegration !== false,
-      };
-    }
-  } catch {}
-
-  return { enabled: true, discordEnabled: true };
+  const { enabled, allowDiscordIntegration } = await getPlatformSettings('integrations');
+  return { enabled, discordEnabled: allowDiscordIntegration };
 }
 
 /**
@@ -63,35 +50,8 @@ export async function dispatchPendingIntegrations(
     return result;
   }
 
-  // 2. Fetch pending deliveries with row locking
-  const now = new Date();
-  const pendingDeliveries = await db.transaction(async (tx) => {
-    const rows = await tx
-      .select()
-      .from(integrationDeliveries)
-      .where(
-        and(
-          eq(integrationDeliveries.status, 'pending'),
-          lte(integrationDeliveries.availableAt, now)
-        )
-      )
-      .limit(batchSize)
-      .for('update', { skipLocked: true });
-
-    if (rows.length === 0) return [];
-
-    const ids = rows.map((r) => r.id);
-    await tx
-      .update(integrationDeliveries)
-      .set({
-        status: 'processing',
-        processingAt: now,
-        updatedAt: now,
-      })
-      .where(sql`${integrationDeliveries.id} IN ${ids}`);
-
-    return rows;
-  });
+  // 2. Claim due deliveries
+  const pendingDeliveries = await claimDueRows(integrationDeliveries, batchSize);
 
   if (pendingDeliveries.length === 0) {
     return result;
@@ -239,7 +199,9 @@ export async function dispatchPendingIntegrations(
                 }
               }
             }
-          } catch (err) {}
+          } catch {
+            // Level details only enrich the message, so it can still be sent without them
+          }
         }
       }
 

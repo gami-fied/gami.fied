@@ -1,3 +1,4 @@
+import { validateProductionConfig } from '@gami/config';
 import {
   getQueueConfig,
   getRedisConnection,
@@ -6,14 +7,11 @@ import {
   stopWorkerHeartbeat,
 } from '@gami/queue';
 import { Worker } from 'bullmq';
-import { registerAchievementActions } from './actions/award-achievement.js';
-import { registerXpActions } from './actions/award-xp.js';
+import { startMaintenance, stopMaintenance } from './maintenance.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
 
-// Register Actions in generic ActionRegistry
-registerXpActions();
-registerAchievementActions();
+validateProductionConfig(process.env, { service: 'worker' });
 
 const cfg = getQueueConfig();
 const connection = getRedisConnection();
@@ -21,13 +19,14 @@ const connection = getRedisConnection();
 // Start background outbox dispatcher poller automatically on worker startup
 startOutboxPoller();
 startWorkerHeartbeat();
+startMaintenance();
 
-export const worker = new Worker<{ eventId: string }>(
+export const worker = new Worker<{ eventId: string; replay?: boolean }>(
   cfg.queueName,
   async (job) => {
-    const { eventId } = job.data;
+    const { eventId, replay } = job.data;
     console.log(`[Worker] Processing BullMQ job ${job.id} for event ${eventId}`);
-    const result = await processEventJob(eventId);
+    const result = await processEventJob(eventId, { replay });
     recordWorkerActivity();
     console.log(`[Worker] Finished processing event ${eventId}:`, result);
     return result;
@@ -45,6 +44,7 @@ const handleShutdown = async (signal: string) => {
   console.log(`[Worker] Gracefully closing worker on ${signal}...`);
   stopOutboxPoller();
   stopWorkerHeartbeat();
+  stopMaintenance();
   await worker.close();
   await connection.quit();
   process.exit(0);

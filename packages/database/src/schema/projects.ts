@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { organizations } from './organizations.js';
 import { users } from './auth.js';
 
@@ -11,6 +11,8 @@ export const projects = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    /** Sites allowed to use end-user tokens. Empty allows any site. */
+    allowedOrigins: jsonb('allowed_origins').$type<string[]>().default([]).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },

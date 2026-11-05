@@ -1,7 +1,13 @@
 import crypto from 'crypto';
-import { db, rules } from '@gami/database';
-import { evaluateRule, validateRuleDefinition, EventData } from '@gami/rules';
-import { eq, and, asc } from 'drizzle-orm';
+import { achievements, db, events, ruleExecutions, rules } from '@gami/database';
+import {
+  ActionDefinition,
+  evaluateRule,
+  EventData,
+  getReferencedAchievementKeys,
+  validateRuleForSave,
+} from '@gami/rules';
+import { eq, and, asc, desc, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
@@ -28,6 +34,31 @@ const previewRuleSchema = z.object({
   }),
 });
 
+/** Missing achievements block the save. Disabled ones only warn, because they can be re-enabled. */
+async function checkAchievementReferences(
+  projectId: string,
+  actions: ActionDefinition[]
+): Promise<{ error?: string; warnings: string[] }> {
+  const keys = getReferencedAchievementKeys(actions);
+  if (keys.length === 0) return { warnings: [] };
+
+  const found = await db
+    .select({ key: achievements.key, enabled: achievements.enabled })
+    .from(achievements)
+    .where(and(eq(achievements.projectId, projectId), inArray(achievements.key, keys)));
+
+  const missing = keys.filter((key) => !found.some((row) => row.key === key));
+  if (missing.length > 0) {
+    return { error: `Unknown achievement keys: ${missing.join(', ')}`, warnings: [] };
+  }
+
+  return {
+    warnings: found
+      .filter((row) => !row.enabled)
+      .map((row) => `Achievement "${row.key}" is disabled, so this rule will fail until it is enabled`),
+  };
+}
+
 export async function ruleRoutes(fastify: FastifyInstance) {
   // 1. Create Rule
   fastify.post<{ Params: { projectId: string } }>(
@@ -50,7 +81,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
 
       // Validate Rule Definition via @gami/rules
       try {
-        validateRuleDefinition({
+        validateRuleForSave({
           trigger: ruleData.trigger,
           conditions: ruleData.conditions,
           actions: ruleData.actions,
@@ -60,6 +91,14 @@ export async function ruleRoutes(fastify: FastifyInstance) {
           error: 'Bad Request',
           message: (err as Error).message || 'Invalid rule definition',
         });
+      }
+
+      const references = await checkAchievementReferences(
+        projectId,
+        ruleData.actions as unknown as ActionDefinition[]
+      );
+      if (references.error) {
+        return reply.status(400).send({ error: 'Bad Request', message: references.error });
       }
 
       const ruleId = `r_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -78,7 +117,9 @@ export async function ruleRoutes(fastify: FastifyInstance) {
         })
         .returning();
 
-      return reply.status(201).send(newRule);
+      return reply
+        .status(201)
+        .send(references.warnings.length > 0 ? { ...newRule, warnings: references.warnings } : newRule);
     }
   );
 
@@ -151,7 +192,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
 
       // Validate merged rule definition if trigger/conditions/actions are updated
       try {
-        validateRuleDefinition({
+        validateRuleForSave({
           trigger: patch.trigger ?? existingRule.trigger,
           conditions: patch.conditions ?? existingRule.conditions ?? undefined,
           actions: patch.actions ?? (existingRule.actions as unknown[]),
@@ -161,6 +202,14 @@ export async function ruleRoutes(fastify: FastifyInstance) {
           error: 'Bad Request',
           message: (err as Error).message || 'Invalid rule definition',
         });
+      }
+
+      const references = await checkAchievementReferences(
+        projectId,
+        (patch.actions ?? existingRule.actions) as unknown as ActionDefinition[]
+      );
+      if (references.error) {
+        return reply.status(400).send({ error: 'Bad Request', message: references.error });
       }
 
       const [updatedRule] = await db
@@ -178,7 +227,11 @@ export async function ruleRoutes(fastify: FastifyInstance) {
         .where(eq(rules.id, ruleId))
         .returning();
 
-      return reply.send(updatedRule);
+      return reply.send(
+        references.warnings.length > 0
+          ? { ...updatedRule, warnings: references.warnings }
+          : updatedRule
+      );
     }
   );
 
@@ -200,6 +253,77 @@ export async function ruleRoutes(fastify: FastifyInstance) {
       }
 
       return reply.send({ success: true, message: 'Rule deleted successfully' });
+    }
+  );
+
+  // Shows why a rule did or did not fire, using its current definition against recent events.
+  fastify.get<{ Params: { projectId: string; ruleId: string } }>(
+    '/api/projects/:projectId/rules/:ruleId/trace',
+    async (request, reply) => {
+      const { projectId, ruleId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const [rule] = await db
+        .select()
+        .from(rules)
+        .where(and(eq(rules.id, ruleId), eq(rules.projectId, projectId)));
+      if (!rule) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Rule not found' });
+      }
+
+      const recent = await db
+        .select()
+        .from(events)
+        .where(and(eq(events.projectId, projectId), eq(events.type, rule.trigger)))
+        .orderBy(desc(events.occurredAt))
+        .limit(20);
+
+      const executions =
+        recent.length === 0
+          ? []
+          : await db
+              .select()
+              .from(ruleExecutions)
+              .where(
+                and(
+                  eq(ruleExecutions.ruleId, ruleId),
+                  inArray(
+                    ruleExecutions.eventId,
+                    recent.map((event) => event.id)
+                  )
+                )
+              );
+
+      const data = recent.map((event) => {
+        const result = evaluateRule(
+          {
+            trigger: rule.trigger,
+            conditions: rule.conditions || undefined,
+            actions: rule.actions || [],
+          },
+          {
+            id: event.id,
+            projectId,
+            userId: event.userId,
+            type: event.type,
+            payload: (event.payload as Record<string, unknown>) || {},
+            occurredAt: event.occurredAt,
+          },
+          rule.id
+        );
+        const execution = executions.find((row) => row.eventId === event.id);
+
+        return {
+          eventId: event.id,
+          occurredAt: event.occurredAt,
+          matched: result.matched,
+          reason: result.error ?? (result.matched ? null : 'The conditions did not match this event'),
+          execution: execution ? { status: execution.status, error: execution.error } : null,
+        };
+      });
+
+      return reply.send({ data });
     }
   );
 

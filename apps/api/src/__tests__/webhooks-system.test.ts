@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import http from 'http';
-import { db, runMigrations, webhookEndpoints, webhookOutbox } from '@gami/database';
+import { db, runMigrations, webhookOutbox } from '@gami/database';
 import { Gami } from '@gami.fied/sdk';
 import { verifyHmacSignature } from '@gami/webhooks';
 import { eq } from 'drizzle-orm';
@@ -13,7 +13,6 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
   let app: Awaited<ReturnType<typeof buildServer>>;
   let baseUrl: string;
   let ownerCookie: string;
-  let memberCookie: string;
 
   let orgId: string;
   let projectId: string;
@@ -47,7 +46,9 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
         let jsonPayload = null;
         try {
           jsonPayload = JSON.parse(body);
-        } catch {}
+        } catch {
+          // Non-JSON bodies are recorded without a parsed payload
+        }
 
         receivedWebhooks.push({
           headers: req.headers,
@@ -86,7 +87,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
     });
     ownerCookie = ownerSignup.headers['set-cookie'] as string;
 
-    const memberSignup = await app.inject({
+    await app.inject({
       method: 'POST',
       url: '/api/auth/sign-up/email',
       payload: {
@@ -95,7 +96,6 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
         name: 'Webhook Member',
       },
     });
-    memberCookie = memberSignup.headers['set-cookie'] as string;
 
     // 4. Create Org & Project
     const orgRes = await app.inject({
@@ -115,7 +115,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
     projectId = JSON.parse(projRes.payload).id;
 
     // 5. Create API Key & SDK
-    const apiKeyObj = await createApiKey(projectId, 'Webhook System Test Key');
+    const apiKeyObj = await createApiKey(projectId, 'Webhook System Test Key', ['*']);
     apiKeySecret = apiKeyObj.rawSecret;
 
     gamiSdk = new Gami({
@@ -134,7 +134,8 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
   });
 
   it('1. Webhook URL Security: Rejects invalid or SSRF forbidden URLs', async () => {
-    // Localhost / Loopback
+    // Localhost / Loopback, which this suite otherwise allows for its mock receiver
+    delete process.env.ALLOW_LOCAL_WEBHOOKS;
     const resLocal = await app.inject({
       method: 'POST',
       url: `/api/projects/${projectId}/webhooks`,
@@ -145,6 +146,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
         events: ['xp.awarded'],
       },
     });
+    process.env.ALLOW_LOCAL_WEBHOOKS = 'true';
     expect(resLocal.statusCode).toBe(400);
 
     // Private RFC1918 IP
@@ -215,7 +217,7 @@ describe('Milestone 16 — Webhooks & External Event Delivery System Test Suite'
     const ep = body[0];
     expect(ep.id).toBe(createdEndpointId);
     expect(ep.secret).toBeUndefined();
-    expect(ep.secretHash).toBeUndefined();
+    expect(ep.encryptedSecret).toBeUndefined();
   });
 
   it('4. Get Single Webhook Endpoint via SDK', async () => {

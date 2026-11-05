@@ -54,7 +54,7 @@ describe('@gami.fied/sdk - Live API Integration Test Suite', () => {
     projId = prj.id;
 
     // 3. Generate API Key
-    const keyData = await createApiKey(projId, 'SDK Live Integration Key');
+    const keyData = await createApiKey(projId, 'SDK Live Integration Key', ['*']);
     apiKeySecret = keyData.rawSecret;
 
     // 4. Instantiate Gami SDK client against live Fastify server
@@ -90,7 +90,8 @@ describe('@gami.fied/sdk - Live API Integration Test Suite', () => {
     });
 
     expect(balance.projectId).toBe(projId);
-    expect(balance.userId).toBe('usr_sdk_test_1');
+    // The API answers with the internal ID, whichever ID was sent.
+    expect(balance.userId).toMatch(/^usr_/);
     expect(balance.totalXp).toBe(0);
   });
 

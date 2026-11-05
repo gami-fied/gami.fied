@@ -1,5 +1,5 @@
-import { SmtpSettingsView } from '@/components/features/settings/smtp-settings-view';
+import { ProjectSettingsView } from '@/components/features/settings/project-settings-view';
 
 export default function SettingsPage() {
-  return <SmtpSettingsView />;
+  return <ProjectSettingsView />;
 }

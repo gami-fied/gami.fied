@@ -28,7 +28,6 @@ import {
   Code2 as Code2Icon,
   FileText as FileTextIcon,
   Settings as SettingsIcon,
-  Database,
   FolderLock,
 } from 'lucide-react';
 
@@ -74,7 +73,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { name: 'XP', href: '/dashboard/xp', icon: Coins },
         { name: 'Achievements', href: '/dashboard/achievements', icon: Trophy },
         { name: 'Levels & Progression', href: '/dashboard/levels', icon: TrendingUp },
-        { name: 'Leaderboards', href: '/dashboard/leaderboard', icon: Medal },
+        { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Medal },
         { name: 'Challenges', href: '/dashboard/challenges', icon: Target },
       ],
     },
@@ -109,7 +108,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       label: 'OPERATIONS',
       theme: 'cyan',
       items: [
-        { name: 'Delivery Health', href: '/dashboard/system', icon: Server },
+        { name: 'System Health', href: '/dashboard/system', icon: Server },
         { name: 'Audit Logs', href: '/dashboard/audit-logs', icon: History },
         { name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon },
       ],
@@ -124,7 +123,8 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       }
 
       const items = group.items.filter((item) => {
-        if (!isAdminOrOwner && item.href === '/dashboard/organization/invitations') {
+        const adminOnly = ['/dashboard/organization/invitations', '/dashboard/organization/data'];
+        if (!isAdminOrOwner && adminOnly.includes(item.href)) {
           return false;
         }
         return true;
@@ -137,25 +137,25 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
     switch (theme) {
       case 'emerald':
         return {
-          activeClass: 'bg-emerald-500/12 text-emerald-400 border-l-2 border-emerald-400 border-y border-r border-emerald-500/20',
-          iconClass: 'text-emerald-400',
-          textClass: 'text-emerald-300 font-mono',
-          dotClass: 'bg-emerald-400',
+          activeClass: 'bg-success-500/12 text-success-400 border-l-2 border-success-400 border-y border-r border-success-500/20',
+          iconClass: 'text-success-400',
+          textClass: 'text-success-300',
+          dotClass: 'bg-success-400',
         };
       case 'cyan':
         return {
-          activeClass: 'bg-cyan-500/12 text-cyan-400 border-l-2 border-cyan-400 border-y border-r border-cyan-500/20',
-          iconClass: 'text-cyan-400',
-          textClass: 'text-cyan-300 font-mono',
-          dotClass: 'bg-cyan-400',
+          activeClass: 'bg-info-500/12 text-info-400 border-l-2 border-info-400 border-y border-r border-info-500/20',
+          iconClass: 'text-info-400',
+          textClass: 'text-info-300',
+          dotClass: 'bg-info-400',
         };
       case 'orange':
       default:
         return {
-          activeClass: 'bg-orange-500/12 text-orange-400 border-l-2 border-orange-400 border-y border-r border-orange-500/20',
-          iconClass: 'text-orange-400',
-          textClass: 'text-orange-300 font-mono',
-          dotClass: 'bg-orange-400',
+          activeClass: 'bg-brand-500/12 text-brand-400 border-l-2 border-brand-400 border-y border-r border-brand-500/20',
+          iconClass: 'text-brand-400',
+          textClass: 'text-brand-300',
+          dotClass: 'bg-brand-400',
         };
     }
   };
@@ -170,15 +170,15 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800/60 shrink-0">
         <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
           {/* Game logo badge */}
-          <div className="w-8 h-8 rounded-none bg-orange-500 flex items-center justify-center text-white shrink-0">
+          <div className="w-8 h-8 rounded-none bg-brand-500 flex items-center justify-center text-on-accent shrink-0">
             <Gamepad2 className="w-4 h-4" />
           </div>
           {!isCollapsed && (
             <div className="overflow-hidden">
-              <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap block leading-none font-mono">
+              <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap block leading-none">
                 Gami.Fied
               </span>
-              <span className="text-[10px] text-orange-400 font-semibold tracking-widest uppercase whitespace-nowrap block mt-0.5 font-mono">
+              <span className="text-xs text-brand-400 font-semibold whitespace-nowrap block mt-0.5">
                 Community Engine
               </span>
             </div>
@@ -186,7 +186,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         </Link>
         <button
           onClick={onToggleCollapse}
-          className="p-1 rounded-none text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition"
+          className="p-1 rounded-none text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -198,7 +198,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         {navGroups.map((group, groupIdx) => (
           <div key={group.label || `group-${groupIdx}`} className="space-y-0.5">
             {group.label && !isCollapsed && (
-              <div className="px-3 pt-2 pb-1 text-[10px] font-mono font-bold tracking-wider text-zinc-500 uppercase">
+              <div className="px-3 pt-2 pb-1 text-xs font-bold text-zinc-400">
                 {group.label}
               </div>
             )}
@@ -215,19 +215,19 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                 return (
                   <div
                     key={item.name}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-xs font-semibold text-zinc-600 border border-transparent cursor-not-allowed opacity-60 ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-xs font-semibold text-zinc-400 border border-transparent cursor-not-allowed opacity-60 ${
                       isCollapsed ? 'justify-center px-0' : ''
                     }`}
                     title={isCollapsed ? `${item.name} (Soon)` : undefined}
                   >
-                    <Icon className="w-4 h-4 shrink-0 text-zinc-600" />
+                    <Icon className="w-4 h-4 shrink-0 text-zinc-400" />
                     {!isCollapsed && (
-                      <span className="truncate flex-1 font-mono text-zinc-600">
+                      <span className="truncate flex-1 text-zinc-400">
                         {item.name}
                       </span>
                     )}
                     {!isCollapsed && (
-                      <span className="text-[9px] font-mono uppercase font-bold tracking-wider px-1.5 py-0.5 text-zinc-600 border border-zinc-800">
+                      <span className="text-xs font-bold px-1.5 py-0.5 text-zinc-400 border border-zinc-800">
                         Soon
                       </span>
                     )}
@@ -242,13 +242,13 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-xs font-semibold transition-all duration-150 ${
                     isActive
                       ? themeStyles.activeClass
-                      : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent'
                   } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   title={isCollapsed ? item.name : undefined}
                 >
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? themeStyles.iconClass : 'text-zinc-500 group-hover:text-zinc-300'
+                      isActive ? themeStyles.iconClass : 'text-zinc-400 group-hover:text-zinc-300'
                     }`}
                   />
                   {!isCollapsed && (
@@ -275,23 +275,23 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
             className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-80 transition"
             title="Edit Profile & Preferences"
           >
-            <div className="w-8 h-8 rounded-none bg-zinc-800 border-2 border-orange-500/40 flex items-center justify-center text-xs font-mono font-bold text-orange-400 shrink-0 group-hover:border-orange-400">
+            <div className="w-8 h-8 rounded-none bg-zinc-800 border-2 border-brand-500/40 flex items-center justify-center text-xs font-bold text-brand-400 shrink-0 group-hover:border-brand-400">
               {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 'G'}
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-zinc-200 group-hover:text-orange-400 transition truncate">
+                <p className="text-xs font-semibold text-zinc-200 group-hover:text-brand-400 transition truncate">
                   {session?.user?.name || 'Dashboard User'}
                 </p>
-                <p className="text-[10px] text-zinc-500 truncate font-mono">{session?.user?.email}</p>
+                <p className="text-xs text-zinc-400 truncate">{session?.user?.email}</p>
               </div>
             )}
           </Link>
           {!isCollapsed && (
             <button
               onClick={logout}
-              className="p-1.5 rounded-none text-zinc-600 hover:text-rose-400 hover:bg-rose-950/40 transition shrink-0"
-              title="Log Out"
+              className="p-1.5 rounded-none text-zinc-400 hover:text-danger-400 hover:bg-danger-950/40 transition shrink-0"
+              title="Log Out" aria-label="Log Out"
             >
               <LogOut className="w-4 h-4" />
             </button>

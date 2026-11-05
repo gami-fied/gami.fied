@@ -151,8 +151,8 @@ describe('@gami/leaderboards - Service & Window Function Test Suite', () => {
   it('1. All-time ranking: orders by total_xp DESC with deterministic user_id ASC tie breaking', async () => {
     const res = await getLeaderboard(projA, { period: 'all_time', now: mockNow });
 
-    expect(res.total).toBe(4);
-    expect(res.entries.length).toBe(4);
+    expect(res.total).toBe(3);
+    expect(res.entries.length).toBe(3);
 
     // User 1 has 500 XP -> Rank 1
     expect(res.entries[0].userId).toBe(user1);
@@ -169,17 +169,14 @@ describe('@gami/leaderboards - Service & Window Function Test Suite', () => {
     expect(res.entries[2].rank).toBe(3);
     expect(res.entries[2].xp).toBe(300);
 
-    // User 4 has 0 XP -> Rank 4
-    expect(res.entries[3].userId).toBe(user4);
-    expect(res.entries[3].rank).toBe(4);
-    expect(res.entries[3].xp).toBe(0);
-    expect(res.entries[3].level).toBe(1); // Rookie
+    // Users with no XP are not ranked
+    expect(res.entries.map((entry) => entry.userId)).not.toContain(user4);
   });
 
   it('2. Daily ranking: includes negative XP, half-open UTC boundaries, excludes old XP', async () => {
     const res = await getLeaderboard(projA, { period: 'daily', now: mockNow });
 
-    expect(res.total).toBe(4);
+    expect(res.total).toBe(3);
 
     // User 1 today: +400 XP -> Rank 1 today
     expect(res.entries[0].userId).toBe(user1);
@@ -196,21 +193,19 @@ describe('@gami/leaderboards - Service & Window Function Test Suite', () => {
     expect(res.entries[2].rank).toBe(3);
     expect(res.entries[2].xp).toBe(300);
 
-    // User 4: 0 XP today -> Rank 4
-    expect(res.entries[3].userId).toBe(user4);
-    expect(res.entries[3].rank).toBe(4);
-    expect(res.entries[3].xp).toBe(0);
+    // Users with no XP are not ranked
+    expect(res.entries.map((entry) => entry.userId)).not.toContain(user4);
   });
 
-  it('3. Search by external_id / name: DOES NOT renumber global ranks (Dave rank 4 remains rank 4)', async () => {
-    const res = await getLeaderboard(projA, { period: 'all_time', search: 'Dave', now: mockNow });
+  it('3. Search by external_id / name: DOES NOT renumber global ranks (Charlie stays rank 3)', async () => {
+    const res = await getLeaderboard(projA, { period: 'all_time', search: 'Charlie', now: mockNow });
 
     expect(res.total).toBe(1);
     expect(res.entries.length).toBe(1);
-    expect(res.entries[0].userId).toBe(user4);
-    expect(res.entries[0].externalId).toBe('ext_dave');
-    // Global rank must be preserved as 4, NOT renumbered to 1!
-    expect(res.entries[0].rank).toBe(4);
+    expect(res.entries[0].userId).toBe(user3);
+    expect(res.entries[0].externalId).toBe('ext_charlie');
+    // Global rank must be preserved as 3, NOT renumbered to 1!
+    expect(res.entries[0].rank).toBe(3);
   });
 
   it('4. Tenant isolation: Project A query does NOT expose Project B user Eve', async () => {
@@ -228,11 +223,14 @@ describe('@gami/leaderboards - Service & Window Function Test Suite', () => {
   it('5. User rank lookup (getUserRank)', async () => {
     const rank2 = await getUserRank(projA, user2, { period: 'all_time', now: mockNow });
     expect(rank2.rank).toBe(2);
-    expect(rank2.totalUsers).toBe(4);
+    expect(rank2.totalUsers).toBe(3);
     expect(rank2.entry?.userId).toBe(user2);
 
-    const rank4 = await getUserRank(projA, 'ext_dave', { period: 'all_time', now: mockNow });
-    expect(rank4.rank).toBe(4);
-    expect(rank4.entry?.userId).toBe(user4);
+    const rank3 = await getUserRank(projA, 'ext_charlie', { period: 'all_time', now: mockNow });
+    expect(rank3.rank).toBe(3);
+    expect(rank3.entry?.userId).toBe(user3);
+
+    const unranked = await getUserRank(projA, 'ext_dave', { period: 'all_time', now: mockNow });
+    expect(unranked.rank).toBeNull();
   });
 });

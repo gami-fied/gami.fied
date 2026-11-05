@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../index.js';
-import { db, organizations, projects } from '@gami/database';
+import { member, db, organizations, projects } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 
 describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Recovery', () => {
   let app: FastifyInstance;
+  let ownerCookie: string;
   let orgIdA: string;
   let orgIdB: string;
   let projectIdA: string;
-  let rawApiKeyA: string;
   let dbAvailable = false;
 
   beforeAll(async () => {
@@ -33,9 +33,23 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
         slug: `prj-dm-a-${Date.now()}`,
       });
 
-      const { createApiKey } = await import('../services/api-key.service.js');
-      const keyA = await createApiKey(projectIdA, 'DM Key A');
-      rawApiKeyA = keyA.rawSecret;
+      const signUp = await app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-up/email',
+        payload: {
+          email: `dm_owner_${Date.now()}@example.com`,
+          password: 'Password123!',
+          name: 'DM Owner',
+        },
+      });
+      ownerCookie = signUp.headers['set-cookie'] as string;
+      await db.insert(member).values({
+        id: `mem_dm_${Date.now()}`,
+        organizationId: orgIdA,
+        userId: JSON.parse(signUp.payload).user.id,
+        role: 'owner',
+        createdAt: new Date(),
+      });
       dbAvailable = true;
     } catch {
       dbAvailable = false;
@@ -47,7 +61,9 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
       try {
         await db.delete(organizations).where(eq(organizations.id, orgIdA));
         await db.delete(organizations).where(eq(organizations.id, orgIdB));
-      } catch {}
+      } catch {
+        // Best-effort cleanup
+      }
     }
     await app?.close();
   });
@@ -92,9 +108,7 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
     const res = await app.inject({
       method: 'POST',
       url: `/api/organizations/${orgIdA}/export`,
-      headers: {
-        'x-api-key': rawApiKeyA,
-      },
+      headers: { cookie: ownerCookie },
     });
 
     expect(res.statusCode).toBe(200);
@@ -123,9 +137,7 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
     const res = await app.inject({
       method: 'POST',
       url: `/api/organizations/${orgIdA}/import/validate`,
-      headers: {
-        'x-api-key': rawApiKeyA,
-      },
+      headers: { cookie: ownerCookie },
       payload: validPayload,
     });
 
@@ -141,9 +153,7 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
     const res = await app.inject({
       method: 'POST',
       url: `/api/organizations/${orgIdA}/import/validate`,
-      headers: {
-        'x-api-key': rawApiKeyA,
-      },
+      headers: { cookie: ownerCookie },
       payload: { format: 'invalid-format', version: 99 },
     });
 

@@ -64,7 +64,7 @@ describe('Milestone 13 — Notifications & Reward Delivery Foundation System Tes
     });
     projIdA = JSON.parse(prjResA.payload).id;
 
-    const keyDataA = await createApiKey(projIdA, 'Key Notif A');
+    const keyDataA = await createApiKey(projIdA, 'Key Notif A', ['*']);
     apiKeySecretA = keyDataA.rawSecret;
 
     // 3. Create Project B in Org A
@@ -442,7 +442,7 @@ describe('Milestone 13 — Notifications & Reward Delivery Foundation System Tes
         attempts: 0,
       });
 
-      const stats = await dispatchPendingNotifications(50);
+      const stats = await dispatchPendingNotifications(50, new Date(Date.now() + 60_000));
       expect(stats.completedCount).toBeGreaterThan(0);
     });
 

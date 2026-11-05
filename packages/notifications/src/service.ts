@@ -3,6 +3,7 @@ import {
   db,
   emailNotificationOutbox,
   endUsers,
+  getPlatformSettings,
   integrationDeliveries,
   integrations,
   notificationOutbox,
@@ -48,6 +49,9 @@ export async function createNotificationIntent<T extends NotificationType>(
   if (!VALID_NOTIFICATION_TYPES.includes(params.type)) {
     throw new Error(`Invalid notification type: ${params.type}`);
   }
+
+  const settings = await getPlatformSettings('notifications', tx);
+  if (!settings.enabled) return { status: 'skipped' };
 
   // 3. Generate title and message via centralized template
   const { title, message } = generateNotificationText(params.type, params.data);
@@ -96,9 +100,12 @@ export async function createNotificationIntent<T extends NotificationType>(
     const inAppPref = prefRows.find((p) => p.channel === 'in_app');
     const emailPref = prefRows.find((p) => p.channel === 'email');
 
-    // Default rules: In-App is enabled by default (true), Email is disabled by default (false) unless explicitly enabled
+    // In-app is on unless turned off. Email follows the user's choice, then the platform default.
     const inAppEnabled = inAppPref ? inAppPref.enabled : true;
-    const emailEnabled = emailPref ? emailPref.enabled : false;
+    const { allowGlobalEmailNotifications } = await getPlatformSettings('registration', tx);
+    const emailEnabled =
+      allowGlobalEmailNotifications &&
+      (emailPref ? emailPref.enabled : settings.defaultEmailNotifications);
 
     // A) In-App Delivery Intent
     if (inAppEnabled) {
@@ -147,42 +154,46 @@ export async function createNotificationIntent<T extends NotificationType>(
 
     // C) External Integration Delivery Intents (e.g. Discord)
     try {
-      const activeIntegrations = await tx
-        .select()
-        .from(integrations)
-        .where(
-          and(
-            eq(integrations.projectId, params.projectId),
-            eq(integrations.enabled, true),
-            eq(integrations.status, 'active')
-          )
-        );
+      await tx.transaction(async (savepoint) => {
+        const activeIntegrations = await savepoint
+          .select()
+          .from(integrations)
+          .where(
+            and(
+              eq(integrations.projectId, params.projectId),
+              eq(integrations.enabled, true),
+              eq(integrations.status, 'active')
+            )
+          );
 
-      for (const intg of activeIntegrations) {
-        const cfg = (intg.config as Record<string, unknown>) || {};
-        const enabledEvents = Array.isArray(cfg.enabledEvents)
-          ? (cfg.enabledEvents as string[])
-          : [];
+        for (const intg of activeIntegrations) {
+          const cfg = (intg.config as Record<string, unknown>) || {};
+          const enabledEvents = Array.isArray(cfg.enabledEvents)
+            ? (cfg.enabledEvents as string[])
+            : [];
 
-        if (enabledEvents.length === 0 || enabledEvents.includes(params.type)) {
-          const deliveryId = `idel_${randomUUID()}`;
-          await tx
-            .insert(integrationDeliveries)
-            .values({
-              id: deliveryId,
-              integrationId: intg.id,
-              projectId: params.projectId,
-              notificationId: inserted.id,
-              eventId: null,
-              eventType: params.type,
-              status: 'pending',
-              attempts: 0,
-              availableAt: new Date(),
-            })
-            .onConflictDoNothing();
+          if (enabledEvents.length === 0 || enabledEvents.includes(params.type)) {
+            const deliveryId = `idel_${randomUUID()}`;
+            await savepoint
+              .insert(integrationDeliveries)
+              .values({
+                id: deliveryId,
+                integrationId: intg.id,
+                projectId: params.projectId,
+                notificationId: inserted.id,
+                eventId: null,
+                eventType: params.type,
+                status: 'pending',
+                attempts: 0,
+                availableAt: new Date(),
+              })
+              .onConflictDoNothing();
+          }
         }
-      }
-    } catch {}
+      });
+    } catch (err) {
+      console.error('[Notifications] Failed to queue integration deliveries:', err);
+    }
 
     return { status: 'created', notification: inserted };
   }

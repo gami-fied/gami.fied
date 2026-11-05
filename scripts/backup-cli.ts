@@ -1,6 +1,5 @@
 import {
   createPlatformBackup,
-  deletePlatformBackup,
   listPlatformBackups,
   restorePlatformBackup,
   verifyPlatformBackup,

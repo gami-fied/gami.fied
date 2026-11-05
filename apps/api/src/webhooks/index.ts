@@ -1,10 +1,9 @@
 import crypto from 'crypto';
-import { db, webhookEndpoints, webhookOutbox, webhookSubscriptions } from '@gami/database';
+import { db, webhookEndpoints, webhookOutbox, webhookSubscriptions, getPlatformSettings } from '@gami/database';
 import {
   createWebhookDelivery,
   encryptSecret,
   generateWebhookSecret,
-  SUPPORTED_WEBHOOK_EVENT_TYPES,
   validateWebhookUrl,
   type WebhookEventType,
 } from '@gami/webhooks';
@@ -38,6 +37,8 @@ const updateWebhookSchema = z.object({
   events: z.array(webhookEventTypeEnum).min(1).max(20).optional(),
 });
 
+const SECRET_ROTATION_OVERLAP_MS = 24 * 60 * 60 * 1000;
+
 export async function webhookRoutes(fastify: FastifyInstance) {
   // 1. POST /api/projects/:projectId/webhooks (Create endpoint - Owner/Admin)
   fastify.post<{ Params: { projectId: string } }>(
@@ -48,7 +49,31 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+      }
+
+      const { allowWebhookCreation } = await getPlatformSettings('registration');
+      if (!allowWebhookCreation) {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          code: 'WEBHOOK_CREATION_DISABLED',
+          message: 'Webhook creation is disabled on this instance',
+        });
+      }
+
+      const { maxWebhooksPerProject } = await getPlatformSettings('webhooks');
+      const [{ total } = { total: 0 }] = await db
+        .select({ total: count() })
+        .from(webhookEndpoints)
+        .where(and(eq(webhookEndpoints.projectId, projectId), eq(webhookEndpoints.active, true)));
+      if (total >= maxWebhooksPerProject) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          code: 'WEBHOOK_LIMIT_REACHED',
+          message: `A project can have at most ${maxWebhooksPerProject} active webhook endpoints`,
+        });
       }
 
       const parseResult = createWebhookSchema.safeParse(request.body);
@@ -72,7 +97,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       }
 
       const rawSecret = generateWebhookSecret();
-      const secretHash = encryptSecret(rawSecret);
+      const encryptedSecret = encryptSecret(rawSecret);
       const endpointId = `whk_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
       const [newEndpoint] = await db
@@ -82,7 +107,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
           projectId,
           name,
           url,
-          secretHash,
+          encryptedSecret,
           active: true,
           description: description || null,
         })
@@ -98,7 +123,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       }
 
       if (!newEndpoint) {
-        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create webhook endpoint' });
+        return reply
+          .status(500)
+          .send({ error: 'Internal Server Error', message: 'Failed to create webhook endpoint' });
       }
 
       const { createAuditLog } = await import('../audit-logs/index.js');
@@ -161,6 +188,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
           updatedAt: ep.updatedAt,
           lastDeliveryAt: ep.lastDeliveryAt,
           failureCount: ep.failureCount,
+          disabledReason: ep.disabledReason,
         });
       }
 
@@ -179,12 +207,12 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const [ep] = await db
         .select()
         .from(webhookEndpoints)
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       if (!ep) {
-        return reply.status(404).send({ error: 'Not Found', message: 'Webhook endpoint not found' });
+        return reply
+          .status(404)
+          .send({ error: 'Not Found', message: 'Webhook endpoint not found' });
       }
 
       const subs = await db
@@ -204,6 +232,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         updatedAt: ep.updatedAt,
         lastDeliveryAt: ep.lastDeliveryAt,
         failureCount: ep.failureCount,
+        disabledReason: ep.disabledReason,
       });
     }
   );
@@ -217,18 +246,20 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
       }
 
       const [ep] = await db
         .select()
         .from(webhookEndpoints)
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       if (!ep) {
-        return reply.status(404).send({ error: 'Not Found', message: 'Webhook endpoint not found' });
+        return reply
+          .status(404)
+          .send({ error: 'Not Found', message: 'Webhook endpoint not found' });
       }
 
       const parseResult = updateWebhookSchema.safeParse(request.body);
@@ -259,19 +290,19 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (url !== undefined) updateData.url = url;
       if (description !== undefined) updateData.description = description;
       if (active !== undefined) updateData.active = active;
+      if (active === true) {
+        updateData.failureCount = 0;
+        updateData.disabledReason = null;
+      }
 
       const [updated] = await db
         .update(webhookEndpoints)
         .set(updateData)
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        )
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)))
         .returning();
 
       if (events) {
-        await db
-          .delete(webhookSubscriptions)
-          .where(eq(webhookSubscriptions.endpointId, webhookId));
+        await db.delete(webhookSubscriptions).where(eq(webhookSubscriptions.endpointId, webhookId));
 
         for (const eventType of events) {
           await db.insert(webhookSubscriptions).values({
@@ -283,7 +314,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       }
 
       if (!updated) {
-        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to update webhook endpoint' });
+        return reply
+          .status(500)
+          .send({ error: 'Internal Server Error', message: 'Failed to update webhook endpoint' });
       }
 
       const subs = await db
@@ -303,6 +336,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         updatedAt: updated.updatedAt,
         lastDeliveryAt: updated.lastDeliveryAt,
         failureCount: updated.failureCount,
+        disabledReason: updated.disabledReason,
       });
     }
   );
@@ -316,26 +350,26 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
       }
 
       const [ep] = await db
         .select()
         .from(webhookEndpoints)
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       if (!ep) {
-        return reply.status(404).send({ error: 'Not Found', message: 'Webhook endpoint not found' });
+        return reply
+          .status(404)
+          .send({ error: 'Not Found', message: 'Webhook endpoint not found' });
       }
 
       await db
         .update(webhookEndpoints)
         .set({ active: false, updatedAt: new Date() })
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       return reply.status(200).send({
         success: true,
@@ -353,37 +387,42 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
       }
 
       const [ep] = await db
         .select()
         .from(webhookEndpoints)
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       if (!ep) {
-        return reply.status(404).send({ error: 'Not Found', message: 'Webhook endpoint not found' });
+        return reply
+          .status(404)
+          .send({ error: 'Not Found', message: 'Webhook endpoint not found' });
       }
 
       const newRawSecret = generateWebhookSecret();
-      const newSecretHash = encryptSecret(newRawSecret);
+      const newEncryptedSecret = encryptSecret(newRawSecret);
+      const previousSecretExpiresAt = new Date(Date.now() + SECRET_ROTATION_OVERLAP_MS);
 
       await db
         .update(webhookEndpoints)
         .set({
-          secretHash: newSecretHash,
+          encryptedSecret: newEncryptedSecret,
+          previousEncryptedSecret: ep.encryptedSecret,
+          previousSecretExpiresAt,
           updatedAt: new Date(),
         })
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       return reply.status(200).send({
         id: webhookId,
         secret: newRawSecret, // RETURNED ONLY ONCE
-        message: 'Webhook secret rotated successfully',
+        previousSecretExpiresAt,
+        message:
+          'Webhook secret rotated. Deliveries carry both signatures in X-Gami-Signature-V2 until the old secret expires.',
       });
     }
   );
@@ -397,18 +436,20 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
       }
 
       const [ep] = await db
         .select()
         .from(webhookEndpoints)
-        .where(
-          and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId))
-        );
+        .where(and(eq(webhookEndpoints.id, webhookId), eq(webhookEndpoints.projectId, projectId)));
 
       if (!ep) {
-        return reply.status(404).send({ error: 'Not Found', message: 'Webhook endpoint not found' });
+        return reply
+          .status(404)
+          .send({ error: 'Not Found', message: 'Webhook endpoint not found' });
       }
 
       const testEventId = `evt_test_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -452,7 +493,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
     if (!authResult) return;
 
     if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-      return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+      return reply
+        .status(403)
+        .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
     }
 
     const page = Math.max(1, parseInt(request.query.page || '1', 10));
@@ -521,7 +564,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply.status(403).send({ error: 'Forbidden', message: 'Insufficient role permissions' });
+        return reply
+          .status(403)
+          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
       }
 
       const [targetDelivery] = await db
@@ -558,7 +603,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         .returning();
 
       if (!replayed) {
-        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to replay delivery' });
+        return reply
+          .status(500)
+          .send({ error: 'Internal Server Error', message: 'Failed to replay delivery' });
       }
 
       return reply.status(202).send({

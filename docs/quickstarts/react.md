@@ -3,7 +3,7 @@
 Best practice guide for integrating Gami.Fied with React applications.
 
 > [!IMPORTANT]
-> Always send events from your backend API route or Server Action to keep your secret `gami_pk_live_...` API key secure.
+> Always send events from your backend API route or Server Action to keep your secret `gami_live_...` API key secure.
 
 ```tsx
 // src/components/PurchaseButton.tsx

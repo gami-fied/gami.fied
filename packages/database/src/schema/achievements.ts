@@ -1,5 +1,13 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  foreignKey,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { endUsers } from './end-users.js';
 import { events } from './events.js';
 import { projects } from './projects.js';
@@ -48,14 +56,16 @@ export const userAchievements = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
+    foreignKey({
+      name: 'user_achievements_project_user_fk',
+      columns: [table.projectId, table.userId],
+      foreignColumns: [endUsers.projectId, endUsers.id],
+    }).onDelete('cascade'),
     uniqueIndex('user_achievements_proj_user_ach_unique').on(
       table.projectId,
       table.userId,
       table.achievementId
     ),
-    uniqueIndex('user_achievements_rule_execution_unique')
-      .on(table.ruleExecutionId)
-      .where(sql`rule_execution_id IS NOT NULL`),
     index('user_achievements_proj_user_idx').on(table.projectId, table.userId),
     index('user_achievements_proj_ach_idx').on(table.projectId, table.achievementId),
     index('user_achievements_user_idx').on(table.userId),

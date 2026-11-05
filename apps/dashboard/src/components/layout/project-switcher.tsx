@@ -17,7 +17,8 @@ export function ProjectSwitcher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isPlatformAdmin = (session?.user as any)?.role === 'admin' || Boolean((session?.user as any)?.isPlatformAdmin);
+  const sessionUser = session?.user as { role?: string; isPlatformAdmin?: boolean } | undefined;
+  const isPlatformAdmin = sessionUser?.role === 'admin' || Boolean(sessionUser?.isPlatformAdmin);
   const isAdminOrOwner = isPlatformAdmin || ['owner', 'admin'].includes(selectedOrg?.role || 'member');
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -71,10 +72,10 @@ export function ProjectSwitcher() {
         title="Create Project"
         description="Add a new project inside the current organization."
       >
-        <form onSubmit={handleCreateProject} className="space-y-4 font-mono text-xs">
+        <form onSubmit={handleCreateProject} className="space-y-4 text-xs">
           {error && (
-            <div className="p-3 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-              <span className="text-rose-400 font-bold">⚠</span>
+            <div className="p-3 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
+              <span className="text-danger-400 font-bold">⚠</span>
               <span>{error}</span>
             </div>
           )}
@@ -114,7 +115,7 @@ export function ProjectSwitcher() {
               variant="primary"
               size="sm"
               isLoading={loading}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-medium"
+              className="bg-brand-500 hover:bg-brand-600 text-on-accent font-medium"
             >
               Create Project
             </Button>
