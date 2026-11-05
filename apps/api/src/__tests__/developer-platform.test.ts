@@ -1,4 +1,4 @@
-import { db, organizations, projects, apiKeys, events } from '@gami/database';
+import { db, organizations, projects } from '@gami/database';
 import { Gami } from '@gami.fied/sdk';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

@@ -92,7 +92,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   if (!session) return null;
 
   // Permission Guard Evaluation
-  const isPlatformAdmin = (session?.user as any)?.role === 'admin' || Boolean((session?.user as any)?.isPlatformAdmin);
+  const sessionUser = session?.user as { role?: string; isPlatformAdmin?: boolean } | undefined;
+  const isPlatformAdmin = sessionUser?.role === 'admin' || Boolean(sessionUser?.isPlatformAdmin);
   const orgRole = selectedOrg?.role || 'member';
   const isAdminOrOwner = isPlatformAdmin || ['owner', 'admin'].includes(orgRole);
 

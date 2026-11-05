@@ -1,5 +1,5 @@
-import { db, endUsers, member, organizations, projects } from '@gami/database';
-import { and, count, desc, eq, ilike, sql } from 'drizzle-orm';
+import { db, member, organizations, projects } from '@gami/database';
+import { and, count, desc, eq, ilike } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../../audit-logs/index.js';
@@ -162,7 +162,9 @@ export async function adminOrganizationRoutes(fastify: FastifyInstance) {
             newStatus: status,
           },
         });
-      } catch {}
+      } catch (err) {
+        request.log.warn({ err }, 'Failed to write audit log');
+      }
 
       return reply.send({
         message: `Organization ${isSuspended ? 'suspended' : 'reactivated'} successfully`,

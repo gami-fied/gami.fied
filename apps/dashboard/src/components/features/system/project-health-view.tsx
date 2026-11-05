@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   RefreshCw,
   FolderGit2,
-  Mail,
 } from 'lucide-react';
 
 interface ProjectHealthMetrics {

@@ -9,7 +9,6 @@ import type {
   RotateWebhookSecretParams,
   TestWebhookParams,
   UpdateWebhookParams,
-  WebhookDeliveryRecord,
   WebhookDeliveryListResponse,
   WebhookEndpointRecord,
 } from './types.js';

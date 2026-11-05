@@ -28,7 +28,6 @@ import {
   Code2 as Code2Icon,
   FileText as FileTextIcon,
   Settings as SettingsIcon,
-  Database,
   FolderLock,
 } from 'lucide-react';
 

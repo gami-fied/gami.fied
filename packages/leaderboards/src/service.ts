@@ -73,7 +73,7 @@ export async function getLeaderboard(
   const search = options.search?.trim();
   const now = options.now || new Date();
 
-  let rawEntries: RawRow[] = [];
+  let rawEntries: RawRow[];
 
   if (period === 'all_time') {
     const query = sql`

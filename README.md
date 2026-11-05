@@ -41,8 +41,7 @@ gami-fied/
 │   ├── integrations/ # External integration providers (Discord)
 │   ├── queue/        # Shared BullMQ queue definitions
 │   ├── types/        # Monorepo TypeScript definitions
-│   ├── config/       # Shared environment & ESLint configurations
-│   └── ui/           # Shared UI design system & components
+│   └── config/       # Shared environment configuration
 └── docs/             # Complete technical & API documentation
 ```
 
@@ -64,7 +63,15 @@ cd gami.fied
 pnpm install
 ```
 
-### 2. Start Local Infrastructure (PostgreSQL & Redis)
+### 2. Create Your Environment File
+
+```bash
+cp .env.example .env
+```
+
+The defaults match the local Docker services. For deployments, use `.env.production.example`.
+
+### 3. Start Local Infrastructure (PostgreSQL & Redis)
 
 ```bash
 # Spin up PostgreSQL (port 5432) and Redis (port 6379)
@@ -74,13 +81,21 @@ pnpm infra:up
 pnpm infra:status
 ```
 
-### 3. Run Database Migrations
+### 4. Run Database Migrations
 
 ```bash
-pnpm --filter @gami/database migrate
+pnpm db:migrate:dev
 ```
 
-### 4. Start Development Applications
+### 5. Load Demo Data (Optional)
+
+```bash
+pnpm db:seed
+```
+
+This prints a demo dashboard login and a fresh API key.
+
+### 6. Start Development Applications
 
 ```bash
 pnpm dev
@@ -131,8 +146,8 @@ console.log(`User Level: ${userXp.level.currentLevel}, XP: ${userXp.balance}`);
 ## Verification & Code Quality
 
 ```bash
-# Run full unit test suite (20 test files, 155+ tests)
-pnpm --filter @gami/api test
+# Run all tests (PostgreSQL and Redis must be running)
+pnpm test
 
 # Run TypeScript type check across monorepo
 pnpm typecheck

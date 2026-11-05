@@ -2,17 +2,23 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Building2, CheckCircle2, AlertTriangle, UserPlus, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Building2, CheckCircle2, AlertTriangle, UserPlus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+
+interface InvitationDetails {
+  email: string;
+  role: string;
+  organizationName: string;
+}
 
 function AcceptInvitationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
 
-  const [invitation, setInvitation] = useState<any>(null);
+  const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -131,7 +137,9 @@ function AcceptInvitationContent() {
     try {
       await fetch(`/api/invitations/${token}/decline`, { method: 'POST' });
       router.push('/login');
-    } catch {}
+    } catch {
+      setError('Could not decline the invitation. Please try again.');
+    }
   };
 
   if (loading) {

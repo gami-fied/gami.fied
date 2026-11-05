@@ -1,7 +1,5 @@
-import crypto from 'crypto';
 import {
   achievements,
-  auditLogs,
   challenges,
   db,
   endUsers,
@@ -20,7 +18,46 @@ import {
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { createAuditLog } from '../audit-logs/index.js';
-import { requireOrgRole, requirePlatformAdmin } from '../authorization/index.js';
+import { requireOrgRole } from '../authorization/index.js';
+
+/** The fields of an organization export that validation and import read. */
+interface OrgImportPackage {
+  format?: string;
+  version?: number;
+  manifest?: unknown;
+  projects?: { id: string; name: string; slug: string }[];
+  users?: {
+    id: string;
+    projectId: string;
+    externalId: string;
+    name?: string | null;
+    email?: string | null;
+  }[];
+  events?: unknown[];
+  achievements?: {
+    id: string;
+    projectId: string;
+    key: string;
+    name: string;
+    description?: string | null;
+  }[];
+  challenges?: {
+    id: string;
+    projectId: string;
+    key: string;
+    name: string;
+    trigger: string;
+    target?: number;
+  }[];
+  rules?: {
+    projectId: string;
+    name: string;
+    trigger: string;
+    conditions?: unknown;
+    actions?: unknown[];
+    enabled?: boolean;
+  }[];
+}
 
 export async function organizationDataRoutes(fastify: FastifyInstance) {
   const exportHandler = async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
@@ -41,51 +78,36 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     const orgProjects = await db.select().from(projects).where(eq(projects.organizationId, organizationId));
     const projectIds = orgProjects.map((p) => p.id);
 
-    let orgUsers: any[] = [];
-    let orgEvents: any[] = [];
-    let orgXp: any[] = [];
-    let orgLevels: any[] = [];
-    let orgAchievements: any[] = [];
-    let orgUserAchievements: any[] = [];
-    let orgChallenges: any[] = [];
-    let orgChallengeProgress: any[] = [];
-    let orgRules: any[] = [];
-    let orgNotifications: any[] = [];
-    let orgWebhooks: any[] = [];
-    let orgIntegrations: any[] = [];
-    let orgAuditLogs: any[] = [];
-
-    if (projectIds.length > 0) {
-      [
-        orgUsers,
-        orgEvents,
-        orgXp,
-        orgLevels,
-        orgAchievements,
-        orgUserAchievements,
-        orgChallenges,
-        orgChallengeProgress,
-        orgRules,
-        orgNotifications,
-        orgWebhooks,
-        orgIntegrations,
-        orgAuditLogs,
-      ] = await Promise.all([
-        db.select().from(endUsers).where(inArray(endUsers.projectId, projectIds)),
-        db.select().from(events).where(inArray(events.projectId, projectIds)),
-        db.select().from(xpLedger).where(inArray(xpLedger.projectId, projectIds)),
-        db.select().from(levels).where(inArray(levels.projectId, projectIds)),
-        db.select().from(achievements).where(inArray(achievements.projectId, projectIds)),
-        db.select().from(userAchievements).where(inArray(userAchievements.projectId, projectIds)),
-        db.select().from(challenges).where(inArray(challenges.projectId, projectIds)),
-        db.select().from(userChallengeProgress).where(inArray(userChallengeProgress.projectId, projectIds)),
-        db.select().from(rules).where(inArray(rules.projectId, projectIds)),
-        db.select().from(notifications).where(inArray(notifications.projectId, projectIds)),
-        db.select().from(webhookEndpoints).where(inArray(webhookEndpoints.projectId, projectIds)),
-        db.select().from(integrations).where(inArray(integrations.projectId, projectIds)),
-        db.select().from(auditLogs).where(eq(auditLogs.organizationId, organizationId)),
-      ]);
-    }
+    const [
+      orgUsers,
+      orgEvents,
+      orgXp,
+      orgLevels,
+      orgAchievements,
+      orgUserAchievements,
+      orgChallenges,
+      orgChallengeProgress,
+      orgRules,
+      orgNotifications,
+      orgWebhooks,
+      orgIntegrations,
+    ] = await Promise.all([
+      db.select().from(endUsers).where(inArray(endUsers.projectId, projectIds)),
+      db.select().from(events).where(inArray(events.projectId, projectIds)),
+      db.select().from(xpLedger).where(inArray(xpLedger.projectId, projectIds)),
+      db.select().from(levels).where(inArray(levels.projectId, projectIds)),
+      db.select().from(achievements).where(inArray(achievements.projectId, projectIds)),
+      db.select().from(userAchievements).where(inArray(userAchievements.projectId, projectIds)),
+      db.select().from(challenges).where(inArray(challenges.projectId, projectIds)),
+      db
+        .select()
+        .from(userChallengeProgress)
+        .where(inArray(userChallengeProgress.projectId, projectIds)),
+      db.select().from(rules).where(inArray(rules.projectId, projectIds)),
+      db.select().from(notifications).where(inArray(notifications.projectId, projectIds)),
+      db.select().from(webhookEndpoints).where(inArray(webhookEndpoints.projectId, projectIds)),
+      db.select().from(integrations).where(inArray(integrations.projectId, projectIds)),
+    ]);
 
     // STRICT SECRET REDACTION SHIELD
     const sanitizedWebhooks = orgWebhooks.map((w) => ({
@@ -102,7 +124,7 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     const sanitizedIntegrations = orgIntegrations.map((i) => ({
       id: i.id,
       projectId: i.projectId,
-      type: i.type,
+      type: i.provider,
       name: i.name,
       enabled: i.enabled,
       credentialsConfigured: true, // Webhook URLs/Tokens redacted!
@@ -131,12 +153,12 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
       users: orgUsers.map((u) => ({ id: u.id, projectId: u.projectId, externalId: u.externalId, name: u.name, email: u.email })),
       events: orgEvents.map((e) => ({ id: e.id, projectId: e.projectId, userId: e.userId, type: e.type, occurredAt: e.occurredAt })),
       xpLedger: orgXp.map((x) => ({ id: x.id, projectId: x.projectId, userId: x.userId, amount: x.amount, reason: x.reason })),
-      levels: orgLevels.map((l) => ({ id: l.id, projectId: l.projectId, level: l.level, name: l.name, minXp: l.minXp })),
+      levels: orgLevels.map((l) => ({ id: l.id, projectId: l.projectId, level: l.level, name: l.name, minXp: l.requiredXp })),
       achievements: orgAchievements.map((a) => ({ id: a.id, projectId: a.projectId, key: a.key, name: a.name, description: a.description })),
       userAchievements: orgUserAchievements.map((ua) => ({ id: ua.id, projectId: ua.projectId, userId: ua.userId, achievementId: ua.achievementId, awardedAt: ua.awardedAt })),
       challenges: orgChallenges.map((c) => ({ id: c.id, projectId: c.projectId, key: c.key, name: c.name, trigger: c.trigger, target: c.target })),
       userChallengeProgress: orgChallengeProgress.map((ucp) => ({ id: ucp.id, projectId: ucp.projectId, userId: ucp.userId, challengeId: ucp.challengeId, progress: ucp.progress, completed: ucp.completed })),
-      rules: orgRules.map((r) => ({ id: r.id, projectId: r.projectId, key: r.key, name: r.name, trigger: r.trigger, enabled: r.enabled })),
+      rules: orgRules.map((r) => ({ id: r.id, projectId: r.projectId, name: r.name, trigger: r.trigger, conditions: r.conditions, actions: r.actions, enabled: r.enabled })),
       notifications: orgNotifications.map((n) => ({ id: n.id, projectId: n.projectId, userId: n.userId, type: n.type, title: n.title, message: n.message })),
       webhooks: sanitizedWebhooks,
       integrations: sanitizedIntegrations,
@@ -160,12 +182,12 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
       .send(exportPackage);
   };
 
-  const validateHandler = async (request: FastifyRequest<{ Params: { organizationId: string }; Body: any }>, reply: FastifyReply) => {
+  const validateHandler = async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
     const { organizationId } = request.params;
     const authResult = await requireOrgRole(request, reply, organizationId, ['owner', 'admin']);
     if (!authResult) return;
 
-    const payload = request.body as any;
+    const payload = request.body as OrgImportPackage | null;
     const warnings: string[] = [];
 
     if (!payload || payload.format !== 'gami-organization-export') {
@@ -205,12 +227,12 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
     });
   };
 
-  const importHandler = async (request: FastifyRequest<{ Params: { organizationId: string }; Body: any }>, reply: FastifyReply) => {
+  const importHandler = async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
     const { organizationId } = request.params;
     const authResult = await requireOrgRole(request, reply, organizationId, ['owner', 'admin']);
     if (!authResult) return;
 
-    const payload = request.body as any;
+    const payload = request.body as OrgImportPackage | null;
 
     if (!payload || payload.format !== 'gami-organization-export' || payload.version !== 1) {
       return reply.status(400).send({
@@ -307,6 +329,8 @@ export async function organizationDataRoutes(fastify: FastifyInstance) {
               projectId: targetProjId,
               name: r.name,
               trigger: r.trigger,
+              conditions: r.conditions ?? null,
+              actions: r.actions ?? [],
               enabled: r.enabled ?? true,
             });
           }

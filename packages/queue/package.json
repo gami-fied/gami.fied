@@ -12,7 +12,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
     "bullmq": "^5.65.1",
     "drizzle-orm": "^0.45.2",

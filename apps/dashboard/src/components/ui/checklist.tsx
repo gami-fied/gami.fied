@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, Search, Square } from 'lucide-react';
+import { Check, Search } from 'lucide-react';
 
 export interface ChecklistItem<T extends string | number = string> {
   value: T;

@@ -1,0 +1,44 @@
+# Local development infrastructure only. Run the apps on the host with `pnpm dev`.
+# The full production stack lives in docker-compose.yml.
+name: gami-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gami-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gami_community
+      POSTGRES_USER: gami
+      POSTGRES_PASSWORD: gami_dev_password
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U gami -d gami_community']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: gami-dev-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

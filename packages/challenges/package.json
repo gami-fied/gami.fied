@@ -17,10 +17,7 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@gami/config": "workspace:*",
-    "@gami/database": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"

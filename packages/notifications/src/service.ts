@@ -182,7 +182,9 @@ export async function createNotificationIntent<T extends NotificationType>(
             .onConflictDoNothing();
         }
       }
-    } catch {}
+    } catch (err) {
+      console.error('[Notifications] Failed to queue integration deliveries:', err);
+    }
 
     return { status: 'created', notification: inserted };
   }

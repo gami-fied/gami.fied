@@ -22,10 +22,10 @@ export async function adminBackupRoutes(fastify: FastifyInstance) {
       });
 
       return reply.status(201).send(backup);
-    } catch (err: any) {
+    } catch (err: unknown) {
       return reply.status(500).send({
-        error: { code: 'INTERNAL_SERVER_ERROR', message: err?.message || 'Failed to create platform backup' },
-        message: err?.message || 'Failed to create platform backup',
+        error: { code: 'INTERNAL_SERVER_ERROR', message: (err as Error)?.message || 'Failed to create platform backup' },
+        message: (err as Error)?.message || 'Failed to create platform backup',
         code: 'INTERNAL_SERVER_ERROR',
       });
     }

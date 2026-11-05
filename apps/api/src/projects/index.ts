@@ -9,6 +9,8 @@ import {
   requireProjectAccess,
 } from '../authorization/index.js';
 
+type SessionUserFlags = { role?: string; isPlatformAdmin?: boolean };
+
 export async function projectRoutes(fastify: FastifyInstance) {
   // Create project
   fastify.post('/api/projects', async (request, reply) => {
@@ -87,8 +89,8 @@ export async function projectRoutes(fastify: FastifyInstance) {
           .where(eq(projects.organizationId, targetOrgId));
 
         const isPlatformAdmin = Boolean(
-          (authResult.session?.user as any)?.role === 'admin' ||
-            (authResult.session?.user as any)?.isPlatformAdmin
+          (authResult.session?.user as SessionUserFlags | undefined)?.role === 'admin' ||
+            (authResult.session?.user as SessionUserFlags | undefined)?.isPlatformAdmin
         );
 
         // Platform Admin or Org Owner/Admin -> Full access to all org projects
@@ -135,7 +137,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       const orgIds = userMemberships.map((m) => m.organizationId);
       const prjs = await db.select().from(projects).where(inArray(projects.organizationId, orgIds));
 
-      if ((session.user as any).isPlatformAdmin) {
+      if ((session.user as SessionUserFlags).isPlatformAdmin) {
         return reply.send(prjs);
       }
 

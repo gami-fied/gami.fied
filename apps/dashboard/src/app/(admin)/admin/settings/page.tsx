@@ -1,7 +1,7 @@
 'use client';
 
 import { SmtpSettingsView } from '@/components/features/settings/smtp-settings-view';
-import { Settings, Mail, ShieldAlert, Sliders } from 'lucide-react';
+import { Settings, Mail } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AdminSettingsPage() {

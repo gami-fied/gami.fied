@@ -28,7 +28,6 @@ interface ProjectMetrics {
 
 export default function DeveloperPage() {
   const { selectedProject } = useDashboard();
-  const [copiedKey, setCopiedKey] = useState(false);
   const [copiedPrj, setCopiedPrj] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);

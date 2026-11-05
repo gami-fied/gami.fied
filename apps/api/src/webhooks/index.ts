@@ -4,7 +4,6 @@ import {
   createWebhookDelivery,
   encryptSecret,
   generateWebhookSecret,
-  SUPPORTED_WEBHOOK_EVENT_TYPES,
   validateWebhookUrl,
   type WebhookEventType,
 } from '@gami/webhooks';

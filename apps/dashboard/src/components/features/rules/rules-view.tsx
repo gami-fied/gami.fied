@@ -36,6 +36,35 @@ import {
 import { evaluateRule } from '@gami/rules';
 import { motion } from 'motion/react';
 
+interface StoredCondition {
+  field?: string;
+  fact?: string;
+  operator?: string;
+  value?: unknown;
+}
+
+interface StoredConditions {
+  all?: StoredCondition[];
+  any?: StoredCondition[];
+}
+
+interface StoredAction {
+  type?: string;
+  amount?: number;
+  achievementId?: string;
+  achievementKey?: string;
+  params?: { amount?: number; achievementId?: string; achievementKey?: string };
+}
+
+interface RuleTestResult {
+  ruleId?: string;
+  ruleName?: string;
+  trigger?: string;
+  matched?: boolean;
+  actionsExecuted?: StoredAction[];
+  [key: string]: unknown;
+}
+
 export function RulesView() {
   const { selectedProject, selectedOrg } = useDashboard();
   const projectId = selectedProject?.id || null;
@@ -101,7 +130,9 @@ export function RulesView() {
       2
     )
   );
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<RuleTestResult[] | { error: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (projectId) {
@@ -122,31 +153,31 @@ export function RulesView() {
     }
   }, [editingRule]);
 
-  const parseConditionsToVisual = (conditionsObj: any) => {
+  const parseConditionsToVisual = (conditionsObj: StoredConditions | null | undefined) => {
     if (!conditionsObj) {
       setMatchMode('all');
       setVisualConditions([]);
       return;
     }
     const isAny = Array.isArray(conditionsObj.any);
-    const condList = isAny ? conditionsObj.any : conditionsObj.all || [];
+    const condList = (isAny ? conditionsObj.any : conditionsObj.all) ?? [];
     setMatchMode(isAny ? 'any' : 'all');
 
-    const mapped: VisualCondition[] = condList.map((c: any, index: number) => ({
+    const mapped: VisualCondition[] = condList.map((c, index) => ({
       id: `c_${index}_${Date.now()}`,
       field: c.field || c.fact || '',
-      operator: c.operator || 'equals',
+      operator: (c.operator || 'equals') as VisualCondition['operator'],
       value: String(c.value ?? ''),
     }));
     setVisualConditions(mapped);
   };
 
-  const parseActionsToVisual = (actionsArr: any[]) => {
+  const parseActionsToVisual = (actionsArr: StoredAction[]) => {
     if (!Array.isArray(actionsArr)) {
       setVisualActions([createActionObj('award_xp', 100)]);
       return;
     }
-    const mapped: VisualAction[] = actionsArr.map((a: any) => {
+    const mapped: VisualAction[] = actionsArr.map((a) => {
       if (a.type === 'award_xp') {
         return createActionObj('award_xp', a.params?.amount || a.amount || 100);
       }
@@ -166,7 +197,7 @@ export function RulesView() {
   const buildRulesEngineConditions = (mode: 'all' | 'any', conds: VisualCondition[]) => {
     if (conds.length === 0) return null;
     const formatted = conds.map((c) => {
-      let val: any = c.value;
+      let val: string | number | boolean = c.value;
       if (c.value === 'true') val = true;
       else if (c.value === 'false') val = false;
       else if (!isNaN(Number(c.value)) && c.value.trim() !== '') val = Number(c.value);
@@ -243,8 +274,8 @@ export function RulesView() {
     setSubmitting(true);
     setFormError(null);
 
-    let conditionsObj: Record<string, unknown> | null = null;
-    let actionsObj: Record<string, unknown>[] = [];
+    let conditionsObj: Record<string, unknown> | null;
+    let actionsObj: Record<string, unknown>[];
 
     try {
       if (editorMode === 'visual') {
@@ -452,10 +483,10 @@ export function RulesView() {
                       <TableCell className="text-xs text-zinc-400">
                         {rule.conditions ? (
                           <span className="font-mono text-[11px] bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
-                            {Array.isArray((rule.conditions as any).all)
-                              ? `${(rule.conditions as any).all.length} IF (ALL)`
-                              : Array.isArray((rule.conditions as any).any)
-                                ? `${(rule.conditions as any).any.length} IF (ANY)`
+                            {Array.isArray((rule.conditions as StoredConditions).all)
+                              ? `${(rule.conditions as StoredConditions).all?.length} IF (ALL)`
+                              : Array.isArray((rule.conditions as StoredConditions).any)
+                                ? `${(rule.conditions as StoredConditions).any?.length} IF (ANY)`
                                 : 'Custom JSON'}
                           </span>
                         ) : (
@@ -465,7 +496,7 @@ export function RulesView() {
                       <TableCell className="text-xs">
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(rule.actions) ? (
-                            rule.actions.map((act: any, idx: number) => (
+                            (rule.actions as StoredAction[]).map((act, idx) => (
                               <Badge key={idx} variant="emerald" className="text-[10px]">
                                 {act.type === 'award_xp'
                                   ? `+${act.params?.amount || act.amount} XP`
@@ -567,13 +598,13 @@ export function RulesView() {
             </CardHeader>
             <CardContent>
               {testResults ? (
-                testResults.error ? (
+                'error' in testResults ? (
                   <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 text-xs rounded-none">
                     {testResults.error}
                   </div>
                 ) : Array.isArray(testResults) && testResults.length > 0 ? (
                   <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                    {testResults.map((res: any, idx: number) => (
+                    {testResults.map((res, idx) => (
                       <motion.div
                         key={res.ruleId || idx}
                         initial={{ opacity: 0, y: 10 }}
@@ -621,7 +652,7 @@ export function RulesView() {
                               </span>
                               <div className="flex flex-wrap gap-1.5">
                                 {Array.isArray(res.actionsExecuted) &&
-                                  res.actionsExecuted.map((act: any, i: number) => (
+                                  res.actionsExecuted.map((act, i) => (
                                     <Badge key={i} variant="emerald" className="text-[10px]">
                                       {act.type === 'award_xp'
                                         ? `+${act.params?.amount || act.amount} XP`

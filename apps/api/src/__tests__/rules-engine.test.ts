@@ -130,6 +130,22 @@ describe('Milestone 6 — Rules Engine & End-to-End System Test Suite', () => {
     expect(invalidRes.statusCode).toBe(400);
   });
 
+  it('accepts a rule with no conditions', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projIdA}/rules`,
+      headers: { cookie: cookieA },
+      payload: {
+        name: 'Always Reward',
+        trigger: 'lesson.completed',
+        actions: [{ type: 'log', params: { msg: 'Lesson completed' } }],
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(JSON.parse(res.payload).conditions).toBeNull();
+  });
+
   it('2. Rule Preview API: Preview operates in-memory and never creates DB records or executes actions', async () => {
     const previewRes = await app.inject({
       method: 'POST',

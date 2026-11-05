@@ -1,5 +1,5 @@
 import { auditLogs, db, member, projectMembers, projects, users } from '@gami/database';
-import { and, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, eq, ilike, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireOrgMember, requireOrgRole } from '../authorization/index.js';
 import { randomUUID } from 'crypto';

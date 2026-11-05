@@ -17,7 +17,8 @@ export function ProjectSwitcher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isPlatformAdmin = (session?.user as any)?.role === 'admin' || Boolean((session?.user as any)?.isPlatformAdmin);
+  const sessionUser = session?.user as { role?: string; isPlatformAdmin?: boolean } | undefined;
+  const isPlatformAdmin = sessionUser?.role === 'admin' || Boolean(sessionUser?.isPlatformAdmin);
   const isAdminOrOwner = isPlatformAdmin || ['owner', 'admin'].includes(selectedOrg?.role || 'member');
 
   const handleCreateProject = async (e: React.FormEvent) => {

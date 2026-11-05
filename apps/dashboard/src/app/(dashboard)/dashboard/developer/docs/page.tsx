@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, ExternalLink, RefreshCw, Code2, Lock, ShieldCheck } from 'lucide-react';
+import { FileText, ExternalLink, RefreshCw, Lock, ShieldCheck } from 'lucide-react';
 
 interface OpenApiSpec {
   openapi: string;

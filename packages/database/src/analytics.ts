@@ -1,24 +1,18 @@
 import {
   achievements,
-  challengeRewardOutbox,
-  challenges,
-  emailNotificationOutbox,
   endUsers,
-  eventOutbox,
   events,
   integrationDeliveries,
-  levels,
   notificationOutbox,
   notifications,
   ruleExecutions,
   rules,
   userAchievements,
   userChallengeProgress,
-  userXpBalances,
   webhookOutbox,
   xpLedger,
 } from './schema/index.js';
-import { and, count, desc, eq, gte, lte, sql, sum } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 export type DateRangePreset = '24h' | '7d' | '30d' | '90d' | 'custom';

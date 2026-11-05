@@ -1,10 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Server, Building2, Folder, Users, Activity, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Server, Building2, Folder, Users, Activity, CheckCircle } from 'lucide-react';
+
+interface SystemOverview {
+  version?: string;
+  environment?: string;
+  health?: { database?: string; redis?: string; worker?: string };
+  counts?: { organizations?: number; projects?: number; endUsers?: number; eventsIngested?: number };
+  outboxes?: {
+    eventPending?: number;
+    emailPending?: number;
+    notificationPending?: number;
+    webhookPending?: number;
+  };
+}
 
 export default function AdminOverviewPage() {
-  const [systemData, setSystemData] = useState<any>(null);
+  const [systemData, setSystemData] = useState<SystemOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

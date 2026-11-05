@@ -47,7 +47,9 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
       try {
         await db.delete(organizations).where(eq(organizations.id, orgIdA));
         await db.delete(organizations).where(eq(organizations.id, orgIdB));
-      } catch {}
+      } catch {
+        // Best-effort cleanup
+      }
     }
     await app?.close();
   });

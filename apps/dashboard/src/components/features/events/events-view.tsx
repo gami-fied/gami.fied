@@ -121,7 +121,7 @@ export function EventsView() {
     e.preventDefault();
     setEmitError(null);
 
-    let parsedPayload: Record<string, unknown> = {};
+    let parsedPayload: Record<string, unknown>;
     try {
       parsedPayload = JSON.parse(emitPayloadJson);
     } catch {

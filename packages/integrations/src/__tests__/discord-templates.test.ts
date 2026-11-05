@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildDiscordEmbed,
   buildDiscordEmbedFromTemplate,
-  DEFAULT_DISCORD_TEMPLATES,
   EVENT_PLACEHOLDERS,
-  getSampleContext,
   renderTemplateString,
-  sanitizeDiscordContent,
   validateDiscordEmbedTemplate,
 } from '../providers/discord/templates.js';
 

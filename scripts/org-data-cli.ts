@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 async function main() {
   const args = process.argv.slice(2);

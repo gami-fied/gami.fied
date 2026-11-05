@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { useDashboard } from '../features/context/dashboard-context';
 import { OrganizationSwitcher } from './organization-switcher';
 import { ProjectSwitcher } from './project-switcher';
 import { NotificationCenter } from '../features/notifications/notification-center';

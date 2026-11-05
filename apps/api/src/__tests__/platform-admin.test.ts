@@ -1,16 +1,15 @@
 import { randomUUID } from 'crypto';
-import { apiKeys, auditLogs, db, member, organizations, projects, users } from '@gami/database';
+import { apiKeys, db, users } from '@gami/database';
 import { promoteUserToPlatformAdmin } from '../../../../packages/database/src/scripts/promote-admin.js';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createApiKey, hashApiKey } from '../services/api-key.service.js';
+import { createApiKey } from '../services/api-key.service.js';
 import { buildServer } from '../index.js';
 
 describe('Milestone 19 — Platform Administration, Security & Configuration Management Test Suite', () => {
   let server: Awaited<ReturnType<typeof buildServer>>;
   let adminUserId: string;
   let adminCookie: string;
-  let normalUserId: string;
   let normalCookie: string;
   let orgId: string;
   let projectId: string;
@@ -60,7 +59,6 @@ describe('Milestone 19 — Platform Administration, Security & Configuration Man
       .from(users)
       .where(eq(users.email, normalEmail));
     expect(normalUserRecord).toBeDefined();
-    normalUserId = normalUserRecord.id;
 
     // 3. Create Org & Project owned by Normal User
     const orgRes = await server.inject({

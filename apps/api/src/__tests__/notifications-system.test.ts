@@ -442,7 +442,7 @@ describe('Milestone 13 — Notifications & Reward Delivery Foundation System Tes
         attempts: 0,
       });
 
-      const stats = await dispatchPendingNotifications(50);
+      const stats = await dispatchPendingNotifications(50, new Date(Date.now() + 60_000));
       expect(stats.completedCount).toBeGreaterThan(0);
     });
 

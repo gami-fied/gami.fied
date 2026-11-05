@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checklist, ChecklistItem } from '@/components/ui/checklist';
-import { User, Mail, Shield, CheckCircle2, Lock, Bell, AlertTriangle } from 'lucide-react';
+import { User, Shield, CheckCircle2, Lock, Bell, AlertTriangle } from 'lucide-react';
 
 interface UserProfileData {
   id: string;
@@ -29,13 +29,11 @@ export function ProfileView() {
   const [password, setPassword] = useState('');
   const [subscribedToSystemEmails, setSubscribedToSystemEmails] = useState(true);
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const fetchProfile = async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/user/profile');
       if (res.ok) {
@@ -49,8 +47,6 @@ export function ProfileView() {
       }
     } catch {
       setError('Network error loading user profile');
-    } finally {
-      setLoading(false);
     }
   };
 

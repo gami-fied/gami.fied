@@ -1,9 +1,4 @@
-import {
-  db,
-  emailNotificationOutbox,
-  EmailNotificationOutboxRecord,
-  serverConfigs,
-} from '@gami/database';
+import { db, emailNotificationOutbox, serverConfigs } from '@gami/database';
 import {
   getSmtpProviderFromConfig,
   SmtpConfig,

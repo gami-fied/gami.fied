@@ -59,7 +59,9 @@ export async function ensurePlatformBackupsTable(): Promise<void> {
         updated_at timestamp with time zone DEFAULT now() NOT NULL
       );
     `);
-  } catch {}
+  } catch (err) {
+    console.warn('[Backups] Could not ensure platform_backups table:', err);
+  }
 }
 
 export function getBackupStorageDir(): string {
@@ -98,7 +100,7 @@ export async function createPlatformBackup(params: {
   const startTime = Date.now();
 
   // 1. Insert database record with status 'creating'
-  const [record] = await db
+  await db
     .insert(platformBackups)
     .values({
       id: backupId,
@@ -252,7 +254,7 @@ export async function createPlatformBackup(params: {
     });
 
     return updatedRecord!;
-  } catch (err: any) {
+  } catch (err: unknown) {
     await db
       .update(platformBackups)
       .set({
@@ -262,7 +264,9 @@ export async function createPlatformBackup(params: {
       })
       .where(eq(platformBackups.id, backupId));
 
-    throw new Error(`Backup creation failed: ${err?.message || 'Storage write error'}`);
+    throw new Error(`Backup creation failed: ${(err as Error)?.message || 'Storage write error'}`, {
+      cause: err,
+    });
   }
 }
 
@@ -443,11 +447,11 @@ export async function restorePlatformBackup(params: {
       for (const { name, table } of insertionOrder) {
         const rows = dumpPayload.tables[name];
         if (Array.isArray(rows) && rows.length > 0) {
-          const formattedRows = rows.map((r: any) => {
+          const formattedRows = rows.map((r: Record<string, unknown>) => {
             const copy = { ...r };
             for (const key of Object.keys(copy)) {
               if (key.endsWith('At') && typeof copy[key] === 'string') {
-                copy[key] = new Date(copy[key]);
+                copy[key] = new Date(copy[key] as string);
               }
             }
             return copy;

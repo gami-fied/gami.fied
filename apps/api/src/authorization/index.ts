@@ -93,7 +93,7 @@ export async function requireOrgMember(
       session: {
         session: { id: authResult.key.id, userId: `key_${authResult.key.id}` },
         user: { id: `key_${authResult.key.id}`, email: 'apikey@system.local', name: authResult.key.name },
-      } as any,
+      } as NonNullable<Awaited<ReturnType<typeof getSession>>>,
       user: { id: `key_${authResult.key.id}` },
       membership: {
         id: `m_apikey_${authResult.key.id}`,

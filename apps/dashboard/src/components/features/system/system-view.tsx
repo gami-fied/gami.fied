@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
-import { Shield, Server, RefreshCw } from 'lucide-react';
+import { Shield, RefreshCw } from 'lucide-react';
 
 interface PlatformMetrics {
   version: string;

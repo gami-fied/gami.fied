@@ -7,7 +7,10 @@ import { useLevels } from '@/hooks/use-levels';
 import { useUserChallenges } from '@/hooks/use-challenges';
 import { useXp } from '@/hooks/use-xp';
 import { useUsers } from '@/hooks/use-users';
-import { useNotificationPreferences } from '@/hooks/use-notification-preferences';
+import {
+  useNotificationPreferences,
+  type NotificationType,
+} from '@/hooks/use-notification-preferences';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
@@ -29,22 +32,16 @@ import {
   Users,
   Search,
   User as UserIcon,
-  Crown,
-  Medal,
   Coins,
   Trophy,
   Target,
   TrendingUp,
-  ShieldAlert,
-  ChevronRight,
   Gift,
   Plus,
   Edit2,
   UserX,
   UserCheck,
   CheckCircle2,
-  Calendar,
-  Key,
   Bell,
   Mail,
   Loader2,
@@ -891,7 +888,7 @@ export function UsersView() {
                                       type="checkbox"
                                       checked={inAppEnabled}
                                       onChange={(e) =>
-                                        updatePreference('in_app', type as any, e.target.checked)
+                                        updatePreference('in_app', type as NotificationType, e.target.checked)
                                       }
                                       className="sr-only peer"
                                     />
@@ -912,7 +909,7 @@ export function UsersView() {
                                       checked={hasEmail && emailEnabled}
                                       onChange={(e) =>
                                         hasEmail &&
-                                        updatePreference('email', type as any, e.target.checked)
+                                        updatePreference('email', type as NotificationType, e.target.checked)
                                       }
                                       className="sr-only peer"
                                     />

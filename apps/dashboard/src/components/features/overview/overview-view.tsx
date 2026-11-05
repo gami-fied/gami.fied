@@ -6,7 +6,6 @@ import { useXp } from '@/hooks/use-xp';
 import { useAchievements } from '@/hooks/use-achievements';
 import { useLevels } from '@/hooks/use-levels';
 import { useRules } from '@/hooks/use-rules';
-import { useApiKeys } from '@/hooks/use-api-keys';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle2, Circle, Code2, FolderKanban } from 'lucide-react';

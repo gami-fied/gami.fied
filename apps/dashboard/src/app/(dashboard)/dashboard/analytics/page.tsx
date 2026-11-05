@@ -5,20 +5,54 @@ import { useDashboard } from '@/components/features/context/dashboard-context';
 import { Dropdown } from '@/components/ui/dropdown';
 import {
   BarChart3,
-  Calendar,
+  type LucideIcon,
   Download,
   Users,
   Activity,
-  Zap,
   Coins,
   Trophy,
   Target,
   RefreshCw,
   TrendingUp,
-  Send,
-  Webhook,
-  Bot,
 } from 'lucide-react';
+
+interface OverviewMetrics {
+  totalUsers?: number;
+  activeUsers?: number;
+  eventsProcessed?: number;
+  xpAwarded?: number;
+  achievementsUnlocked?: number;
+  challengesCompleted?: number;
+}
+
+interface UserMetrics {
+  totalUsers?: number;
+  newUsers?: number;
+  activeUsers?: number;
+  userGrowthOverTime?: { date: string; count: number }[];
+}
+
+interface EventMetrics {
+  topEventTypes?: { type: string; count: number }[];
+}
+
+interface GamificationMetrics {
+  totalXpAwarded?: number;
+  avgXpPerUser?: number;
+  challenges?: { completionRatePercent?: number };
+  topAchievements?: { name: string; unlockedCount: number }[];
+  topTriggeredRules?: { name: string; trigger: string; executionCount: number }[];
+}
+
+interface NotificationMetrics {
+  inAppNotificationsGenerated?: number;
+  outbox?: { completed?: number; failed?: number };
+}
+
+interface IntegrationMetrics {
+  webhooks?: { delivered?: number; failed?: number };
+  integrations?: { delivered?: number; failed?: number };
+}
 
 export default function AnalyticsPage() {
   const { selectedProject } = useDashboard();
@@ -28,12 +62,18 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'gamification' | 'delivery'>('overview');
 
   const [loading, setLoading] = useState(true);
-  const [overview, setOverview] = useState<any>(null);
-  const [userMetrics, setUserMetrics] = useState<any>(null);
-  const [eventMetrics, setEventMetrics] = useState<any>(null);
-  const [gamificationMetrics, setGamificationMetrics] = useState<any>(null);
-  const [notificationMetrics, setNotificationMetrics] = useState<any>(null);
-  const [integrationMetrics, setIntegrationMetrics] = useState<any>(null);
+  const [overview, setOverview] = useState<OverviewMetrics | null>(null);
+  const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
+  const [eventMetrics, setEventMetrics] = useState<EventMetrics | null>(null);
+  const [gamificationMetrics, setGamificationMetrics] = useState<GamificationMetrics | null>(
+    null
+  );
+  const [notificationMetrics, setNotificationMetrics] = useState<NotificationMetrics | null>(
+    null
+  );
+  const [integrationMetrics, setIntegrationMetrics] = useState<IntegrationMetrics | null>(
+    null
+  );
 
   const fetchAnalytics = async () => {
     if (!selectedProject?.id) return;
@@ -277,7 +317,7 @@ export default function AnalyticsPage() {
             <p className="text-xs font-mono text-zinc-500 py-8 text-center">No user registration activity recorded in this period.</p>
           ) : (
             <div className="space-y-2">
-              {userMetrics?.userGrowthOverTime?.map((item: any, idx: number) => (
+              {userMetrics?.userGrowthOverTime?.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs font-mono py-1.5 border-b border-zinc-800/60">
                   <span className="text-zinc-400">{item.date}</span>
                   <span className="text-emerald-400 font-bold">+{item.count} new users</span>
@@ -296,7 +336,7 @@ export default function AnalyticsPage() {
               <p className="text-xs font-mono text-zinc-500 py-8 text-center">No event ingestion records found.</p>
             ) : (
               <div className="divide-y divide-zinc-800">
-                {eventMetrics?.topEventTypes?.map((row: any, idx: number) => (
+                {eventMetrics?.topEventTypes?.map((row, idx) => (
                   <div key={idx} className="flex items-center justify-between py-2.5 text-xs font-mono">
                     <span className="text-cyan-400 font-bold">{row.type}</span>
                     <span className="text-zinc-300">{row.count} events</span>
@@ -317,7 +357,7 @@ export default function AnalyticsPage() {
                 <p className="text-xs font-mono text-zinc-500 py-8 text-center">No achievements unlocked yet.</p>
               ) : (
                 <div className="divide-y divide-zinc-800">
-                  {gamificationMetrics?.topAchievements?.map((ach: any, idx: number) => (
+                  {gamificationMetrics?.topAchievements?.map((ach, idx) => (
                     <div key={idx} className="flex items-center justify-between py-2 text-xs font-mono">
                       <span className="text-purple-400 font-bold">{ach.name}</span>
                       <span className="text-zinc-300">{ach.unlockedCount} unlocked</span>
@@ -332,7 +372,7 @@ export default function AnalyticsPage() {
                 <p className="text-xs font-mono text-zinc-500 py-8 text-center">No rule executions recorded.</p>
               ) : (
                 <div className="divide-y divide-zinc-800">
-                  {gamificationMetrics?.topTriggeredRules?.map((rule: any, idx: number) => (
+                  {gamificationMetrics?.topTriggeredRules?.map((rule, idx) => (
                     <div key={idx} className="flex items-center justify-between py-2 text-xs font-mono">
                       <div>
                         <span className="text-orange-400 font-bold block">{rule.name}</span>
@@ -390,7 +430,7 @@ export default function AnalyticsPage() {
   );
 }
 
-function SummaryCard({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: any; color: string }) {
+function SummaryCard({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: LucideIcon; color: string }) {
   return (
     <div className="bg-zinc-900 border border-zinc-800 p-4 space-y-2">
       <div className="flex items-center justify-between">

@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["DATABASE_URL_TEST", "REDIS_URL", "REDIS_HOST", "REDIS_PORT"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -7,6 +8,10 @@
     },
     "lint": {
       "dependsOn": ["^lint"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false
     },
     "typecheck": {
       "dependsOn": ["^build"]

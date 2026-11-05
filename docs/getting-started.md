@@ -26,6 +26,12 @@ cd gami.fied
 pnpm install
 ```
 
+### Create Your Environment File
+
+```bash
+cp .env.example .env
+```
+
 ### Start Database & Cache Containers
 
 ```bash
@@ -38,11 +44,19 @@ pnpm infra:status
 
 ### Run Database Migrations
 
-Apply the database schema and 22 initial Drizzle migrations to PostgreSQL:
+Apply the database schema to PostgreSQL:
 
 ```bash
-pnpm --filter @gami/database migrate
+pnpm db:migrate:dev
 ```
+
+### Load Demo Data (Optional)
+
+```bash
+pnpm db:seed
+```
+
+This creates a demo organization, project, rules and users, then prints a dashboard login and a fresh API key. Start the apps afterwards so the worker can process the demo events.
 
 ---
 

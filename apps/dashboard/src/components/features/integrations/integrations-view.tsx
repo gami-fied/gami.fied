@@ -307,6 +307,7 @@ export function IntegrationsView() {
         setDeliveries(data.deliveries || []);
       }
     } catch {
+      alert('Network error loading deliveries');
     } finally {
       setDeliveriesLoading(false);
     }
@@ -349,7 +350,10 @@ export function IntegrationsView() {
   };
 
   // Update specific template field in state
-  const handleUpdateCurrentTemplateField = (field: keyof DiscordEmbedTemplate, value: any) => {
+  const handleUpdateCurrentTemplateField = (
+    field: keyof DiscordEmbedTemplate,
+    value: DiscordEmbedTemplate[keyof DiscordEmbedTemplate]
+  ) => {
     const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     setCustomTemplates({
       ...customTemplates,
@@ -371,7 +375,11 @@ export function IntegrationsView() {
   };
 
   // Update specific field inside template
-  const handleUpdateField = (idx: number, key: keyof DiscordEmbedField, val: any) => {
+  const handleUpdateField = (
+    idx: number,
+    key: keyof DiscordEmbedField,
+    val: DiscordEmbedField[keyof DiscordEmbedField]
+  ) => {
     const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     const fields = [...(activeTpl.fields || [])];
     if (fields[idx]) {
@@ -409,7 +417,9 @@ export function IntegrationsView() {
           setCustomTemplates(data.integration.config.customTemplates);
         }
       }
-    } catch {}
+    } catch {
+      alert('Network error loading saved templates');
+    }
   };
 
   // Save templates & delivery controls to API
@@ -534,7 +544,7 @@ export function IntegrationsView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {integrations.map((intg) => {
-              const cfg = (intg.config as Record<string, any>) || {};
+              const cfg = (intg.config as Record<string, unknown>) || {};
               const activeEvents: string[] = (cfg.enabledEvents as string[]) || [];
               const customTplCount = cfg.customTemplates
                 ? Object.keys(cfg.customTemplates as Record<string, unknown>).length

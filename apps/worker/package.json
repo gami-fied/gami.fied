@@ -11,26 +11,25 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@gami/challenges": "workspace:*",
-    "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
     "@gami/integrations": "workspace:*",
     "@gami/notifications": "workspace:*",
     "@gami/progression": "workspace:*",
     "@gami/queue": "workspace:*",
     "@gami/rules": "workspace:*",
-    "@gami/types": "workspace:*",
     "@gami/webhooks": "workspace:*",
     "bullmq": "^5.65.1",
-    "drizzle-orm": "^0.45.2",
-    "ioredis": "^5.8.2"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "tsx": "^4.23.12",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

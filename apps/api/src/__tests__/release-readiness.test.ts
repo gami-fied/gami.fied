@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildServer } from '../index.js';
-import { db, organizations, projects, users, member, apiKeys, events, platformBackups, session as sessionTable, Rule } from '@gami/database';
+import { db, organizations, projects, users, member, apiKeys } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { FastifyInstance } from 'fastify';
@@ -22,7 +22,6 @@ describe('Milestone 26 — Release Readiness & Security Audit Test Suite', () =>
   let projBId: string;
 
   let rawApiKeyA: string;
-  let rawApiKeyB: string;
   let revokedApiKeyA: string;
 
   beforeAll(async () => {
@@ -116,9 +115,6 @@ describe('Milestone 26 — Release Readiness & Security Audit Test Suite', () =>
     const { createApiKey } = await import('../services/api-key.service.js');
     const keyAObj = await createApiKey(projAId, 'Key A', ['*']);
     rawApiKeyA = keyAObj.rawSecret;
-
-    const keyBObj = await createApiKey(projBId, 'Key B', ['*']);
-    rawApiKeyB = keyBObj.rawSecret;
 
     const revokedKeyObj = await createApiKey(projAId, 'Revoked Key A', ['*']);
     revokedApiKeyA = revokedKeyObj.rawSecret;

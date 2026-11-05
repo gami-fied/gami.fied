@@ -187,7 +187,9 @@ export class ServerConfigService {
         resourceId: key,
         metadata: { category },
       });
-    } catch {}
+    } catch (err) {
+      console.warn('[ServerConfig] Failed to write audit log:', err);
+    }
 
     return this.getConfigStatus(category);
   }

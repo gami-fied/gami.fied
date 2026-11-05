@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/toast';
 import {
-  Database,
   ShieldCheck,
   RefreshCw,
   Trash2,
@@ -15,14 +14,25 @@ import {
   HardDrive,
 } from 'lucide-react';
 
+interface BackupRecord {
+  id: string;
+  filename: string;
+  backupType: string;
+  status: string;
+  verificationStatus: string;
+  sizeBytes: number;
+  encrypted: boolean;
+  createdAt: string;
+}
+
 export default function AdminBackupsPage() {
   const toast = useToast();
-  const [backups, setBackups] = useState<any[]>([]);
+  const [backups, setBackups] = useState<BackupRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [selectedBackup, setSelectedBackup] = useState<any>(null);
+  const [selectedBackup, setSelectedBackup] = useState<BackupRecord | null>(null);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [backupToDelete, setBackupToDelete] = useState<any>(null);
+  const [backupToDelete, setBackupToDelete] = useState<BackupRecord | null>(null);
 
   const fetchBackups = async () => {
     setLoading(true);
@@ -59,11 +69,13 @@ export default function AdminBackupsPage() {
         try {
           const errData = await res.json();
           errMsg = errData.message || errData.error?.message || errData.error || errMsg;
-        } catch {}
+        } catch {
+          // Keep the default message when the response is not JSON
+        }
         toast.error('Backup creation failed', errMsg);
       }
-    } catch (err: any) {
-      toast.error('Backup creation error', err?.message);
+    } catch (err: unknown) {
+      toast.error('Backup creation error', (err as Error)?.message);
     } finally {
       setActionLoading(false);
     }
@@ -80,8 +92,8 @@ export default function AdminBackupsPage() {
       } else {
         toast.error('Verification failed');
       }
-    } catch (err: any) {
-      toast.error('Verification error', err?.message);
+    } catch (err: unknown) {
+      toast.error('Verification error', (err as Error)?.message);
     } finally {
       setActionLoading(false);
     }
@@ -99,8 +111,8 @@ export default function AdminBackupsPage() {
       } else {
         toast.error('Failed to delete platform backup');
       }
-    } catch (err: any) {
-      toast.error('Delete error', err?.message);
+    } catch (err: unknown) {
+      toast.error('Delete error', (err as Error)?.message);
     } finally {
       setActionLoading(false);
     }
@@ -121,10 +133,10 @@ export default function AdminBackupsPage() {
         await fetchBackups();
       } else {
         const err = await res.json();
-        toast.error('Restore failed', err?.message || 'Error executing restore');
+        toast.error('Restore failed', (err as Error)?.message || 'Error executing restore');
       }
-    } catch (err: any) {
-      toast.error('Restore error', err?.message);
+    } catch (err: unknown) {
+      toast.error('Restore error', (err as Error)?.message);
     } finally {
       setActionLoading(false);
     }

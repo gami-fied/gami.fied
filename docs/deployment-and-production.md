@@ -6,12 +6,14 @@ This guide covers production deployment using Docker Compose, environment variab
 
 ## 1. Production Docker Compose Setup
 
-Gami provides a production-ready `docker-compose.production.yml` file that orchestrates PostgreSQL, Redis, API, Worker, and Dashboard services with health checks and restart policies.
+Gami provides a production-ready `docker-compose.yml` file that orchestrates PostgreSQL, Redis, API, Worker, and Dashboard services with health checks and restart policies.
 
 ### Run Production Stack
 
 ```bash
-docker compose -f docker-compose.production.yml up -d --build
+cp .env.production.example .env
+# Replace every placeholder in .env before starting
+docker compose up -d --build
 ```
 
 ---

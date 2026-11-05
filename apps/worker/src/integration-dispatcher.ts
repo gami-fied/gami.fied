@@ -38,7 +38,9 @@ export async function getGlobalIntegrationsConfig(): Promise<{
         discordEnabled: cfg.allowDiscordIntegration !== false,
       };
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[IntegrationDispatcher] Using default integration settings:', err);
+  }
 
   return { enabled: true, discordEnabled: true };
 }
@@ -239,7 +241,9 @@ export async function dispatchPendingIntegrations(
                 }
               }
             }
-          } catch (err) {}
+          } catch {
+            // Level details only enrich the message, so it can still be sent without them
+          }
         }
       }
 

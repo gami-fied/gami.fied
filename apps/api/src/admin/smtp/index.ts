@@ -123,7 +123,11 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
     // Verify SMTP connection in background
     let decryptedPass = '';
     if (encryptedPassword) {
-      try { decryptedPass = decryptSecret(encryptedPassword); } catch {}
+      try {
+        decryptedPass = decryptSecret(encryptedPassword);
+      } catch (err) {
+        request.log.warn({ err }, 'Could not decrypt the stored SMTP password');
+      }
     }
 
     const provider = getSmtpProviderFromConfig({
@@ -249,7 +253,9 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
             status: 'success',
           },
         });
-      } catch {}
+      } catch (err) {
+        request.log.warn({ err }, 'Failed to write audit log');
+      }
 
       return reply.send({
         success: true,
@@ -272,7 +278,9 @@ export async function adminSmtpRoutes(fastify: FastifyInstance) {
             error: errorMessage,
           },
         });
-      } catch {}
+      } catch (err) {
+        request.log.warn({ err }, 'Failed to write audit log');
+      }
 
       return reply.status(500).send({
         error: 'SMTP Delivery Failed',

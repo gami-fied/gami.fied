@@ -10,7 +10,7 @@ import {
 } from '@gami/database';
 import { renderInvitationEmailTemplate } from '@gami/notifications';
 import { createHash, randomBytes, randomUUID } from 'crypto';
-import { and, eq, gte, inArray } from 'drizzle-orm';
+import { and, eq, gte } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireAuth, requireOrgRole, checkOrgSuspension } from '../authorization/index.js';
 

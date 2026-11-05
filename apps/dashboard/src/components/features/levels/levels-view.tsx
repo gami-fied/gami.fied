@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useLevels, LevelRecord } from '@/hooks/use-levels';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';

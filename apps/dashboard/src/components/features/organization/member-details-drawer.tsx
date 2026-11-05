@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
-import { Building2, Shield, Calendar, Mail, User, Layers, Plus, Trash2 } from 'lucide-react';
+import { Mail, Layers, Plus, Trash2 } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 import { useDashboard } from '../context/dashboard-context';
 import type { OrganizationMemberRecord } from '@gami.fied/sdk';
 
@@ -18,8 +18,8 @@ interface MemberDetailsDrawerProps {
 
 export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: MemberDetailsDrawerProps) {
   const { selectedOrg, projects } = useDashboard();
+  const toast = useToast();
   const [assignedProjects, setAssignedProjects] = useState<Array<{ id: string; name: string; slug: string }>>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedAddProject, setSelectedAddProject] = useState<string>('');
 
   useEffect(() => {
@@ -30,15 +30,14 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
 
   const fetchMemberDetails = async () => {
     if (!member || !selectedOrg) return;
-    setLoading(true);
     try {
       const res = await fetch(`/api/organizations/${selectedOrg.id}/members/${member.userId}`);
       if (res.ok) {
         const data = await res.json();
         setAssignedProjects(data.projects || []);
       }
-    } catch {} finally {
-      setLoading(false);
+    } catch {
+      toast.error('Could not load member details');
     }
   };
 
@@ -54,8 +53,12 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
         setSelectedAddProject('');
         await fetchMemberDetails();
         if (onRefresh) onRefresh();
+      } else {
+        toast.error('Could not assign the project');
       }
-    } catch {}
+    } catch {
+      toast.error('Could not assign the project');
+    }
   };
 
   const handleRemoveProject = async (projectId: string) => {
@@ -67,8 +70,12 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
       if (res.ok) {
         await fetchMemberDetails();
         if (onRefresh) onRefresh();
+      } else {
+        toast.error('Could not remove the project');
       }
-    } catch {}
+    } catch {
+      toast.error('Could not remove the project');
+    }
   };
 
   if (!member) return null;

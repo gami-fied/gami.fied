@@ -14,13 +14,20 @@ import {
   FolderLock,
 } from 'lucide-react';
 
+interface ImportValidation {
+  valid?: boolean;
+  error?: string;
+  manifest?: { organizationName?: string };
+  remappingPlan?: { projectsToCreate?: number; usersToImport?: number; eventsToImport?: number };
+}
+
 export default function OrganizationDataPage() {
   const { selectedOrg } = useDashboard();
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importFileContent, setImportFileContent] = useState<any>(null);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [importFileContent, setImportFileContent] = useState<unknown>(null);
+  const [validationResult, setValidationResult] = useState<ImportValidation | null>(null);
   const [importing, setImporting] = useState(false);
 
   const handleExportData = async () => {
@@ -45,11 +52,13 @@ export default function OrganizationDataPage() {
         try {
           const errData = await res.json();
           errMsg = errData.message || errData.error?.message || errData.error || errMsg;
-        } catch {}
+        } catch {
+          // Keep the default message when the response is not JSON
+        }
         toast.error('Export failed', errMsg);
       }
-    } catch (err: any) {
-      toast.error('Export error', err?.message || 'Network error executing export');
+    } catch (err: unknown) {
+      toast.error('Export error', (err as Error)?.message || 'Network error executing export');
     } finally {
       setExporting(false);
     }
@@ -105,8 +114,8 @@ export default function OrganizationDataPage() {
       } else {
         toast.error('Import failed', 'Please review dry-run validation log.');
       }
-    } catch (err: any) {
-      toast.error('Import error', err?.message || 'Network error executing import');
+    } catch (err: unknown) {
+      toast.error('Import error', (err as Error)?.message || 'Network error executing import');
     } finally {
       setImporting(false);
     }

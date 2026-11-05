@@ -98,12 +98,10 @@ function EventList({ events, max = 2 }: { events: SdkWebhookEventType[]; max?: n
 
 // Compact overflow menu for secondary row actions
 function ActionsMenu({
-  ep,
   onHistory,
   onRotate,
   onDisable,
 }: {
-  ep: WebhookEndpointRecord;
   onHistory: () => void;
   onRotate: () => void;
   onDisable: () => void;
@@ -197,7 +195,6 @@ export function WebhooksView() {
     endpoints,
     loading,
     error,
-    refresh,
     createEndpoint,
     updateEndpoint,
     deleteEndpoint,
@@ -571,7 +568,6 @@ export function WebhooksView() {
                       </button>
                       {/* Secondary: overflow ⋯ menu */}
                       <ActionsMenu
-                        ep={ep}
                         onHistory={() => handleViewDeliveries(ep)}
                         onRotate={() => handleRotateSecret(ep)}
                         onDisable={() => handleDisableEndpoint(ep)}

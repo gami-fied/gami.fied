@@ -10,7 +10,6 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
   let projectIdA: string;
   let projectIdB: string;
   let rawApiKeyA: string;
-  let rawApiKeyB: string;
   let dbAvailable = false;
 
   beforeAll(async () => {
@@ -35,9 +34,7 @@ describe('Milestone 24 — Project Analytics, Insights & Reporting', () => {
 
       const { createApiKey } = await import('../services/api-key.service.js');
       const keyA = await createApiKey(projectIdA, 'Analytics Key A');
-      const keyB = await createApiKey(projectIdB, 'Analytics Key B');
       rawApiKeyA = keyA.rawSecret;
-      rawApiKeyB = keyB.rawSecret;
       dbAvailable = true;
     } catch {
       dbAvailable = false;

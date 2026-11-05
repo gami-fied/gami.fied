@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const targetApiBase =
     process.env.API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||

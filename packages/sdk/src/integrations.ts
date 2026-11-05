@@ -1,7 +1,6 @@
 import type { HttpClient } from './http.js';
 import type {
   CreateIntegrationParams,
-  DiscordEmbedTemplate,
   GetTemplatesResponse,
   IntegrationDeliveryRecord,
   IntegrationRecord,
