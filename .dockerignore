@@ -15,7 +15,7 @@
 **/.env
 **/.env.local
 **/.env.*.local
-**/storage
+apps/api/storage
 **/*.pem
 **/*.key
 
