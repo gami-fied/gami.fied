@@ -21,10 +21,10 @@ This file tracks everything that needs fixing, improving or building. Tick items
 
 | Phase | Goal | Done / Total | Status |
 | :--- | :--- | :---: | :--- |
-| 0 | Baseline: green CI, runnable stack | 11 / 15 | In progress, the rest need Docker or a CI run |
-| 1 | Security and tenant safety | 19 / 23 | In progress, 3 partly done, 1 moved to FEAT-17 |
+| 0 | Baseline: green CI, runnable stack | 13 / 15 | In progress |
+| 1 | Security and tenant safety | 20 / 23 | In progress, 2 partly done, 1 moved to FEAT-17 |
 | 2 | Core engine correctness | 32 / 32 | Done |
-| 3 | Make every promise true | 22 / 27 | In progress, 5 partly done |
+| 3 | Make every promise true | 24 / 27 | In progress, 3 partly done |
 | 4 | Developer experience | 9 / 16 | In progress, 3 partly done |
 | 5 | Dashboard UI and UX | 33 / 37 | 4 partly done |
 | 6 | Scale and operations | 0 / 13 | Not started |
@@ -131,12 +131,12 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 - [x] **BASE-10** `P1` Clear all lint errors: 93 unused variables, 77 `any`, 21 empty blocks and the rest. `[ran]` 10 warnings remain by design: 9 `exhaustive-deps` (UX-04 removes the cause) and 1 `no-img-element`. `any` is allowed in test files only.
 - [x] **BASE-11** `P1` Add a root `test` script and a Turbo `test` task, so one command runs everything. Add a `test` script to the worker, which has none. `[ran]` `apps/api` and `packages/database` run files serially, because they share one database and the disaster recovery test deletes rows across tables.
-- [~] **BASE-12** `P1` Add GitHub Actions for lint, typecheck, build, tests with Postgres and Redis service containers, and Docker image builds. Written but not yet run on GitHub. Expect the first run to expose failures in the integration tests or Docker builds.
+- [x] **BASE-12** `P1` Add GitHub Actions for lint, typecheck, build, tests with Postgres and Redis service containers, and Docker image builds. Written but not yet run on GitHub. Expect the first run to expose failures in the integration tests or Docker builds. Done: all three CI jobs pass on PR #1.
 
 ### 0.4 Live baseline
 
 - [x] **BASE-13** `P1` Run the 26 API integration test files against real Postgres and Redis, then walk the main dashboard screens. Done against remote services: 182 of 186 API tests and all 17 database tests passed in the full serial run. 2 of the 4 failures were stale assertions (fixed), 1 was latency (passes with a longer limit, and one more timed out the same way), and 1 is ENG-30, which only fails when the database clock runs ahead. Screens covered: overview, leaderboards, rules, settings, users, analytics, events, developer, admin bootstrap and a 404, plus users at phone width. Not walked: the other screens, and admin pages past bootstrap.
-- [ ] **BASE-14** `P1` Run the full Docker stack from a clean machine and confirm the `[check]` items in 3.2. `[check]`
+- [x] **BASE-14** `P1` Run the full Docker stack from a clean machine and confirm the `[check]` items in 3.2. `[check]` Done: CI builds all three images, boots the stack and passes the smoke test.
 - [ ] **BASE-15** `P2` Add a Playwright smoke test: register, create a project, create a key, send an event, see XP. `[check]`
 
 ---
@@ -175,7 +175,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 1.4 Secrets and production configuration
 
-- [~] **SEC-20** `P0` The production compose publishes Postgres and an unauthenticated Redis on all host interfaces. Remove the `ports` entries for both and enable `requirepass`. `[code]` Written, not yet run because Docker is not on this machine (BASE-14).
+- [x] **SEC-20** `P0` The production compose publishes Postgres and an unauthenticated Redis on all host interfaces. Remove the `ports` entries for both and enable `requirepass`. `[code]` Written, not yet run because Docker is not on this machine (BASE-14). Verified by the CI smoke test.
 - [x] **SEC-21** `P1` `validateProductionConfig` accepts the `.env.example` placeholders such as `your-random-32-byte-secret-key-goes-here`. Reject them, require strong key lengths, and require `PLATFORM_BOOTSTRAP_SECRET` to be set. `[code]`
 - [x] **SEC-23** `P1` The invitation sign-up form pre-fills the password `Password123!` in [accept-invitation/page.tsx](apps/dashboard/src/app/accept-invitation/page.tsx). Anyone who keeps it has a publicly known password. Start empty and enforce the password policy. `[code]`
 - [x] **SEC-22** `P2` Remove source-code default secrets and the plain-text fallback in `decryptSecret`. Add a key ID to encrypted values so the master key can be rotated. Rename the `secret_hash` column, which holds an encrypted value. `[code]` Done, with `ENCRYPTION_MASTER_KEY_PREVIOUS` for rotation instead of a stored key ID. Rotated values are only re-encrypted when next saved.
@@ -269,9 +269,9 @@ This table is the state at audit time. The Phase 0 items above show what has cha
   - DNS rebinding shield (see SEC-15)
   - Scoped API keys (see SEC-07)
   - "Enterprise Security" and the PASS marks in [docs/security-audit.md](docs/security-audit.md)
-- [~] **TRUTH-09** `P1` `/openapi.json` returns 404 in Docker because `.dockerignore` line 21 excludes `docs/`. Bundle the spec into the build. `[code]` The spec is included in the image, and the CI smoke test checks it. It runs for the first time on the first CI run.
+- [x] **TRUTH-09** `P1` `/openapi.json` returns 404 in Docker because `.dockerignore` line 21 excludes `docs/`. Bundle the spec into the build. `[code]` Done: the CI smoke test confirms the image serves the spec.
 - [x] **TRUTH-10** `P1` SMTP env names disagree. `.env.example` has `SMTP_PASS` and `SMTP_FROM`, the code reads `SMTP_PASSWORD` and `SMTP_FROM_EMAIL`, and compose passes none of them. `[ran]`
-- [~] **TRUTH-11** `P1` Fix the Docker images, which ship the whole builder stage with dev dependencies: Done: Dockerfiles that install from the lockfile, standalone dashboard output, a backups volume, configurable CORS, `Caddyfile.example`, and no start after a failed migration. The same build steps were rehearsed outside Docker and passed the smoke test. Left: the first real image build in CI (BASE-14).
+- [x] **TRUTH-11** `P1` Fix the Docker images, which ship the whole builder stage with dev dependencies: Done: Dockerfiles that install from the lockfile, standalone dashboard output, a backups volume, configurable CORS, `Caddyfile.example`, and no start after a failed migration. The CI smoke test passes on the real images.
   - Use Next.js `standalone` output and `pnpm deploy`, and create slimmer runtime images.
   - Confirm `pnpm` works as a non-root user with Corepack, since the `migration` and `dashboard` commands need it. `[check]`
   - Confirm `/app/storage/backups` is writable. It looks root-owned, and compose mounts no volume, so backups would fail or vanish on recreate. `[check]`
@@ -279,7 +279,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
   - Add a reverse proxy and TLS example.
   - Stop the API starting after a failed migration at [index.ts:257](apps/api/src/index.ts:257). `[code]`
 
-- [~] **TRUTH-27** `P1` Publish prebuilt images. Done: `release.yml` runs CI on a `v*.*.*` tag, publishes `gami-api`, `gami-worker` and `gami-dashboard` to GHCR for amd64 and arm64, and creates a GitHub release with a pinned compose file. `docker-compose.yml` now pulls these images, and `docker-compose.build.yml` builds from source. Left: run it once, and set the packages to public on GitHub. `[code]`
+- [~] **TRUTH-27** `P1` Publish prebuilt images. Done: `release.yml` runs CI on a `v*.*.*` tag, publishes `gami-api`, `gami-worker` and `gami-dashboard` to GHCR for amd64 and arm64, and creates a GitHub release with a pinned compose file. `docker-compose.yml` now pulls these images, and `docker-compose.build.yml` builds from source. Left: run it once, which will also be the first arm64 build, and set the packages to public on GitHub. `[code]`
 
 ### 3.3 Documentation
 
