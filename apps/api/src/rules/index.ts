@@ -16,19 +16,19 @@ const createRuleSchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(512).optional(),
   trigger: z.string().min(1).max(128),
-  conditions: z.record(z.unknown()).optional(),
-  actions: z.array(z.record(z.unknown())).min(1),
+  conditions: z.record(z.string(), z.unknown()).optional(),
+  actions: z.array(z.record(z.string(), z.unknown())).min(1),
   enabled: z.boolean().default(true),
 });
 
 const patchRuleSchema = createRuleSchema.partial();
 
 const previewRuleSchema = z.object({
-  rule: z.record(z.unknown()),
+  rule: z.record(z.string(), z.unknown()),
   event: z.object({
     id: z.string().optional(),
     type: z.string().min(1),
-    payload: z.record(z.unknown()).default({}),
+    payload: z.record(z.string(), z.unknown()).default({}),
     userId: z.string().nullable().optional(),
     occurredAt: z.string().optional(),
   }),

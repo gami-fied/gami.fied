@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "files": ["dist", "drizzle"],
+  "files": [
+    "dist",
+    "drizzle"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -25,19 +28,19 @@
   },
   "dependencies": {
     "@gami/config": "workspace:*",
-    "better-auth": "^1.6.27",
-    "drizzle-orm": "^0.45.2",
+    "better-auth": "^1.7.18",
+    "drizzle-orm": "^0.45.4",
     "postgres": "^3.4.9",
-    "zod": "^3.24.2"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@gami/challenges": "workspace:*",
     "@gami/progression": "workspace:*",
     "@gami/rules": "workspace:*",
-    "@types/node": "^26.2.0",
-    "drizzle-kit": "^0.31.10",
-    "tsx": "^4.23.12",
+    "@types/node": "^26.6.6",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }

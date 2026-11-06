@@ -2,7 +2,6 @@ import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
 import { and, eq } from 'drizzle-orm';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { organization } from 'better-auth/plugins';
 import { db } from './client.js';
 import { getPlatformSettings } from './platform-settings.js';
 import * as schema from './schema/index.js';
@@ -49,9 +48,6 @@ export const auth = betterAuth({
       session: schema.session,
       account: schema.account,
       verification: schema.verification,
-      organization: schema.organizations,
-      member: schema.member,
-      invitation: schema.invitation,
     },
   }),
   user: {
@@ -98,5 +94,4 @@ export const auth = betterAuth({
       await passwordResetSender?.({ email: user.email, url });
     },
   },
-  plugins: [organization()],
 });

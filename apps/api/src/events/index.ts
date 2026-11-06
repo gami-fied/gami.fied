@@ -13,7 +13,7 @@ import { ingestEvent } from '../services/event-ingestion.js';
 const eventIngestionSchema = z.object({
   event: z.string().min(1).max(128),
   user_id: z.string().max(128).optional(),
-  payload: z.record(z.unknown()).default({}),
+  payload: z.record(z.string(), z.unknown()).default({}),
   occurred_at: z
     .string()
     .datetime()

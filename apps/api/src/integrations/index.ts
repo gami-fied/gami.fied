@@ -21,7 +21,7 @@ const createIntegrationSchema = z.object({
   provider: z.string().min(1).max(64),
   webhookUrl: z.string().url().optional(),
   enabledEvents: z.array(z.string()).optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 const updateIntegrationSchema = z.object({
@@ -51,7 +51,7 @@ const embedTemplateSchema = z.object({
 
 const updateTemplatesSchema = z.object({
   enabledEvents: z.array(z.string()).optional(),
-  customTemplates: z.record(embedTemplateSchema).optional(),
+  customTemplates: z.record(z.string(), embedTemplateSchema).optional(),
 });
 
 function getActorDetails(authResult: Record<string, unknown>): {

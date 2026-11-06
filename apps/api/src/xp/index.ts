@@ -13,7 +13,7 @@ const adjustXpSchema = z.object({
     .max(1_000_000)
     .refine((val) => val !== 0, { message: 'Adjustment amount cannot be zero' }),
   reason: z.string().min(1).max(256),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   idempotencyKey: z.string().max(128).optional(),
 });
 

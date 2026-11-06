@@ -1,6 +1,13 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+overrides:
+  source-map-js: ^1.2.2
+  vite: ^8.2.4
+  minimatch@10: ^11.0.1
+  eslint-plugin-react-hooks>zod: ^4.6.6
+  '@esbuild-kit/core-utils>esbuild': ^0.25.0
+  '@esbuild-kit/esm-loader>esbuild': ^0.25.0
 allowBuilds:
   esbuild: true
   msgpackr-extract: true
@@ -13,3 +20,4 @@ minimumReleaseAgeExclude:
   - '@better-auth/prisma-adapter@1.7.18'
   - '@better-auth/telemetry@1.7.18'
   - better-auth@1.7.18
+  - '@fastify/cors@11.4.1'

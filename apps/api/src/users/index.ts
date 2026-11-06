@@ -22,14 +22,14 @@ const createUserSchema = z.object({
   name: z.string().max(128).optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal('')),
   avatarUrl: z.string().url().max(512).optional().nullable().or(z.literal('')),
-  metadata: z.record(z.unknown()).optional().default({}),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 const updateUserSchema = z.object({
   name: z.string().max(128).optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal('')),
   avatarUrl: z.string().url().max(512).optional().nullable().or(z.literal('')),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   active: z.boolean().optional(),
 });
 

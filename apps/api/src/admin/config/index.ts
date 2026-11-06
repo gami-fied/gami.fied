@@ -5,7 +5,7 @@ import { ALLOWED_CONFIG_SCHEMAS, ServerConfigService } from '../../services/serv
 
 const updateConfigSchema = z.object({
   category: z.string().min(1),
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
 });
 
 export async function adminConfigRoutes(fastify: FastifyInstance) {

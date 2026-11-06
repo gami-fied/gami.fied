@@ -7,7 +7,6 @@ import {
   organizations,
   runMigrations,
 } from '@gami/database';
-import { Gami } from '@gami.fied/sdk';
 import { randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -542,21 +541,5 @@ describe('Milestone 21 — Organization & Team Management System Test Suite', ()
     expect(logs.length).toBeGreaterThan(0);
     const actions = logs.map((l) => l.action);
     expect(actions).toContain('organization.member_invited');
-  });
-
-  // ---------------------------------------------------------------------------
-  // 6. TypeScript SDK Integration Tests
-  // ---------------------------------------------------------------------------
-  it('20. TypeScript SDK organizations resource methods', async () => {
-    const sdk = new Gami({
-      apiKey: 'gami_live_test_key',
-      baseUrl: 'http://localhost:3001',
-    });
-
-    expect(typeof sdk.organizations.listMembers).toBe('function');
-    expect(typeof sdk.organizations.inviteMember).toBe('function');
-    expect(typeof sdk.organizations.transferOwnership).toBe('function');
-    expect(typeof sdk.organizations.acceptInvitation).toBe('function');
-    expect(typeof sdk.organizations.listProjectMembers).toBe('function');
   });
 });

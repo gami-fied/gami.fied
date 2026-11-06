@@ -4,7 +4,9 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -17,7 +19,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fastify/cors": "^11.3.0",
+    "@fastify/cors": "^11.4.1",
     "@fastify/helmet": "^13.2.0",
     "@gami/challenges": "workspace:*",
     "@gami/config": "workspace:*",
@@ -30,15 +32,15 @@
     "@gami/rewards": "workspace:*",
     "@gami/rules": "workspace:*",
     "@gami/webhooks": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "fastify": "^5.11.3",
-    "zod": "^3.24.2"
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.8",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@gami.fied/sdk": "workspace:*",
-    "@types/node": "^26.2.0",
-    "tsx": "^4.23.12",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }

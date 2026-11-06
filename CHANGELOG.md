@@ -56,6 +56,11 @@ Fill in `.env`, then run `docker compose up -d`. Images are published for `linux
 - All pages share one header, one focus style, and shared checkboxes, dropdowns and dialogs.
 - `GET /api/projects/:projectId/users` accepts a `sort` of `newest`, `oldest` or `name`.
 
+### Security
+
+- Upgraded Next.js to 16.4, Better Auth to 1.7, Fastify to 5.12, Nodemailer to 10 and Zod to 4, along with their dependencies. This fixes every known advisory at release, including critical ones in Next.js and Better Auth, and an authentication bypass in Fastify.
+- Removed the unused Better Auth organization plugin, so its `/api/auth/organization/*` routes no longer exist. Organization features use their own routes, which enforce your permission rules.
+
 ### Upgrading from a release candidate
 
 Update `GAMI_VERSION` to `1.0.0` and restart. There are no database migrations or new settings.
