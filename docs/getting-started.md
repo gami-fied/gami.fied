@@ -1,6 +1,8 @@
 # Getting Started & Quickstart
 
-This guide covers setting up **Gami.Fied Community Edition** locally, starting infrastructure services, running database migrations, and integrating your application using `@gami.fied/sdk`.
+This guide sets up **Gami.Fied Community Edition** for local development, then connects an app with `@gami.fied/sdk`.
+
+To run it without building anything, see [Installing from published images](./deployment-and-production.md#installing-from-published-images).
 
 ---
 
@@ -8,8 +10,8 @@ This guide covers setting up **Gami.Fied Community Edition** locally, starting i
 
 Ensure your system meets the following requirements:
 
-- **Node.js**: v22.0.0 or higher
-- **pnpm**: v10.0.0 or higher (`npm i -g pnpm`)
+- **Node.js**: 22 or later
+- **pnpm**: 11 or later (`npm i -g pnpm`)
 - **Docker & Docker Compose**: Installed and running locally
 - **PostgreSQL**: v17 (provided via Docker Compose)
 - **Redis**: v7 (provided via Docker Compose)
@@ -70,8 +72,8 @@ pnpm dev
 
 This starts:
 - 🌐 **Dashboard UI**: `http://localhost:3000`
-- ⚙️ **API Server**: `http://localhost:3001`
-- 🔄 **Worker Process**: Background Queue & Outbox Poller
+- ⚙️ **API**: `http://localhost:3001`
+- 🔄 **Worker**: Runs rules and sends deliveries in the background
 
 ### Individual Application Commands
 
@@ -83,30 +85,19 @@ pnpm --filter @gami/dashboard dev # Start dashboard UI only
 
 ---
 
-## 4. Bootstrapping Initial Admin Account
+## 4. Becoming a platform admin
 
-When Gami is launched for the first time:
+1. Open `http://localhost:3000/register` and create an account.
+2. Go to `http://localhost:3000/admin` while signed in.
+3. Enter `PLATFORM_BOOTSTRAP_SECRET` from your `.env`.
 
-1. Open `http://localhost:3000/register` in your browser.
-2. Register a new user account.
-3. If no Platform Admin exists yet, you can claim the Platform Admin role via the initial bootstrap endpoint or using the emergency CLI tool:
-
-```bash
-# Promote an existing user to Platform Administrator directly via CLI
-pnpm --filter @gami/database admin:promote --email admin@example.com
-```
-
-With the published Docker images, run the built script inside the API container:
-
-```bash
-docker compose exec api node packages/database/dist/scripts/promote-admin.js --email admin@example.com
-```
+This only works while the server has no platform admins. To add more, or to recover access, see [Platform administration](./platform-administration.md#1-becoming-a-platform-admin).
 
 ---
 
 ## 5. Integrating with `@gami.fied/sdk`
 
-Gami.Fied provides an isomorphic TypeScript SDK (`@gami.fied/sdk`) that works in Node.js, Next.js, Express, and backend services.
+The TypeScript SDK works in Node.js, Next.js, Express and other server code. To use Gami.Fied from a browser, see [Using the SDK in a browser](./sdk.md#using-the-sdk-in-a-browser).
 
 ### Installation
 
@@ -126,7 +117,7 @@ const gami = new Gami({
 
 // Send a user event. Rules and challenges run in the background.
 const event = await gami.events.track({
-  userId: 'usr_12345',
+  userId: 'user_123',
   type: 'lesson_completed',
   properties: { lessonId: 'les_99', score: 100 },
 });
@@ -134,7 +125,7 @@ const event = await gami.events.track({
 console.log('Accepted event:', event.id);
 
 // Read the user's progress. This needs a key with the levels:read scope.
-const progress = await gami.levels.getUserProgress({ userId: 'usr_12345' });
+const progress = await gami.levels.getUserProgress({ userId: 'user_123' });
 console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 

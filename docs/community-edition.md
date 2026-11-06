@@ -19,7 +19,7 @@
 - **Webhooks & SSRF Defense**: Webhook delivery outbox with timestamped signature headers (`X-Gami-Signature-V2`, `X-Gami-Timestamp`), SSRF protection, loopback/private IP blocking, and DNS rebinding shield.
 - **Integrations**: Built-in Discord integration framework supporting custom JSON embed templates and per-event delivery toggles.
 - **Notifications & In-App Outbox**: In-app notification delivery outbox and SMTP email notifications.
-- **Project Analytics & Reporting**: Near-real-time PostgreSQL aggregations for active users, event volume, top events, level distributions, and structured CSV exports.
+- **Project Analytics & Reporting**: Live PostgreSQL queries for active users, event volume, top events, level distributions, and structured CSV exports.
 - **Data Management & Recovery**: Platform-level encrypted database backups (`AES-256-GCM`), SHA-256 checksum integrity verification, pre-restore safety backups, and organization logical export/import.
 
 ---

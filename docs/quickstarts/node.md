@@ -1,6 +1,6 @@
 # Quick Start: Node.js / TypeScript
 
-Integrate Gami.Fied Community Engine using `@gami.fied/sdk`.
+Integrate Gami.Fied using `@gami.fied/sdk`.
 
 ## 1. Install Package
 ```bash

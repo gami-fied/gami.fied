@@ -6,9 +6,10 @@ This document provides a practical disaster recovery playbook for operators self
 
 ### Scenario 1: Total Host Server Failure
 1. Provision a new server instance.
-2. Clone the repository and configure `.env` variables (`POSTGRES_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`).
-3. Restore persistent host storage directory (`storage/backups`) from offsite storage.
-4. Execute CLI restoration:
+2. Clone the repository and restore your `.env`, including `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET` and `ENCRYPTION_MASTER_KEY`. Backups can't be read without the same `ENCRYPTION_MASTER_KEY`.
+3. Start PostgreSQL and Redis, and run the migrations.
+4. Copy your backup files from offsite storage into `BACKUP_STORAGE_PATH` (`storage/backups` by default).
+5. Restore the backup:
    ```bash
    pnpm backup:restore --id <target_backup_id>
    ```
@@ -16,11 +17,13 @@ This document provides a practical disaster recovery playbook for operators self
 ### Scenario 2: Corrupted Application Database State
 1. Log in to `/admin/backups` as Platform Admin.
 2. Select the latest verified backup record (`status: verified`).
-3. Click **Verify SHA-256 Checksum** to confirm file integrity.
-4. Click **Restore Database**. The system automatically creates a pre-restore safety backup and restores PostgreSQL state.
+3. Verify the backup to confirm the file is intact.
+4. Restore it, and confirm **Restore database**. A safety backup is created first, and everyone is signed out afterwards.
 
 ### Scenario 3: Accidental Organization Deletion
 1. Obtain the organization's latest logical export package (`gami-org-export-*.json`).
 2. Log in as Organization Owner or Platform Admin.
-3. Open `/dashboard/organization/data`.
-4. Run **Validate & Import Data** to re-import projects, users, XP ledger, and gamification mechanics.
+3. Create the organization again if needed, and open **Team > Data** (`/dashboard/organization/data`).
+4. Choose **Validate & Import Data** to bring back its projects, users, XP history, achievements, challenges and rules.
+
+Imported data gets new IDs, and imported external IDs and keys gain an `_imp_` suffix. See [Data import](./data-import.md).

@@ -44,5 +44,6 @@ Production startup fails if a secret is missing, a known placeholder, or under 3
 
 ## Known limits
 
+- Leaderboards and some summaries are calculated from PostgreSQL on each read, and no load test has been published yet.
 - Backups are JSON files built in the API process, so they use memory in proportion to the data, and they stay on local disk. See [Backups](./backups.md).
 - The project has had no independent security audit. See [Security status](./security-audit.md).

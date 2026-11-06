@@ -8,7 +8,7 @@ Settings live in the `retention` category. Set them with `PATCH /api/admin/confi
 { "category": "retention", "payload": { "outboxDays": 30, "eventDays": 365 } }
 ```
 
-A save replaces the whole category, so include every value you want to keep.
+A save changes the fields you send and keeps the rest.
 
 | Setting | Default | What it removes |
 | :--- | :--- | :--- |

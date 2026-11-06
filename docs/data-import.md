@@ -4,7 +4,7 @@ This document details the organization import semantics, dry-run validation, and
 
 ## Import Authorization & Endpoints
 
-Only Organization Owners and Platform Admins can import logical organization datasets.
+Organization owners and admins can import into their organization.
 
 - **Dry-Run Validation**: `POST /api/organizations/:organizationId/import/validate`
 - **Transactional Import**: `POST /api/organizations/:organizationId/import`
@@ -13,7 +13,7 @@ Only Organization Owners and Platform Admins can import logical organization dat
 
 To prevent cross-tenant reference leaks and ID collisions:
 1. **Target Organization Identity**: The target `organizationId` remains strictly untouched. Imported data is rewritten to belong to the target organization.
-2. **Entity Remapping**: Old project, user, achievement, challenge, and rule IDs are remapped to new deterministic target IDs (`prj_imp_<timestamp>_<idx>`, `usr_imp_<timestamp>_<idx>`).
+2. **Entity Remapping**: Project, user, achievement, challenge and rule IDs are given new IDs, such as `prj_imp_<timestamp>_<idx>`. Imported user external IDs and achievement and challenge keys gain an `_imp_<idx>` suffix, so they can't clash with what's already there.
 3. **Foreign Keys**: All child entity references (`events`, `xpLedger`, `userAchievements`, `userChallengeProgress`, `notifications`) are remapped to match the newly generated IDs inside an atomic PostgreSQL transaction.
 
 ## Dry-Run Validation Mode

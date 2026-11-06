@@ -9,15 +9,14 @@ Platform infrastructure backups are strictly **Platform Admin Only**. PostgreSQL
 - **Endpoints**: `/api/admin/backups/*`
 - **Dashboard UI**: `/admin/backups`
 - **Metadata Persistence**: `platform_backups` PostgreSQL database table.
-- **Physical Dump Files**: Persistent host filesystem storage (`storage/backups` or `BACKUP_STORAGE_PATH`).
+- **Backup files**: `BACKUP_STORAGE_PATH`, or `storage/backups` by default.
 
 ## Backup Lifecycle States
 
 Every platform backup record transitions through explicit lifecycle states:
 - `creating`: Initial state when database dump process starts.
-- `available`: Dump completed successfully and saved to disk.
-- `verifying`: SHA-256 integrity check in progress.
-- `verified`: File exists on host storage and SHA-256 checksum matches catalog.
+- `available`: Backup completed and saved to disk.
+- `verified`: The file exists and its SHA-256 checksum matches.
 - `failed`: Dump failed or checksum verification mismatch detected.
 - `restoring`: System restoration currently executing from this backup.
 - `restored`: Restoration successfully completed.
@@ -28,7 +27,7 @@ Partially-created (`creating`) or failed backups are never marked as usable.
 ## Security & Encryption at Rest
 
 - **Integrity**: Every backup calculates a SHA-256 checksum immediately after dump creation.
-- **Confidentiality**: Backups support AES-256-GCM encryption at rest using `BETTER_AUTH_SECRET` or dedicated server backup key.
+- **Confidentiality**: Backups are encrypted at rest with AES-256-GCM and `ENCRYPTION_MASTER_KEY`.
 - **Path Traversal Shield**: User-supplied filenames are sanitized (`path.basename`) and verified to reside inside `BACKUP_STORAGE_PATH`. User paths are validated strictly against database primary keys in `platform_backups`.
 
 ## Restoring
@@ -46,13 +45,18 @@ Restoration replaces committed database state with a historical snapshot. To pre
 
 ### Procedure & Downtime
 
-```bash
-## Execute restoration via Server CLI:
-pnpm backup:restore --id bkp_1771438500000_abc1
+From the **Backups** admin page, choose a backup and restore it. The page sends this request for you:
 
-## Or via Platform Admin API:
+```http
 POST /api/admin/backups/bkp_1771438500000_abc1/restore
-Body: { "confirmRestore": true }
+
+{ "confirmRestore": true }
+```
+
+From a checkout with access to the database:
+
+```bash
+pnpm backup:restore --id bkp_1771438500000_abc1
 ```
 
 > [!WARNING]

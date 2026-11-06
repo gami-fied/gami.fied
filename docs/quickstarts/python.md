@@ -1,6 +1,6 @@
 # Quick Start: Python
 
-Integrate Gami.Fied Community Engine via Python `requests`.
+Integrate Gami.Fied via Python `requests`.
 
 ```python
 import requests

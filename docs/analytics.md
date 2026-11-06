@@ -42,7 +42,7 @@ Project-scoped REST endpoints for querying product analytics, user activity, eve
 
 ### Authorization & Headers
 
-All endpoints require project access authorization via session cookie or API key (`x-api-key`).
+All endpoints need a signed-in user with access to the project, or an API key with the `analytics:read` scope. These routes are under `/api/projects`, so they can change between releases.
 
 ---
 
@@ -129,7 +129,7 @@ This guide describes the PostgreSQL data aggregation queries and indexing strate
 
 #### 4. Most Triggered Rules
 - **Query**: `SELECT rules.id, rules.name, rules.trigger, COUNT(rule_executions.id) FROM rule_executions INNER JOIN rules ON rules.id = rule_executions.rule_id WHERE rules.project_id = $1 AND rule_executions.created_at >= $2 AND rule_executions.created_at <= $3 GROUP BY rules.id, rules.name, rules.trigger ORDER BY COUNT(rule_executions.id) DESC LIMIT 10`
-- **Indexes Used**: `rule_executions_rule_id_idx`, `idx_rules_project_id`.
+- **Index Used**: `rule_executions_rule_id_idx`.
 
 ---
 
@@ -139,14 +139,15 @@ All analytics functions use fallback defaults (`coalesce(sum(...), 0)`, `count(.
 
 ## Exports
 
-Gami.Fied Community Edition supports direct CSV export for project analytics tabular datasets.
+Project analytics can be downloaded as CSV.
 
 ---
 
 ### Supported Export Types
 
+- **`all`**: A full report with several sections.
 - **`overview`**: Summary overview metrics (Total Users, Active Users, Events Processed, XP Awarded, Achievements Unlocked, Challenges Completed).
-- **`users`**: End user directory (`User ID`, `External ID`, `Name`, `Email`, `Active`, `Created At`).
+- **`users`**: End user directory (`User ID`, `External ID`, `Name`, `Email`, `Active`, `Created At`). `Email` is blank for plain members.
 - **`events`**: Event log summary (`Event ID`, `Event Type`, `User ID`, `Occurred At`, `Idempotency Key`).
 - **`xp`**: XP ledger audit table (`Ledger ID`, `User ID`, `Amount`, `Reason`, `Created At`).
 - **`achievements`**: Unlocked achievements (`Achievement ID`, `Achievement Name`, `User ID`, `Awarded At`).

@@ -4,14 +4,14 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/gami-fied/gami.fied/blob/master/packages/sdk/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 
-Official isomorphic TypeScript client for [**Gami.Fied**](https://github.com/gami-fied/gami.fied)—the open-source, self-hostable gamification engine and infrastructure platform.
+The official TypeScript client for [**Gami.Fied**](https://github.com/gami-fied/gami.fied), the self-hosted gamification engine.
 
 ---
 
 ## Features
 
-- ⚡ **Isomorphic**: Runs seamlessly in Node.js, Next.js, Express, Bun, Deno, and browser runtimes.
-- 🎯 **Strictly Typed**: Full TypeScript definitions for all API endpoints, events, parameters, and response objects.
+- ⚡ **Runs anywhere**: Works in Node.js, Next.js, Express and browsers. Browsers use short-lived end-user tokens.
+- 🎯 **Typed**: TypeScript definitions for parameters and responses.
 - 🔄 **Resilient**: Automatic exponential backoff retries on transient network and rate-limit (429/5xx) errors.
 - 🛡️ **Robust Error Handling**: Typed exceptions (`GamiAuthenticationError`, `GamiValidationError`, `GamiRateLimitError`).
 - 🪶 **Zero External Runtime Dependencies**: Built using native `fetch`.
@@ -68,15 +68,17 @@ Every method takes one object. Your API key identifies the project, and `userId`
 
 | Resource | Methods |
 | :--- | :--- |
-| `gami.events` | `track` |
-| `gami.users` | `list`, `get`, `getByExternalId`, `create`, `update`, `delete` |
+| `gami.events` | `track`, `ingest`, `replay` |
+| `gami.users` | `list`, `get`, `getByExternalId`, `create`, `update`, `delete`, `erase` |
 | `gami.xp` | `getBalance`, `getLedger`, `getSummary`, `adjust` |
 | `gami.levels` | `list`, `get`, `create`, `update`, `summary`, `getUserProgress` |
 | `gami.leaderboards` | `list`, `getUserRank` |
 | `gami.achievements` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
 | `gami.challenges` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
+| `gami.endUserTokens` | `create` |
+| `gami.me` | `get`, `achievements`, `challenges`, `notifications`, `rank` |
 
-`gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. `gami.organizations` needs a signed-in session, so API keys get 403.
+`gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. These need a `projectId`.
 
 To verify incoming webhooks, use `verifyWebhook`. See [the SDK guide](https://github.com/gami-fied/gami.fied/blob/master/docs/sdk.md).
 

@@ -1,8 +1,6 @@
-# Gami.Fied Technical Documentation & Sitemap
+# Gami.Fied documentation
 
-Welcome to the official technical documentation for **Gami.Fied Community Edition**.
-
-Gami.Fied is an open-source, self-hostable gamification engine and infrastructure platform built with Fastify, Next.js, PostgreSQL, Redis, and TypeScript.
+Documentation for **Gami.Fied Community Edition**, a self-hosted gamification engine built with Fastify, Next.js, PostgreSQL, Redis and TypeScript.
 
 ---
 
@@ -13,14 +11,15 @@ Gami.Fied is an open-source, self-hostable gamification engine and infrastructur
 | 🚀 [**Getting Started**](./getting-started.md) | Prerequisites, repository installation, local Docker setup, and `@gami.fied/sdk` integration. |
 | 🛠️ [**Developer API Platform**](./api-reference.md) | Complete REST API Reference, [Authentication](./api-authentication.md), [Errors](./api-errors.md), [Request Tracing](./request-ids.md), [Idempotency](./idempotency.md), [API Versioning](./api-versioning.md), and [`@gami.fied/sdk`](./sdk.md). |
 | ⚡ [**Quick Start Guides**](./quickstarts/rest.md) | Step-by-step integration guides for [REST / cURL](./quickstarts/rest.md), [Node.js](./quickstarts/node.md), [Python](./quickstarts/python.md), [Next.js](./quickstarts/nextjs.md), and [React](./quickstarts/react.md). |
-| 🔒 [**Authentication & Security**](./authentication-and-security.md) | Better Auth sessions, RBAC permissions, API Key management, Email OTP verification, and AES-256-GCM vault encryption. |
-| 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Event Ingestion API, Rules Evaluation Engine, XP Ledgers, Level Progression Curves, Achievements, Quests/Challenges, and Leaderboards. |
-| 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-App Notifications, Transactional SMTP Email Outbox, HMAC-signed Webhooks, and Discord Embed Integrations. |
-| ⚙️ [**Platform Administration**](./platform-administration.md) | Platform Admin Console (`/admin/*`), Global Server Configurations, User Profile management, Immutable Audit Logs, and Storage Cleanup tools. |
-| 🐳 [**Deployment & Production**](./deployment-and-production.md) | Production Docker Compose setup, Environment variable checklist, Health check APIs (`/health`, `/ready`), Observability metrics, and Troubleshooting. |
-| 📊 [**Project Analytics & Insights**](./analytics.md) | Product analytics overview, [Analytics API](./analytics.md), [Data Layer Aggregations](./analytics.md), and [CSV Data Export](./analytics.md). |
+| 🔒 [**Authentication & Security**](./authentication-and-security.md) | Sessions, roles, API keys, email verification and secret encryption. |
+| 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Events, rules, XP, levels, achievements, challenges and leaderboards. |
+| 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-app notifications, email, signed webhooks and Discord. |
+| ⚙️ [**Platform Administration**](./platform-administration.md) | Becoming an admin, the admin pages, audit logs and storage cleanup. |
+| 🐳 [**Deployment & Production**](./deployment-and-production.md) | Docker Compose setup, environment variables, health checks, settings and troubleshooting. |
+| 📊 [**Project Analytics & Insights**](./analytics.md) | The analytics API, how figures are calculated, and CSV exports. |
 | 📦 [**Data Management & Backups**](./backups.md) | Platform Backups, [Restoration Procedures](./backups.md), [Data Export](./data-export.md), [Data Import](./data-import.md), [Disaster Recovery Playbook](./disaster-recovery.md), and [Retention Policy](./data-retention.md). |
-| 🧭 [**Architecture & Security Model**](./architecture.md) | How the processes fit together, and how tenants and secrets are protected. |
+| 🧭 [**Architecture & Security Model**](./architecture.md) | How the processes fit together, and how tenants and secrets are protected. [Security status](./security-audit.md) covers what has been tested. |
+| 🏷️ [**Community Edition**](./community-edition.md) | What's included. See also the [release checklist](./release-checklist.md) and [changelog](../CHANGELOG.md). |
 
 ---
 
@@ -29,22 +28,22 @@ Gami.Fied is an open-source, self-hostable gamification engine and infrastructur
 ```text
 gami-fied/
 ├── apps/
-│   ├── api/          # @gami/api - Fastify 5 REST API Server (Port 3001)
-│   ├── worker/       # @gami/worker - BullMQ + Outbox Background Worker
-│   └── dashboard/    # @gami/dashboard - Next.js 16 Control Console (Port 3000)
+│   ├── api/           # Fastify API on port 3001 (@gami/api)
+│   ├── worker/        # Background worker for rules and delivery (@gami/worker)
+│   └── dashboard/     # Next.js dashboard on port 3000 (@gami/dashboard)
 ├── packages/
-│   ├── database/     # PostgreSQL Schema, Drizzle ORM & 22 Database Migrations
-│   ├── sdk/          # Isomorphic TypeScript SDK (@gami.fied/sdk)
-│   ├── rules/        # Event Evaluation Engine
-│   ├── progression/  # XP Calculations & Level Curves
-│   ├── challenges/   # Challenge Completion Processor
-│   ├── leaderboards/ # Leaderboard Scoring & Redis Caching
-│   ├── notifications/# Multi-Channel Router
-│   ├── webhooks/     # Webhook Delivery & HMAC Signatures
-│   ├── integrations/ # External Providers (Discord)
-│   ├── queue/        # Shared Queue Definitions
-│   ├── types/        # TypeScript Interfaces
-│   ├── config/       # Shared Configs
-│   └── ui/           # Shared UI Component Library
-└── docs/             # Documentation Portal
+│   ├── database/      # PostgreSQL schema, Drizzle ORM, migrations and auth
+│   ├── sdk/           # TypeScript client (@gami.fied/sdk)
+│   ├── rules/         # Rule evaluation
+│   ├── rewards/       # XP and achievement grants
+│   ├── progression/   # Level calculations
+│   ├── challenges/    # Challenge progress
+│   ├── leaderboards/  # Rankings
+│   ├── notifications/ # In-app and email notifications
+│   ├── webhooks/      # Webhook delivery and signing
+│   ├── integrations/  # Discord
+│   ├── queue/         # Shared queue definitions
+│   ├── types/         # Shared TypeScript types
+│   └── config/        # Shared configuration
+└── docs/              # Documentation
 ```

@@ -1,10 +1,9 @@
 # `@gami.fied/sdk` TypeScript Client Reference
 
-Official isomorphic Node.js / TypeScript SDK for Gami.Fied Community Engine.
-
+The official TypeScript client for Gami.Fied. It needs Node.js 18 or later, and is MIT licensed.
 
 > [!NOTE]
-> The SDK authenticates with a project API key, so it can only reach what the key's scopes allow. New keys are limited to `events:write`. Organization methods and API key management need a signed-in user and return 403 with an API key.
+> The SDK authenticates with a project API key, so it can only reach what the key's scopes allow. New keys are limited to `events:write`, so create the key with more scopes to read data.
 
 ## Installation
 
@@ -25,9 +24,29 @@ const gami = new Gami({
 });
 ```
 
-## Methods
+## Resources
 
-### 1. Ingest Event (`gami.events.ingest`)
+Your API key identifies the project, so you can leave out `projectId`, which also uses the stable `/v1` routes. `userId` can be your own ID for the user.
+
+| Resource | Methods |
+| :--- | :--- |
+| `gami.events` | `track`, `ingest`, `replay` |
+| `gami.users` | `list`, `get`, `getByExternalId`, `create`, `update`, `delete`, `erase` |
+| `gami.xp` | `getBalance`, `getLedger`, `getSummary`, `adjust` |
+| `gami.levels` | `list`, `get`, `create`, `update`, `summary`, `getUserProgress` |
+| `gami.achievements` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
+| `gami.challenges` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
+| `gami.leaderboards` | `list`, `getUserRank` |
+| `gami.endUserTokens` | `create` |
+| `gami.me` | `get`, `achievements`, `challenges`, `notifications`, `rank` |
+
+`gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. These use `/api/projects` routes, so they need a `projectId` and can change between releases.
+
+Organizations and API keys can't be managed from the SDK, because those need a signed-in person.
+
+## Sending events
+
+`track` is the simplest way to send an event. `ingest` uses the API's own field names:
 
 ```typescript
 const result = await gami.events.ingest({

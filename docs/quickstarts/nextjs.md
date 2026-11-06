@@ -1,6 +1,6 @@
 # Quick Start: Next.js (App Router Server Actions & Route Handlers)
 
-Integrate Gami.Fied Community Engine securely in Next.js backend Server Actions.
+Integrate Gami.Fied in Next.js Server Actions, so your API key stays on the server.
 
 ```typescript
 // app/actions/gamification.ts

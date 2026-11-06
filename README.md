@@ -1,58 +1,62 @@
-# Gami Community Edition
+# Gami.Fied Community Edition
 
+[![Release](https://img.shields.io/github/v/release/gami-fied/gami.fied)](https://github.com/gami-fied/gami.fied/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
-[![Fastify](https://img.shields.io/badge/Fastify-5.2-green)](https://fastify.dev/)
-[![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)](https://www.postgresql.org/)
+[![SDK licence](https://img.shields.io/badge/SDK-MIT-blue.svg)](packages/sdk/LICENSE)
 
-**Gami** is an open-source, self-hostable gamification engine and infrastructure platform. It allows software applications to seamlessly integrate gamification mechanics—such as **XP & Points**, **Levels & Progression**, **Achievements & Badges**, **Challenges & Quests**, **Leaderboards**, **Rules Engine**, **Webhooks**, **Email OTP**, and **Discord Notifications**—without building custom gamification code from scratch.
+**Gami.Fied** is a self-hosted gamification engine. Your app sends it events, and rules you configure turn them into **XP**, **levels**, **achievements**, **challenges** and **leaderboards**, with notifications and webhooks included. Your users' data stays on your own server.
 
----
-
-## Key Features
-
-- ⚡ **Event-Driven Rules Engine**: Trigger XP, achievements, and quest progress automatically via custom event payloads.
-- 🏆 **Gamification Core**: Balances, XP ledgers, levels, achievements, and leaderboards.
-- 🎯 **Challenges**: Counter-based challenges with idempotent reward outbox processing.
-- 🔔 **Multi-Channel Delivery**: In-app notifications, transactional SMTP emails, webhooks (with HMAC SHA-256 signatures), and Discord embeds.
-- 🛡️ **Security & Isolation**: Multi-tenant organization/project scoping, RBAC permissions, encrypted vault secrets (AES-256-GCM), and platform admin controls.
-- 💻 **Isomorphic TypeScript SDK**: Official `@gami.fied/sdk` with automatic retries, strict typing, and zero runtime dependencies.
+Built with Fastify, Next.js, PostgreSQL, Redis and TypeScript.
 
 ---
 
-## Monorepo Architecture
+## Key features
+
+- ⚡ **Rules engine**: Turn events into XP and achievements, with conditions, a simulator and a trace of why a rule fired.
+- 🏆 **Gamification core**: XP history, levels, achievements, challenges, and all-time, daily, weekly and monthly leaderboards.
+- 🔔 **Delivery**: In-app notifications, email, signed webhooks with retries and replay, and Discord.
+- 💻 **Dashboard**: Analytics, CSV exports, audit logs, delivery health, and owner, admin and member roles.
+- 🛡️ **Security**: Organization and project isolation, scoped API keys, end-user tokens for browsers, and encrypted secrets.
+- 🧩 **Developer API**: A stable `/v1` API with a full reference in the dashboard, and a TypeScript SDK.
+- 🗄️ **Self-hosting**: Prebuilt Docker images, backups, data export and import, and user erasure for privacy requests.
+
+---
+
+## Project layout
 
 ```text
 gami-fied/
 ├── apps/
-│   ├── api/          # Fastify 5 REST API microservice (@gami/api)
-│   ├── worker/       # BullMQ + Redis background worker (@gami/worker)
-│   └── dashboard/    # Next.js 16 (App Router) control console (@gami/dashboard)
+│   ├── api/           # Fastify API on port 3001 (@gami/api)
+│   ├── worker/        # Background worker for rules and delivery (@gami/worker)
+│   └── dashboard/     # Next.js dashboard on port 3000 (@gami/dashboard)
 ├── packages/
-│   ├── database/     # PostgreSQL schema, Drizzle ORM models & migrations
-│   ├── sdk/          # Isomorphic TypeScript Client (@gami.fied/sdk)
-│   ├── rules/        # Event rules evaluation engine
-│   ├── progression/  # XP calculation & level curves engine
-│   ├── challenges/   # Challenge completion logic
-│   ├── leaderboards/ # Leaderboard scoring & Redis caching
-│   ├── notifications/# Multi-channel notification router
-│   ├── webhooks/     # Webhook dispatcher & HMAC signing
-│   ├── integrations/ # External integration providers (Discord)
-│   ├── queue/        # Shared BullMQ queue definitions
-│   ├── types/        # Monorepo TypeScript definitions
-│   └── config/       # Shared environment configuration
-└── docs/             # Complete technical & API documentation
+│   ├── database/      # PostgreSQL schema, Drizzle ORM, migrations and auth
+│   ├── sdk/           # TypeScript client (@gami.fied/sdk)
+│   ├── rules/         # Rule evaluation
+│   ├── rewards/       # XP and achievement grants
+│   ├── progression/   # Level calculations
+│   ├── challenges/    # Challenge progress
+│   ├── leaderboards/  # Rankings
+│   ├── notifications/ # In-app and email notifications
+│   ├── webhooks/      # Webhook delivery and signing
+│   ├── integrations/  # Discord
+│   ├── queue/         # Shared queue definitions
+│   ├── types/         # Shared TypeScript types
+│   └── config/        # Shared configuration
+└── docs/              # Documentation
 ```
 
 ---
 
-## Quickstart & Local Setup
+## Local development
+
+To run it rather than work on it, see [Self-hosting with Docker](#self-hosting-with-docker).
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v20+ required)
-- [pnpm](https://pnpm.io/) (v10+ recommended)
+- [Node.js](https://nodejs.org/) 22 or later
+- [pnpm](https://pnpm.io/) 11 or later
 - [Docker & Docker Compose](https://www.docker.com/)
 
 ### 1. Clone & Install Dependencies
@@ -103,14 +107,14 @@ pnpm dev
 
 This starts:
 - 🌐 **Dashboard UI**: `http://localhost:3000`
-- ⚙️ **API Engine**: `http://localhost:3001`
-- 🔄 **Background Worker**: Active process polling queues & outbox
+- ⚙️ **API**: `http://localhost:3001`
+- 🔄 **Worker**: Runs rules and sends deliveries in the background
 
 ---
 
 ## SDK Quickstart
 
-Install `@gami.fied/sdk` in your application:
+Install `@gami.fied/sdk` in your server code:
 
 ```bash
 pnpm add @gami.fied/sdk
@@ -129,7 +133,7 @@ const gami = new Gami({
 
 // Send a user event. Rules and challenges run in the background.
 const event = await gami.events.track({
-  userId: 'usr_12345',
+  userId: 'user_123',
   type: 'lesson_completed',
   properties: { lessonId: 'les_99', score: 100 },
 });
@@ -137,15 +141,25 @@ const event = await gami.events.track({
 console.log('Accepted event:', event.id);
 
 // Read the user's progress. This needs a key with the levels:read scope.
-const progress = await gami.levels.getUserProgress({ userId: 'usr_12345' });
+const progress = await gami.levels.getUserProgress({ userId: 'user_123' });
 console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 
 ---
 
-## Self-Hosting with Docker
+## Self-hosting with Docker
 
-Published images are available, so you don't need to build anything. See [Installing from published images](./docs/deployment-and-production.md#installing-from-published-images).
+Prebuilt images are published for `linux/amd64` and `linux/arm64`, so there's nothing to build.
+
+```bash
+curl -LO https://github.com/gami-fied/gami.fied/releases/latest/download/docker-compose.yml
+curl -LO https://github.com/gami-fied/gami.fied/releases/latest/download/env.example
+cp env.example .env
+```
+
+Fill in the secrets in `.env`, then run `docker compose up -d`. The dashboard is at `http://localhost:3000`.
+
+See [Installing from published images](./docs/deployment-and-production.md#installing-from-published-images), and put it behind a [reverse proxy with TLS](./docs/deployment-and-production.md#reverse-proxy-and-tls) in production.
 
 ---
 
@@ -166,15 +180,18 @@ pnpm lint
 
 ## Documentation
 
-Comprehensive documentation is available in the [`docs/`](./docs) folder:
+Everything is in the [`docs/`](./docs) folder:
 
-- 🚀 [Getting Started & Quickstart](./docs/getting-started.md)
-- 🔒 [Authentication & Security Architecture](./docs/authentication-and-security.md)
-- 🎮 [Gamification Mechanics & Rules Engine](./docs/gamification-mechanics.md)
-- 🔔 [Notifications, Webhooks & Integrations](./docs/notifications-and-integrations.md)
-- ⚙️ [Platform Administration & Audit Logs](./docs/platform-administration.md)
-- 🐳 [Production Deployment & Troubleshooting](./docs/deployment-and-production.md)
-- 🧭 [Architecture & Security Model](./docs/architecture.md)
+- 🚀 [Getting started](./docs/getting-started.md)
+- ⚡ [Quick starts](./docs/quickstarts/rest.md) for REST, Node.js, Python, Next.js and React
+- 🎮 [Gamification mechanics](./docs/gamification-mechanics.md)
+- 🛠️ [API reference](./docs/api-reference.md) and [TypeScript SDK](./docs/sdk.md)
+- 🔔 [Notifications, webhooks and integrations](./docs/notifications-and-integrations.md)
+- 🐳 [Deployment and production](./docs/deployment-and-production.md)
+- ⚙️ [Platform administration](./docs/platform-administration.md)
+- 🧭 [Architecture and security](./docs/architecture.md)
+
+See the [changelog](./CHANGELOG.md) for what's new.
 
 ---
 

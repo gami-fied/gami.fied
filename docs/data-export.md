@@ -4,7 +4,7 @@ This specification defines the organization-scoped logical export format for **G
 
 ## Export Scope & Authorization
 
-Organization Owner, Admin, and Platform Admin roles may initiate logical exports. Logical exports contain only data belonging to the requested organization.
+Organization owners and admins can export their organization. Logical exports contain only data belonging to the requested organization.
 
 - **Endpoint**: `POST /api/organizations/:organizationId/export`
 - **Dashboard UI**: `/dashboard/organization/data`

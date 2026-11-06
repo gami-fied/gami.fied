@@ -1,16 +1,17 @@
-# API Versioning Strategy
+# API versioning
 
-Gami.Fied Community Engine follows a clear, predictable versioning strategy designed for stability and zero-downtime upgrades.
+## What's stable
 
-## URL Path Versioning
+**`/v1/*` is the stable public API.** New fields and optional parameters can be added without a new version, so ignore fields you don't recognise. A breaking change would go in a new version, such as `/v2`, while `/v1` keeps working.
 
-1. **Public Event Ingestion API (`/v1/*`)**:
-   - High-throughput public ingestion endpoints use URI path versioning (`/v1/events`).
-   - Major breaking changes to event ingestion will introduce `/v2/events` while maintaining `/v1/events` compatibility.
+**`/api/*` is not stable.** These routes serve the dashboard and can change in any release. Don't build on them.
 
-2. **Project & Management API (`/api/*`)**:
-   - Dashboard and SDK management endpoints are mounted under `/api/*`.
-   - Backward-compatible additions (new fields, optional parameters) occur in-place without version bumps.
+The SDK uses `/v1` for users, XP, levels, achievements, challenges and leaderboards when you leave out `projectId`. Its webhook, integration, notification, analytics and audit log methods use `/api/projects`, because those have no public route yet.
 
-## Deprecation Policy
-- Deprecated endpoints will include `Sunset` and `Deprecation` HTTP headers 6 months prior to removal.
+## Releases
+
+Gami.Fied and the SDK follow [Semantic Versioning](https://semver.org). See the [changelog](../CHANGELOG.md).
+
+## Deprecation
+
+If a `/v1` route is going to be removed, it will be announced in the changelog at least 6 months beforehand.

@@ -1,6 +1,6 @@
 # Security status
 
-**This project has not had an independent security audit.** This page describes what the automated tests cover and who can do what. It is not a certification. Report vulnerabilities privately to the maintainers.
+**This project has not had an independent security audit.** This page describes what the automated tests cover and who can do what. It is not a certification. Report vulnerabilities privately through [GitHub security advisories](https://github.com/gami-fied/gami.fied/security/advisories/new), not in a public issue.
 
 ## What the tests cover
 
@@ -13,11 +13,12 @@
 | Webhooks | SSRF blocking, DNS rebinding at connect time, signatures |
 | Backups | Checksums, encryption, restore |
 | Worker | Idempotent rewards, retries, claim handling |
+| Public API and SDK | Every documented example runs against the real API, and responses must match the docs |
+| Docker images | CI boots the images and sends a real event through them |
 
 ## Not covered
 
 - Penetration testing
-- The Docker images, which have not been run in CI
 - A full script Content-Security-Policy on the dashboard, which is not set yet
 
 ## Authorization matrix
@@ -27,6 +28,7 @@
 | **Health checks, OpenAPI spec** | Read | Read | Read | Read | Read | Read |
 | **Sign up / sign in** | Write | Denied | Denied | Denied | Denied | Denied |
 | **Ingest event (`POST /v1/events`)** | Denied | `events:write` | Denied | Denied | Denied | Denied |
+| **Read end-user email addresses** | Denied | `users:read` | Hidden | Read | Read | Read |
 | **Read project analytics** | Denied | `analytics:read` | Read | Read | Read | Full |
 | **Manage rules, achievements, challenges** | Denied | `*:write` | Read | Full | Full | Full |
 | **Manage API keys, project members, project settings** | Denied | Denied | Denied | Full | Full | Full |

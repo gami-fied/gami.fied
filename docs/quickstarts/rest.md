@@ -1,14 +1,11 @@
 # Quick Start: cURL / REST API
 
-Integrate Gami.Fied Community Engine via cURL / REST in 8 simple steps.
+Integrate Gami.Fied via cURL / REST in a few steps.
 
 ## Step 1: Obtain an API Key
-In Gami.Fied Dashboard -> **Developer** -> **API Keys**, click **Create API Key**. Copy your server-side API key (`gami_live_...`).
+In the dashboard, go to **Connect > API Keys** and generate a key. Copy it straight away, because it's only shown once. It starts `gami_live_`, and the key already identifies your project.
 
-## Step 2: Identify your Project ID
-Find your Project ID in the Dashboard header or URL (e.g. `prj_123456789`).
-
-## Step 3: Send a Test Event
+## Step 2: Send a Test Event
 Send an activity event using cURL:
 
 ```bash
@@ -25,7 +22,7 @@ curl -X POST https://api.example.com/v1/events \
   }'
 ```
 
-## Step 4: Verify Response
+## Step 3: Verify Response
 The API responds with `202 Accepted`:
 ```json
 {
@@ -35,7 +32,7 @@ The API responds with `202 Accepted`:
 }
 ```
 
-## Step 5: Test Idempotency Retry
+## Step 4: Test Idempotency Retry
 Re-run the exact same cURL command with `Idempotency-Key: test_evt_001`:
 ```json
 {
@@ -45,15 +42,15 @@ Re-run the exact same cURL command with `Idempotency-Key: test_evt_001`:
 }
 ```
 
-## Step 6: Create a Rule in Dashboard
+## Step 5: Create a Rule in Dashboard
 In Dashboard -> **Rules**, create a rule:
 - **Event**: `purchase`
 - **Action**: Award `100 XP`
 
-## Step 7: Verify User Gamification Results
-Check **XP & Progression** tab for user `user_123` to verify 100 XP awarded.
+## Step 6: Check the Result
+Send another event with a new `Idempotency-Key`, then open **XP History** in the dashboard and look up `user_123` to see the 100 XP.
 
-## Step 8: Error Handling
+## Step 7: Error Handling
 Test invalid API key:
 ```bash
 curl -i -X POST https://api.example.com/v1/events \

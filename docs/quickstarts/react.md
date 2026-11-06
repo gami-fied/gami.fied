@@ -1,6 +1,6 @@
 # Quick Start: React Client
 
-Best practice guide for integrating Gami.Fied with React applications.
+Your React app calls your own backend, and your backend sends the event to Gami.Fied.
 
 > [!IMPORTANT]
 > Always send events from your backend API route or Server Action to keep your secret `gami_live_...` API key secure.
@@ -40,3 +40,7 @@ export function PurchaseButton({ userId, amount }: { userId: string; amount: num
   );
 }
 ```
+
+This assumes your backend has a `/api/purchase` route that sends the event. See the [Node.js](./node.md) or [Next.js](./nextjs.md) quick start.
+
+To show a user their own XP or achievements directly from the browser, use an end-user token. See [Using the SDK in a browser](../sdk.md#using-the-sdk-in-a-browser).
