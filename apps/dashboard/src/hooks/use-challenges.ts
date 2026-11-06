@@ -3,6 +3,7 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { ChallengeDefinition } from '@gami/challenges';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface ChallengeSummary {
   totalChallenges: number;
@@ -42,8 +43,8 @@ export interface UserChallengeResponse {
 }
 
 export function useChallenges(projectId: string | null) {
-  const [challenges, setChallenges] = useState<ChallengeDefinition[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [challenges, setChallenges] = useCachedState<ChallengeDefinition[]>(`challenges:${projectId}`, []);
+  const [loading, setLoading] = useState<boolean>(!hasCachedState(`challenges:${projectId}`));
   const [error, setError] = useState<string | null>(null);
 
   const fetchChallenges = useCallback(async () => {
@@ -53,7 +54,7 @@ export function useChallenges(projectId: string | null) {
       return;
     }
 
-    setLoading(true);
+    setLoading(!hasCachedState(`challenges:${projectId}`));
     setError(null);
 
     try {
@@ -73,7 +74,7 @@ export function useChallenges(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setChallenges]);
 
   useEffect(() => {
     fetchChallenges();
@@ -88,8 +89,8 @@ export function useChallenges(projectId: string | null) {
 }
 
 export function useChallengeSummary(projectId: string | null) {
-  const [summary, setSummary] = useState<ChallengeSummary | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [summary, setSummary] = useCachedState<ChallengeSummary | null>(`challengeSummary:${projectId}`, null);
+  const [loading, setLoading] = useState<boolean>(!hasCachedState(`challengeSummary:${projectId}`));
   const [error, setError] = useState<string | null>(null);
 
   const fetchSummary = useCallback(async () => {
@@ -99,7 +100,7 @@ export function useChallengeSummary(projectId: string | null) {
       return;
     }
 
-    setLoading(true);
+    setLoading(!hasCachedState(`challengeSummary:${projectId}`));
     setError(null);
 
     try {
@@ -119,7 +120,7 @@ export function useChallengeSummary(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setSummary]);
 
   useEffect(() => {
     fetchSummary();

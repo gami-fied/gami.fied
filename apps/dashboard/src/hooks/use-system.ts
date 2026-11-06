@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
+import { setVisibleInterval } from '@/lib/visible-interval';
 
 export interface SystemMetrics {
   projectId: string;
@@ -83,8 +84,7 @@ export function useSystemMetrics(projectId: string | null, pollInterval = 5000) 
     setLoading(true);
     fetchMetrics();
 
-    const interval = setInterval(fetchMetrics, pollInterval);
-    return () => clearInterval(interval);
+    return setVisibleInterval(fetchMetrics, pollInterval);
   }, [projectId, pollInterval, fetchMetrics]);
 
   return { metrics, loading, error, refresh: fetchMetrics };

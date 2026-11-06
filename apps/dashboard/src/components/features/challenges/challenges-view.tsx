@@ -36,11 +36,11 @@ import {
   Power,
   Edit2,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AdminOnly } from '@/components/ui/admin-only';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function ChallengesView() {
-  const { selectedProject, selectedOrg } = useDashboard();
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { selectedProject } = useDashboard();
   const projectId = selectedProject?.id || null;
 
   const { challenges, loading, error, refresh } = useChallenges(projectId);
@@ -226,56 +226,48 @@ export function ChallengesView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
-            Challenges
-            <Badge variant="orange">Milestone 12</Badge>
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Event-driven counter challenges with transactional database-enforced idempotency and
-            rewards.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-            <button
-              onClick={() => setActiveTab('management')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
-                activeTab === 'management'
-                  ? 'bg-brand-500 text-on-accent shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              Challenge Management
-            </button>
-            <button
-              onClick={() => setActiveTab('user_lookup')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
-                activeTab === 'user_lookup'
-                  ? 'bg-brand-500 text-on-accent shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              User Progress Lookup
-            </button>
-          </div>
-
-          {activeTab === 'management' && (
-            <Button
-              size="sm"
-              disabled={!isAdminOrOwner}
-              title={!isAdminOrOwner ? 'Requires Admin or Owner role to create challenges' : undefined}
-              onClick={() => isAdminOrOwner && openCreateModal()}
-              className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-            >
-              <Plus className="w-4 h-4" />
-              Create Challenge
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Challenges"
+        description="Goals users work toward, with a reward when they finish."
+        actions={
+          <>
+            {activeTab === 'management' && (
+              <AdminOnly>
+                <Button size="sm" onClick={() => openCreateModal()}>
+                  <Plus className="w-4 h-4" />
+                  Create Challenge
+                </Button>
+              </AdminOnly>
+            )}
+          </>
+        }
+        toolbar={
+          <>
+            <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
+              <button
+                onClick={() => setActiveTab('management')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
+                  activeTab === 'management'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Challenge Management
+              </button>
+              <button
+                onClick={() => setActiveTab('user_lookup')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
+                  activeTab === 'user_lookup'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                User Progress Lookup
+              </button>
+            </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none flex items-center gap-2">
@@ -348,14 +340,15 @@ export function ChallengesView() {
                 <div className="w-12 h-12 rounded-none bg-zinc-800/80 flex items-center justify-center mx-auto text-zinc-400">
                   <Target className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-semibold text-zinc-200">No Challenges Defined</h3>
+                <h3 className="text-sm font-semibold text-zinc-200">No challenges yet</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                  Create your first counter challenge (e.g. &quot;Play 10 Games&quot;) to reward
-                  your users automatically.
+                  Set a goal like &quot;Play 10 games&quot; and reward users who reach it.
                 </p>
-                <Button size="sm" onClick={openCreateModal}>
-                  <Plus className="w-4 h-4" /> Create Challenge
-                </Button>
+                <AdminOnly>
+                  <Button size="sm" onClick={openCreateModal}>
+                    <Plus className="w-4 h-4" /> Create a challenge
+                  </Button>
+                </AdminOnly>
               </div>
             ) : (
               <Table>
@@ -397,9 +390,7 @@ export function ChallengesView() {
                             <div className="text-[11px] text-zinc-400 font-mono">{ch.key}</div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-brand-400">
-                          {ch.trigger}
-                        </TableCell>
+                        <TableCell className="text-xs text-brand-400">{ch.trigger}</TableCell>
                         <TableCell className="font-bold text-xs text-zinc-200">
                           {ch.target}
                         </TableCell>
@@ -433,32 +424,31 @@ export function ChallengesView() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={!isAdminOrOwner}
-                            onClick={() => isAdminOrOwner && openEditModal(ch)}
-                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit challenge' : 'Edit Challenge'}
-                            className={!isAdminOrOwner ? 'opacity-30 cursor-not-allowed text-zinc-400' : undefined}
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={!isAdminOrOwner}
-                            onClick={() => isAdminOrOwner && toggleDisable(ch)}
-                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle challenge' : (ch.enabled ? 'Disable' : 'Enable')}
-                            className={
-                              !isAdminOrOwner
-                                ? 'opacity-30 cursor-not-allowed text-zinc-400'
-                                : ch.enabled
-                                ? 'text-danger-400 hover:text-danger-300'
-                                : 'text-success-400 hover:text-success-300'
-                            }
-                          >
-                            <Power className="w-3.5 h-3.5" />
-                          </Button>
+                          <AdminOnly>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditModal(ch)}
+                              title="Edit Challenge"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </AdminOnly>
+                          <AdminOnly>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleDisable(ch)}
+                              title={ch.enabled ? 'Disable' : 'Enable'}
+                              className={
+                                ch.enabled
+                                  ? 'text-danger-400 hover:text-danger-300'
+                                  : 'text-success-400 hover:text-success-300'
+                              }
+                            >
+                              <Power className="w-3.5 h-3.5" />
+                            </Button>
+                          </AdminOnly>
                         </TableCell>
                       </TableRow>
                     );
@@ -517,11 +507,7 @@ export function ChallengesView() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {userChallenges.challenges.map((item) => (
-                    <motion.div
-                      key={item.challengeId}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
+                    <div key={item.challengeId} className="animate-rise">
                       <Card className="bg-zinc-950 border-zinc-800 p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
@@ -529,10 +515,7 @@ export function ChallengesView() {
                             <div className="text-[11px] text-zinc-400 font-mono">{item.key}</div>
                           </div>
                           {item.completed ? (
-                            <Badge
-                              variant="emerald"
-                              className="text-xs flex items-center gap-1"
-                            >
+                            <Badge variant="emerald" className="text-xs flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" /> Completed
                             </Badge>
                           ) : (
@@ -559,7 +542,7 @@ export function ChallengesView() {
                           </div>
                         )}
                       </Card>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>

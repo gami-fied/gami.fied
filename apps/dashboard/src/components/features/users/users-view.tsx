@@ -9,7 +9,8 @@ import { useUserRank } from '@/hooks/use-leaderboard';
 import { useLevels } from '@/hooks/use-levels';
 import { useUserChallenges } from '@/hooks/use-challenges';
 import { useXp } from '@/hooks/use-xp';
-import { useUsers } from '@/hooks/use-users';
+import { useUsers, type UserSort } from '@/hooks/use-users';
+import { usePermissions } from '@/hooks/use-permissions';
 import {
   useNotificationPreferences,
   type NotificationType,
@@ -49,17 +50,30 @@ import {
   Mail,
   Loader2,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import type { User } from '@gami/types';
+import { AdminOnly } from '@/components/ui/admin-only';
+import { PageHeader } from '@/components/ui/page-header';
+import { Checkbox, Switch } from '@/components/ui/checkbox';
+import { Dropdown } from '@/components/ui/dropdown';
+
+const SEARCH_DELAY_MS = 250;
+
+const USER_SORT_LABELS: Record<UserSort, string> = {
+  newest: 'Newest first',
+  oldest: 'Oldest first',
+  name: 'Name A to Z',
+};
 
 export function UsersView() {
-  const { selectedProject, selectedOrg } = useDashboard();
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { isAdminOrOwner } = usePermissions();
+  const { selectedProject } = useDashboard();
   const projectId = selectedProject?.id || null;
   const toast = useToast();
 
   const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<UserSort>('newest');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const confirmAction = useConfirm();
@@ -69,8 +83,35 @@ export function UsersView() {
     projectId,
     page,
     25,
-    search
+    appliedSearch,
+    sort
   );
+
+  // Restores the list from the address, so a link or refresh shows the same thing.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkedSearch = params.get('search') ?? '';
+    const linkedSort = params.get('sort') as UserSort | null;
+    setSearch(linkedSearch);
+    setAppliedSearch(linkedSearch);
+    setPage(Math.max(1, Number(params.get('page')) || 1));
+    if (linkedSort && linkedSort in USER_SORT_LABELS) setSort(linkedSort);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedSearch(search), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const set = (key: string, value: string, fallback: string) =>
+      value === fallback ? url.searchParams.delete(key) : url.searchParams.set(key, value);
+    set('search', appliedSearch, '');
+    set('sort', sort, 'newest');
+    set('page', String(page), '1');
+    window.history.replaceState(window.history.state, '', url);
+  }, [appliedSearch, sort, page]);
 
   // Grant XP Dialog State
   const [isGrantOpen, setIsGrantOpen] = useState(false);
@@ -325,40 +366,42 @@ export function UsersView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <Users className="w-6 h-6 text-brand-400" />
-            Project End-Users
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Manage end-users, view gamification progress, award XP, and configure notification channel preferences.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!isAdminOrOwner}
-          title={!isAdminOrOwner ? 'Requires Admin or Owner role to create end-users' : undefined}
-          onClick={() => isAdminOrOwner && handleOpenCreateModal()}
-          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-        >
-          <Plus className="w-4 h-4" />
-          Create User
-        </Button>
-      </div>
+      <PageHeader
+        title="Users"
+        description="See each user's XP, progress and activity."
+        actions={
+          <>
+            <AdminOnly>
+              <Button variant="primary" size="sm" onClick={() => handleOpenCreateModal()}>
+                <Plus className="w-4 h-4" />
+                Create User
+              </Button>
+            </AdminOnly>
+          </>
+        }
+      />
 
       {/* Search */}
       <Card>
         <CardContent className="pt-5 pb-5">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-            <input
-              className="w-full pl-9 pr-4 py-2 bg-zinc-950/80 border border-zinc-800 rounded-none text-sm text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-brand-500/60 transition"
-              placeholder="Search by name or external ID..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-52 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <input
+                className="w-full pl-9 pr-4 py-2 bg-zinc-950/80 border border-zinc-800 rounded-none text-sm text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-brand-500 transition"
+                placeholder="Search by name or external ID..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+            </div>
+            <Dropdown
+              className="w-40"
+              value={sort}
+              options={Object.entries(USER_SORT_LABELS).map(([value, label]) => ({ value, label }))}
+              onChange={(value) => {
+                setSort(value as UserSort);
+                setPage(1);
+              }}
             />
           </div>
         </CardContent>
@@ -369,12 +412,9 @@ export function UsersView() {
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Users className="w-4 h-4 text-brand-400" />
-            User Management Roster
+            All users
           </CardTitle>
-          <CardDescription>
-            All registered project end-users. Click any row to inspect profile, XP, progression,
-            notification preferences &amp; challenge progress.
-          </CardDescription>
+          <CardDescription>Click a user to see their XP, progress and activity.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -384,11 +424,11 @@ export function UsersView() {
               <div className="w-12 h-12 rounded-none bg-zinc-800/80 flex items-center justify-center mx-auto">
                 <Users className="w-6 h-6 text-zinc-400" />
               </div>
-              <h3 className="text-sm font-semibold text-zinc-200">No Users Found</h3>
+              <h3 className="text-sm font-semibold text-zinc-200">No users yet</h3>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                 {search
                   ? `No users match "${search}". Try a different search term.`
-                  : 'No users exist in this project yet. Click "Create User" or send an event to auto-provision.'}
+                  : 'Users appear when your app sends their first event, or add one by hand.'}
               </p>
             </div>
           ) : (
@@ -405,10 +445,10 @@ export function UsersView() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         aria-label="Select all users on this page"
                         checked={users.length > 0 && selectedIds.length === users.length}
+                        indeterminate={selectedIds.length > 0 && selectedIds.length < users.length}
                         onChange={(e) =>
                           setSelectedIds(e.target.checked ? users.map((u) => u.id) : [])
                         }
@@ -430,8 +470,7 @@ export function UsersView() {
                       onClick={() => handleOpenProfile(user)}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           aria-label={`Select ${user.name || user.externalId}`}
                           checked={selectedIds.includes(user.id)}
                           onChange={(e) =>
@@ -467,7 +506,11 @@ export function UsersView() {
                         {user.externalId}
                       </TableCell>
                       <TableCell className="text-xs text-zinc-400">
-                        {user.email || <span className="text-zinc-400 italic">No email</span>}
+                        {user.email || (
+                          <span className="text-zinc-400 italic">
+                            {isAdminOrOwner ? 'No email' : 'Hidden'}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {user.active ? (
@@ -488,71 +531,58 @@ export function UsersView() {
                           className="flex items-center justify-end gap-1.5"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button
-                            disabled={!isAdminOrOwner}
-                            onClick={(e) => isAdminOrOwner && handleOpenEditModal(user, e)}
-                            className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
-                              isAdminOrOwner
-                                ? 'hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100'
-                                : 'opacity-40 cursor-not-allowed text-zinc-400'
-                            }`}
-                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit user' : 'Edit user profile'}
-                          >
-                            <Edit2 className="w-3 h-3 text-zinc-400" />
-                            Edit
-                          </button>
+                          <AdminOnly>
+                            <button
+                              onClick={(e) => handleOpenEditModal(user, e)}
+                              className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${'hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100'}`}
+                              title="Edit user profile"
+                            >
+                              <Edit2 className="w-3 h-3 text-zinc-400" />
+                              Edit
+                            </button>
+                          </AdminOnly>
 
                           {user.active ? (
-                            <button
-                              disabled={!isAdminOrOwner}
-                              onClick={(e) => isAdminOrOwner && handleOpenDeactivateDialog(user, e)}
-                              className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
-                                isAdminOrOwner
-                                  ? 'hover:bg-danger-950/40 hover:border-danger-800/60 text-danger-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-400'
-                              }`}
-                              title={!isAdminOrOwner ? 'Requires Admin or Owner role to deactivate user' : 'Deactivate user account'}
-                            >
-                              <UserX className="w-3 h-3" />
-                              Deactivate
-                            </button>
+                            <AdminOnly>
+                              <button
+                                onClick={(e) => handleOpenDeactivateDialog(user, e)}
+                                className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${'hover:bg-danger-950/40 hover:border-danger-800/60 text-danger-400'}`}
+                                title="Deactivate user account"
+                              >
+                                <UserX className="w-3 h-3" />
+                                Deactivate
+                              </button>
+                            </AdminOnly>
                           ) : (
-                            <button
-                              disabled={!isAdminOrOwner}
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!isAdminOrOwner) return;
-                                await updateUser(user.id, { active: true });
-                                toast.success(
-                                  'User Reactivated',
-                                  `User ${user.externalId} is now active.`
-                                );
-                              }}
-                              className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
-                                isAdminOrOwner
-                                  ? 'hover:bg-success-950/40 hover:border-success-800/60 text-success-400'
-                                  : 'opacity-40 cursor-not-allowed text-zinc-400'
-                              }`}
-                              title={!isAdminOrOwner ? 'Requires Admin or Owner role to reactivate user' : 'Reactivate user account'}
-                            >
-                              <UserCheck className="w-3 h-3" />
-                              Reactivate
-                            </button>
+                            <AdminOnly>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await updateUser(user.id, { active: true });
+                                  toast.success(
+                                    'User Reactivated',
+                                    `User ${user.externalId} is now active.`
+                                  );
+                                }}
+                                className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${'hover:bg-success-950/40 hover:border-success-800/60 text-success-400'}`}
+                                title="Reactivate user account"
+                              >
+                                <UserCheck className="w-3 h-3" />
+                                Reactivate
+                              </button>
+                            </AdminOnly>
                           )}
 
-                          <button
-                            disabled={!isAdminOrOwner}
-                            onClick={(e) => isAdminOrOwner && handleOpenGrantModal(user.id, e)}
-                            className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${
-                              isAdminOrOwner
-                                ? 'hover:bg-zinc-800 text-brand-400 hover:text-brand-300'
-                                : 'opacity-40 cursor-not-allowed text-zinc-400'
-                            }`}
-                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to grant XP' : 'Grant XP to this user'}
-                          >
-                            <Gift className="w-3 h-3" />
-                            Grant XP
-                          </button>
+                          <AdminOnly>
+                            <button
+                              onClick={(e) => handleOpenGrantModal(user.id, e)}
+                              className={`px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 ${'hover:bg-zinc-800 text-brand-400 hover:text-brand-300'}`}
+                              title="Grant XP to this user"
+                            >
+                              <Gift className="w-3 h-3" />
+                              Grant XP
+                            </button>
+                          </AdminOnly>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -575,7 +605,7 @@ export function UsersView() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Create End-User"
-        description="Register a new end-user account directly in this project."
+        description="Add a user by hand. Users are also created automatically by their first event."
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           {createError && (
@@ -615,12 +645,16 @@ export function UsersView() {
           />
 
           <div className="space-y-1.5">
-            <label htmlFor="users-view-metadata-json-format" className="text-xs font-medium text-zinc-400">
+            <label
+              htmlFor="users-view-metadata-json-format"
+              className="text-xs font-medium text-zinc-400"
+            >
               Metadata (JSON format)
             </label>
-            <textarea id="users-view-metadata-json-format"
+            <textarea
+              id="users-view-metadata-json-format"
               rows={3}
-              className="w-full p-2.5 bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 outline-none focus:border-brand-500/60 transition"
+              className="w-full p-2.5 bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 outline-none focus:border-brand-500 transition"
               value={createMetadata}
               onChange={(e) => setCreateMetadata(e.target.value)}
             />
@@ -675,29 +709,27 @@ export function UsersView() {
           />
 
           <div className="space-y-1.5">
-            <label htmlFor="users-view-metadata-json-format" className="text-xs font-medium text-zinc-400">
+            <label
+              htmlFor="users-view-metadata-json-format"
+              className="text-xs font-medium text-zinc-400"
+            >
               Metadata (JSON format)
             </label>
-            <textarea id="users-view-metadata-json-format"
+            <textarea
+              id="users-view-metadata-json-format"
               rows={3}
-              className="w-full p-2.5 bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 outline-none focus:border-brand-500/60 transition"
+              className="w-full p-2.5 bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 outline-none focus:border-brand-500 transition"
               value={editMetadata}
               onChange={(e) => setEditMetadata(e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="editActiveCheckbox"
-              checked={editActive}
-              onChange={(e) => setEditActive(e.target.checked)}
-              className="accent-brand-500"
-            />
-            <label htmlFor="editActiveCheckbox" className="text-xs text-zinc-300">
-              Account Active Status (uncheck to deactivate)
-            </label>
-          </div>
+          <Checkbox
+            className="pt-1"
+            label="Active. Untick to deactivate this user."
+            checked={editActive}
+            onChange={(e) => setEditActive(e.target.checked)}
+          />
 
           <div className="flex justify-end gap-2 pt-3 border-t border-zinc-800">
             <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditOpen(false)}>
@@ -849,9 +881,7 @@ export function UsersView() {
                 <div className="text-xl font-black text-brand-400">
                   {userRank.entry.xp.toLocaleString()}
                 </div>
-                <div className="text-xs text-zinc-400 tracking-wide mt-0.5">
-                  XP Total
-                </div>
+                <div className="text-xs text-zinc-400 tracking-wide mt-0.5">XP Total</div>
               </div>
               <div className="bg-zinc-950/80 p-4 rounded-none border border-zinc-800 text-center">
                 <div className="flex items-center justify-center mb-1">
@@ -873,9 +903,7 @@ export function UsersView() {
                     'L1'
                   )}
                 </div>
-                <div className="text-xs text-zinc-400 tracking-wide mt-0.5">
-                  Level
-                </div>
+                <div className="text-xs text-zinc-400 tracking-wide mt-0.5">Level</div>
               </div>
             </div>
 
@@ -891,11 +919,7 @@ export function UsersView() {
                     <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                   </span>
                 )}
-                {prefSuccess && (
-                  <span className="text-xs text-success-400">
-                    ✓ Saved
-                  </span>
-                )}
+                {prefSuccess && <span className="text-xs text-success-400">✓ Saved</span>}
               </div>
 
               {prefError && (
@@ -944,38 +968,35 @@ export function UsersView() {
 
                                 {/* In-App Toggle */}
                                 <td className="py-2.5 px-4 text-center">
-                                  <label className="inline-flex items-center cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={inAppEnabled}
-                                      onChange={(e) =>
-                                        updatePreference('in_app', type as NotificationType, e.target.checked)
-                                      }
-                                      className="sr-only peer"
-                                    />
-                                    <div className="w-8 h-4 bg-zinc-800 peer-focus:outline-none rounded-none peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-none after:h-3 after:w-3 after:transition-all peer-checked:bg-success-600 relative"></div>
-                                  </label>
+                                  <Switch
+                                    aria-label={`${label} in the app`}
+                                    className="align-middle"
+                                    checked={inAppEnabled}
+                                    onChange={(e) =>
+                                      updatePreference(
+                                        'in_app',
+                                        type as NotificationType,
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
                                 </td>
 
                                 {/* Email Toggle */}
                                 <td className="py-2.5 pl-4 text-center">
-                                  <label
-                                    className={`inline-flex items-center ${
-                                      hasEmail ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      disabled={!hasEmail}
-                                      checked={hasEmail && emailEnabled}
-                                      onChange={(e) =>
-                                        hasEmail &&
-                                        updatePreference('email', type as NotificationType, e.target.checked)
-                                      }
-                                      className="sr-only peer"
-                                    />
-                                    <div className="w-8 h-4 bg-zinc-800 peer-focus:outline-none rounded-none peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-none after:h-3 after:w-3 after:transition-all peer-checked:bg-success-600 relative"></div>
-                                  </label>
+                                  <Switch
+                                    aria-label={`${label} by email`}
+                                    className="align-middle"
+                                    disabled={!hasEmail}
+                                    checked={hasEmail && emailEnabled}
+                                    onChange={(e) =>
+                                      updatePreference(
+                                        'email',
+                                        type as NotificationType,
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
                                 </td>
                               </tr>
                             );
@@ -987,7 +1008,9 @@ export function UsersView() {
                     {!hasEmail && (
                       <div className="p-2.5 bg-warning-950/30 border border-warning-800/50 text-warning-300 text-[11px] flex items-center gap-2">
                         <Mail className="w-3.5 h-3.5 text-warning-400 shrink-0" />
-                        <span>Add an email address to this user to enable email notifications.</span>
+                        <span>
+                          Add an email address to this user to enable email notifications.
+                        </span>
                       </div>
                     )}
                   </>
@@ -1037,21 +1060,16 @@ export function UsersView() {
                 </h4>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {userChallenges.challenges.map((ch) => (
-                    <motion.div
+                    <div
                       key={ch.challengeId}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="bg-zinc-950/80 p-3 rounded-none border border-zinc-800 space-y-2"
+                      className="animate-rise bg-zinc-950/80 p-3 rounded-none border border-zinc-800 space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-xs font-semibold text-zinc-200">{ch.name}</div>
                           <div className="text-xs text-zinc-400 font-mono">{ch.key}</div>
                         </div>
-                        <Badge
-                          variant={ch.completed ? 'emerald' : 'orange'}
-                          className="text-xs"
-                        >
+                        <Badge variant={ch.completed ? 'emerald' : 'orange'} className="text-xs">
                           {ch.completed ? '✓ Done' : 'In Progress'}
                         </Badge>
                       </div>
@@ -1067,7 +1085,7 @@ export function UsersView() {
                         </div>
                         <span className="text-brand-400 font-semibold">{ch.percent}%</span>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>

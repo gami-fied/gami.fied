@@ -57,7 +57,7 @@ export class EventsResource {
    * ```
    */
   public async ingest(params: {
-    projectId: string;
+    projectId?: string;
     externalId?: string;
     userId?: string;
     event?: string;

@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface ApiKeyRecord {
   id: string;
@@ -21,13 +22,13 @@ export interface GeneratedApiKey {
 }
 
 export function useApiKeys(projectId: string | null) {
-  const [apiKeys, setApiKeys] = useState<ApiKeyRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [apiKeys, setApiKeys] = useCachedState<ApiKeyRecord[]>(`apiKeys:${projectId}`, []);
+  const [loading, setLoading] = useState<boolean>(!hasCachedState(`apiKeys:${projectId}`));
   const [error, setError] = useState<string | null>(null);
 
   const fetchApiKeys = useCallback(async () => {
     if (!projectId) return;
-    setLoading(true);
+    setLoading(!hasCachedState(`apiKeys:${projectId}`));
     setError(null);
     try {
       const res = await apiFetch(`/api/projects/${projectId}/api-keys`);
@@ -42,7 +43,7 @@ export function useApiKeys(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setApiKeys]);
 
   const createApiKey = async (
     name: string,

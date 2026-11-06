@@ -76,12 +76,18 @@ jobs:
           sed -i "s/GAMI_VERSION:-latest/GAMI_VERSION:-${version}/g" docker-compose.yml
           sed -i "s#GAMI_REGISTRY:-ghcr.io/gami-fied#GAMI_REGISTRY:-ghcr.io/${GITHUB_REPOSITORY_OWNER}#g" docker-compose.yml
           cp .env.production.example env.example
+      - name: Read this version's notes from the changelog
+        run: |
+          version="${TAG#v}"
+          awk -v heading="## [${version}]" 'index($0, heading) == 1 { found = 1; next } /^## / { found = 0 } found' CHANGELOG.md > release-notes.md
       - name: Create the release
         run: |
           prerelease=""
           if [[ "$TAG" == *-* ]]; then prerelease="--prerelease"; fi
+          notes="--generate-notes"
+          if [[ -s release-notes.md ]]; then notes="--notes-file release-notes.md"; fi
           gh release create "$TAG" docker-compose.yml env.example \
             --title "Gami.Fied $TAG" \
-            --generate-notes \
+            $notes \
             --verify-tag \
             $prerelease

@@ -2,6 +2,7 @@ import { AchievementsResource } from './achievements.js';
 import { AnalyticsResource } from './analytics.js';
 import { AuditLogsResource } from './audit-logs.js';
 import { ChallengesResource } from './challenges.js';
+import { EndUserTokensResource } from './end-user-tokens.js';
 import { EventsResource } from './events.js';
 import { HttpClient } from './http.js';
 import { IntegrationsResource } from './integrations.js';
@@ -9,7 +10,6 @@ import { LeaderboardsResource } from './leaderboards.js';
 import { LevelsResource } from './levels.js';
 import { MeResource } from './me.js';
 import { NotificationsResource } from './notifications.js';
-import { OrganizationsResource } from './organizations.js';
 import { SystemResource } from './system.js';
 import type { GamiConfig } from './types.js';
 import { UsersResource } from './users.js';
@@ -20,6 +20,7 @@ export class Gami {
   private readonly http: HttpClient;
 
   public readonly events: EventsResource;
+  public readonly endUserTokens: EndUserTokensResource;
   public readonly me: MeResource;
   public readonly users: UsersResource;
   public readonly xp: XpResource;
@@ -30,7 +31,6 @@ export class Gami {
   public readonly notifications: NotificationsResource;
   public readonly webhooks: WebhooksResource;
   public readonly integrations: IntegrationsResource;
-  public readonly organizations: OrganizationsResource;
   public readonly auditLogs: AuditLogsResource;
   public readonly system: SystemResource;
   public readonly analytics: AnalyticsResource;
@@ -39,6 +39,7 @@ export class Gami {
     this.http = new HttpClient(config);
 
     this.events = new EventsResource(this.http);
+    this.endUserTokens = new EndUserTokensResource(this.http);
     this.me = new MeResource(this.http);
     this.users = new UsersResource(this.http);
     this.xp = new XpResource(this.http);
@@ -49,7 +50,6 @@ export class Gami {
     this.notifications = new NotificationsResource(this.http);
     this.webhooks = new WebhooksResource(this.http);
     this.integrations = new IntegrationsResource(this.http);
-    this.organizations = new OrganizationsResource(this.http);
     this.auditLogs = new AuditLogsResource(this.http);
     this.system = new SystemResource(this.http);
     this.analytics = new AnalyticsResource(this.http);

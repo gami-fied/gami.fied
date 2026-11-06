@@ -13,7 +13,13 @@ export const Table = forwardRef<HTMLTableElement, TableHTMLAttributes<HTMLTableE
     <div className="w-full overflow-x-auto rounded-none border border-zinc-800/80">
       <table
         ref={ref}
-        className={twMerge(clsx('w-full text-left text-sm text-zinc-300', className))}
+        className={twMerge(
+          clsx(
+            // Sideways scrolling is fine on phones, but the first column has to stay readable.
+            'w-full text-left text-sm text-zinc-300 max-sm:[&_td:first-child]:min-w-36',
+            className
+          )
+        )}
         {...props}
       />
     </div>

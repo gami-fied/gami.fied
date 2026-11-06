@@ -38,6 +38,8 @@ import { notificationPreferenceRoutes } from './notifications/preferences/index.
 import { organizationRoutes } from './organizations/index.js';
 import { organizationDataRoutes } from './organizations/data.js';
 import { projectOnboardingRoutes } from './projects/onboarding.js';
+import { projectOverviewRoutes } from './projects/overview.js';
+import { bootstrapRoutes } from './organizations/bootstrap.js';
 import { projectRoutes } from './projects/index.js';
 import { ruleRoutes } from './rules/index.js';
 import { systemObservabilityRoutes } from './system/index.js';
@@ -265,6 +267,8 @@ export async function buildServer() {
 
   // Register Project Onboarding Checklist backend endpoint
   await fastify.register(projectOnboardingRoutes);
+  await fastify.register(projectOverviewRoutes);
+  await fastify.register(bootstrapRoutes);
   await fastify.register(projectAlertRoutes);
 
   // Register Email OTP Verification & User Profile endpoints

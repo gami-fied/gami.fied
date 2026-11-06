@@ -28,7 +28,7 @@ export class LevelsResource {
    * Get details of a specific level definition.
    * Calls GET /api/projects/:projectId/levels/:levelId
    */
-  public async get(params: { projectId: string; levelId: string }): Promise<LevelRecord> {
+  public async get(params: { projectId?: string; levelId: string }): Promise<LevelRecord> {
     if (!params.levelId) {
       throw new Error('levelId is required for gami.levels.get()');
     }

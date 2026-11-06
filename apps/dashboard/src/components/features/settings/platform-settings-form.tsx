@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import { SETTINGS_COLUMNS } from '@/components/ui/card';
 
 interface Field {
   key: string;
@@ -141,19 +143,15 @@ function SectionCard({ section, initial }: { section: Section; initial: Values }
             const id = `${section.category}-${field.key}`;
             if (field.type === 'boolean') {
               return (
-                <label key={id} htmlFor={id} className="flex items-start gap-3 text-sm text-zinc-200">
-                  <input
-                    id={id}
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={Boolean(values[field.key])}
-                    onChange={(e) => setValues({ ...values, [field.key]: e.target.checked })}
-                  />
-                  <span>
-                    {field.label}
-                    {field.help && <span className="block text-xs text-zinc-400">{field.help}</span>}
-                  </span>
-                </label>
+                <Checkbox
+                  key={id}
+                  id={id}
+                  className="flex text-sm text-zinc-200"
+                  label={field.label}
+                  description={field.help && <span className="text-xs">{field.help}</span>}
+                  checked={Boolean(values[field.key])}
+                  onChange={(e) => setValues({ ...values, [field.key]: e.target.checked })}
+                />
               );
             }
             return (
@@ -212,7 +210,7 @@ export function PlatformSettingsForm() {
   if (!configurations) return <TableSkeleton rows={6} />;
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className={SETTINGS_COLUMNS}>
       {SECTIONS.map((section) => (
         <SectionCard
           key={section.category}

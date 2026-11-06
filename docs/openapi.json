@@ -3,8 +3,34 @@
   "info": {
     "title": "Gami.Fied API",
     "version": "1.0.0",
-    "description": "The stable public API. The API key identifies the project."
+    "description": "The stable public API. The API key identifies the project, so paths never include a project ID."
   },
+  "tags": [
+    {
+      "name": "Events"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "XP"
+    },
+    {
+      "name": "Levels"
+    },
+    {
+      "name": "Achievements"
+    },
+    {
+      "name": "Challenges"
+    },
+    {
+      "name": "Leaderboard"
+    },
+    {
+      "name": "Current user"
+    }
+  ],
   "security": [
     {
       "apiKey": []
@@ -13,24 +39,31 @@
   "paths": {
     "/v1/events": {
       "post": {
+        "operationId": "postEvents",
+        "tags": [
+          "Events"
+        ],
         "summary": "Send an event",
+        "description": "Records something a user did. Rules run in the background, so the response only confirms the event was received. Add `?wait=true` to also get what it awarded, for showing it straight away.",
         "x-required-scope": "events:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
-            "in": "query",
             "name": "wait",
+            "in": "query",
+            "description": "Wait up to 5 seconds and include `rewards` in the response.",
             "schema": {
-              "type": "boolean"
-            },
-            "description": "Wait up to 5 seconds for rewards and include them in the response."
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Retrying with the same key can't record the event twice.",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
           }
         ],
         "requestBody": {
@@ -38,31 +71,115 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "event"
-                ],
-                "properties": {
-                  "event": {
-                    "type": "string",
-                    "maxLength": 128
-                  },
-                  "user_id": {
-                    "type": "string",
-                    "description": "Your ID for the user",
-                    "maxLength": 128
-                  },
-                  "payload": {
-                    "type": "object"
-                  },
-                  "occurred_at": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "idempotency_key": {
-                    "type": "string",
-                    "maxLength": 128
+                "$ref": "#/components/schemas/EventInput"
+              },
+              "example": {
+                "event": "order_completed",
+                "user_id": "user_123",
+                "payload": {
+                  "amount": 149.99
+                },
+                "idempotency_key": "order-4821"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The event was received.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "status",
+                    "duplicate"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The event's ID.",
+                      "example": "evt_1762421400000_u7i8o"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "accepted"
+                      ],
+                      "description": "Always `accepted`.",
+                      "example": "accepted"
+                    },
+                    "duplicate": {
+                      "type": "boolean",
+                      "description": "True if this idempotency key was already used, so nothing new happened.",
+                      "example": false
+                    },
+                    "rewards": {
+                      "$ref": "#/components/schemas/EventRewards",
+                      "description": "Only present with `?wait=true`."
+                    }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with something that already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The event payload is over 64 KB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -72,16 +189,13 @@
     },
     "/v1/events/batch": {
       "post": {
+        "operationId": "postEventsBatch",
+        "tags": [
+          "Events"
+        ],
         "summary": "Send up to 100 events",
+        "description": "Sends several events at once, up to 1 MB in total. Each one succeeds or fails alone, so check `results` and retry only the ones that failed.",
         "x-required-scope": "events:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "requestBody": {
           "required": true,
           "content": {
@@ -94,36 +208,140 @@
                 "properties": {
                   "events": {
                     "type": "array",
+                    "minItems": 1,
                     "maxItems": 100,
+                    "description": "The events to send.",
                     "items": {
-                      "type": "object",
-                      "required": [
-                        "event"
-                      ],
-                      "properties": {
-                        "event": {
-                          "type": "string",
-                          "maxLength": 128
-                        },
-                        "user_id": {
-                          "type": "string",
-                          "description": "Your ID for the user",
-                          "maxLength": 128
-                        },
-                        "payload": {
-                          "type": "object"
-                        },
-                        "occurred_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "idempotency_key": {
-                          "type": "string",
-                          "maxLength": 128
+                      "$ref": "#/components/schemas/EventInput"
+                    }
+                  }
+                }
+              },
+              "example": {
+                "events": [
+                  {
+                    "event": "lesson_completed",
+                    "user_id": "user_123"
+                  },
+                  {
+                    "event": "quiz_passed",
+                    "user_id": "user_123",
+                    "payload": {
+                      "score": 90
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "207": {
+            "description": "A result for each event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "accepted",
+                    "rejected",
+                    "results"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "integer",
+                      "description": "Events accepted.",
+                      "example": 2
+                    },
+                    "rejected": {
+                      "type": "integer",
+                      "description": "Events not accepted.",
+                      "example": 0
+                    },
+                    "results": {
+                      "type": "array",
+                      "description": "One result per event, in the order sent.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "index",
+                          "status"
+                        ],
+                        "properties": {
+                          "index": {
+                            "type": "integer",
+                            "description": "Position in the `events` array.",
+                            "example": 0
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "accepted",
+                              "rejected",
+                              "failed"
+                            ],
+                            "description": "What happened. Retry `failed` events.",
+                            "example": "accepted"
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "The event's ID, when accepted.",
+                            "example": "evt_1762421400000_u7i8o"
+                          },
+                          "duplicate": {
+                            "type": "boolean",
+                            "description": "True if this idempotency key was already used.",
+                            "example": false
+                          },
+                          "code": {
+                            "type": "string",
+                            "description": "Why it wasn't accepted.",
+                            "example": "USER_DEACTIVATED"
+                          }
                         }
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -133,16 +351,13 @@
     },
     "/v1/end-user-tokens": {
       "post": {
+        "operationId": "postEndUserTokens",
+        "tags": [
+          "Current user"
+        ],
         "summary": "Create a short-lived token for one user",
+        "description": "Call this from your server, then give the token to your frontend. It can only read that one user's data with the `/v1/me` endpoints, so your API key stays private.",
         "x-required-scope": "users:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "requestBody": {
           "required": true,
           "content": {
@@ -154,13 +369,103 @@
                 ],
                 "properties": {
                   "userId": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Your own ID for the user, or their Gami.Fied ID.",
+                    "example": "user_123"
                   },
                   "expiresInSeconds": {
                     "type": "integer",
                     "minimum": 60,
-                    "maximum": 3600
+                    "maximum": 3600,
+                    "default": 900,
+                    "description": "How long the token lasts.",
+                    "example": 900
                   }
+                }
+              },
+              "example": {
+                "userId": "user_123",
+                "expiresInSeconds": 900
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "token",
+                    "expiresAt"
+                  ],
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Send as `Authorization: Bearer <token>`.",
+                      "example": "geu_eyJwcm9qZWN0IjoicHJqXzhmM2syIn0.c2lnbmF0dXJl"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When the token stops working.",
+                      "example": "2026-11-06T09:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -170,373 +475,1979 @@
     },
     "/v1/me": {
       "get": {
+        "operationId": "getV1Me",
+        "tags": [
+          "Current user"
+        ],
         "summary": "Get the current user",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
+        "description": "Gets the token holder's name, XP and level. Safe to call from a browser.",
         "security": [
           {
             "endUserToken": []
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "Get the current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "externalId",
+                    "name",
+                    "totalXp",
+                    "level",
+                    "xpToNextLevel",
+                    "progressPercent"
+                  ],
+                  "properties": {
+                    "externalId": {
+                      "type": "string",
+                      "description": "Your ID for this user.",
+                      "example": "user_123"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Display name.",
+                      "example": "Ada Lovelace"
+                    },
+                    "totalXp": {
+                      "type": "integer",
+                      "description": "Total XP.",
+                      "example": 750
+                    },
+                    "level": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Current level. Null if the project has no levels.",
+                      "required": [
+                        "number",
+                        "name"
+                      ],
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "description": "Level number.",
+                          "example": 2
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Level name.",
+                          "example": "Explorer"
+                        }
+                      }
+                    },
+                    "xpToNextLevel": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "XP still needed. Null at the top level.",
+                      "example": 250
+                    },
+                    "progressPercent": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Percent of the way to the next level.",
+                      "example": 50
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/me/achievements": {
       "get": {
+        "operationId": "getV1MeAchievements",
+        "tags": [
+          "Current user"
+        ],
         "summary": "List the current user's achievements",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
+        "description": "Lists what the token holder has earned, newest first.",
         "security": [
           {
             "endUserToken": []
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "List the current user's achievements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "description",
+                          "iconUrl",
+                          "awardedAt"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "The achievement's key.",
+                            "example": "first_order"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "First order"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "How to earn it.",
+                            "example": "Place your first order"
+                          },
+                          "iconUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Link to a badge image.",
+                            "example": null
+                          },
+                          "awardedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When it was awarded.",
+                            "example": "2026-11-06T09:30:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/me/challenges": {
       "get": {
+        "operationId": "getV1MeChallenges",
+        "tags": [
+          "Current user"
+        ],
         "summary": "List the current user's challenges",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
+        "description": "Lists challenges the token holder has started.",
         "security": [
           {
             "endUserToken": []
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "List the current user's challenges",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "target",
+                          "progress",
+                          "completed"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "The challenge's key.",
+                            "example": "ten_orders"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Ten orders"
+                          },
+                          "target": {
+                            "type": "integer",
+                            "description": "How many events finish it.",
+                            "example": 10
+                          },
+                          "progress": {
+                            "type": "integer",
+                            "description": "Events counted so far.",
+                            "example": 4
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "description": "Whether the user finished.",
+                            "example": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/me/notifications": {
       "get": {
+        "operationId": "getV1MeNotifications",
+        "tags": [
+          "Current user"
+        ],
         "summary": "List the current user's notifications",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
+        "description": "Lists the token holder's 50 most recent notifications, newest first.",
         "security": [
           {
             "endUserToken": []
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "List the current user's notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "type",
+                          "title",
+                          "message",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "The notification's ID.",
+                            "example": "ntf_1762421400000_h6g5f"
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "What kind of notification it is.",
+                            "example": "achievement_unlocked"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Short heading.",
+                            "example": "Achievement unlocked"
+                          },
+                          "message": {
+                            "type": "string",
+                            "description": "Full text.",
+                            "example": "You earned First order"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When it was sent.",
+                            "example": "2026-11-06T09:30:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/me/rank": {
       "get": {
+        "operationId": "getV1MeRank",
+        "tags": [
+          "Current user"
+        ],
         "summary": "Get the current user's rank",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
+        "description": "Gets the token holder's all-time position. `rank` is null until they earn XP.",
         "security": [
           {
             "endUserToken": []
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "Get the current user's rank",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "rank",
+                    "totalUsers"
+                  ],
+                  "properties": {
+                    "rank": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Position, starting at 1.",
+                      "example": 4
+                    },
+                    "totalUsers": {
+                      "type": "integer",
+                      "description": "Ranked users.",
+                      "example": 240
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users": {
       "get": {
+        "operationId": "getUsers",
+        "tags": [
+          "Users"
+        ],
         "summary": "List users",
+        "description": "Lists the project's users, newest first by default.",
         "x-required-scope": "users:read",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Results per page.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Matches part of a name or external ID, ignoring case.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Order of the results.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "newest",
+                "oldest",
+                "name"
+              ],
+              "default": "newest"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "One page of users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "page",
+                    "limit",
+                    "total",
+                    "users"
+                  ],
+                  "properties": {
+                    "page": {
+                      "type": "integer",
+                      "description": "Current page.",
+                      "example": 1
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Results per page.",
+                      "example": 25
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Users matching across all pages.",
+                      "example": 240
+                    },
+                    "users": {
+                      "type": "array",
+                      "description": "The users on this page.",
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
       "post": {
+        "operationId": "postUsers",
+        "tags": [
+          "Users"
+        ],
         "summary": "Create a user",
+        "description": "Creates a user. You often don't need this, because sending an event with a new `user_id` creates the user for you.",
         "x-required-scope": "users:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "externalId"
+                ],
+                "properties": {
+                  "externalId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Your ID for this user. Unique in the project.",
+                    "example": "user_456"
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 128,
+                    "description": "Display name.",
+                    "example": "Ada Lovelace"
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "email",
+                    "description": "Email address. Send an empty string to clear it.",
+                    "example": "ada@example.com"
+                  },
+                  "avatarUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uri",
+                    "maxLength": 512,
+                    "description": "Link to a profile picture. Send an empty string to clear it.",
+                    "example": "https://example.com/ada.png"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "default": {},
+                    "description": "Anything you want to store on the user.",
+                    "example": {
+                      "plan": "pro"
+                    }
+                  }
+                }
+              },
+              "example": {
+                "externalId": "user_456",
+                "name": "Ada Lovelace",
+                "email": "ada@example.com",
+                "metadata": {
+                  "plan": "pro"
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Success"
+          "201": {
+            "description": "The new user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with something that already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/users/by-external-id/{externalId}": {
       "get": {
+        "operationId": "getUsersByExternalIdExternalId",
+        "tags": [
+          "Users"
+        ],
         "summary": "Get a user by external ID",
+        "description": "Finds a user from your own ID. Other user endpoints accept your ID too, so you only need this if you want it kept apart from Gami.Fied IDs.",
         "x-required-scope": "users:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "externalId",
             "required": true,
+            "description": "Your ID for the user.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}": {
       "get": {
+        "operationId": "getUsersUserId",
+        "tags": [
+          "Users"
+        ],
         "summary": "Get a user",
+        "description": "Gets one user.",
         "x-required-scope": "users:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       },
       "patch": {
+        "operationId": "patchUsersUserId",
+        "tags": [
+          "Users"
+        ],
         "summary": "Update a user",
+        "description": "Changes a user. Only the fields you send change. Set `active` to `true` to bring back a deactivated user.",
         "x-required-scope": "users:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 128,
+                    "description": "Display name.",
+                    "example": "Ada Lovelace"
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "email",
+                    "description": "Email address. Send an empty string to clear it.",
+                    "example": "ada@example.com"
+                  },
+                  "avatarUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uri",
+                    "maxLength": 512,
+                    "description": "Link to a profile picture. Send an empty string to clear it.",
+                    "example": "https://example.com/ada.png"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Replaces the stored metadata.",
+                    "example": {
+                      "plan": "team"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean",
+                    "description": "False deactivates the user, and true brings them back."
+                  }
+                }
+              },
+              "example": {
+                "name": "Ada King",
+                "metadata": {
+                  "plan": "team"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       },
       "delete": {
+        "operationId": "deleteUsersUserId",
+        "tags": [
+          "Users"
+        ],
         "summary": "Deactivate a user",
+        "description": "Deactivates a user and keeps their history. Events for them are refused until you set `active` back to `true`. To remove someone's data for good, use Permanently erase a user.",
         "x-required-scope": "users:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The deactivated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "user"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Always true.",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "What happened.",
+                      "example": "User account deactivated successfully"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/erase": {
       "post": {
+        "operationId": "postUsersUserIdErase",
+        "tags": [
+          "Users"
+        ],
         "summary": "Permanently erase a user",
+        "description": "Deletes a user and their personal data for good, for requests such as GDPR erasure. This can't be undone, so the body must confirm it.",
         "x-required-scope": "users:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirm"
+                ],
+                "properties": {
+                  "confirm": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ],
+                    "description": "Must be `true`.",
+                    "example": true
+                  }
+                }
+              },
+              "example": {
+                "confirm": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The user is gone.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Always true.",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "What happened.",
+                      "example": "User erased permanently"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/progress": {
       "get": {
+        "operationId": "getUsersUserIdProgress",
+        "tags": [
+          "Levels"
+        ],
         "summary": "Get a user's level progress",
+        "description": "Gets a user's level, and how far they are from the next one. Returns 404 if the project has no enabled levels.",
         "x-required-scope": "levels:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "userId",
+                    "totalXp",
+                    "level",
+                    "nextLevel",
+                    "xpIntoLevel",
+                    "xpToNextLevel",
+                    "progressPercent",
+                    "isMaxLevel"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string",
+                      "description": "The project this belongs to.",
+                      "example": "prj_8f3k2"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "description": "Gami.Fied's ID for the user.",
+                      "example": "usr_1762421400000_a1b2c3d4"
+                    },
+                    "totalXp": {
+                      "type": "integer",
+                      "description": "The user's total XP.",
+                      "example": 750
+                    },
+                    "level": {
+                      "$ref": "#/components/schemas/ProgressLevel"
+                    },
+                    "nextLevel": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "The next level. Null at the top level.",
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "description": "Level number.",
+                          "example": 2
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Level name.",
+                          "example": "Explorer"
+                        },
+                        "requiredXp": {
+                          "type": "integer",
+                          "description": "Total XP needed for this level.",
+                          "example": 500
+                        }
+                      }
+                    },
+                    "xpIntoLevel": {
+                      "type": "integer",
+                      "description": "XP earned since reaching this level.",
+                      "example": 250
+                    },
+                    "xpToNextLevel": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "XP still needed. Null at the top level.",
+                      "example": 750
+                    },
+                    "progressPercent": {
+                      "type": "integer",
+                      "description": "Percent of the way to the next level.",
+                      "example": 25
+                    },
+                    "isMaxLevel": {
+                      "type": "boolean",
+                      "description": "Whether this is the top level.",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/xp": {
       "get": {
+        "operationId": "getUsersUserIdXp",
+        "tags": [
+          "XP"
+        ],
         "summary": "Get a user's XP balance",
+        "description": "Gets a user's total XP. An ID that doesn't match any user returns `0` rather than an error.",
         "x-required-scope": "xp:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "userId",
+                    "totalXp"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string",
+                      "description": "The project this belongs to.",
+                      "example": "prj_8f3k2"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "description": "Gami.Fied's ID for the user.",
+                      "example": "usr_1762421400000_a1b2c3d4"
+                    },
+                    "totalXp": {
+                      "type": "integer",
+                      "description": "The user's total XP.",
+                      "example": 750
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/xp/ledger": {
       "get": {
+        "operationId": "getUsersUserIdXpLedger",
+        "tags": [
+          "XP"
+        ],
         "summary": "List a user's XP history",
+        "description": "Lists every change to a user's XP, newest first.",
         "x-required-scope": "xp:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Results per page.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of XP changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "userId",
+                    "page",
+                    "limit",
+                    "total",
+                    "entries",
+                    "data"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string",
+                      "description": "The project this belongs to.",
+                      "example": "prj_8f3k2"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "description": "Gami.Fied's ID for the user.",
+                      "example": "usr_1762421400000_a1b2c3d4"
+                    },
+                    "page": {
+                      "type": "integer",
+                      "description": "Current page.",
+                      "example": 1
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Results per page.",
+                      "example": 20
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Changes across all pages.",
+                      "example": 42
+                    },
+                    "entries": {
+                      "type": "array",
+                      "description": "The changes on this page.",
+                      "items": {
+                        "$ref": "#/components/schemas/LedgerEntry"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "description": "The same list as `entries`.",
+                      "items": {
+                        "$ref": "#/components/schemas/LedgerEntry"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/xp/adjust": {
       "post": {
+        "operationId": "postUsersUserIdXpAdjust",
+        "tags": [
+          "XP"
+        ],
         "summary": "Adjust a user's XP",
+        "description": "Adds or removes XP by hand, for example a support credit. Send a negative amount to remove XP. Returns 200 instead of 201 when the idempotency key was already used, and nothing changes.",
         "x-required-scope": "xp:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Retrying with the same key can't apply the change twice.",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "reason"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "integer",
+                    "minimum": -1000000,
+                    "maximum": 1000000,
+                    "description": "XP to add, or remove if negative. Can't be 0.",
+                    "example": 50
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Why. Shown in XP history.",
+                    "example": "Support credit"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Extra details to save."
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "description": "Makes a retry safe. The `Idempotency-Key` header wins if both are sent.",
+                    "example": "adjust-4821"
+                  }
+                }
+              },
+              "example": {
+                "amount": 50,
+                "reason": "Support credit",
+                "idempotencyKey": "adjust-4821"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new XP change.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/LedgerEntry"
+                    }
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "actionIndex": {
+                      "type": "integer",
+                      "description": "Position within the rule run. Always 0 here.",
+                      "example": 0
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When the entry last changed.",
+                      "example": "2026-11-06T09:30:00.000Z"
+                    },
+                    "duplicate": {
+                      "type": "boolean",
+                      "description": "True if this key was already used.",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is valid but can't be applied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/achievements": {
       "get": {
+        "operationId": "getUsersUserIdAchievements",
+        "tags": [
+          "Achievements"
+        ],
         "summary": "List a user's achievements",
+        "description": "Lists what a user has earned, newest first.",
         "x-required-scope": "achievements:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's awards.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The awards.",
+                      "items": {
+                        "$ref": "#/components/schemas/UserAchievement"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/achievements/{achievementId}": {
       "get": {
+        "operationId": "getUsersUserIdAchievementsAchievementId",
+        "tags": [
+          "Achievements"
+        ],
         "summary": "Get one of a user's achievements",
+        "description": "Gets one award. Returns 404 if the user hasn't earned it, so you can use this to check.",
         "x-required-scope": "achievements:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
@@ -545,54 +2456,274 @@
             "in": "path",
             "name": "achievementId",
             "required": true,
+            "description": "The achievement's ID, from List achievements.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The award.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAchievement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/challenges": {
       "get": {
+        "operationId": "getUsersUserIdChallenges",
+        "tags": [
+          "Challenges"
+        ],
         "summary": "List a user's challenges",
+        "description": "Lists every challenge in the project with this user's progress.",
         "x-required-scope": "challenges:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's challenges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "externalId",
+                    "name",
+                    "challenges"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "description": "Gami.Fied's ID for the user.",
+                      "example": "usr_1762421400000_a1b2c3d4"
+                    },
+                    "externalId": {
+                      "type": "string",
+                      "description": "Your ID for this user.",
+                      "example": "user_123"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Display name.",
+                      "example": "Ada Lovelace"
+                    },
+                    "challenges": {
+                      "type": "array",
+                      "description": "Every challenge, including ones not started.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "challengeId",
+                          "key",
+                          "name",
+                          "description",
+                          "iconUrl",
+                          "enabled",
+                          "trigger",
+                          "target",
+                          "progress",
+                          "completed",
+                          "completedAt",
+                          "percent"
+                        ],
+                        "properties": {
+                          "challengeId": {
+                            "type": "string",
+                            "description": "The challenge's ID.",
+                            "example": "chl_1762421400000_p0o9i"
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "The challenge's key.",
+                            "example": "ten_orders"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Ten orders"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "What users need to do.",
+                            "example": "Place ten orders"
+                          },
+                          "iconUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Link to an icon.",
+                            "example": null
+                          },
+                          "enabled": {
+                            "type": "boolean",
+                            "description": "Whether it is running.",
+                            "example": true
+                          },
+                          "trigger": {
+                            "type": "string",
+                            "description": "The event type that counts.",
+                            "example": "order_completed"
+                          },
+                          "target": {
+                            "type": "integer",
+                            "description": "How many events finish it.",
+                            "example": 10
+                          },
+                          "progress": {
+                            "type": "integer",
+                            "description": "Events counted so far.",
+                            "example": 4
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "description": "Whether the user finished.",
+                            "example": false
+                          },
+                          "completedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "When the user finished.",
+                            "example": null
+                          },
+                          "percent": {
+                            "type": "integer",
+                            "description": "Percent complete, from 0 to 100.",
+                            "example": 40
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/users/{userId}/challenges/{challengeId}": {
       "get": {
+        "operationId": "getUsersUserIdChallengesChallengeId",
+        "tags": [
+          "Challenges"
+        ],
         "summary": "Get a user's progress on a challenge",
+        "description": "Gets a user's progress on one challenge.",
         "x-required-scope": "challenges:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
@@ -601,253 +2732,1543 @@
             "in": "path",
             "name": "challengeId",
             "required": true,
+            "description": "The challenge's ID, from List challenges.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "challengeId",
+                    "key",
+                    "name",
+                    "description",
+                    "target",
+                    "progress",
+                    "completed",
+                    "completedAt",
+                    "percent"
+                  ],
+                  "properties": {
+                    "challengeId": {
+                      "type": "string",
+                      "description": "The challenge's ID.",
+                      "example": "chl_1762421400000_p0o9i"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The challenge's key.",
+                      "example": "ten_orders"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Display name.",
+                      "example": "Ten orders"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "What users need to do.",
+                      "example": "Place ten orders"
+                    },
+                    "target": {
+                      "type": "integer",
+                      "description": "How many events finish it.",
+                      "example": 10
+                    },
+                    "progress": {
+                      "type": "integer",
+                      "description": "Events counted so far.",
+                      "example": 4
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "description": "Whether the user finished.",
+                      "example": false
+                    },
+                    "completedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "When the user finished.",
+                      "example": null
+                    },
+                    "percent": {
+                      "type": "integer",
+                      "description": "Percent complete, from 0 to 100.",
+                      "example": 40
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/xp/summary": {
       "get": {
+        "operationId": "getXpSummary",
+        "tags": [
+          "XP"
+        ],
         "summary": "Get project XP totals",
+        "description": "Gets XP totals for the whole project, and the top five users.",
         "x-required-scope": "xp:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The totals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "totalXpAwarded",
+                    "totalTransactions",
+                    "totalUsersWithXp",
+                    "topUsers"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string",
+                      "description": "The project this belongs to.",
+                      "example": "prj_8f3k2"
+                    },
+                    "totalXpAwarded": {
+                      "type": "integer",
+                      "description": "XP currently held by all users.",
+                      "example": 125000
+                    },
+                    "totalTransactions": {
+                      "type": "integer",
+                      "description": "Number of XP changes.",
+                      "example": 3400
+                    },
+                    "totalUsersWithXp": {
+                      "type": "integer",
+                      "description": "Users with an XP balance.",
+                      "example": 240
+                    },
+                    "topUsers": {
+                      "type": "array",
+                      "description": "The five highest balances.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "userId",
+                          "externalId",
+                          "totalXp"
+                        ],
+                        "properties": {
+                          "userId": {
+                            "type": "string",
+                            "description": "Gami.Fied's ID for the user.",
+                            "example": "usr_1762421400000_a1b2c3d4"
+                          },
+                          "externalId": {
+                            "type": "string",
+                            "description": "Your ID for this user.",
+                            "example": "user_123"
+                          },
+                          "totalXp": {
+                            "type": "integer",
+                            "description": "The user's total XP.",
+                            "example": 1200
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/levels": {
       "get": {
+        "operationId": "getLevels",
+        "tags": [
+          "Levels"
+        ],
         "summary": "List levels",
+        "description": "Lists all levels in order, including disabled ones. The response is a plain array.",
         "x-required-scope": "levels:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The levels.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Level"
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
       "post": {
+        "operationId": "postLevels",
+        "tags": [
+          "Levels"
+        ],
         "summary": "Create a level",
+        "description": "Adds a level. Higher levels must need more XP than lower ones.",
         "x-required-scope": "levels:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "level",
+                  "name",
+                  "requiredXp"
+                ],
+                "properties": {
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Level number. Unique in the project.",
+                    "example": 3
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Level name.",
+                    "example": "Veteran"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "What the level means."
+                  },
+                  "iconUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Link to an icon."
+                  },
+                  "requiredXp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Total XP needed. Unique in the project, and higher levels must need more.",
+                    "example": 2000
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the level counts towards progress."
+                  }
+                }
+              },
+              "example": {
+                "level": 3,
+                "name": "Veteran",
+                "requiredXp": 2000
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Success"
+          "201": {
+            "description": "The new level.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Level"
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with something that already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/levels/{levelId}": {
       "get": {
+        "operationId": "getLevelsLevelId",
+        "tags": [
+          "Levels"
+        ],
         "summary": "Get a level",
+        "description": "Gets one level.",
         "x-required-scope": "levels:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "levelId",
             "required": true,
+            "description": "The level's ID, from List levels.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The level.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Level"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       },
       "patch": {
+        "operationId": "patchLevelsLevelId",
+        "tags": [
+          "Levels"
+        ],
         "summary": "Update a level",
+        "description": "Changes a level. Only the fields you send change, and the levels must still make sense together.",
         "x-required-scope": "levels:write",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "levelId",
             "required": true,
+            "description": "The level's ID, from List levels.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Level number. Unique in the project.",
+                    "example": 3
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Level name.",
+                    "example": "Veteran"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "description": "What the level means."
+                  },
+                  "iconUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Link to an icon."
+                  },
+                  "requiredXp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Total XP needed. Unique in the project, and higher levels must need more.",
+                    "example": 2000
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the level counts towards progress."
+                  }
+                }
+              },
+              "example": {
+                "name": "Pathfinder"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated level.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Level"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with something that already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/progression/summary": {
       "get": {
+        "operationId": "getProgressionSummary",
+        "tags": [
+          "Levels"
+        ],
         "summary": "Get level distribution",
+        "description": "Shows how many users are on each enabled level.",
         "x-required-scope": "levels:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The distribution.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "configuredLevelCount",
+                    "maxConfiguredLevel",
+                    "totalProjectXp",
+                    "usersWithXp",
+                    "usersAtMaxLevel",
+                    "distribution"
+                  ],
+                  "properties": {
+                    "configuredLevelCount": {
+                      "type": "integer",
+                      "description": "Enabled levels.",
+                      "example": 5
+                    },
+                    "maxConfiguredLevel": {
+                      "type": "integer",
+                      "description": "Highest enabled level number.",
+                      "example": 5
+                    },
+                    "totalProjectXp": {
+                      "type": "integer",
+                      "description": "XP held by all users.",
+                      "example": 125000
+                    },
+                    "usersWithXp": {
+                      "type": "integer",
+                      "description": "Users with more than 0 XP.",
+                      "example": 240
+                    },
+                    "usersAtMaxLevel": {
+                      "type": "integer",
+                      "description": "Users on the top level.",
+                      "example": 12
+                    },
+                    "distribution": {
+                      "type": "array",
+                      "description": "One row per enabled level.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "level",
+                          "name",
+                          "userCount"
+                        ],
+                        "properties": {
+                          "level": {
+                            "type": "integer",
+                            "description": "Level number.",
+                            "example": 1
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Level name.",
+                            "example": "Beginner"
+                          },
+                          "userCount": {
+                            "type": "integer",
+                            "description": "Users on this level.",
+                            "example": 80
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/leaderboard": {
       "get": {
+        "operationId": "getLeaderboard",
+        "tags": [
+          "Leaderboard"
+        ],
         "summary": "Get the leaderboard",
+        "description": "Gets the ranking for a period. Only users who earned XP in that period appear.",
         "x-required-scope": "leaderboard:read",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "Time period to rank. Periods use UTC.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all_time",
+                "daily",
+                "weekly",
+                "monthly"
+              ],
+              "default": "all_time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Results per page.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Matches part of a name or external ID, ignoring case. Ranks stay the same.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "One page of the ranking.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "period",
+                    "page",
+                    "limit",
+                    "total",
+                    "entries"
+                  ],
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "enum": [
+                        "all_time",
+                        "daily",
+                        "weekly",
+                        "monthly"
+                      ],
+                      "default": "all_time",
+                      "description": "The period used.",
+                      "example": "all_time"
+                    },
+                    "page": {
+                      "type": "integer",
+                      "description": "Current page.",
+                      "example": 1
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Results per page.",
+                      "example": 20
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Ranked users across all pages.",
+                      "example": 240
+                    },
+                    "entries": {
+                      "type": "array",
+                      "description": "The users on this page.",
+                      "items": {
+                        "$ref": "#/components/schemas/LeaderboardEntry"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/leaderboard/{userId}": {
       "get": {
+        "operationId": "getLeaderboardUserId",
+        "tags": [
+          "Leaderboard"
+        ],
         "summary": "Get a user's rank",
+        "description": "Gets one user's position. Returns 404 if they haven't earned XP in the period.",
         "x-required-scope": "leaderboard:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "userId",
             "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "description": "Time period to rank. Periods use UTC.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all_time",
+                "daily",
+                "weekly",
+                "monthly"
+              ],
+              "default": "all_time"
+            }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "period",
+                    "rank",
+                    "totalUsers",
+                    "entry"
+                  ],
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "enum": [
+                        "all_time",
+                        "daily",
+                        "weekly",
+                        "monthly"
+                      ],
+                      "default": "all_time",
+                      "description": "The period used.",
+                      "example": "all_time"
+                    },
+                    "rank": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Position, starting at 1.",
+                      "example": 4
+                    },
+                    "totalUsers": {
+                      "type": "integer",
+                      "description": "Ranked users in the period.",
+                      "example": 240
+                    },
+                    "entry": {
+                      "$ref": "#/components/schemas/LeaderboardEntry"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/achievements": {
       "get": {
+        "operationId": "getAchievements",
+        "tags": [
+          "Achievements"
+        ],
         "summary": "List achievements",
+        "description": "Lists all achievements in the project, newest first.",
         "x-required-scope": "achievements:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The achievements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The achievements.",
+                      "items": {
+                        "$ref": "#/components/schemas/Achievement"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/achievements/summary": {
       "get": {
+        "operationId": "getAchievementsSummary",
+        "tags": [
+          "Achievements"
+        ],
         "summary": "Get achievement totals",
+        "description": "Gets achievement totals for the project, and the five most awarded.",
         "x-required-scope": "achievements:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The totals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "projectId",
+                    "totalAchievements",
+                    "enabledAchievements",
+                    "totalAwards",
+                    "uniqueUsersWithAchievements",
+                    "mostAwardedAchievements"
+                  ],
+                  "properties": {
+                    "projectId": {
+                      "type": "string",
+                      "description": "The project this belongs to.",
+                      "example": "prj_8f3k2"
+                    },
+                    "totalAchievements": {
+                      "type": "integer",
+                      "description": "All achievements.",
+                      "example": 12
+                    },
+                    "enabledAchievements": {
+                      "type": "integer",
+                      "description": "Achievements that can be awarded.",
+                      "example": 10
+                    },
+                    "totalAwards": {
+                      "type": "integer",
+                      "description": "Awards given.",
+                      "example": 860
+                    },
+                    "uniqueUsersWithAchievements": {
+                      "type": "integer",
+                      "description": "Users with at least one award.",
+                      "example": 190
+                    },
+                    "mostAwardedAchievements": {
+                      "type": "array",
+                      "description": "The five most awarded.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "achievementId",
+                          "key",
+                          "name",
+                          "awardCount"
+                        ],
+                        "properties": {
+                          "achievementId": {
+                            "type": "string",
+                            "description": "The achievement's ID.",
+                            "example": "ach_1762421400000_q1w2e"
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "The achievement's key.",
+                            "example": "first_order"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "First order"
+                          },
+                          "awardCount": {
+                            "type": "integer",
+                            "description": "Times awarded.",
+                            "example": 150
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/achievements/{achievementId}": {
       "get": {
+        "operationId": "getAchievementsAchievementId",
+        "tags": [
+          "Achievements"
+        ],
         "summary": "Get an achievement",
+        "description": "Gets one achievement.",
         "x-required-scope": "achievements:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "achievementId",
             "required": true,
+            "description": "The achievement's ID, from List achievements.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The achievement.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Achievement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/challenges": {
       "get": {
+        "operationId": "getChallenges",
+        "tags": [
+          "Challenges"
+        ],
         "summary": "List challenges",
+        "description": "Lists all challenges, oldest first. The response is a plain array.",
         "x-required-scope": "challenges:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The challenges.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Challenge"
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/challenges/summary": {
       "get": {
+        "operationId": "getChallengesSummary",
+        "tags": [
+          "Challenges"
+        ],
         "summary": "Get challenge totals",
+        "description": "Gets challenge totals for the project, and the five most completed.",
         "x-required-scope": "challenges:read",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "The totals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "totalChallenges",
+                    "enabledChallenges",
+                    "activeChallenges",
+                    "totalCompletedInstances",
+                    "uniqueParticipatingUsers",
+                    "completionRate",
+                    "mostCompletedChallenges"
+                  ],
+                  "properties": {
+                    "totalChallenges": {
+                      "type": "integer",
+                      "description": "All challenges.",
+                      "example": 6
+                    },
+                    "enabledChallenges": {
+                      "type": "integer",
+                      "description": "Challenges that are switched on.",
+                      "example": 5
+                    },
+                    "activeChallenges": {
+                      "type": "integer",
+                      "description": "Enabled challenges running right now.",
+                      "example": 4
+                    },
+                    "totalCompletedInstances": {
+                      "type": "integer",
+                      "description": "Times users finished a challenge.",
+                      "example": 310
+                    },
+                    "uniqueParticipatingUsers": {
+                      "type": "integer",
+                      "description": "Users with any progress.",
+                      "example": 150
+                    },
+                    "completionRate": {
+                      "type": "integer",
+                      "description": "Percent of started challenges that were finished.",
+                      "example": 42
+                    },
+                    "mostCompletedChallenges": {
+                      "type": "array",
+                      "description": "The five most completed.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "key",
+                          "name",
+                          "completedCount"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "The challenge's ID.",
+                            "example": "chl_1762421400000_p0o9i"
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "The challenge's key.",
+                            "example": "ten_orders"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Ten orders"
+                          },
+                          "completedCount": {
+                            "type": "integer",
+                            "description": "Times finished.",
+                            "example": 90
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
     "/v1/challenges/{challengeId}": {
       "get": {
+        "operationId": "getChallengesChallengeId",
+        "tags": [
+          "Challenges"
+        ],
         "summary": "Get a challenge",
+        "description": "Gets one challenge.",
         "x-required-scope": "challenges:read",
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
         "parameters": [
           {
             "in": "path",
             "name": "challengeId",
             "required": true,
+            "description": "The challenge's ID, from List challenges.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "The challenge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Challenge"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -856,36 +4277,783 @@
       "apiKey": {
         "type": "apiKey",
         "in": "header",
-        "name": "x-api-key"
+        "name": "x-api-key",
+        "description": "A project API key, starting `gami_live_`. Keep it on your server."
       },
       "endUserToken": {
         "type": "http",
-        "scheme": "bearer"
+        "scheme": "bearer",
+        "description": "A short-lived token from `POST /v1/end-user-tokens`. Safe to use in a browser."
       }
     },
-    "responses": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "externalId",
+          "name",
+          "email",
+          "avatarUrl",
+          "metadata",
+          "active",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the user.",
+            "example": "usr_1762421400000_a1b2c3d4"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Your ID for this user. Unique in the project.",
+            "example": "user_123"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display name.",
+            "example": "Ada Lovelace"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address.",
+            "example": "ada@example.com"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to a profile picture.",
+            "example": "https://example.com/ada.png"
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Anything you stored on the user.",
+            "additionalProperties": true,
+            "example": {
+              "plan": "pro"
+            }
+          },
+          "active": {
+            "type": "boolean",
+            "description": "False once the user is deactivated. Their events are then refused.",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user was created.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user last changed.",
+            "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "Level": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "level",
+          "name",
+          "description",
+          "iconUrl",
+          "enabled",
+          "requiredXp",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the level.",
+            "example": "lvl_1762421400000_x7y8z"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "level": {
+            "type": "integer",
+            "description": "Level number. Unique in the project.",
+            "example": 2
+          },
+          "name": {
+            "type": "string",
+            "description": "Level name.",
+            "example": "Explorer"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the level means.",
+            "example": "Finished the basics"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to an icon.",
+            "example": null
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the level counts towards progress.",
+            "example": true
+          },
+          "requiredXp": {
+            "type": "integer",
+            "description": "Total XP needed to reach this level. Unique in the project.",
+            "example": 500
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the level was created.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the level last changed.",
+            "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "Achievement": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "key",
+          "name",
+          "description",
+          "iconUrl",
+          "enabled",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the achievement.",
+            "example": "ach_1762421400000_q1w2e"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "key": {
+            "type": "string",
+            "description": "Short name that rules use to award it. Unique in the project.",
+            "example": "first_order"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "First order"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How to earn it.",
+            "example": "Place your first order"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to a badge image.",
+            "example": null
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it can still be awarded.",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was created.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it last changed.",
+            "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "UserAchievement": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "userId",
+          "achievementId",
+          "eventId",
+          "ruleExecutionId",
+          "metadata",
+          "awardedAt",
+          "achievementKey",
+          "achievementName",
+          "achievementDescription",
+          "iconUrl"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of this award.",
+            "example": "uach_1762421400000_r4t5y"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the user.",
+            "example": "usr_1762421400000_a1b2c3d4"
+          },
+          "achievementId": {
+            "type": "string",
+            "description": "The achievement that was awarded.",
+            "example": "ach_1762421400000_q1w2e"
+          },
+          "eventId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The event that led to the award, if any.",
+            "example": "evt_1762421400000_u7i8o"
+          },
+          "ruleExecutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rule run that gave the award, if any.",
+            "example": null
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Extra details saved with the award.",
+            "additionalProperties": true,
+            "example": {
+              "plan": "pro"
+            }
+          },
+          "awardedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was awarded.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "achievementKey": {
+            "type": "string",
+            "description": "The achievement's key.",
+            "example": "first_order"
+          },
+          "achievementName": {
+            "type": "string",
+            "description": "The achievement's display name.",
+            "example": "First order"
+          },
+          "achievementDescription": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How to earn it.",
+            "example": "Place your first order"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to a badge image.",
+            "example": null
+          }
+        }
+      },
+      "ChallengeReward": {
+        "type": "object",
+        "description": "Either `{ \"type\": \"xp\", \"amount\": 100 }` or `{ \"type\": \"achievement\", \"achievementKey\": \"first_order\" }`.",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "xp",
+              "achievement"
+            ],
+            "example": "xp"
+          },
+          "amount": {
+            "type": "integer",
+            "description": "XP to award, when `type` is `xp`.",
+            "example": 100
+          },
+          "achievementKey": {
+            "type": "string",
+            "description": "Achievement to award, when `type` is `achievement`.",
+            "example": "first_order"
+          }
+        }
+      },
+      "Challenge": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "key",
+          "name",
+          "description",
+          "iconUrl",
+          "enabled",
+          "trigger",
+          "type",
+          "target",
+          "startAt",
+          "endAt",
+          "rewards",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the challenge.",
+            "example": "chl_1762421400000_p0o9i"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "key": {
+            "type": "string",
+            "description": "Short name for the challenge. Unique in the project.",
+            "example": "ten_orders"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Ten orders"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What users need to do.",
+            "example": "Place ten orders"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to an icon.",
+            "example": null
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is running.",
+            "example": true
+          },
+          "trigger": {
+            "type": "string",
+            "description": "The event type that counts towards it.",
+            "example": "order_completed"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "counter"
+            ],
+            "description": "How progress is measured.",
+            "example": "counter"
+          },
+          "target": {
+            "type": "integer",
+            "description": "How many events finish it.",
+            "example": 10
+          },
+          "startAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it starts. Null means it has already started.",
+            "example": null
+          },
+          "endAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it ends. Null means it never ends.",
+            "example": null
+          },
+          "rewards": {
+            "type": "array",
+            "description": "What users get for finishing.",
+            "items": {
+              "$ref": "#/components/schemas/ChallengeReward"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was created.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it last changed.",
+            "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "LedgerEntry": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "userId",
+          "eventId",
+          "ruleId",
+          "ruleExecutionId",
+          "idempotencyKey",
+          "amount",
+          "reason",
+          "metadata",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of this XP change.",
+            "example": "xp_1762421400000_l2k3j"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the user.",
+            "example": "usr_1762421400000_a1b2c3d4"
+          },
+          "eventId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The event that caused it, if any.",
+            "example": null
+          },
+          "ruleId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rule that caused it, if any.",
+            "example": null
+          },
+          "ruleExecutionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rule run that caused it, if any.",
+            "example": null
+          },
+          "idempotencyKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The key sent to prevent duplicates, if any.",
+            "example": "adjust-4821"
+          },
+          "amount": {
+            "type": "integer",
+            "description": "XP added, or removed if negative.",
+            "example": 50
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the XP changed.",
+            "example": "manual_adjustment: Support credit"
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Extra details saved with the change.",
+            "additionalProperties": true,
+            "example": {
+              "plan": "pro"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened.",
+            "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "required": [
+          "rank",
+          "userId",
+          "externalId",
+          "name",
+          "avatarUrl",
+          "xp"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "description": "Position, starting at 1.",
+            "example": 1
+          },
+          "userId": {
+            "type": "string",
+            "description": "Gami.Fied's ID for the user.",
+            "example": "usr_1762421400000_a1b2c3d4"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Your ID for this user.",
+            "example": "user_123"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display name.",
+            "example": "Ada Lovelace"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to a profile picture.",
+            "example": null
+          },
+          "xp": {
+            "type": "integer",
+            "description": "XP earned in this period.",
+            "example": 1200
+          },
+          "level": {
+            "type": "integer",
+            "description": "Current level number. Only present if the project has levels.",
+            "example": 3
+          },
+          "levelName": {
+            "type": "string",
+            "description": "Current level name. Only present if the project has levels.",
+            "example": "Explorer"
+          }
+        }
+      },
+      "ProgressLevel": {
+        "type": "object",
+        "required": [
+          "number",
+          "name",
+          "requiredXp"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "description": "Level number.",
+            "example": 2
+          },
+          "name": {
+            "type": "string",
+            "description": "Level name.",
+            "example": "Explorer"
+          },
+          "requiredXp": {
+            "type": "integer",
+            "description": "Total XP needed for this level.",
+            "example": 500
+          }
+        }
+      },
+      "EventInput": {
+        "type": "object",
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "What happened. Rules match this exactly.",
+            "example": "order_completed"
+          },
+          "user_id": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Your ID for the user. A new user is created the first time an ID is seen. Leave it out for events with no user.",
+            "example": "user_123"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {},
+            "description": "Details of the event, up to 64 KB. Rule conditions can read these.",
+            "example": {
+              "amount": 149.99
+            }
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened, as an ISO 8601 UTC time. Defaults to now.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Makes a retry safe. See Avoiding duplicates. The `Idempotency-Key` header wins if both are sent.",
+            "example": "order-4821"
+          }
+        }
+      },
+      "EventRewards": {
+        "type": "object",
+        "required": [
+          "evaluated",
+          "xpAwarded",
+          "achievements",
+          "totalXp",
+          "level"
+        ],
+        "properties": {
+          "evaluated": {
+            "type": "boolean",
+            "description": "False if the rules were still running after 5 seconds. Rewards still arrive later.",
+            "example": true
+          },
+          "xpAwarded": {
+            "type": "integer",
+            "description": "XP this event gave.",
+            "example": 50
+          },
+          "achievements": {
+            "type": "array",
+            "description": "Keys of achievements this event awarded.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "first_order"
+            ]
+          },
+          "totalXp": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The user's new total. Null if the event has no user.",
+            "example": 1250
+          },
+          "level": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The user's level number. Null if the event has no user or the project has no levels.",
+            "example": 3
+          }
+        }
+      },
       "Error": {
-        "description": "Error",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "requestId": {
-                      "type": "string"
-                    },
-                    "details": {}
-                  }
-                }
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Stable code to check in your own code.",
+                "example": "BAD_REQUEST"
+              },
+              "message": {
+                "type": "string",
+                "description": "Explanation for developers.",
+                "example": "Invalid event request schema"
+              },
+              "requestId": {
+                "type": "string",
+                "description": "Quote this when asking for help.",
+                "example": "req_7d1c9"
+              },
+              "details": {
+                "description": "Which fields failed, when the request was invalid."
               }
             }
           }

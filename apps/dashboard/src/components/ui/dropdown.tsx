@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, ReactNode, useId } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -16,6 +15,8 @@ export interface DropdownOption {
 }
 
 export interface DropdownProps {
+  /** Use `right` near the right edge, so the menu stays on screen. */
+  align?: 'left' | 'right';
   options: DropdownOption[];
   value: string | null;
   onChange: (value: string) => void;
@@ -32,7 +33,6 @@ export interface DropdownProps {
 const variantStyles: Record<
   DropdownVariant,
   {
-    focusRing: string;
     arrowActive: string;
     selectedOption: string;
     checkIcon: string;
@@ -40,28 +40,24 @@ const variantStyles: Record<
   }
 > = {
   orange: {
-    focusRing: 'focus:ring-brand-500',
     arrowActive: 'text-brand-400',
     selectedOption: 'bg-brand-500/15 text-brand-400 font-semibold',
     checkIcon: 'text-brand-400',
     actionButton: 'text-brand-400 hover:bg-brand-950/40',
   },
   emerald: {
-    focusRing: 'focus:ring-success-500',
     arrowActive: 'text-success-400',
     selectedOption: 'bg-success-500/15 text-success-400 font-semibold',
     checkIcon: 'text-success-400',
     actionButton: 'text-success-400 hover:bg-success-950/40',
   },
   cyan: {
-    focusRing: 'focus:ring-info-500',
     arrowActive: 'text-info-400',
     selectedOption: 'bg-info-500/15 text-info-400 font-semibold',
     checkIcon: 'text-info-400',
     actionButton: 'text-info-400 hover:bg-info-950/40',
   },
   rose: {
-    focusRing: 'focus:ring-danger-500',
     arrowActive: 'text-danger-400',
     selectedOption: 'bg-danger-500/15 text-danger-400 font-semibold',
     checkIcon: 'text-danger-400',
@@ -81,11 +77,13 @@ export function Dropdown({
   disabled = false,
   theme,
   variant,
+  align = 'left',
 }: DropdownProps) {
   const activeVariant: DropdownVariant = theme || variant || 'orange';
   const styles = variantStyles[activeVariant] || variantStyles.orange;
 
   const [isOpen, setIsOpen] = useState(false);
+  const labelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((o) => o.value === value);
@@ -105,9 +103,14 @@ export function Dropdown({
       className={twMerge(clsx('relative inline-block w-full text-left', className))}
       ref={containerRef}
     >
-      {label && <label className="block text-xs font-medium text-zinc-300 mb-1.5">{label}</label>}
+      {label && (
+        <span id={labelId} className="block text-xs font-medium text-zinc-300 mb-1.5">
+          {label}
+        </span>
+      )}
 
       <button
+        aria-labelledby={label ? labelId : undefined}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
@@ -125,8 +128,7 @@ export function Dropdown({
         aria-expanded={isOpen}
         aria-label={label ?? placeholder}
         className={clsx(
-          'w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 text-xs font-medium rounded-none px-3 py-2 transition focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed select-none',
-          styles.focusRing
+          'w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 text-xs font-medium rounded-none px-3 py-2 transition-colors aria-expanded:border-brand-500 disabled:opacity-50 disabled:cursor-not-allowed select-none'
         )}
       >
         <span className="truncate flex items-center gap-2">
@@ -144,15 +146,9 @@ export function Dropdown({
         />
       </button>
 
-      <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 4, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 left-0 z-50 mt-1 min-w-[200px] bg-zinc-900 border border-zinc-800 rounded-none shadow-xl overflow-hidden py-1 max-h-60 overflow-y-auto"
-          >
+          <div
+            className={`animate-pop absolute z-50 mt-1 min-w-[200px] ${align === 'right' ? 'right-0' : 'right-0 left-0'} bg-zinc-900 border border-zinc-800 rounded-none shadow-xl overflow-hidden py-1 max-h-60 overflow-y-auto`}>
             <div className="space-y-0.5 px-1">
               {options.map((opt) => {
                 const isSelected = opt.value === value;
@@ -211,9 +207,8 @@ export function Dropdown({
                 </button>
               </div>
             )}
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -66,6 +66,9 @@
 
 @layer base {
   :root {
+    --motion-exit: 120ms;
+    --motion-fast: 150ms;
+    --motion-medium: 250ms;
     --color-bg: #09090b;
     --color-card: #18181b;
     --color-border: #27272a;
@@ -120,15 +123,73 @@
     }
   }
 
-  .animate-count {
-    animation: count-up 0.4s ease-out forwards;
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98) translateY(-4px);
+    }
+  }
+
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Enter once, on arrival. Everything here moves only transform and opacity. */
+  .animate-page-in {
+    animation: fade-in var(--motion-fast) ease-out;
+  }
+  .animate-rise {
+    animation: count-up var(--motion-medium) ease-out backwards;
+  }
+  .animate-fade-in {
+    animation: fade-in var(--motion-fast) ease-out;
+  }
+  .animate-fade-out {
+    animation: fade-out var(--motion-exit) ease-in forwards;
+  }
+  .animate-pop {
+    animation: pop-in var(--motion-fast) ease-out;
+  }
+  .animate-pop-out {
+    animation: pop-out var(--motion-exit) ease-in forwards;
   }
 }
 
-/* Visible keyboard focus everywhere */
+/*
+ * Focus has one look per kind of control, set here so pages can't drift apart.
+ * Text fields change their border. Everything else gets an outline for keyboard users.
+ *
+ * The outline colour is set on every element, not only when focused. `transition-colors` also
+ * animates outlines, and starting from the default text colour makes them flash white.
+ */
+* {
+  outline-color: var(--color-brand-500);
+}
+
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
+}
+
+input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-style: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -142,8 +203,127 @@
   }
 }
 
-/* The app is built on the zinc scale, so reversing it gives the light theme. */
+/* Keeps the scroll, without a bar across narrow rows of tabs. */
+.page-toolbar {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.page-toolbar::-webkit-scrollbar {
+  display: none;
+}
+.page-toolbar > * {
+  flex-shrink: 0;
+}
+.page-toolbar button,
+.page-actions button,
+.page-actions a {
+  white-space: nowrap;
+}
+
+@media (width < 40rem) {
+  /* Titles and the main action share a row, so the rest give up their labels but keep their names. */
+  .page-actions > :not(:first-child) {
+    gap: 0;
+    font-size: 0;
+  }
+
+  /* Comfortable to tap. */
+  .page-actions button,
+  .page-actions a {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+  }
+
+  /* iPhones zoom the whole page when a field's text is under 16px. */
+  input:not([type='checkbox'], [type='radio']),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+
+/* The app is built on dark-first scales, so reversing them gives the light theme. */
 html.light {
+  --light-brand-50: oklch(98% 0.016 73.684);
+  --light-brand-100: oklch(95.4% 0.038 75.164);
+  --light-brand-200: oklch(90.1% 0.076 70.697);
+  --light-brand-300: oklch(83.7% 0.128 66.29);
+  --light-brand-700: oklch(55.3% 0.195 38.402);
+  --light-brand-800: oklch(47% 0.157 37.304);
+  --light-brand-900: oklch(40.8% 0.123 38.172);
+  --light-brand-950: oklch(26.6% 0.079 36.259);
+  --light-success-50: oklch(97.9% 0.021 166.113);
+  --light-success-100: oklch(95% 0.052 163.051);
+  --light-success-200: oklch(90.5% 0.093 164.15);
+  --light-success-300: oklch(84.5% 0.143 164.978);
+  --light-success-700: oklch(50.8% 0.118 165.612);
+  --light-success-800: oklch(43.2% 0.095 166.913);
+  --light-success-900: oklch(37.8% 0.077 168.94);
+  --light-success-950: oklch(26.2% 0.051 172.552);
+  --light-danger-50: oklch(96.9% 0.015 12.422);
+  --light-danger-100: oklch(94.1% 0.03 12.58);
+  --light-danger-200: oklch(89.2% 0.058 10.001);
+  --light-danger-300: oklch(81% 0.117 11.638);
+  --light-danger-700: oklch(51.4% 0.222 16.935);
+  --light-danger-800: oklch(45.5% 0.188 13.697);
+  --light-danger-900: oklch(41% 0.159 10.272);
+  --light-danger-950: oklch(27.1% 0.105 12.094);
+  --light-warning-50: oklch(98.7% 0.022 95.277);
+  --light-warning-100: oklch(96.2% 0.059 95.617);
+  --light-warning-200: oklch(92.4% 0.12 95.746);
+  --light-warning-300: oklch(87.9% 0.169 91.605);
+  --light-warning-700: oklch(55.5% 0.163 48.998);
+  --light-warning-800: oklch(47.3% 0.137 46.201);
+  --light-warning-900: oklch(41.4% 0.112 45.904);
+  --light-warning-950: oklch(27.9% 0.077 45.635);
+  --light-info-50: oklch(98.4% 0.019 200.873);
+  --light-info-100: oklch(95.6% 0.045 203.388);
+  --light-info-200: oklch(91.7% 0.08 205.041);
+  --light-info-300: oklch(86.5% 0.127 207.078);
+  --light-info-700: oklch(52% 0.105 223.128);
+  --light-info-800: oklch(45% 0.085 224.283);
+  --light-info-900: oklch(39.8% 0.07 227.392);
+  --light-info-950: oklch(30.2% 0.056 229.695);
+  --color-brand-100: var(--light-brand-950);
+  --color-brand-200: var(--light-brand-900);
+  --color-brand-300: var(--light-brand-800);
+  --color-brand-400: var(--light-brand-700);
+  --color-brand-700: var(--light-brand-300);
+  --color-brand-800: var(--light-brand-200);
+  --color-brand-900: var(--light-brand-100);
+  --color-brand-950: var(--light-brand-50);
+  --color-success-100: var(--light-success-950);
+  --color-success-200: var(--light-success-900);
+  --color-success-300: var(--light-success-800);
+  --color-success-400: var(--light-success-700);
+  --color-success-700: var(--light-success-300);
+  --color-success-800: var(--light-success-200);
+  --color-success-900: var(--light-success-100);
+  --color-success-950: var(--light-success-50);
+  --color-danger-100: var(--light-danger-950);
+  --color-danger-200: var(--light-danger-900);
+  --color-danger-300: var(--light-danger-800);
+  --color-danger-400: var(--light-danger-700);
+  --color-danger-700: var(--light-danger-300);
+  --color-danger-800: var(--light-danger-200);
+  --color-danger-900: var(--light-danger-100);
+  --color-danger-950: var(--light-danger-50);
+  --color-warning-100: var(--light-warning-950);
+  --color-warning-200: var(--light-warning-900);
+  --color-warning-300: var(--light-warning-800);
+  --color-warning-400: var(--light-warning-700);
+  --color-warning-700: var(--light-warning-300);
+  --color-warning-800: var(--light-warning-200);
+  --color-warning-900: var(--light-warning-100);
+  --color-warning-950: var(--light-warning-50);
+  --color-info-100: var(--light-info-950);
+  --color-info-200: var(--light-info-900);
+  --color-info-300: var(--light-info-800);
+  --color-info-400: var(--light-info-700);
+  --color-info-700: var(--light-info-300);
+  --color-info-800: var(--light-info-200);
+  --color-info-900: var(--light-info-100);
+  --color-info-950: var(--light-info-50);
   --color-bg: #ffffff;
   --color-card: #fafafa;
   --color-border: #e4e4e7;

@@ -92,11 +92,6 @@ export type {
   IntegrationDeliveryRecord,
   ListIntegrationDeliveriesParams,
   ListIntegrationDeliveriesResponse,
-  OrganizationRecord,
-  OrganizationMemberRecord,
-  InviteMemberParams,
-  OrganizationInvitationRecord,
-  ProjectMemberRecord,
   AnalyticsDateRangePreset,
   AnalyticsQueryOptions,
   AnalyticsOverviewResponse,
@@ -108,5 +103,6 @@ export type {
 } from './types.js';
 export { AnalyticsResource } from './analytics.js';
 export { IntegrationsResource } from './integrations.js';
-export { OrganizationsResource } from './organizations.js';
+export { EndUserTokensResource } from './end-user-tokens.js';
+export type { CreateEndUserTokenParams, EndUserTokenResponse } from './end-user-tokens.js';
 

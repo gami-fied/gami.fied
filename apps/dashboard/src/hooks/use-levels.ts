@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface LevelRecord {
   id: string;
@@ -48,15 +49,15 @@ export interface UserProgress {
 }
 
 export function useLevels(projectId: string | null) {
-  const [levels, setLevels] = useState<LevelRecord[]>([]);
-  const [summary, setSummary] = useState<ProgressionSummary | null>(null);
+  const [levels, setLevels] = useCachedState<LevelRecord[]>(`levels:${projectId}`, []);
+  const [summary, setSummary] = useCachedState<ProgressionSummary | null>(`levelSummary:${projectId}`, null);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLevelsData = useCallback(async () => {
     if (!projectId) return;
-    setLoading(true);
+    setLoading(!hasCachedState(`levels:${projectId}`));
     setError(null);
     try {
       const [levelsRes, summaryRes] = await Promise.all([
@@ -75,7 +76,7 @@ export function useLevels(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setLevels, setSummary]);
 
   const createLevel = async (data: {
     level: number;

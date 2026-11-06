@@ -20,6 +20,8 @@ import { Dialog, ConfirmDialog } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
 import { Plus, Copy, Check, AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { PageHeader } from '@/components/ui/page-header';
+import { Checkbox, Radio } from '@/components/ui/checkbox';
 
 const SCOPE_PRESETS = [
   { value: 'events:write', label: 'Send events', description: 'Safe default for your backend' },
@@ -45,9 +47,8 @@ const EXPIRY_OPTIONS = [
 export function ApiKeysView() {
   const { selectedProject } = useDashboard();
   const toast = useToast();
-  const { apiKeys, loading, error, fetchApiKeys, createApiKey, revokeApiKey, rotateApiKey } = useApiKeys(
-    selectedProject?.id || null
-  );
+  const { apiKeys, loading, error, fetchApiKeys, createApiKey, revokeApiKey, rotateApiKey } =
+    useApiKeys(selectedProject?.id || null);
 
   // Create Key Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -137,20 +138,23 @@ export function ApiKeysView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">API Keys Management</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            API keys used for authenticating public event ingestion endpoints (`/v1/events`) for{' '}
-            <span className="text-success-400 font-semibold">{selectedProject.name}</span>
-          </p>
-        </div>
-
-        <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
-          <Plus className="w-4 h-4" />
-          Generate API Key
-        </Button>
-      </div>
+      <PageHeader
+        title="API Keys"
+        description={
+          <>
+            Keys your app uses to send events to{' '}
+            <span className="text-zinc-200">{selectedProject.name}</span>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Generate API Key
+            </Button>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
@@ -181,9 +185,7 @@ export function ApiKeysView() {
                 return (
                   <TableRow key={k.id}>
                     <TableCell className="font-semibold text-zinc-200">{k.name}</TableCell>
-                    <TableCell className="text-xs text-zinc-400">
-                      {k.keyPrefix}...
-                    </TableCell>
+                    <TableCell className="text-xs text-zinc-400">{k.keyPrefix}...</TableCell>
                     <TableCell className="text-xs text-zinc-400">
                       {k.scopes?.includes('*') ? 'Full access' : k.scopes?.join(', ')}
                     </TableCell>
@@ -234,8 +236,7 @@ export function ApiKeysView() {
               {!loading && apiKeys.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="py-8 text-center text-zinc-400 text-xs">
-                    No API keys generated yet. Generate your first API key to authenticate event
-                    ingestion.
+                    No API keys yet. Create one so your app can send events.
                   </TableCell>
                 </TableRow>
               )}
@@ -266,18 +267,14 @@ export function ApiKeysView() {
             <legend className="text-xs font-semibold text-zinc-300">Permissions</legend>
             <div className="max-h-56 overflow-y-auto space-y-1 border border-zinc-800 p-2">
               {SCOPE_PRESETS.map((scope) => (
-                <label key={scope.value} className="flex items-start gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={keyScopes.includes(scope.value)}
-                    onChange={() => toggleScope(scope.value)}
-                  />
-                  <span>
-                    <span className="text-zinc-200 font-semibold">{scope.label}</span>
-                    <span className="block text-zinc-400">{scope.description}</span>
-                  </span>
-                </label>
+                <Checkbox
+                  key={scope.value}
+                  className="flex"
+                  label={<span className="text-zinc-200 font-semibold">{scope.label}</span>}
+                  description={scope.description}
+                  checked={keyScopes.includes(scope.value)}
+                  onChange={() => toggleScope(scope.value)}
+                />
               ))}
             </div>
           </fieldset>
@@ -286,15 +283,13 @@ export function ApiKeysView() {
             <legend className="text-xs font-semibold text-zinc-300">Expires</legend>
             <div className="flex gap-3">
               {EXPIRY_OPTIONS.map((option) => (
-                <label key={option.days} className="flex items-center gap-1 text-xs text-zinc-300">
-                  <input
-                    type="radio"
-                    name="key-expiry"
-                    checked={expiryDays === option.days}
-                    onChange={() => setExpiryDays(option.days)}
-                  />
-                  {option.label}
-                </label>
+                <Radio
+                  key={option.days}
+                  name="key-expiry"
+                  label={option.label}
+                  checked={expiryDays === option.days}
+                  onChange={() => setExpiryDays(option.days)}
+                />
               ))}
             </div>
           </fieldset>
@@ -345,7 +340,7 @@ export function ApiKeysView() {
                   type="text"
                   readOnly
                   value={generatedKey.rawSecret}
-                  className="flex-1 h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 text-xs text-success-400 font-semibold select-all outline-none hover:border-zinc-700 focus:border-success-500/80 transition-colors duration-150 shadow-none"
+                  className="flex-1 h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 text-xs text-success-400 font-semibold select-all outline-none hover:border-zinc-700 focus:border-brand-500 transition-colors duration-150 shadow-none"
                 />
                 <Button variant="secondary" size="md" onClick={handleCopySecret}>
                   {copied ? (

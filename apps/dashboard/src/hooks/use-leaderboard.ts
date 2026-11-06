@@ -3,6 +3,7 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { LeaderboardPeriod, LeaderboardResponse, UserRankResult } from '@gami/leaderboards';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export function useLeaderboard(
   projectId: string | null,
@@ -11,8 +12,8 @@ export function useLeaderboard(
   limit: number = 20,
   search: string = ''
 ) {
-  const [data, setData] = useState<LeaderboardResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useCachedState<LeaderboardResponse | null>(`leaderboard:${projectId}:${period}:${page}:${limit}:${search}`, null);
+  const [loading, setLoading] = useState<boolean>(!hasCachedState(`leaderboard:${projectId}:${period}:${page}:${limit}:${search}`));
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -22,7 +23,7 @@ export function useLeaderboard(
       return;
     }
 
-    setLoading(true);
+    setLoading(!hasCachedState(`leaderboard:${projectId}:${period}:${page}:${limit}:${search}`));
     setError(null);
 
     try {
@@ -49,7 +50,7 @@ export function useLeaderboard(
     } finally {
       setLoading(false);
     }
-  }, [projectId, period, page, limit, search]);
+  }, [projectId, period, page, limit, search, setData]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -101,7 +102,7 @@ export function useUserRank(
     } finally {
       setLoading(false);
     }
-  }, [projectId, userId, period]);
+  }, [projectId, userId, period, setData]);
 
   useEffect(() => {
     if (userId) {

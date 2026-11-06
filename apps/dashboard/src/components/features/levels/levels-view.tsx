@@ -19,10 +19,11 @@ import { Dialog } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/toast';
 import { TrendingUp, Plus, Award, Layers, Search, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AdminOnly } from '@/components/ui/admin-only';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function LevelsView() {
-  const { selectedProject, selectedOrg } = useDashboard();
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { selectedProject } = useDashboard();
   const {
     levels,
     summary,
@@ -169,35 +170,31 @@ export function LevelsView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Levels & Progression</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Deterministic level thresholds and end-user progression status for{' '}
-            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!isAdminOrOwner}
-          title={!isAdminOrOwner ? 'Requires Admin or Owner role to add level thresholds' : undefined}
-          onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
-          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-        >
-          <Plus className="w-4 h-4" />
-          Add Level Threshold
-        </Button>
-      </div>
+      <PageHeader
+        title="Levels"
+        description={
+          <>
+            How much XP each level takes in{' '}
+            <span className="text-zinc-200">{selectedProject.name}</span>
+          </>
+        }
+        actions={
+          <>
+            <AdminOnly>
+              <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Add Level Threshold
+              </Button>
+            </AdminOnly>
+          </>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-zinc-400">
-              Levels Defined
-            </CardTitle>
+            <CardTitle className="text-xs font-semibold text-zinc-400">Levels Defined</CardTitle>
             <TrendingUp className="w-4 h-4 text-warning-400" />
           </CardHeader>
           <CardContent>
@@ -227,9 +224,7 @@ export function LevelsView() {
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-zinc-400">
-              Total Project XP
-            </CardTitle>
+            <CardTitle className="text-xs font-semibold text-zinc-400">Total Project XP</CardTitle>
             <Layers className="w-4 h-4 text-brand-400" />
           </CardHeader>
           <CardContent>
@@ -362,7 +357,7 @@ export function LevelsView() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-bold">Project Level Configurations</CardTitle>
-          <CardDescription>Deterministic sequential levels and XP thresholds</CardDescription>
+          <CardDescription>Levels in order, with the XP each one needs</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -391,44 +386,32 @@ export function LevelsView() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-3">
-                    <button
-                      disabled={!isAdminOrOwner}
-                      title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit level' : undefined}
-                      onClick={() => isAdminOrOwner && handleOpenEdit(lvl)}
-                      className={`text-xs font-semibold ${
-                        isAdminOrOwner
-                          ? 'text-zinc-300 hover:text-white hover:underline'
-                          : 'opacity-40 cursor-not-allowed text-zinc-400'
-                      }`}
-                    >
-                      Edit
-                    </button>
+                    <AdminOnly>
+                      <button
+                        onClick={() => handleOpenEdit(lvl)}
+                        className={`text-xs font-semibold ${'text-zinc-300 hover:text-white hover:underline'}`}
+                      >
+                        Edit
+                      </button>
+                    </AdminOnly>
                     {lvl.enabled ? (
-                      <button
-                        disabled={!isAdminOrOwner}
-                        title={!isAdminOrOwner ? 'Requires Admin or Owner role to disable level' : undefined}
-                        onClick={() => isAdminOrOwner && handleDisable(lvl)}
-                        className={`text-xs font-semibold ${
-                          isAdminOrOwner
-                            ? 'text-danger-400 hover:underline'
-                            : 'opacity-40 cursor-not-allowed text-zinc-400'
-                        }`}
-                      >
-                        Disable
-                      </button>
+                      <AdminOnly>
+                        <button
+                          onClick={() => handleDisable(lvl)}
+                          className={`text-xs font-semibold ${'text-danger-400 hover:underline'}`}
+                        >
+                          Disable
+                        </button>
+                      </AdminOnly>
                     ) : (
-                      <button
-                        disabled={!isAdminOrOwner}
-                        title={!isAdminOrOwner ? 'Requires Admin or Owner role to enable level' : undefined}
-                        onClick={() => isAdminOrOwner && handleEnable(lvl)}
-                        className={`text-xs font-semibold ${
-                          isAdminOrOwner
-                            ? 'text-success-400 hover:underline'
-                            : 'opacity-40 cursor-not-allowed text-zinc-400'
-                        }`}
-                      >
-                        Enable
-                      </button>
+                      <AdminOnly>
+                        <button
+                          onClick={() => handleEnable(lvl)}
+                          className={`text-xs font-semibold ${'text-success-400 hover:underline'}`}
+                        >
+                          Enable
+                        </button>
+                      </AdminOnly>
                     )}
                   </TableCell>
                 </TableRow>
@@ -437,7 +420,7 @@ export function LevelsView() {
               {levels.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-6 text-center text-zinc-400 text-xs">
-                    No levels configured.
+                    No levels yet. Add one to give users something to climb.
                   </TableCell>
                 </TableRow>
               )}
@@ -451,7 +434,7 @@ export function LevelsView() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-bold">Level Population Breakdown</CardTitle>
-            <CardDescription>Distribution of active end-users across level tiers</CardDescription>
+            <CardDescription>How many active users are on each level</CardDescription>
           </CardHeader>
           <CardContent>
             {(() => {
@@ -468,7 +451,7 @@ export function LevelsView() {
                         </div>
                         <div className="flex-1 bg-zinc-950 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
                           <div
-                            className="bg-brand-500 h-full rounded-none transition-all duration-500 ease-out"
+                            className="bg-brand-500 h-full rounded-none transition-[width] duration-500 ease-out"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -547,7 +530,9 @@ export function LevelsView() {
         description="Update level threshold parameters and display details."
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
-          {editFormError && <div className="text-xs text-danger-400 font-medium">{editFormError}</div>}
+          {editFormError && (
+            <div className="text-xs text-danger-400 font-medium">{editFormError}</div>
+          )}
 
           <Input
             label="Level Number"

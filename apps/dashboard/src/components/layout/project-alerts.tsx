@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 import { useDashboard } from '../features/context/dashboard-context';
+import { setVisibleInterval } from '@/lib/visible-interval';
 
 interface ProjectAlert {
   id: string;
@@ -33,8 +34,7 @@ export function ProjectAlerts() {
         .catch(() => undefined);
     };
     load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => clearInterval(timer);
+    return setVisibleInterval(load, REFRESH_MS);
   }, [projectId, pathname]);
 
   const label =

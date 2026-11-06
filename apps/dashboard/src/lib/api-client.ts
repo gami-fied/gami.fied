@@ -48,7 +48,9 @@ function cacheable(url: string, init?: RequestInit): boolean {
 
 /** Drops finished reads. Removing one in progress would cancel it for whoever is waiting. */
 function clearFinishedReads(): void {
-  queryClient.removeQueries({ predicate: (query) => query.state.fetchStatus === 'idle' });
+  queryClient.removeQueries({
+    predicate: (query) => query.state.fetchStatus === 'idle' && query.queryKey[0] !== 'state',
+  });
 }
 
 async function readThroughCache(url: string, init?: RequestInit): Promise<Response> {

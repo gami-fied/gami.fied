@@ -115,9 +115,7 @@ export default function VerifyEmailPage() {
           <div className="w-12 h-12 bg-info-950/60 border border-info-700/80 text-info-400 flex items-center justify-center mx-auto shadow-lg">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold text-white">
-            Email OTP Verification
-          </h1>
+          <h1 className="text-xl font-bold text-white">Email OTP Verification</h1>
           <p className="text-xs text-zinc-400">
             A 6-digit verification code was sent to{' '}
             <span className="text-info-400 font-bold">{userEmail || 'your registered email'}</span>.
@@ -141,9 +139,7 @@ export default function VerifyEmailPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-white">
-                Enter 6-Digit Code
-              </CardTitle>
+              <CardTitle className="text-sm font-bold text-white">Enter 6-Digit Code</CardTitle>
               <Badge variant="cyan">Transactional Security</Badge>
             </div>
             <CardDescription>
@@ -153,17 +149,21 @@ export default function VerifyEmailPage() {
           <CardContent>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
-                <label htmlFor="page-6-digit-otp-code" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="page-6-digit-otp-code"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   6-Digit OTP Code *
                 </label>
-                <Input id="page-6-digit-otp-code"
+                <Input
+                  id="page-6-digit-otp-code"
                   type="text"
                   required
                   maxLength={6}
                   placeholder="123456"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  className="text-center font-bold text-lg tracking-[8px] focus:border-info-500"
+                  className="text-center font-bold text-lg tracking-[8px] focus:border-brand-500"
                 />
               </div>
 

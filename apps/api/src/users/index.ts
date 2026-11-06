@@ -11,11 +11,11 @@ import {
   xpLedger,
 } from '@gami/database';
 import { createWebhookDelivery } from '@gami/webhooks';
-import { and, count, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
+import { asc, and, count, desc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
-import { requireProjectAccess } from '../authorization/index.js';
+import { canViewPersonalData, requireProjectAccess } from '../authorization/index.js';
 
 const createUserSchema = z.object({
   externalId: z.string().min(1).max(128),
@@ -33,11 +33,21 @@ const updateUserSchema = z.object({
   active: z.boolean().optional(),
 });
 
+const USER_SORTS: Record<string, SQL[]> = {
+  newest: [desc(endUsers.createdAt), desc(endUsers.id)],
+  oldest: [asc(endUsers.createdAt), asc(endUsers.id)],
+  name: [asc(endUsers.name), asc(endUsers.externalId)],
+};
+
+function forViewer<T extends { email: string | null }>(user: T, membership: { role: string }): T {
+  return canViewPersonalData(membership) ? user : { ...user, email: null };
+}
+
 export async function userRoutes(fastify: FastifyInstance) {
   // 1. GET /api/projects/:projectId/users (List project users with pagination & search)
   fastify.get<{
     Params: { projectId: string };
-    Querystring: { page?: string; limit?: string; search?: string };
+    Querystring: { page?: string; limit?: string; search?: string; sort?: string };
   }>('/api/projects/:projectId/users', async (request, reply) => {
     const { projectId } = request.params;
     const authResult = await requireProjectAccess(request, reply, projectId);
@@ -66,13 +76,13 @@ export async function userRoutes(fastify: FastifyInstance) {
       .where(whereClause)
       .limit(limit)
       .offset(offset)
-      .orderBy(desc(endUsers.createdAt), desc(endUsers.id));
+      .orderBy(...(USER_SORTS[request.query.sort ?? ''] ?? USER_SORTS.newest!));
 
     return reply.status(200).send({
       page,
       limit,
       total,
-      users,
+      users: users.map((user) => forViewer(user, authResult.membership)),
     });
   });
 
@@ -96,7 +106,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
     }
 
-    return reply.status(200).send(user);
+    return reply.status(200).send(forViewer(user, authResult.membership));
   });
 
   // 3. GET /api/projects/:projectId/users/:userId (Get user profile by internal Gami ID)
@@ -116,7 +126,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
     }
 
-    return reply.status(200).send(user);
+    return reply.status(200).send(forViewer(user, authResult.membership));
   });
 
   // 4. POST /api/projects/:projectId/users (Create user manually - Owner/Admin only)

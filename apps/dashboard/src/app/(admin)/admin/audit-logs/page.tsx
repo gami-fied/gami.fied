@@ -3,8 +3,9 @@
 import { formatDateTime } from '@/lib/format';
 import { apiFetch } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
-import { History, ShieldAlert, AlertTriangle, Info, Search } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, Search } from 'lucide-react';
 import { Dropdown } from '@/components/ui/dropdown';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface AuditRecord {
   id: string;
@@ -69,18 +70,12 @@ export default function AdminAuditLogsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <History className="w-5 h-5 text-danger-400" />
-            Global Platform Audit Logs
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Server-wide security events, configuration updates, and administrative activity.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title="Platform Audit Logs"
+        description="Security events and admin changes across this server."
+        actions={
+          <>
+<div className="flex items-center gap-3">
           <Dropdown
             options={severityOptions}
             value={severityFilter}
@@ -101,7 +96,9 @@ export default function AdminAuditLogsPage() {
             />
           </div>
         </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">

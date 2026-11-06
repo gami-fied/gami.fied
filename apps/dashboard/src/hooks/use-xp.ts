@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface XpSummary {
   totalXpAwarded: number;
@@ -26,7 +27,7 @@ export interface LedgerEntry {
 }
 
 export function useXp(projectId: string | null) {
-  const [summary, setSummary] = useState<XpSummary | null>(null);
+  const [summary, setSummary] = useCachedState<XpSummary | null>(`xpSummary:${projectId}`, null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState(false);
@@ -34,7 +35,7 @@ export function useXp(projectId: string | null) {
 
   const fetchXpSummary = useCallback(async () => {
     if (!projectId) return;
-    setLoadingSummary(true);
+    setLoadingSummary(!hasCachedState(`xpSummary:${projectId}`));
     try {
       const res = await apiFetch(`/api/projects/${projectId}/xp/summary`);
       if (res.ok) {
@@ -45,7 +46,7 @@ export function useXp(projectId: string | null) {
     } finally {
       setLoadingSummary(false);
     }
-  }, [projectId]);
+  }, [projectId, setSummary]);
 
   const fetchUserLedger = useCallback(
     async (userId: string, page = 1) => {

@@ -31,3 +31,29 @@ export function CardSkeleton() {
     </div>
   );
 }
+
+/** Keeps the shape of the app on screen while the session loads, so a refresh never blanks it. */
+export function ShellSkeleton() {
+  return (
+    <div className="min-h-screen bg-zinc-950 flex" aria-busy="true" aria-label="Loading">
+      <div className="hidden lg:block w-64 shrink-0 border-r border-zinc-800/60 p-3 space-y-3">
+        <Skeleton className="h-10 w-full" />
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-6 w-full" />
+        ))}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="h-14 border-b border-zinc-800/60" />
+        <div className="p-6 md:p-8 space-y-6">
+          <Skeleton className="h-7 w-48" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
+          <TableSkeleton rows={4} />
+        </div>
+      </div>
+    </div>
+  );
+}

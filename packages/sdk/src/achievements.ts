@@ -61,10 +61,12 @@ export class AchievementsResource {
       throw new Error('userId is required for gami.achievements.listForUser()');
     }
 
-    return this.http.request<UserAchievementRecord[]>({
+    const res = await this.http.request<{ data: UserAchievementRecord[] }>({
       method: 'GET',
       path: projectPath(params.projectId, `/users/${params.userId}/achievements`),
     });
+
+    return res.data;
   }
 
   /**
@@ -72,7 +74,7 @@ export class AchievementsResource {
    * Calls GET /api/projects/:projectId/users/:userId/achievements/:achievementId
    */
   public async getForUser(params: {
-    projectId: string;
+    projectId?: string;
     userId: string;
     achievementId: string;
   }): Promise<UserAchievementRecord> {

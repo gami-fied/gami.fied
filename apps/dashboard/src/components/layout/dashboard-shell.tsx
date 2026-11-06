@@ -2,7 +2,6 @@
 
 import { apiFetch } from '@/lib/api-client';
 import React, { useState, useEffect, ReactNode } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDashboard } from '../features/context/dashboard-context';
 import { Sidebar } from './sidebar';
@@ -10,43 +9,16 @@ import { ApiStatusBanner } from './api-status-banner';
 import { CommandPalette } from './command-palette';
 import { Topbar } from './topbar';
 import { OnboardingFlow } from '../features/onboarding/onboarding-flow';
-import { Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
-import { motion } from 'motion/react';
+import { EmptyState } from '../ui/empty-state';
+import { ShellSkeleton } from '../ui/skeleton';
+import { usePermissions } from '@/hooks/use-permissions';
+import { findAdminOnlyRoute } from '@/lib/navigation';
+import { FolderKanban, ShieldAlert } from 'lucide-react';
 
-const ADMIN_RESTRICTED_ROUTES: Record<string, { title: string; description: string }> = {
-  '/dashboard/organization/invitations': {
-    title: 'Organization Pending Invitations',
-    description: 'Viewing and managing pending team invitations requires Admin or Owner role in this organization.',
-  },
-  '/dashboard/organization/data': {
-    title: 'Data Management',
-    description: 'Exporting and importing organization data requires Admin or Owner role.',
-  },
-  '/dashboard/api-keys': {
-    title: 'Project API Keys',
-    description: 'Managing project API keys and secret tokens requires Admin or Owner role.',
-  },
-  '/dashboard/webhooks': {
-    title: 'Webhook Endpoints',
-    description: 'Configuring webhook endpoints, viewing delivery logs, and replaying events requires Admin or Owner role.',
-  },
-  '/dashboard/integrations': {
-    title: 'External Integrations & Channels',
-    description: 'Connecting Discord, editing embed templates, and replaying deliveries requires Admin or Owner role.',
-  },
-  '/dashboard/system': {
-    title: 'System Health & Operations',
-    description: 'Viewing infrastructure health, database metrics, and server status requires Admin or Owner role.',
-  },
-  '/dashboard/audit-logs': {
-    title: 'Audit Logs',
-    description: 'Accessing organization audit logs and activity history requires Admin or Owner role.',
-  },
-  '/dashboard/settings': {
-    title: 'Project & Organization Settings',
-    description: 'Modifying project settings, deletion, and organization preferences requires Admin or Owner role.',
-  },
-};
+const SIDEBAR_STORAGE_KEY = 'gami.sidebarCollapsed';
+
+/** Pages that work without a project, so a member with none can still reach them. */
+const NO_PROJECT_PAGES = ['/dashboard/profile', '/dashboard/organization'];
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -63,8 +35,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     setError,
   } = useDashboard();
 
+  const { isAdminOrOwner, roleLabel } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setIsCollapsed(localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true');
+  }, []);
+
+  const toggleCollapsed = () => {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(!isCollapsed));
+    setIsCollapsed(!isCollapsed);
+  };
 
   // Platform Email OTP Verification Enforcement
   useEffect(() => {
@@ -88,43 +70,28 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     }
   }, [session, pathname, router]);
 
-  if (isPending || loadingOrgs) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400 gap-3">
-        <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
-        <span className="text-sm font-medium">Loading session & workspace data...</span>
-      </div>
-    );
-  }
+  if (isPending || (loadingOrgs && organizations.length === 0)) return <ShellSkeleton />;
 
-  if (!session) return null;
-
-  // Permission Guard Evaluation
-  const sessionUser = session?.user as { role?: string; isPlatformAdmin?: boolean } | undefined;
-  const isPlatformAdmin = sessionUser?.role === 'admin' || Boolean(sessionUser?.isPlatformAdmin);
-  const orgRole = selectedOrg?.role || 'member';
-  const isAdminOrOwner = isPlatformAdmin || ['owner', 'admin'].includes(orgRole);
+  if (!session) return <ShellSkeleton />;
 
   // If user has no orgs OR no projects in active org (for admins), render Onboarding Flow
   const needsOnboarding =
     !projectsFailed &&
     (organizations.length === 0 || !selectedOrg || (isAdminOrOwner && !selectedProject));
 
-  const matchedRestrictedRoute = Object.entries(ADMIN_RESTRICTED_ROUTES).find(([route]) =>
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-
-  const isAccessDenied = !isAdminOrOwner && Boolean(matchedRestrictedRoute);
+  const restrictedRoute = isAdminOrOwner ? undefined : findAdminOnlyRoute(pathname);
+  const hasNoProject =
+    !isAdminOrOwner &&
+    !projectsFailed &&
+    !selectedProject &&
+    !NO_PROJECT_PAGES.some((page) => pathname.startsWith(page));
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
       {/* Desktop Sidebar */}
       {!needsOnboarding && (
         <div className="hidden lg:block">
-          <Sidebar
-            isCollapsed={isCollapsed}
-            onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-          />
+          <Sidebar isCollapsed={isCollapsed} onToggleCollapse={toggleCollapsed} />
         </div>
       )}
 
@@ -132,18 +99,23 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       {!needsOnboarding && isMobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/70 animate-fade-in"
             onClick={() => setIsMobileOpen(false)}
           />
           <div className="relative z-50 w-64 bg-zinc-950 border-r border-zinc-800">
-            <Sidebar isCollapsed={false} onToggleCollapse={() => setIsMobileOpen(false)} />
+            <Sidebar
+              isCollapsed={false}
+              onToggleCollapse={() => setIsMobileOpen(false)}
+              onNavigate={() => setIsMobileOpen(false)}
+              showOrganizationSwitcher
+            />
           </div>
         </div>
       )}
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+        className={`flex-1 flex flex-col min-w-0 transition-[margin-left] duration-200 ease-out ${
           !needsOnboarding && (isCollapsed ? 'lg:ml-16' : 'lg:ml-64')
         }`}
       >
@@ -164,43 +136,27 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 p-6 md:p-8 w-full mx-auto space-y-6">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 w-full max-w-[96rem] mx-auto space-y-6">
           {needsOnboarding ? (
             <OnboardingFlow />
-          ) : isAccessDenied && matchedRestrictedRoute ? (
-            <div className="py-20 px-6 text-center max-w-lg mx-auto space-y-6">
-              <div className="w-16 h-16 bg-danger-950/40 border border-danger-800/80 text-danger-400 flex items-center justify-center mx-auto">
-                <ShieldAlert className="w-8 h-8" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-danger-400 border border-danger-800 px-2 py-0.5 bg-danger-950/60 inline-block mb-3">
-                  403 — ACCESS RESTRICTED
-                </span>
-                <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
-                  {matchedRestrictedRoute[1].title}
-                </h1>
-                <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-                  {matchedRestrictedRoute[1].description}
-                </p>
-              </div>
-              <div className="pt-2">
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-on-accent text-xs font-bold transition"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Return to Dashboard Overview
-                </Link>
-              </div>
-            </div>
+          ) : restrictedRoute ? (
+            <EmptyState
+              icon={ShieldAlert}
+              title={`${restrictedRoute.name} is for admins`}
+              description={`You're a ${roleLabel.toLowerCase()} of ${selectedOrg?.name ?? 'this organization'}. Ask an owner or admin if you need this page.`}
+              action={{ label: 'Back to Overview', href: '/dashboard' }}
+            />
+          ) : hasNoProject ? (
+            <EmptyState
+              icon={FolderKanban}
+              title="You don't have a project yet"
+              description={`Ask an owner or admin of ${selectedOrg?.name ?? 'your organization'} to add you to a project. You'll see it here as soon as they do.`}
+              action={{ label: 'See your team', href: '/dashboard/organization/members' }}
+            />
           ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-            >
+            <div key={pathname} className="animate-page-in">
               {children}
-            </motion.div>
+            </div>
           )}
         </main>
       </div>

@@ -12,7 +12,7 @@ export interface DialogProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 }
 
 const maxWidthClasses = {
@@ -23,7 +23,10 @@ const maxWidthClasses = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
   '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
 };
+
+const CLOSE_MS = 120;
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
@@ -70,31 +73,20 @@ function useDialogBehaviour(
   }, [boxRef, isOpen, onClose]);
 }
 
-/** For dialogs with their own layout. Adds the backdrop and the shared behaviour. */
-export function ModalFrame({
-  onClose,
-  label,
-  children,
-}: {
-  onClose: () => void;
-  label: string;
-  children: ReactNode;
-}) {
-  const boxRef = useRef<HTMLDivElement>(null);
-  useDialogBehaviour(boxRef, true, onClose);
+/** Keeps a closing dialog on screen long enough to animate out. */
+function useShownWhileClosing(isOpen: boolean): boolean {
+  const [isShown, setIsShown] = useState(isOpen);
 
-  return (
-    <div
-      ref={boxRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={label}
-      tabIndex={-1}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-    >
-      {children}
-    </div>
-  );
+  useEffect(() => {
+    if (isOpen) {
+      setIsShown(true);
+      return;
+    }
+    const timer = setTimeout(() => setIsShown(false), CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  return isShown;
 }
 
 export function Dialog({
@@ -106,6 +98,7 @@ export function Dialog({
   footer,
   maxWidth = '3xl',
 }: DialogProps) {
+  const isShown = useShownWhileClosing(isOpen);
   const [mounted, setMounted] = useState(false);
   const titleId = useId();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -116,13 +109,13 @@ export function Dialog({
 
   useDialogBehaviour(boxRef, isOpen && mounted, onClose);
 
-  if (!isOpen || !mounted) return null;
+  if (!isShown || !mounted) return null;
 
   const content = (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto sm:items-center sm:p-6">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+        className={`fixed inset-0 bg-black/75 ${isOpen ? 'animate-fade-in' : 'animate-fade-out'}`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -134,7 +127,7 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-zinc-900 border border-zinc-800 rounded-none shadow-2xl z-10 overflow-hidden transform transition-all my-auto`}
+        className={`relative w-full ${maxWidthClasses[maxWidth]} bg-zinc-900 border border-zinc-800 rounded-none shadow-2xl z-10 overflow-hidden sm:my-auto ${isOpen ? 'animate-pop' : 'animate-pop-out'}`}
       >
         <div className="flex items-center justify-between p-5 pb-4 border-b border-zinc-800/80">
           <div>

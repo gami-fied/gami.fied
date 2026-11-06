@@ -3,7 +3,7 @@
 import { formatDateTime } from '@/lib/format';
 import { apiFetch } from '@/lib/api-client';
 import { FailedEventsPanel } from './failed-events-panel';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useEvents, EventRecord } from '@/hooks/use-events';
 import {
@@ -37,13 +37,14 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { setVisibleInterval } from '@/lib/visible-interval';
+import { PageHeader } from '@/components/ui/page-header';
 
 const AUTO_REFRESH_INTERVAL = 30_000; // 30 seconds
 
 export function EventsView() {
-  const { selectedProject, selectedOrg } = useDashboard();
+  const { selectedProject } = useDashboard();
   const projectId = selectedProject?.id || null;
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
 
   const { events, loading, error, page, hasMore, fetchEvents } = useEvents(projectId);
   const toast = useToast();
@@ -53,7 +54,6 @@ export function EventsView() {
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ingestion Playground Modal state
   const [isEmitOpen, setIsEmitOpen] = useState(false);
@@ -77,16 +77,11 @@ export function EventsView() {
 
   // Auto-refresh logic
   useEffect(() => {
-    if (autoRefresh && projectId) {
-      autoRefreshRef.current = setInterval(() => {
-        fetchEvents(page, typeFilter, userIdFilter);
-      }, AUTO_REFRESH_INTERVAL);
-    } else {
-      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
-    }
-    return () => {
-      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
-    };
+    if (!autoRefresh || !projectId) return;
+    return setVisibleInterval(
+      () => fetchEvents(page, typeFilter, userIdFilter),
+      AUTO_REFRESH_INTERVAL
+    );
   }, [autoRefresh, projectId, page, typeFilter, userIdFilter, fetchEvents]);
 
   const handleFilterSubmit = (e: React.FormEvent) => {
@@ -124,7 +119,7 @@ export function EventsView() {
     try {
       parsedPayload = JSON.parse(emitPayloadJson);
     } catch {
-      setEmitError('Invalid JSON payload structure');
+      setEmitError("That isn't valid JSON");
       return;
     }
 
@@ -158,11 +153,11 @@ export function EventsView() {
 
       const resData = await res.json();
       if (res.ok) {
-        toast.success('Event ingested successfully', `Event ID: ${resData.id || resData.eventId}`);
+        toast.success('Event sent', `Event ID: ${resData.id || resData.eventId}`);
         setIsEmitOpen(false);
         fetchEvents(1, typeFilter, userIdFilter);
       } else {
-        setEmitError(resData.message || resData.error || 'Failed to ingest event');
+        setEmitError(resData.message || resData.error || "Couldn't send the event");
       }
     } catch (err: unknown) {
       setEmitError((err as Error).message || 'Failed to send event');
@@ -200,59 +195,54 @@ export function EventsView() {
       {selectedProject && <FailedEventsPanel projectId={selectedProject.id} />}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Event Stream</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Real-time customer event ingestion log for{' '}
-            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Send Test Event Playground Button */}
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!isAdminOrOwner}
-            title={!isAdminOrOwner ? 'Requires Admin or Owner role to ingest test events' : undefined}
-            onClick={() => isAdminOrOwner && setIsEmitOpen(true)}
-            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-          >
-            <Send className="w-3.5 h-3.5" />
-            Send Test Event
-          </Button>
+      <PageHeader
+        title="Events"
+        description={
+          <>
+            Everything your app has sent to{' '}
+            <span className="text-zinc-200">{selectedProject.name}</span>
+          </>
+        }
+        actions={
+          <>
+            {/* Send Test Event Playground Button */}
+            <Button variant="primary" size="sm" onClick={() => setIsEmitOpen(true)}>
+              <Send className="w-3.5 h-3.5" />
+              Test event
+            </Button>
 
-          {/* Auto-refresh toggle */}
-          <button
-            onClick={() => setAutoRefresh((v) => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold border transition ${
-              autoRefresh
-                ? 'bg-success-950/40 border-success-700/60 text-success-300'
-                : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-zinc-200'
-            }`}
-            title={autoRefresh ? 'Click to disable auto-refresh' : 'Enable 30s auto-refresh'}
-          >
-            <Radio
-              className={`w-3.5 h-3.5 ${autoRefresh ? 'animate-pulse text-success-400' : ''}`}
-            />
-            {autoRefresh ? 'Live (30s)' : 'Auto-refresh'}
-          </button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => fetchEvents(page, typeFilter, userIdFilter)}
-            isLoading={loading}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+            {/* Auto-refresh toggle */}
+            <button
+              onClick={() => setAutoRefresh((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold border transition ${
+                autoRefresh
+                  ? 'bg-success-950/40 border-success-700/60 text-success-300'
+                  : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-zinc-200'
+              }`}
+              title={autoRefresh ? 'Click to disable auto-refresh' : 'Enable 30s auto-refresh'}
+            >
+              <Radio
+                className={`w-3.5 h-3.5 ${autoRefresh ? 'animate-pulse text-success-400' : ''}`}
+              />
+              {autoRefresh ? 'Live (30s)' : 'Auto-refresh'}
+            </button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => fetchEvents(page, typeFilter, userIdFilter)}
+              isLoading={loading}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       {/* Filter Form */}
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleFilterSubmit} className="flex flex-col sm:flex-row gap-3 items-end">
+          <form onSubmit={handleFilterSubmit} className="grid grid-cols-2 gap-3 items-end sm:flex">
             <div className="flex-1">
               <Input
                 label="Filter by Event Type"
@@ -269,7 +259,7 @@ export function EventsView() {
                 onChange={(e) => setUserIdFilter(e.target.value)}
               />
             </div>
-            <Button type="submit" variant="primary" size="md">
+            <Button type="submit" variant="primary" size="md" className="col-span-2 sm:col-auto">
               <Search className="w-4 h-4" />
               Apply Filters
             </Button>
@@ -349,7 +339,7 @@ export function EventsView() {
                 {events.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="py-8 text-center text-zinc-400 text-xs">
-                      No events recorded yet for this project.
+                      No events yet. Use Send Test Event to try one, or connect your app.
                     </TableCell>
                   </TableRow>
                 )}
@@ -368,12 +358,12 @@ export function EventsView() {
         </Card>
       )}
 
-      {/* Interactive Event Ingestion Playground Dialog */}
+      {/* Interactive Send a test event Dialog */}
       <Dialog
         isOpen={isEmitOpen}
         onClose={() => setIsEmitOpen(false)}
-        title="Event Ingestion Playground"
-        description="Construct and emit customer events directly to the ingestion engine."
+        title="Send a test event"
+        description="Try an event without touching your app."
       >
         <form onSubmit={handleEmitSubmit} className="space-y-4">
           {emitError && (
@@ -461,7 +451,7 @@ export function EventsView() {
           </div>
 
           <Input
-            label="Idempotency Key (Optional)"
+            label="Duplicate protection key (optional)"
             placeholder="e.g. key_unique_123"
             value={emitIdempotencyKey}
             onChange={(e) => setEmitIdempotencyKey(e.target.value)}
@@ -469,10 +459,14 @@ export function EventsView() {
 
           {/* JSON Payload Editor */}
           <div className="space-y-1">
-            <label htmlFor="events-view-event-payload-json-object" className="block text-xs font-semibold text-zinc-300">
+            <label
+              htmlFor="events-view-event-payload-json-object"
+              className="block text-xs font-semibold text-zinc-300"
+            >
               Event Payload (JSON Object)
             </label>
-            <textarea id="events-view-event-payload-json-object"
+            <textarea
+              id="events-view-event-payload-json-object"
               rows={4}
               className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-none text-xs text-zinc-200 focus:outline-none focus:border-brand-500 transition"
               value={emitPayloadJson}
@@ -507,12 +501,10 @@ export function EventsView() {
             <div className="grid grid-cols-2 gap-3 text-xs bg-zinc-950 p-3 rounded-none border border-zinc-800">
               <div>
                 <span className="text-zinc-400 block">End User ID</span>
-                <span className="text-zinc-200 font-medium">
-                  {selectedEvent.userId || 'N/A'}
-                </span>
+                <span className="text-zinc-200 font-medium">{selectedEvent.userId || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-zinc-400 block">Idempotency Key</span>
+                <span className="text-zinc-400 block">Duplicate protection key</span>
                 <span className="text-zinc-200 font-medium">
                   {selectedEvent.idempotencyKey || 'None'}
                 </span>

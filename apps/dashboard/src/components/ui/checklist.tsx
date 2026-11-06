@@ -106,7 +106,7 @@ export function Checklist<T extends string | number = string>({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full border border-zinc-800 bg-zinc-950 pl-7 pr-2 py-1 text-[11px] text-zinc-200 focus:border-success-500 focus:outline-none placeholder:text-zinc-400 rounded-none"
+                className="w-full border border-zinc-800 bg-zinc-950 pl-7 pr-2 py-1 text-[11px] text-zinc-200 focus:border-brand-500 focus:outline-none placeholder:text-zinc-400 rounded-none"
               />
             </div>
           )}
@@ -139,7 +139,7 @@ export function Checklist<T extends string | number = string>({
               >
                 {/* Checkbox box */}
                 <div
-                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-all rounded-none ${
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-colors rounded-none ${
                     isSelected
                       ? 'border-success-500 bg-success-600 text-on-accent'
                       : 'border-zinc-700 bg-zinc-900 text-transparent group-hover:border-zinc-500'

@@ -1,12 +1,12 @@
 'use client';
 
-import { RuleTraceDialog } from './rule-trace-dialog';
 import { useToast } from '@/components/ui/toast';
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useDashboard } from '../context/dashboard-context';
 import { useRules, RuleRecord } from '@/hooks/use-rules';
-import { VisualConditionBuilder, VisualCondition } from './visual-condition-builder';
-import { VisualActionBuilder, VisualAction } from './visual-action-builder';
+import type { VisualCondition } from './visual-condition-builder';
+import type { VisualAction } from './visual-action-builder';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -37,7 +37,10 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { evaluateRule } from '@gami/rules';
-import { motion } from 'motion/react';
+import { usePermissions } from '@/hooks/use-permissions';
+import { AdminOnly } from '@/components/ui/admin-only';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface StoredCondition {
   field?: string;
@@ -68,11 +71,22 @@ interface RuleTestResult {
   [key: string]: unknown;
 }
 
+// Only needed once someone opens a dialog, so these stay out of the first load.
+const RuleTraceDialog = dynamic(() =>
+  import('./rule-trace-dialog').then((mod) => mod.RuleTraceDialog)
+);
+const VisualConditionBuilder = dynamic(() =>
+  import('./visual-condition-builder').then((mod) => mod.VisualConditionBuilder)
+);
+const VisualActionBuilder = dynamic(() =>
+  import('./visual-action-builder').then((mod) => mod.VisualActionBuilder)
+);
+
 export function RulesView() {
   const toast = useToast();
-  const { selectedProject, selectedOrg } = useDashboard();
+  const { selectedProject } = useDashboard();
   const projectId = selectedProject?.id || null;
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { isAdminOrOwner } = usePermissions();
 
   const { rules, loading, error, createRule, updateRule, deleteRule, fetchRules } =
     useRules(projectId);
@@ -135,9 +149,7 @@ export function RulesView() {
       2
     )
   );
-  const [testResults, setTestResults] = useState<RuleTestResult[] | { error: string } | null>(
-    null
-  );
+  const [testResults, setTestResults] = useState<RuleTestResult[] | { error: string } | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -364,67 +376,66 @@ export function RulesView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
-            Gamification Rules Engine
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Configure IF/THEN event rules for{' '}
-            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Navigation Tabs */}
-          <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-            <button
-              onClick={() => setActiveTab('rules')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
-                activeTab === 'rules'
-                  ? 'bg-brand-500 text-on-accent shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              Active Rules ({rules.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('simulator')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
-                activeTab === 'simulator'
-                  ? 'bg-brand-500 text-on-accent shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              <Play className="w-3.5 h-3.5" />
-              Rule Simulator
-            </button>
-          </div>
-
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!isAdminOrOwner}
-            title={!isAdminOrOwner ? 'Requires Admin or Owner role to create rules' : undefined}
-            onClick={() => {
-              if (!isAdminOrOwner) return;
-              setName('');
-              setDescription('');
-              setTrigger('');
-              setMatchMode('all');
-              setVisualConditions([]);
-              setVisualActions([createActionObj('award_xp', 100)]);
-              setEditingRule(null);
-              setIsCreateOpen(true);
-            }}
-            className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-          >
-            <Plus className="w-4 h-4" />
-            Create Rule
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Rules"
+        description={
+          <>
+            Decide when users earn XP and rewards in{' '}
+            <span className="text-zinc-200">{selectedProject.name}</span>
+          </>
+        }
+        actions={
+          <>
+            <AdminOnly>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setName('');
+                  setDescription('');
+                  setTrigger('');
+                  setMatchMode('all');
+                  setVisualConditions([]);
+                  setVisualActions([createActionObj('award_xp', 100)]);
+                  setEditingRule(null);
+                  setIsCreateOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4" />
+                Create Rule
+              </Button>
+            </AdminOnly>
+          </>
+        }
+        toolbar={
+          <>
+            <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
+              <button
+                onClick={() => setActiveTab('rules')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
+                  activeTab === 'rules'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Active Rules ({rules.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('simulator')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
+                  activeTab === 'simulator'
+                    ? 'bg-brand-500 text-on-accent shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Play className="w-3.5 h-3.5" />
+                Rule Simulator
+              </button>
+            </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none">
@@ -439,14 +450,11 @@ export function RulesView() {
             {loading && rules.length === 0 ? (
               <TableSkeleton rows={6} />
             ) : rules.length === 0 ? (
-              <div className="py-16 text-center space-y-3">
-                <Zap className="w-10 h-10 text-zinc-400 mx-auto" />
-                <h3 className="text-sm font-semibold text-zinc-300">No Rules Defined Yet</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                  Create your first gamification rule to automatically award XP or achievements when
-                  events occur.
-                </p>
-              </div>
+              <EmptyState
+                icon={Zap}
+                title="No rules yet"
+                description="Rules award XP and achievements when events happen. Create one to get started."
+              />
             ) : (
               <Table>
                 <TableHeader>
@@ -504,7 +512,11 @@ export function RulesView() {
                       <TableCell>
                         <button
                           disabled={!isAdminOrOwner}
-                          title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle rule status' : undefined}
+                          title={
+                            !isAdminOrOwner
+                              ? 'Needs an owner or admin to toggle rule status'
+                              : undefined
+                          }
                           onClick={() => isAdminOrOwner && handleToggleEnabled(rule)}
                           className={`px-2.5 py-1 rounded-full text-xs font-bold border transition ${
                             rule.enabled
@@ -526,34 +538,27 @@ export function RulesView() {
                           >
                             <Search className="w-4 h-4" />
                           </button>
-                          <button
-                            disabled={!isAdminOrOwner}
-                            onClick={() => {
-                              if (!isAdminOrOwner) return;
-                              setEditingRule(rule);
-                              setIsCreateOpen(true);
-                            }}
-                            className={`p-1.5 transition ${
-                              isAdminOrOwner
-                                ? 'text-zinc-400 hover:text-zinc-200'
-                                : 'opacity-30 cursor-not-allowed text-zinc-400'
-                            }`}
-                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to edit rule' : 'Edit Rule'}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            disabled={!isAdminOrOwner}
-                            onClick={() => isAdminOrOwner && setDeletingRuleId(rule.id)}
-                            className={`p-1.5 transition ${
-                              isAdminOrOwner
-                                ? 'text-zinc-400 hover:text-danger-400'
-                                : 'opacity-30 cursor-not-allowed text-zinc-400'
-                            }`}
-                            title={!isAdminOrOwner ? 'Requires Admin or Owner role to delete rule' : 'Delete Rule'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <AdminOnly>
+                            <button
+                              onClick={() => {
+                                setEditingRule(rule);
+                                setIsCreateOpen(true);
+                              }}
+                              className={`p-1.5 transition ${'text-zinc-400 hover:text-zinc-200'}`}
+                              title="Edit Rule"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          </AdminOnly>
+                          <AdminOnly>
+                            <button
+                              onClick={() => setDeletingRuleId(rule.id)}
+                              className={`p-1.5 transition ${'text-zinc-400 hover:text-danger-400'}`}
+                              title="Delete Rule"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </AdminOnly>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -607,18 +612,14 @@ export function RulesView() {
                 ) : Array.isArray(testResults) && testResults.length > 0 ? (
                   <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
                     {testResults.map((res, idx) => (
-                      <motion.div
+                      <div
                         key={res.ruleId || idx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-zinc-950 p-4 rounded-none border border-zinc-800 space-y-3"
+                        className="animate-rise bg-zinc-950 p-4 rounded-none border border-zinc-800 space-y-3"
                       >
                         <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
                           <div>
                             <span className="text-xs font-bold text-zinc-100">{res.ruleName}</span>
-                            <div className="text-xs text-zinc-400">
-                              Trigger: {res.trigger}
-                            </div>
+                            <div className="text-xs text-zinc-400">Trigger: {res.trigger}</div>
                           </div>
                           <Badge variant={res.matched ? 'emerald' : 'rose'}>
                             {res.matched ? 'MATCHED' : 'NOT MATCHED'}
@@ -665,7 +666,7 @@ export function RulesView() {
                             </div>
                           )}
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -803,8 +804,14 @@ export function RulesView() {
             />
           ) : (
             <div className="space-y-1">
-              <label htmlFor="rules-view-conditions-json" className="block text-xs font-semibold text-zinc-300">Conditions JSON</label>
-              <textarea id="rules-view-conditions-json"
+              <label
+                htmlFor="rules-view-conditions-json"
+                className="block text-xs font-semibold text-zinc-300"
+              >
+                Conditions JSON
+              </label>
+              <textarea
+                id="rules-view-conditions-json"
                 rows={5}
                 value={rawConditionsJson}
                 onChange={(e) => setRawConditionsJson(e.target.value)}
@@ -822,8 +829,14 @@ export function RulesView() {
             />
           ) : (
             <div className="space-y-1">
-              <label htmlFor="rules-view-actions-json" className="block text-xs font-semibold text-zinc-300">Actions JSON</label>
-              <textarea id="rules-view-actions-json"
+              <label
+                htmlFor="rules-view-actions-json"
+                className="block text-xs font-semibold text-zinc-300"
+              >
+                Actions JSON
+              </label>
+              <textarea
+                id="rules-view-actions-json"
                 rows={5}
                 value={rawActionsJson}
                 onChange={(e) => setRawActionsJson(e.target.value)}

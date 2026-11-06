@@ -4,7 +4,19 @@ import { apiFetch } from '@/lib/api-client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Shield, Server, Building2, Lock, Settings, History, KeyRound, Key, AlertTriangle, CheckCircle, Database } from 'lucide-react';
+import { Shield, Server, Building2, Lock, Settings, History, KeyRound, Key, AlertTriangle, CheckCircle, Database, HardDrive, LayoutDashboard } from 'lucide-react';
+
+const NAV_ITEMS = [
+  { name: 'Overview', href: '/admin', icon: LayoutDashboard },
+  { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
+  { name: 'Platform Health', href: '/admin/system', icon: Server },
+  { name: 'Backups', href: '/admin/backups', icon: Database },
+  { name: 'Storage', href: '/admin/storage', icon: HardDrive },
+  { name: 'Security', href: '/admin/security', icon: Lock },
+  { name: 'Sessions', href: '/admin/sessions', icon: KeyRound },
+  { name: 'Audit Logs', href: '/admin/audit-logs', icon: History },
+  { name: 'Server Settings', href: '/admin/settings', icon: Settings },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -73,17 +85,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  const navItems = [
-    { name: 'Overview', href: '/admin', icon: Server },
-    { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
-    { name: 'Platform Backups', href: '/admin/backups', icon: Database },
-    { name: 'Security', href: '/admin/security', icon: Lock },
-    { name: 'Server Settings', href: '/admin/settings', icon: Settings },
-    { name: 'Storage & Cleanup', href: '/admin/storage', icon: Database },
-    { name: 'Audit Logs', href: '/admin/audit-logs', icon: History },
-    { name: 'Sessions', href: '/admin/sessions', icon: KeyRound },
-  ];
-
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center p-6">
@@ -107,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div>
               <h1 className="text-base font-bold text-white">First-Time Platform Setup</h1>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Zero Platform Administrators exist on this server installation.
+                This server doesn't have a platform admin yet.
               </p>
             </div>
           </div>
@@ -173,7 +174,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <h1 className="text-base font-bold text-white">Platform Admin Access Required</h1>
           <p className="text-xs text-zinc-400">
-            This area is strictly reserved for Platform Administrators. Server administration privileges are separate from project owner roles.
+            This area is for platform admins. Owning a project doesn't include it.
           </p>
           <div className="pt-4 border-t border-zinc-900">
             <Link
@@ -191,17 +192,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
       {/* Top Platform Admin Header */}
-      <header className="border-b border-zinc-800 bg-zinc-950 px-6 py-3 flex items-center justify-between">
+      <header className="border-b border-zinc-800 bg-zinc-950 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-danger-950/80 border border-danger-800 flex items-center justify-center text-danger-400 font-bold text-sm">
             <Shield className="w-4 h-4" />
           </div>
           <div>
             <span className="text-sm font-bold text-white">
-              Gami.Fied Platform Administration
-            </span>
-            <span className="ml-2.5 text-xs font-bold px-2 py-0.5 border border-danger-800 bg-danger-950/40 text-danger-400">
-              Platform Admin Scope
+              Platform Administration
             </span>
           </div>
         </div>
@@ -211,14 +209,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             href="/dashboard"
             className="text-zinc-400 hover:text-zinc-200 border border-zinc-800 px-3 py-1 bg-zinc-900 transition"
           >
-            ← Project Dashboard
+            ← Back to dashboard
           </Link>
         </div>
       </header>
 
       {/* Admin Navigation Bar */}
-      <nav className="border-b border-zinc-800 bg-zinc-900/60 px-6 flex items-center gap-1 overflow-x-auto">
-        {navItems.map((item) => {
+      <nav className="border-b border-zinc-800 bg-zinc-900/60 px-2 sm:px-6 flex items-center gap-1 overflow-x-auto">
+        {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === '/admin'
               ? pathname === '/admin'
@@ -229,7 +227,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2.5 text-xs font-semibold border-b-2 transition ${
                 isActive
                   ? 'border-danger-500 text-danger-400 bg-danger-950/20'
                   : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
@@ -243,7 +241,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto">{children}</main>
+      <main className="flex-1 p-4 sm:p-6 max-w-[96rem] w-full mx-auto">{children}</main>
     </div>
   );
 }

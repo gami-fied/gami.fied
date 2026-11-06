@@ -87,13 +87,19 @@ pnpm --filter @gami/dashboard dev # Start dashboard UI only
 
 When Gami is launched for the first time:
 
-1. Open `http://localhost:3000/sign-up` in your browser.
+1. Open `http://localhost:3000/register` in your browser.
 2. Register a new user account.
 3. If no Platform Admin exists yet, you can claim the Platform Admin role via the initial bootstrap endpoint or using the emergency CLI tool:
 
 ```bash
 # Promote an existing user to Platform Administrator directly via CLI
-pnpm --filter @gami/api admin:promote --email admin@example.com
+pnpm --filter @gami/database admin:promote --email admin@example.com
+```
+
+With the published Docker images, run the built script inside the API container:
+
+```bash
+docker compose exec api node packages/database/dist/scripts/promote-admin.js --email admin@example.com
 ```
 
 ---
@@ -118,11 +124,8 @@ const gami = new Gami({
   apiKey: 'gami_live_your_project_api_key',
 });
 
-const projectId = 'prj_your_project_id';
-
 // Send a user event. Rules and challenges run in the background.
 const event = await gami.events.track({
-  projectId,
   userId: 'usr_12345',
   type: 'lesson_completed',
   properties: { lessonId: 'les_99', score: 100 },
@@ -131,7 +134,7 @@ const event = await gami.events.track({
 console.log('Accepted event:', event.id);
 
 // Read the user's progress. This needs a key with the levels:read scope.
-const progress = await gami.levels.getUserProgress({ projectId, userId: 'usr_12345' });
+const progress = await gami.levels.getUserProgress({ userId: 'usr_12345' });
 console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 
@@ -142,7 +145,7 @@ import { Gami } from '@gami.fied/sdk';
 
 const gami = new Gami({ baseUrl: 'http://localhost:3001', apiKey: 'gami_live_REPLACE_ME' });
 
-const leaderboard = await gami.leaderboards.list({ projectId: 'prj_123', limit: 10 });
+const leaderboard = await gami.leaderboards.list({ limit: 10 });
 
 leaderboard.entries.forEach((entry) => {
   console.log(`#${entry.rank} ${entry.externalId}: ${entry.xp} XP`);

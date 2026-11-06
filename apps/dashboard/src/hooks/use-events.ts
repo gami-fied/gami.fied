@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface EventRecord {
   id: string;
@@ -13,7 +14,7 @@ export interface EventRecord {
 }
 
 export function useEvents(projectId: string | null) {
-  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [events, setEvents] = useCachedState<EventRecord[]>(`events:${projectId}`, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -22,7 +23,7 @@ export function useEvents(projectId: string | null) {
   const fetchEvents = useCallback(
     async (currentPage = 1, typeFilter = '', userIdFilter = '') => {
       if (!projectId) return;
-      setLoading(true);
+      setLoading(!hasCachedState(`events:${projectId}`));
       setError(null);
       try {
         let url = `/api/projects/${projectId}/events?page=${currentPage}&limit=15`;
@@ -45,7 +46,7 @@ export function useEvents(projectId: string | null) {
         setLoading(false);
       }
     },
-    [projectId]
+    [projectId, setEvents]
   );
 
   return { events, loading, error, page, hasMore, fetchEvents };

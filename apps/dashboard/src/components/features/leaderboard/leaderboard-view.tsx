@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { Dialog } from '@/components/ui/dialog';
 import { Trophy, Medal, Crown, Search, UserCheck, ShieldAlert, Sparkles, User } from 'lucide-react';
-import { motion } from 'motion/react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function LeaderboardView() {
   const { selectedProject } = useDashboard();
@@ -62,42 +62,37 @@ export function LeaderboardView() {
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
-            Leaderboards & Rankings
-            <Badge variant="orange">Project Scoped</Badge>
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Authoritative, project-isolated rankings derived deterministically from XP balances and
-            UTC period ledgers.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Period Selector Tabs */}
-          <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-            {(['all_time', 'daily', 'weekly', 'monthly'] as LeaderboardPeriod[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => handlePeriodChange(p)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-none capitalize transition ${
-                  period === p
-                    ? 'bg-brand-500 text-on-accent shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {p.replace('_', ' ')}
-              </button>
-            ))}
-          </div>
-
-          <Button variant="secondary" size="sm" onClick={() => setIsLookupOpen(true)}>
-            <UserCheck className="w-4 h-4 text-brand-400" />
-            Lookup User Rank
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Leaderboard"
+        description="See who is ahead, all time or for a chosen period."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setIsLookupOpen(true)}>
+              <UserCheck className="w-4 h-4 text-brand-400" />
+              Lookup User Rank
+            </Button>
+          </>
+        }
+        toolbar={
+          <>
+            <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
+              {(['all_time', 'daily', 'weekly', 'monthly'] as LeaderboardPeriod[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handlePeriodChange(p)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-none capitalize transition ${
+                    period === p
+                      ? 'bg-brand-500 text-on-accent shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  {p.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none flex items-center gap-2">
@@ -110,12 +105,7 @@ export function LeaderboardView() {
       {!loading && entries.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           {/* 2nd Place (Silver) */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="md:order-1"
-          >
+          <div className="animate-rise md:order-1">
             <Card className="bg-zinc-900/90 border-zinc-800 relative overflow-hidden text-center p-5 space-y-3">
               <div className="absolute top-3 left-3 bg-zinc-800 border border-zinc-700 text-zinc-300 px-2.5 py-0.5 rounded-none text-[11px] font-bold flex items-center gap-1">
                 <Medal className="w-3.5 h-3.5 text-slate-300" /> #2 Silver
@@ -127,9 +117,7 @@ export function LeaderboardView() {
                 <div className="font-bold text-sm text-zinc-100 truncate">
                   {top2 ? top2.name || top2.externalId : 'No contender'}
                 </div>
-                <div className="text-[11px] text-zinc-400">
-                  {top2 ? top2.externalId : '-'}
-                </div>
+                <div className="text-[11px] text-zinc-400">{top2 ? top2.externalId : '-'}</div>
               </div>
               <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-around text-xs">
                 <div>
@@ -146,15 +134,10 @@ export function LeaderboardView() {
                 </div>
               </div>
             </Card>
-          </motion.div>
+          </div>
 
           {/* 1st Place (Gold) */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.0 }}
-            className="md:order-2"
-          >
+          <div className="animate-rise md:order-2">
             <Card className="bg-gradient-to-b from-warning-950/40 via-zinc-900 to-zinc-900 border-warning-600/50 relative overflow-hidden text-center p-6 space-y-3 shadow-xl shadow-warning-950/20">
               <div className="absolute top-3 left-3 bg-warning-500/20 border border-warning-500/40 text-warning-300 px-3 py-0.5 rounded-none text-[11px] font-bold flex items-center gap-1">
                 <Crown className="w-3.5 h-3.5 text-warning-400 fill-warning-400" /> #1 Champion
@@ -166,15 +149,11 @@ export function LeaderboardView() {
                 <div className="font-bold text-base text-zinc-100 truncate">
                   {top1 ? top1.name || top1.externalId : 'No contender'}
                 </div>
-                <div className="text-xs text-zinc-400">
-                  {top1 ? top1.externalId : '-'}
-                </div>
+                <div className="text-xs text-zinc-400">{top1 ? top1.externalId : '-'}</div>
               </div>
               <div className="pt-2 border-t border-warning-900/40 flex items-center justify-around text-xs">
                 <div>
-                  <div className="text-xs text-warning-400/80 font-semibold">
-                    Period XP
-                  </div>
+                  <div className="text-xs text-warning-400/80 font-semibold">Period XP</div>
                   <div className="font-extrabold text-warning-400 text-sm">
                     {top1 ? `${top1.xp.toLocaleString()} XP` : '0 XP'}
                   </div>
@@ -187,15 +166,10 @@ export function LeaderboardView() {
                 </div>
               </div>
             </Card>
-          </motion.div>
+          </div>
 
           {/* 3rd Place (Bronze) */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="md:order-3"
-          >
+          <div className="animate-rise md:order-3">
             <Card className="bg-zinc-900/90 border-zinc-800 relative overflow-hidden text-center p-5 space-y-3">
               <div className="absolute top-3 left-3 bg-zinc-800 border border-zinc-700 text-warning-600 px-2.5 py-0.5 rounded-none text-[11px] font-bold flex items-center gap-1">
                 <Medal className="w-3.5 h-3.5 text-warning-600" /> #3 Bronze
@@ -207,9 +181,7 @@ export function LeaderboardView() {
                 <div className="font-bold text-sm text-zinc-100 truncate">
                   {top3 ? top3.name || top3.externalId : 'No contender'}
                 </div>
-                <div className="text-[11px] text-zinc-400">
-                  {top3 ? top3.externalId : '-'}
-                </div>
+                <div className="text-[11px] text-zinc-400">{top3 ? top3.externalId : '-'}</div>
               </div>
               <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-around text-xs">
                 <div>
@@ -226,7 +198,7 @@ export function LeaderboardView() {
                 </div>
               </div>
             </Card>
-          </motion.div>
+          </div>
         </div>
       )}
 
@@ -322,9 +294,7 @@ export function LeaderboardView() {
                               <div className="font-semibold text-xs text-zinc-200">
                                 {entry.name || 'Anonymous User'}
                               </div>
-                              <div className="text-[11px] text-zinc-400">
-                                {entry.externalId}
-                              </div>
+                              <div className="text-[11px] text-zinc-400">{entry.externalId}</div>
                             </div>
                           </div>
                         </TableCell>
@@ -366,7 +336,7 @@ export function LeaderboardView() {
           setLookupInput('');
         }}
         title="Lookup Specific User Rank"
-        description="Enter an end-user ID or external ID to lookup their exact global rank and period XP."
+        description="Enter a user's ID to see their rank and XP for this period."
       >
         <form onSubmit={handleLookupSubmit} className="space-y-4">
           {lookupError && (

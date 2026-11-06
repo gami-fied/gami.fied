@@ -31,7 +31,6 @@ const gami = new Gami({
 
 ```typescript
 const result = await gami.events.ingest({
-  projectId: 'prj_123',
   externalId: 'user_456',
   event: 'purchase',
   payload: { amount: 4999 },
@@ -49,7 +48,6 @@ All SDK errors inherit from `GamiError` and expose structured properties:
 ```typescript
 try {
   await gami.events.ingest({
-    projectId: 'prj_123',
     event: 'purchase',
   });
 } catch (error) {
@@ -97,15 +95,7 @@ const gami = new Gami({
 });
 
 export async function createToken(userId: string) {
-  const response = await fetch(`${process.env.GAMI_API_URL}/v1/end-user-tokens`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.GAMI_API_KEY!,
-    },
-    body: JSON.stringify({ userId }),
-  });
-  return response.json();
+  return gami.endUserTokens.create({ userId });
 }
 
 export const serverClient = gami;

@@ -72,7 +72,7 @@ export class ChallengesResource {
    * Calls GET /api/projects/:projectId/users/:userId/challenges/:challengeId
    */
   public async getForUser(params: {
-    projectId: string;
+    projectId?: string;
     userId: string;
     challengeId: string;
   }): Promise<UserChallengeProgressRecord> {

@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useDashboard } from '@/components/features/context/dashboard-context';
 import {
-  Code2,
   Copy,
   Check,
   KeyRound,
@@ -17,6 +16,7 @@ import {
   Layers,
   Terminal,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface ProjectMetrics {
   eventsIngested: number;
@@ -65,33 +65,28 @@ export default function DeveloperPage() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-zinc-900 border border-zinc-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <Code2 className="w-6 h-6 text-success-400" />
-            <h1 className="text-xl font-bold text-white tracking-tight">Developer Portal</h1>
-          </div>
-          <p className="text-xs text-zinc-400">
-            Build, test, and integrate Gami.Fied Community Engine into your applications.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
+      <PageHeader
+        title="Developer Hub"
+        description="Connect your app to Gami.Fied."
+        actions={
+          <>
+<Link
             href="/dashboard/developer/docs"
             className="px-3 py-2 bg-success-500/10 hover:bg-success-500/20 text-success-400 border border-success-500/30 text-xs font-semibold flex items-center gap-2 transition"
           >
             <FileText className="w-4 h-4" />
-            API Reference Docs
+            API Docs
           </Link>
           <Link
             href="/dashboard/api-keys"
             className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-semibold flex items-center gap-2 transition"
           >
             <KeyRound className="w-4 h-4" />
-            Manage API Keys
+            API Keys
           </Link>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Metrics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -114,7 +109,7 @@ export default function DeveloperPage() {
 
         <div className="bg-zinc-900 border border-zinc-800 p-4">
           <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
-            <span>Events Ingested</span>
+            <span>Events received</span>
             <Activity className="w-4 h-4 text-brand-400" />
           </div>
           <div className="text-xl font-bold text-white">
@@ -178,7 +173,7 @@ export default function DeveloperPage() {
         {/* cURL Example Code Box */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Sample Event Ingestion cURL Request</span>
+            <span>Send your first event with cURL</span>
             <button
               onClick={() => copyToClipboard(sampleCurl, setCopiedCurl)}
               className="flex items-center gap-1 hover:text-white transition"
@@ -200,6 +195,30 @@ export default function DeveloperPage() {
             {sampleCurl}
           </pre>
         </div>
+      </div>
+
+      {/* TypeScript SDK */}
+      <div className="bg-zinc-900 border border-zinc-800 p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-bold text-zinc-100">Use the TypeScript SDK</h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            Send events and read XP, achievements and leaderboards from a Node.js server.
+          </p>
+        </div>
+        <pre className="p-3 bg-zinc-950 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto">
+          {`pnpm add @gami.fied/sdk`}
+        </pre>
+        <pre className="p-3 bg-zinc-950 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto">
+          {`import { Gami } from '@gami.fied/sdk';
+
+const gami = new Gami({ apiKey: process.env.GAMI_API_KEY! });
+
+await gami.events.track({
+  userId: 'user_123',
+  type: 'order_completed',
+  properties: { amount: 149.99 },
+});`}
+        </pre>
       </div>
     </div>
   );

@@ -19,6 +19,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface TableMetric {
   id: string;
@@ -155,34 +156,25 @@ export default function AdminStoragePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Database className="w-5 h-5 text-danger-400" />
-            <h1 className="text-xl font-bold text-white">
-              Database Storage &amp; Maintenance
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
-            Inspect storage usage across event outboxes, delivery logs, audit history, and rule execution records. Prune historical logs and clear redundant data to maintain optimal database performance.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <Button
+      <PageHeader
+        title="Storage"
+        description="See what's using database space, and clear old records."
+        actions={
+          <>
+<Button
             onClick={fetchMetrics}
             disabled={loading}
             variant="outline"
             className="flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh Metrics
+            Refresh
           </Button>
           <Button
             onClick={() =>
               setConfirmTarget({
                 id: 'all_completed_logs',
-                name: 'All Completed Delivery & Outbox Logs',
+                name: 'All finished delivery records',
                 olderThanDays: 0,
               })
             }
@@ -191,10 +183,11 @@ export default function AdminStoragePage() {
             className="flex items-center gap-1.5 font-bold"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            Purge All Completed Logs
+            Purge logs
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center justify-between">

@@ -1,6 +1,6 @@
 'use client';
 
-import { ModalFrame } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { useEffect, useState } from 'react';
 import { useSmtpConfig } from '@/hooks/use-smtp';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checklist, ChecklistItem } from '@/components/ui/checklist';
-import { Mail, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Send } from 'lucide-react';
 
 export function SmtpSettingsView() {
   const { status, loading, error, successMsg, saveConfig, sendTestEmail } = useSmtpConfig();
@@ -67,23 +67,15 @@ export function SmtpSettingsView() {
     {
       value: 'enable_tls',
       label: 'Enable TLS / Implicit SSL Connection',
-      description: 'Encrypt SMTP socket transport (Required for Port 465, optional for Port 587 STARTTLS).',
+      description:
+        'Encrypt SMTP socket transport (Required for Port 465, optional for Port 587 STARTTLS).',
       badge: secure ? 'TLS Active' : 'STARTTLS / Plain',
     },
   ];
 
   return (
-    <div className="space-y-6 text-zinc-100 max-w-4xl">
+    <div className="space-y-6 text-zinc-100">
       {/* Header */}
-      <div className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-        <div className="flex items-center gap-2">
-          <Mail className="w-5 h-5 text-info-400" />
-          <h1 className="text-xl font-bold tracking-tight text-white">Server SMTP &amp; Email Settings</h1>
-        </div>
-        <p className="text-xs text-zinc-400">
-          Configure server-wide SMTP email delivery settings for Gami notifications. Secrets encrypted at rest.
-        </p>
-      </div>
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
@@ -141,15 +133,21 @@ export function SmtpSettingsView() {
             <CardTitle className="text-sm font-bold tracking-wide text-white">
               SMTP Server Credentials
             </CardTitle>
-            <CardDescription>Configure SMTP mail server host, port, credentials, and sender headers.</CardDescription>
+            <CardDescription>
+              Configure SMTP mail server host, port, credentials, and sender headers.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="smtp-settings-view-smtp-host" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="smtp-settings-view-smtp-host"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   SMTP Host *
                 </label>
-                <Input id="smtp-settings-view-smtp-host"
+                <Input
+                  id="smtp-settings-view-smtp-host"
                   type="text"
                   required
                   placeholder="e.g. smtp.mailtrap.io or smtp.gmail.com"
@@ -159,10 +157,14 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-smtp-port" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="smtp-settings-view-smtp-port"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   SMTP Port *
                 </label>
-                <Input id="smtp-settings-view-smtp-port"
+                <Input
+                  id="smtp-settings-view-smtp-port"
                   type="number"
                   required
                   placeholder="587 or 465"
@@ -172,10 +174,14 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-smtp-username" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="smtp-settings-view-smtp-username"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   SMTP Username
                 </label>
-                <Input id="smtp-settings-view-smtp-username"
+                <Input
+                  id="smtp-settings-view-smtp-username"
                   type="text"
                   placeholder="Username or API Key ID"
                   value={user}
@@ -184,22 +190,34 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-smtp-password-secret" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="smtp-settings-view-smtp-password-secret"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   SMTP Password / Secret
                 </label>
-                <Input id="smtp-settings-view-smtp-password-secret"
+                <Input
+                  id="smtp-settings-view-smtp-password-secret"
                   type="password"
-                  placeholder={status?.passwordConfigured ? '•••••••••••• (Leave blank to keep unchanged)' : 'Enter SMTP password'}
+                  placeholder={
+                    status?.passwordConfigured
+                      ? '•••••••••••• (Leave blank to keep unchanged)'
+                      : 'Enter SMTP password'
+                  }
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-sender-email-address-from-email" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="smtp-settings-view-sender-email-address-from-email"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   Sender Email Address (From Email) *
                 </label>
-                <Input id="smtp-settings-view-sender-email-address-from-email"
+                <Input
+                  id="smtp-settings-view-sender-email-address-from-email"
                   type="email"
                   required
                   placeholder="e.g. notifications@mycompany.com"
@@ -209,10 +227,14 @@ export function SmtpSettingsView() {
               </div>
 
               <div>
-                <label htmlFor="smtp-settings-view-sender-name-from-name" className="block text-xs text-zinc-400 font-bold mb-1">
+                <label
+                  htmlFor="smtp-settings-view-sender-name-from-name"
+                  className="block text-xs text-zinc-400 font-bold mb-1"
+                >
                   Sender Name (From Name)
                 </label>
-                <Input id="smtp-settings-view-sender-name-from-name"
+                <Input
+                  id="smtp-settings-view-sender-name-from-name"
                   type="text"
                   placeholder="e.g. Gami.Fied"
                   value={fromName}
@@ -236,12 +258,7 @@ export function SmtpSettingsView() {
         </Card>
 
         <div className="flex justify-end">
-          <Button
-            type="submit"
-            disabled={loading}
-            variant="cyan"
-            className="px-6"
-          >
+          <Button type="submit" disabled={loading} variant="cyan" className="px-6">
             {loading ? 'Saving Configuration...' : 'Save SMTP Configuration'}
           </Button>
         </div>
@@ -249,54 +266,40 @@ export function SmtpSettingsView() {
 
       {/* Test Email Modal */}
       {isTestModalOpen && (
-        <ModalFrame onClose={() => setIsTestModalOpen(false)} label="Send a test email">
-          <div className="w-full max-w-md border border-zinc-700 bg-zinc-950 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-sm font-bold text-white tracking-wide">
-                Send Test Email
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsTestModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-xs border border-zinc-800 px-2 py-1"
+        <Dialog
+          isOpen
+          onClose={() => setIsTestModalOpen(false)}
+          title="Send a test email"
+          maxWidth="md"
+        >
+          <form onSubmit={handleSendTest} className="space-y-4">
+            <div>
+              <label
+                htmlFor="smtp-settings-view-recipient-email-address"
+                className="block text-xs text-zinc-400 font-bold mb-1"
               >
-                ✕
-              </button>
+                Recipient Email Address *
+              </label>
+              <Input
+                id="smtp-settings-view-recipient-email-address"
+                type="email"
+                required
+                placeholder="admin@example.com"
+                value={testEmailAddress}
+                onChange={(e) => setTestEmailAddress(e.target.value)}
+              />
             </div>
 
-            <form onSubmit={handleSendTest} className="space-y-4">
-              <div>
-                <label htmlFor="smtp-settings-view-recipient-email-address" className="block text-xs text-zinc-400 font-bold mb-1">
-                  Recipient Email Address *
-                </label>
-                <Input id="smtp-settings-view-recipient-email-address"
-                  type="email"
-                  required
-                  placeholder="admin@example.com"
-                  value={testEmailAddress}
-                  onChange={(e) => setTestEmailAddress(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  onClick={() => setIsTestModalOpen(false)}
-                  variant="outline"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={sendingTest || !testEmailAddress}
-                  variant="cyan"
-                >
-                  {sendingTest ? 'Sending...' : 'Send Test Email'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </ModalFrame>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" onClick={() => setIsTestModalOpen(false)} variant="outline">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={sendingTest || !testEmailAddress} variant="cyan">
+                {sendingTest ? 'Sending...' : 'Send Test Email'}
+              </Button>
+            </div>
+          </form>
+        </Dialog>
       )}
     </div>
   );
