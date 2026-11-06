@@ -12,14 +12,15 @@
     "challenges",
     "sdk"
   ],
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

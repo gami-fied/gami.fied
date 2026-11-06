@@ -4,6 +4,10 @@
 
 The first stable release, for Gami.Fied 1.0.0 and the `/v1` API.
 
+### Licence
+
+- The SDK is now MIT licensed, so it can be used in closed-source apps. Versions before 1.0.0 remain AGPL-3.0-only. The Gami.Fied server stays AGPL-3.0.
+
 ### Added
 
 - `gami.endUserTokens.create()` creates a short-lived token for your frontend.

@@ -32,7 +32,7 @@ Fill in `.env`, then run `docker compose up -d`. Images are published for `linux
 - A stable `/v1` API. The API key identifies the project, and any endpoint with a user in its path accepts your own user ID.
 - API keys with scopes, expiry and rotation.
 - Short-lived end-user tokens for safe use in browsers, with the `/v1/me` endpoints.
-- `@gami.fied/sdk` 1.0.0 for TypeScript.
+- `@gami.fied/sdk` 1.0.0 for TypeScript, MIT licensed so it works in closed-source apps. The server stays AGPL-3.0.
 - A full API reference in the dashboard, with every parameter, body, response and error, and samples in cURL, JavaScript and Python. Tests check every documented example against the real API.
 
 **Dashboard**

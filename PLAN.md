@@ -25,7 +25,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 1 | Security and tenant safety | 20 / 23 | In progress, 2 partly done, 1 moved to FEAT-17 |
 | 2 | Core engine correctness | 32 / 32 | Done |
 | 3 | Make every promise true | 24 / 27 | In progress, 3 partly done |
-| 4 | Developer experience | 9 / 16 | In progress, 3 partly done |
+| 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 6 / 21 | In progress, 3 partly done |
 | 7 | New product features | 0 / 26 | Not started |
@@ -35,7 +35,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 
 These change the work in later phases, so settle them early.
 
-- [ ] **DEC-1: SDK licence.** The SDK is AGPL-3.0-only. Many companies will not put an AGPL client library in a proprietary app, and that blocks adoption. Recommendation: MIT or Apache-2.0 for the SDK and any UI packages, keep AGPL on the server. Needs the rights of every contributor.
+- [x] **DEC-1: SDK licence.** The SDK is AGPL-3.0-only. Many companies will not put an AGPL client library in a proprietary app, and that blocks adoption. Recommendation: MIT or Apache-2.0 for the SDK and any UI packages, keep AGPL on the server. Needs the rights of every contributor. Decided: **MIT** for the SDK from 1.0.0, with AGPL-3.0 kept on the server.
 - [x] **DEC-2: Product name.** The repo mixes "Gami", "Gami.Fied", "Gami Engine" and "gami.fied". Pick one and do a trademark check. Decided: **Gami.Fied**, on `gami.fied.cc`. Left: replace the other spellings.
 - [ ] **DEC-3: Default branch.** Local work is on `master`, the main branch is `main`, and both exist on `origin`. Keep one.
 - [ ] **DEC-4: Target customer.** Recommendation: developers of consumer, edtech, fitness and community apps who want to own their data. This decides whether streaks, rewards and React components come before enterprise work such as SSO.
@@ -327,7 +327,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 
 ### 4.3 SDKs and tooling
 
-- [~] **DX-12** `P1` Add a server-only check to the SDK and resolve DEC-1. `[code]` The SDK now refuses an API key in a browser unless `dangerouslyAllowBrowser` is set. Left: DEC-1.
+- [x] **DX-12** `P1` Add a server-only check to the SDK and resolve DEC-1. `[code]` The SDK now refuses an API key in a browser unless `dangerouslyAllowBrowser` is set. DEC-1 is resolved: the SDK is MIT.
 - [ ] **DX-13** `P2` Keep SDK types generated from OpenAPI so they cannot drift. `[code]`
 - [ ] **DX-14** `P2` Publish Python, then Go and PHP SDKs. `[code]`
 - [ ] **DX-15** `P2` Add a CLI for key setup, sending test events, and syncing rules from version-controlled files. `[code]`

@@ -180,4 +180,6 @@ Comprehensive documentation is available in the [`docs/`](./docs) folder:
 
 ## License
 
-Distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [LICENSE](LICENSE) for details.
+The server, worker and dashboard are distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [LICENSE](LICENSE) for details.
+
+The SDK in `packages/sdk` is distributed under the **MIT License**, so you can use it in closed-source apps. See its [LICENSE](packages/sdk/LICENSE).

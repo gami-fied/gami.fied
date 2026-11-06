@@ -1,7 +1,7 @@
 # @gami.fied/sdk
 
 [![npm version](https://img.shields.io/npm/v/@gami.fied/sdk.svg)](https://www.npmjs.com/package/@gami.fied/sdk)
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/gami-fied/gami.fied/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/gami-fied/gami.fied/blob/master/packages/sdk/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 
 Official isomorphic TypeScript client for [**Gami.Fied**](https://github.com/gami-fied/gami.fied)—the open-source, self-hostable gamification engine and infrastructure platform.
@@ -115,4 +115,4 @@ try {
 
 ## License
 
-Distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [LICENSE](https://github.com/gami-fied/gami.fied/blob/main/LICENSE) for details.
+Distributed under the **MIT License**. See [LICENSE](https://github.com/gami-fied/gami.fied/blob/master/packages/sdk/LICENSE). The Gami.Fied server is licensed separately under AGPL-3.0.
