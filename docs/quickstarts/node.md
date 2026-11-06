@@ -19,7 +19,6 @@ const gami = new Gami({
 async function main() {
   try {
     const result = await gami.events.ingest({
-      projectId: 'prj_123',
       externalId: 'user_123',
       event: 'purchase',
       payload: { amount: 4999 },

@@ -25,7 +25,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Dropdown } from '@/components/ui/dropdown';
 import { InviteModal } from './invite-modal';
 import { MemberDetailsDrawer } from './member-details-drawer';
-import type { OrganizationMemberRecord } from '@gami.fied/sdk';
+import type { OrganizationMemberRecord } from '@/lib/organization-types';
 import { usePermissions } from '@/hooks/use-permissions';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';

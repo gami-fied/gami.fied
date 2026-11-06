@@ -214,7 +214,6 @@ export default function DeveloperPage() {
 const gami = new Gami({ apiKey: process.env.GAMI_API_KEY! });
 
 await gami.events.track({
-  projectId: '${projectId}',
   userId: 'user_123',
   type: 'order_completed',
   properties: { amount: 149.99 },

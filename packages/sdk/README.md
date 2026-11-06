@@ -20,6 +20,8 @@ Official isomorphic TypeScript client for [**Gami.Fied**](https://github.com/gam
 
 ## Installation
 
+The SDK is an ES module and needs Node.js 18 or later. Use `import`. `require()` works from Node.js 22.
+
 ```bash
 # pnpm
 pnpm add @gami.fied/sdk
@@ -43,11 +45,8 @@ const gami = new Gami({
   apiKey: process.env.GAMI_API_KEY!,
 });
 
-const projectId = 'prj_123';
-
 // 1. Track what a user did. Rules, XP and achievements run in the background.
 const event = await gami.events.track({
-  projectId,
   userId: 'user_123',
   type: 'order_completed',
   properties: { amount: 4999, currency: 'USD' },
@@ -55,17 +54,17 @@ const event = await gami.events.track({
 console.log(`Accepted event ${event.id}`);
 
 // 2. Read their progress
-const progress = await gami.levels.getUserProgress({ projectId, userId: 'user_123' });
+const progress = await gami.levels.getUserProgress({ userId: 'user_123' });
 console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 
-New API keys can only send events (`events:write`). Create the key with more scopes to read data, as in step 2. See [API authentication](../../docs/api-authentication.md).
+New API keys can only send events (`events:write`). Create the key with more scopes to read data, as in step 2. See [API authentication](https://github.com/gami-fied/gami.fied/blob/master/docs/api-authentication.md).
 
 ---
 
 ## Core resources
 
-Every method takes one object, and project resources need `projectId`.
+Every method takes one object. Your API key identifies the project, and `userId` can be your own ID for the user.
 
 | Resource | Methods |
 | :--- | :--- |
@@ -79,7 +78,7 @@ Every method takes one object, and project resources need `projectId`.
 
 `gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. `gami.organizations` needs a signed-in session, so API keys get 403.
 
-To verify incoming webhooks, use `verifyWebhook`. See [the SDK guide](../../docs/sdk.md).
+To verify incoming webhooks, use `verifyWebhook`. See [the SDK guide](https://github.com/gami-fied/gami.fied/blob/master/docs/sdk.md).
 
 ---
 
@@ -98,7 +97,7 @@ import {
 const gami = new Gami({ baseUrl: 'http://localhost:3001', apiKey: 'gami_live_REPLACE_ME' });
 
 try {
-  await gami.events.track({ projectId: 'prj_123', userId: 'user_123', type: 'signup' });
+  await gami.events.track({ userId: 'user_123', type: 'signup' });
 } catch (err) {
   if (err instanceof GamiAuthenticationError) {
     console.error('Invalid API key');

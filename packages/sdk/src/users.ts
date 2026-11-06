@@ -122,4 +122,20 @@ export class UsersResource {
       path: projectPath(params.projectId, `/users/${params.userId}`),
     });
   }
+
+  /**
+   * Permanently delete a user and their personal data. This can't be undone.
+   * Calls POST /v1/users/:userId/erase
+   */
+  public async erase(params: DeleteUserParams): Promise<{ success: boolean; message: string }> {
+    if (!params.userId) {
+      throw new Error('userId is required for gami.users.erase()');
+    }
+
+    return this.http.request<{ success: boolean; message: string }>({
+      method: 'POST',
+      path: projectPath(params.projectId, `/users/${params.userId}/erase`),
+      body: { confirm: true },
+    });
+  }
 }

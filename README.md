@@ -127,11 +127,8 @@ const gami = new Gami({
   apiKey: 'gami_live_your_project_api_key',
 });
 
-const projectId = 'prj_your_project_id';
-
 // Send a user event. Rules and challenges run in the background.
 const event = await gami.events.track({
-  projectId,
   userId: 'usr_12345',
   type: 'lesson_completed',
   properties: { lessonId: 'les_99', score: 100 },
@@ -140,7 +137,7 @@ const event = await gami.events.track({
 console.log('Accepted event:', event.id);
 
 // Read the user's progress. This needs a key with the levels:read scope.
-const progress = await gami.levels.getUserProgress({ projectId, userId: 'usr_12345' });
+const progress = await gami.levels.getUserProgress({ userId: 'usr_12345' });
 console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
 ```
 

@@ -9,7 +9,7 @@ import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
 import { Mail, Layers, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useDashboard } from '../context/dashboard-context';
-import type { OrganizationMemberRecord } from '@gami.fied/sdk';
+import type { OrganizationMemberRecord } from '@/lib/organization-types';
 
 interface MemberDetailsDrawerProps {
   member: OrganizationMemberRecord | null;

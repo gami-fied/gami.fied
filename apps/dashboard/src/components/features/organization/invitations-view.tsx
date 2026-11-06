@@ -20,7 +20,7 @@ import { useDashboard } from '../context/dashboard-context';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { InviteModal } from './invite-modal';
-import type { OrganizationInvitationRecord } from '@gami.fied/sdk';
+import type { OrganizationInvitationRecord } from '@/lib/organization-types';
 import { PageHeader } from '@/components/ui/page-header';
 
 export function InvitationsView() {
