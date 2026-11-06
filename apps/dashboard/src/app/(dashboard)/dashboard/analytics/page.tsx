@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import { useDashboard } from '@/components/features/context/dashboard-context';
 import { Dropdown } from '@/components/ui/dropdown';
 import {
-  BarChart3,
   type LucideIcon,
   Download,
   Users,
@@ -17,6 +16,7 @@ import {
   RefreshCw,
   TrendingUp,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface OverviewMetrics {
   totalUsers?: number;
@@ -56,12 +56,23 @@ interface IntegrationMetrics {
   integrations?: { delivered?: number; failed?: number };
 }
 
+type AnalyticsTab = 'overview' | 'users' | 'events' | 'gamification' | 'delivery';
+
+/** Each tab loads only what it shows, so opening the page doesn't run every report. */
+const TAB_SECTIONS = {
+  overview: ['overview', 'users', 'gamification'],
+  users: ['users'],
+  events: ['events'],
+  gamification: ['gamification'],
+  delivery: ['notifications', 'integrations'],
+} as const;
+
 export default function AnalyticsPage() {
   const { selectedProject } = useDashboard();
   const [range, setRange] = useState<'24h' | '7d' | '30d' | '90d' | 'custom'>('7d');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'gamification' | 'delivery'>('overview');
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
 
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<OverviewMetrics | null>(null);
@@ -89,22 +100,24 @@ export default function AnalyticsPage() {
     }
     const q = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-    try {
-      const [ovRes, uRes, eRes, gRes, nRes, iRes] = await Promise.all([
-        apiFetch(`/api/projects/${selectedProject.id}/analytics/overview${q}`, { credentials: 'include' }),
-        apiFetch(`/api/projects/${selectedProject.id}/analytics/users${q}`, { credentials: 'include' }),
-        apiFetch(`/api/projects/${selectedProject.id}/analytics/events${q}`, { credentials: 'include' }),
-        apiFetch(`/api/projects/${selectedProject.id}/analytics/gamification${q}`, { credentials: 'include' }),
-        apiFetch(`/api/projects/${selectedProject.id}/analytics/notifications${q}`, { credentials: 'include' }),
-        apiFetch(`/api/projects/${selectedProject.id}/analytics/integrations${q}`, { credentials: 'include' }),
-      ]);
+    const load = async <T,>(section: string, apply: (data: T) => void) => {
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/analytics/${section}${q}`, {
+        credentials: 'include',
+      });
+      if (res.ok) apply(await res.json());
+    };
 
-      if (ovRes.ok) setOverview(await ovRes.json());
-      if (uRes.ok) setUserMetrics(await uRes.json());
-      if (eRes.ok) setEventMetrics(await eRes.json());
-      if (gRes.ok) setGamificationMetrics(await gRes.json());
-      if (nRes.ok) setNotificationMetrics(await nRes.json());
-      if (iRes.ok) setIntegrationMetrics(await iRes.json());
+    const loaders = {
+      overview: () => load('overview', setOverview),
+      users: () => load('users', setUserMetrics),
+      events: () => load('events', setEventMetrics),
+      gamification: () => load('gamification', setGamificationMetrics),
+      notifications: () => load('notifications', setNotificationMetrics),
+      integrations: () => load('integrations', setIntegrationMetrics),
+    };
+
+    try {
+      await Promise.all(TAB_SECTIONS[activeTab].map((section) => loaders[section]()));
     } catch {
       // Silently catch network errors
     } finally {
@@ -114,7 +127,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [selectedProject?.id, range]);
+  }, [selectedProject?.id, range, activeTab]);
 
   const handleExportCsv = (type: string) => {
     if (!selectedProject?.id) return;
@@ -128,75 +141,27 @@ export default function AnalyticsPage() {
     window.open(`/api/projects/${selectedProject.id}/analytics/export?${queryParams.toString()}`, '_blank');
   };
 
-  if (loading && !overview) return <TableSkeleton rows={8} />;
+  const tabData = {
+    overview,
+    users: userMetrics,
+    events: eventMetrics,
+    gamification: gamificationMetrics,
+    delivery: notificationMetrics,
+  }[activeTab];
+  const showSkeleton = loading && !tabData;
 
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="bg-zinc-900 border border-zinc-800 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <BarChart3 className="w-6 h-6 text-brand-400" />
-            <h1 className="text-xl font-bold text-white tracking-tight">Project Analytics & Insights</h1>
-          </div>
-          <p className="text-xs text-zinc-400">
-            Near-real-time product analytics, user growth, event volume, and gamification performance metrics.
-          </p>
-        </div>
-
-        {/* Date Range Selector & Actions */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center bg-zinc-950 border border-zinc-800 p-1">
-            {(['24h', '7d', '30d', '90d', 'custom'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setRange(p)}
-                className={`px-3 py-1 text-xs font-semibold transition ${
-                  range === p
-                    ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                {p.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {range === 'custom' && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-zinc-950 border border-zinc-800 text-xs text-white px-2 py-1"
-              />
-              <span className="text-zinc-400 text-xs">-</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-zinc-950 border border-zinc-800 text-xs text-white px-2 py-1"
-              />
-              <button
-                onClick={fetchAnalytics}
-                className="px-2 py-1 bg-brand-500 text-black text-xs font-bold"
-              >
-                Apply
-              </button>
-            </div>
-          )}
-
-          <button
-            onClick={fetchAnalytics}
-            className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
-            title="Refresh Analytics" aria-label="Refresh Analytics"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <div className="w-56">
+      <PageHeader
+        title="Analytics"
+        description="How your users, events and rewards are doing over time."
+        actions={
+          <>
+<div className="w-28 sm:w-36">
             <Dropdown
-              placeholder="Export CSV..."
+              placeholder="Export"
+              align="right"
               value={null}
               options={[
                 {
@@ -214,12 +179,12 @@ export default function AnalyticsPage() {
                 {
                   value: 'events',
                   label: 'Events Log CSV',
-                  sublabel: 'Ingested event activity',
+                  sublabel: 'Events received',
                   icon: <Activity className="w-3.5 h-3.5 text-info-400" />,
                 },
                 {
                   value: 'xp',
-                  label: 'XP Ledger CSV',
+                  label: 'XP History CSV',
                   sublabel: 'XP award transactions',
                   icon: <Coins className="w-3.5 h-3.5 text-warning-400" />,
                 },
@@ -236,11 +201,61 @@ export default function AnalyticsPage() {
               variant="orange"
             />
           </div>
-        </div>
-      </div>
+<button
+            onClick={fetchAnalytics}
+            className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
+            title="Refresh Analytics" aria-label="Refresh Analytics"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          </>
+        }
+        toolbar={
+          <>
+<div className="flex items-center bg-zinc-950 border border-zinc-800 p-1">
+            {(['24h', '7d', '30d', '90d', 'custom'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setRange(p)}
+                className={`px-3 py-1 text-xs font-semibold transition ${
+                  range === p
+                    ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
+{range === 'custom' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-zinc-950 border border-zinc-800 text-xs text-white px-2 py-1 focus:border-brand-500"
+              />
+              <span className="text-zinc-400 text-xs">-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-zinc-950 border border-zinc-800 text-xs text-white px-2 py-1 focus:border-brand-500"
+              />
+              <button
+                onClick={fetchAnalytics}
+                className="px-2 py-1 bg-brand-500 text-black text-xs font-bold"
+              >
+                Apply
+              </button>
+            </div>
+          )}
+          </>
+        }
+      />
 
       {/* Tabs */}
-      <div className="flex border-b border-zinc-800 gap-6 text-xs">
+      <div className="page-toolbar flex border-b border-zinc-800 gap-6 text-xs">
         {(
           [
             { id: 'overview', label: 'Overview' },
@@ -265,7 +280,9 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Overview Tab Content */}
-      {activeTab === 'overview' && (
+      {showSkeleton && <TableSkeleton rows={8} />}
+
+      {!showSkeleton && activeTab === 'overview' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <SummaryCard title="Total End Users" value={overview?.totalUsers ?? 0} icon={Users} color="text-brand-400" />
@@ -315,7 +332,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* User Growth Tab */}
-      {activeTab === 'users' && (
+      {!showSkeleton && activeTab === 'users' && (
         <DataBox title="User Growth Over Time">
           {userMetrics?.userGrowthOverTime?.length === 0 ? (
             <p className="text-xs text-zinc-400 py-8 text-center">No user registration activity recorded in this period.</p>
@@ -333,11 +350,11 @@ export default function AnalyticsPage() {
       )}
 
       {/* Event Volume Tab */}
-      {activeTab === 'events' && (
+      {!showSkeleton && activeTab === 'events' && (
         <div className="space-y-6">
-          <DataBox title="Top Ingested Event Types">
+          <DataBox title="Top event types">
             {eventMetrics?.topEventTypes?.length === 0 ? (
-              <p className="text-xs text-zinc-400 py-8 text-center">No event ingestion records found.</p>
+              <p className="text-xs text-zinc-400 py-8 text-center">No events in this period.</p>
             ) : (
               <div className="divide-y divide-zinc-800">
                 {eventMetrics?.topEventTypes?.map((row, idx) => (
@@ -353,7 +370,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Gamification Tab */}
-      {activeTab === 'gamification' && (
+      {!showSkeleton && activeTab === 'gamification' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataBox title="Most Popular Achievements">
@@ -393,7 +410,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Delivery & Integrations Tab */}
-      {activeTab === 'delivery' && (
+      {!showSkeleton && activeTab === 'delivery' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <DataBox title="In-App & Email Notifications">
             <div className="space-y-3 text-xs">
@@ -402,11 +419,11 @@ export default function AnalyticsPage() {
                 <span className="text-white font-bold">{notificationMetrics?.inAppNotificationsGenerated ?? 0}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-zinc-800">
-                <span className="text-zinc-400">Email Outbox Completed:</span>
+                <span className="text-zinc-400">Emails sent:</span>
                 <span className="text-success-400 font-bold">{notificationMetrics?.outbox?.completed ?? 0}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-zinc-400">Email Outbox Failed:</span>
+                <span className="text-zinc-400">Emails failed:</span>
                 <span className="text-danger-400 font-bold">{notificationMetrics?.outbox?.failed ?? 0}</span>
               </div>
             </div>

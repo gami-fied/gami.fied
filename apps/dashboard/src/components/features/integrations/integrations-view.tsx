@@ -1,6 +1,11 @@
 'use client';
 
-import { EVENT_CHECKLIST_ITEMS, EVENT_TYPES, PLACEHOLDERS, DEFAULT_TEMPLATES } from './integration-constants';
+import {
+  EVENT_CHECKLIST_ITEMS,
+  EVENT_TYPES,
+  PLACEHOLDERS,
+  DEFAULT_TEMPLATES,
+} from './integration-constants';
 import { formatDateTime } from '@/lib/format';
 import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
@@ -33,13 +38,19 @@ import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { Input, Textarea } from '@/components/ui/input';
 import { Checklist } from '@/components/ui/checklist';
-import type { DiscordEmbedField, DiscordEmbedTemplate, IntegrationDeliveryRecord, IntegrationRecord } from '@gami.fied/sdk';
+import type {
+  DiscordEmbedField,
+  DiscordEmbedTemplate,
+  IntegrationDeliveryRecord,
+  IntegrationRecord,
+} from '@gami.fied/sdk';
+import { PageHeader } from '@/components/ui/page-header';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function IntegrationsView() {
   const toast = useToast();
   const confirmAction = useConfirm();
-  const { selectedProject, selectedOrg } = useDashboard();
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { selectedProject } = useDashboard();
   const [integrations, setIntegrations] = useState<IntegrationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +69,9 @@ export function IntegrationsView() {
 
   // Configure Templates & Delivery Controls Modal State
   const [activeConfigModal, setActiveConfigModal] = useState<IntegrationRecord | null>(null);
-  const [activeModalTab, setActiveModalTab] = useState<'events' | 'template' | 'preview'>('template');
+  const [activeModalTab, setActiveModalTab] = useState<'events' | 'template' | 'preview'>(
+    'template'
+  );
   const [selectedEventTab, setSelectedEventTab] = useState<string>('xp_awarded');
   const [enabledEvents, setEnabledEvents] = useState<string[]>([
     'xp_awarded',
@@ -139,9 +152,12 @@ export function IntegrationsView() {
   const handleTestIntegration = async (intg: IntegrationRecord) => {
     if (!selectedProject) return;
     try {
-      const res = await apiFetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}/test`, {
-        method: 'POST',
-      });
+      const res = await apiFetch(
+        `/api/projects/${selectedProject.id}/integrations/${intg.id}/test`,
+        {
+          method: 'POST',
+        }
+      );
       if (res.ok) {
         toast.success('Test notification successfully sent to Discord!');
         await fetchIntegrations();
@@ -172,7 +188,12 @@ export function IntegrationsView() {
 
   const handleDeleteIntegration = async (intg: IntegrationRecord) => {
     if (!selectedProject) return;
-    if (!await confirmAction({ message: `Are you sure you want to disconnect integration "${intg.name}"?` })) return;
+    if (
+      !(await confirmAction({
+        message: `Are you sure you want to disconnect integration "${intg.name}"?`,
+      }))
+    )
+      return;
 
     try {
       const res = await apiFetch(`/api/projects/${selectedProject.id}/integrations/${intg.id}`, {
@@ -233,7 +254,14 @@ export function IntegrationsView() {
       );
       if (res.ok) {
         const data = await res.json();
-        setEnabledEvents(data.enabledEvents || ['xp_awarded', 'achievement_unlocked', 'level_up', 'challenge_completed']);
+        setEnabledEvents(
+          data.enabledEvents || [
+            'xp_awarded',
+            'achievement_unlocked',
+            'level_up',
+            'challenge_completed',
+          ]
+        );
         setCustomTemplates(data.customTemplates || {});
       }
     } catch {
@@ -246,7 +274,8 @@ export function IntegrationsView() {
     field: keyof DiscordEmbedTemplate,
     value: DiscordEmbedTemplate[keyof DiscordEmbedTemplate]
   ) => {
-    const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
+    const activeTpl =
+      customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     setCustomTemplates({
       ...customTemplates,
       [selectedEventTab]: {
@@ -258,7 +287,8 @@ export function IntegrationsView() {
 
   // Add field to current embed template
   const handleAddFieldToTemplate = () => {
-    const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
+    const activeTpl =
+      customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     const existingFields = activeTpl.fields || [];
     handleUpdateCurrentTemplateField('fields', [
       ...existingFields,
@@ -272,7 +302,8 @@ export function IntegrationsView() {
     key: keyof DiscordEmbedField,
     val: DiscordEmbedField[keyof DiscordEmbedField]
   ) => {
-    const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
+    const activeTpl =
+      customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     const fields = [...(activeTpl.fields || [])];
     if (fields[idx]) {
       fields[idx] = { ...fields[idx], [key]: val };
@@ -282,7 +313,8 @@ export function IntegrationsView() {
 
   // Remove field from template
   const handleRemoveField = (idx: number) => {
-    const activeTpl = customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
+    const activeTpl =
+      customTemplates[selectedEventTab] || DEFAULT_TEMPLATES[selectedEventTab] || {};
     const fields = (activeTpl.fields || []).filter((_, i) => i !== idx);
     handleUpdateCurrentTemplateField('fields', fields);
   };
@@ -368,34 +400,28 @@ export function IntegrationsView() {
   return (
     <div className="space-y-8">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            <Blocks className="w-5 h-5 text-success-400" />
-            Integrations & External Channels
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+      <PageHeader
+        title="Integrations"
+        description={
+          <>
             Connect project gamification events to external platforms (Discord, Slack, Teams) for{' '}
-            <span className="text-success-400 font-semibold">{selectedProject.name}</span>.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!isAdminOrOwner}
-          title={!isAdminOrOwner ? 'Requires Admin or Owner role to connect integrations' : undefined}
-          onClick={() => isAdminOrOwner && setIsConnectOpen(true)}
-          className={`text-white ${
-            isAdminOrOwner
-              ? 'bg-success-600 hover:bg-success-500'
-              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
-          }`}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Connect Integration
-        </Button>
-      </div>
+            <span className="text-zinc-200">{selectedProject.name}</span>.
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsConnectOpen(true)}
+              className={`text-white ${'bg-success-600 hover:bg-success-500'}`}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Connect Integration
+            </Button>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
@@ -421,7 +447,8 @@ export function IntegrationsView() {
             <MessageSquare className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-zinc-200">No Integrations Connected</h3>
             <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
-              Connect Discord to deliver real-time custom embeds when users earn XP, unlock achievements, or level up.
+              Connect Discord to deliver real-time custom embeds when users earn XP, unlock
+              achievements, or level up.
             </p>
             <Button
               variant="secondary"
@@ -443,7 +470,10 @@ export function IntegrationsView() {
                 : 0;
 
               return (
-                <Card key={intg.id} className="p-4 bg-zinc-950 border-zinc-800 flex flex-col justify-between space-y-4">
+                <Card
+                  key={intg.id}
+                  className="p-4 bg-zinc-950 border-zinc-800 flex flex-col justify-between space-y-4"
+                >
                   <div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
@@ -452,9 +482,7 @@ export function IntegrationsView() {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-zinc-100">{intg.name}</h3>
-                          <p className="text-xs text-zinc-400">
-                            Provider: {intg.provider}
-                          </p>
+                          <p className="text-xs text-zinc-400">Provider: {intg.provider}</p>
                         </div>
                       </div>
 
@@ -496,7 +524,9 @@ export function IntegrationsView() {
                       <div className="flex items-center justify-between text-zinc-400">
                         <span>Custom Embed Templates:</span>
                         <span className="text-success-400 font-bold">
-                          {customTplCount > 0 ? `${customTplCount} Customized` : 'Using System Defaults'}
+                          {customTplCount > 0
+                            ? `${customTplCount} Customized`
+                            : 'Using System Defaults'}
                         </span>
                       </div>
 
@@ -508,80 +538,56 @@ export function IntegrationsView() {
                     </div>
                   </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-zinc-900 gap-2">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={!isAdminOrOwner}
-                          title={!isAdminOrOwner ? 'Requires Admin or Owner role to configure templates' : undefined}
-                          onClick={() => isAdminOrOwner && openConfigModal(intg)}
-                          className={`text-xs h-7 px-2.5 font-medium ${
-                            isAdminOrOwner
-                              ? 'border-success-900/60 hover:bg-success-950/40 text-success-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
-                          }`}
-                        >
-                          <Sliders className="w-3 h-3 mr-1 text-success-400" />
-                          Configure Templates & Events
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={!isAdminOrOwner}
-                          title={!isAdminOrOwner ? 'Requires Admin or Owner role to test integration' : undefined}
-                          onClick={() => isAdminOrOwner && handleTestIntegration(intg)}
-                          className={`text-xs h-7 px-2.5 ${
-                            isAdminOrOwner
-                              ? 'border-zinc-800 hover:bg-zinc-900 text-zinc-300'
-                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
-                          }`}
-                        >
-                          <Send className="w-3 h-3 mr-1 text-success-400" />
-                          Test
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => openDeliveriesModal(intg)}
-                          className="text-xs h-7 px-2.5 border-zinc-800 hover:bg-zinc-900 text-zinc-300"
-                        >
-                          <History className="w-3 h-3 mr-1 text-info-400" />
-                          Logs
-                        </Button>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={!isAdminOrOwner}
-                          title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle integration' : undefined}
-                          onClick={() => isAdminOrOwner && handleToggleEnable(intg)}
-                          className={`text-xs h-7 px-2.5 ${
-                            isAdminOrOwner
-                              ? 'border-zinc-800 hover:bg-zinc-900 text-zinc-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
-                          }`}
-                        >
-                          {intg.enabled ? 'Disable' : 'Enable'}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={!isAdminOrOwner}
-                          title={!isAdminOrOwner ? 'Requires Admin or Owner role to remove integration' : undefined}
-                          onClick={() => isAdminOrOwner && handleDeleteIntegration(intg)}
-                          className={`text-xs h-7 px-2 ${
-                            isAdminOrOwner
-                              ? 'border-danger-950 hover:bg-danger-950/40 text-danger-400'
-                              : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
-                          }`}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-zinc-900 gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => openConfigModal(intg)}
+                        className={`text-xs h-7 px-2.5 font-medium ${'border-success-900/60 hover:bg-success-950/40 text-success-400'}`}
+                      >
+                        <Sliders className="w-3 h-3 mr-1 text-success-400" />
+                        Configure Templates & Events
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleTestIntegration(intg)}
+                        className={`text-xs h-7 px-2.5 ${'border-zinc-800 hover:bg-zinc-900 text-zinc-300'}`}
+                      >
+                        <Send className="w-3 h-3 mr-1 text-success-400" />
+                        Test
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => openDeliveriesModal(intg)}
+                        className="text-xs h-7 px-2.5 border-zinc-800 hover:bg-zinc-900 text-zinc-300"
+                      >
+                        <History className="w-3 h-3 mr-1 text-info-400" />
+                        Logs
+                      </Button>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleToggleEnable(intg)}
+                        className={`text-xs h-7 px-2.5 ${'border-zinc-800 hover:bg-zinc-900 text-zinc-400'}`}
+                      >
+                        {intg.enabled ? 'Disable' : 'Enable'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleDeleteIntegration(intg)}
+                        className={`text-xs h-7 px-2 ${'border-danger-950 hover:bg-danger-950/40 text-danger-400'}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </Card>
               );
             })}
@@ -606,13 +612,12 @@ export function IntegrationsView() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-zinc-100">Discord</h3>
-                  <span className="text-xs text-success-400 font-semibold">
-                    Active Provider
-                  </span>
+                  <span className="text-xs text-success-400 font-semibold">Active Provider</span>
                 </div>
               </div>
               <p className="text-xs text-zinc-400 mt-3 leading-relaxed">
-                Deliver custom Discord embed notifications for XP awards, achievements, level ups, and challenge completions.
+                Deliver custom Discord embed notifications for XP awards, achievements, level ups,
+                and challenge completions.
               </p>
             </div>
             <Button
@@ -628,10 +633,15 @@ export function IntegrationsView() {
       </div>
 
       {/* Connect Discord Dialog */}
-      <Dialog isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} title="Connect Discord Integration">
+      <Dialog
+        isOpen={isConnectOpen}
+        onClose={() => setIsConnectOpen(false)}
+        title="Connect Discord Integration"
+      >
         <form onSubmit={handleCreateDiscordIntegration} className="space-y-4 text-xs">
           <p className="text-zinc-400 text-xs">
-            Configure a Discord Channel Webhook URL to deliver real-time gamification embeds. Credentials are encrypted at rest using AES-256-GCM.
+            Configure a Discord Channel Webhook URL to deliver real-time gamification embeds.
+            Credentials are encrypted at rest using AES-256-GCM.
           </p>
 
           {formError && (
@@ -756,7 +766,9 @@ export function IntegrationsView() {
             {activeModalTab === 'events' && (
               <div className="space-y-3 py-1">
                 <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 text-zinc-300 text-xs">
-                  Select which gamification events automatically create and send Discord notifications. Unchecked events are ignored without interrupting in-app notifications.
+                  Select which gamification events automatically create and send Discord
+                  notifications. Unchecked events are ignored without interrupting in-app
+                  notifications.
                 </div>
                 <Checklist<string>
                   title="SUPPORTED NOTIFICATION EVENTS"
@@ -774,7 +786,7 @@ export function IntegrationsView() {
             {activeModalTab === 'template' && (
               <div className="space-y-4">
                 {/* Event Selector Sub-Tabs */}
-                <div className="flex border-b border-zinc-800 gap-1">
+                <div className="page-toolbar flex border-b border-zinc-800 gap-1">
                   {EVENT_TYPES.map((ev) => (
                     <button
                       key={ev.id}
@@ -805,7 +817,9 @@ export function IntegrationsView() {
                       label="Embed Description"
                       rows={3}
                       value={getActiveTemplate().description || ''}
-                      onChange={(e) => handleUpdateCurrentTemplateField('description', e.target.value)}
+                      onChange={(e) =>
+                        handleUpdateCurrentTemplateField('description', e.target.value)
+                      }
                       placeholder="e.g. **{{userName}}** earned **{{xp}} XP**!"
                       helperText="Supports Discord markdown formatting and placeholders."
                     />
@@ -822,7 +836,9 @@ export function IntegrationsView() {
                         label="Footer Text"
                         type="text"
                         value={getActiveTemplate().footerText || ''}
-                        onChange={(e) => handleUpdateCurrentTemplateField('footerText', e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateCurrentTemplateField('footerText', e.target.value)
+                        }
                         placeholder="Gami.Fied"
                       />
                     </div>
@@ -848,12 +864,16 @@ export function IntegrationsView() {
 
                     {(getActiveTemplate().fields || []).length === 0 ? (
                       <p className="text-[11px] text-zinc-400 text-center py-6">
-                        No custom fields configured for this template. Click "Add Field" to add key-value metadata.
+                        No custom fields configured for this template. Click "Add Field" to add
+                        key-value metadata.
                       </p>
                     ) : (
                       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                         {(getActiveTemplate().fields || []).map((f, idx) => (
-                          <div key={idx} className="p-3 bg-zinc-950/80 border border-zinc-800 space-y-3">
+                          <div
+                            key={idx}
+                            className="p-3 bg-zinc-950/80 border border-zinc-800 space-y-3"
+                          >
                             <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
                               <span className="text-[11px] font-bold text-success-400 flex items-center gap-1.5">
                                 <span className="w-4 h-4 bg-success-950 text-success-400 border border-success-800 text-xs flex items-center justify-center font-bold">
@@ -863,15 +883,13 @@ export function IntegrationsView() {
                               </span>
 
                               <div className="flex items-center gap-3">
-                                <label className="flex items-center gap-1.5 text-[11px] text-zinc-400 cursor-pointer hover:text-zinc-200">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(f.inline)}
-                                    onChange={(e) => handleUpdateField(idx, 'inline', e.target.checked)}
-                                    className="rounded-none border-zinc-700 text-success-500 focus:ring-0 bg-zinc-900"
-                                  />
-                                  <span>Display Inline</span>
-                                </label>
+                                <Checkbox
+                                  label="Display inline"
+                                  checked={Boolean(f.inline)}
+                                  onChange={(e) =>
+                                    handleUpdateField(idx, 'inline', e.target.checked)
+                                  }
+                                />
                                 <Button
                                   type="button"
                                   variant="secondary"
@@ -934,7 +952,9 @@ export function IntegrationsView() {
                         className="p-2 bg-zinc-900 border border-zinc-800 hover:border-success-700 transition cursor-pointer flex items-center justify-between"
                       >
                         <div>
-                          <code className="text-success-400 font-mono text-xs font-bold">{ph.key}</code>
+                          <code className="text-success-400 font-mono text-xs font-bold">
+                            {ph.key}
+                          </code>
                           <p className="text-xs text-zinc-400 mt-0.5">{ph.description}</p>
                         </div>
 
@@ -993,7 +1013,10 @@ export function IntegrationsView() {
                           .replace(/\{\{xpToNextLevel\}\}/g, '250')
                           .replace(/\{\{progressPercent\}\}/g, '83%')
                           .replace(/\{\{achievementName\}\}/g, 'First Victory')
-                          .replace(/\{\{achievementDescription\}\}/g, 'Awarded for completing campaign mission.')
+                          .replace(
+                            /\{\{achievementDescription\}\}/g,
+                            'Awarded for completing campaign mission.'
+                          )
                           .replace(/\{\{newLevel\}\}/g, '6')
                           .replace(/\{\{previousLevel\}\}/g, '5')
                           .replace(/\{\{challengeName\}\}/g, 'Weekly Warrior')
@@ -1015,7 +1038,10 @@ export function IntegrationsView() {
                                   .replace(/\{\{levelName\}\}/g, 'Veteran Adventurer')
                                   .replace(/\{\{xpToNextLevel\}\}/g, '250')
                                   .replace(/\{\{progressPercent\}\}/g, '83%')
-                                  .replace(/\{\{achievementDescription\}\}/g, 'Awarded for completing campaign.')
+                                  .replace(
+                                    /\{\{achievementDescription\}\}/g,
+                                    'Awarded for completing campaign.'
+                                  )
                                   .replace(/\{\{previousLevel\}\}/g, '5')
                                   .replace(/\{\{rewardXp\}\}/g, '500')}
                               </div>
@@ -1026,7 +1052,11 @@ export function IntegrationsView() {
 
                       {getActiveTemplate().footerText && (
                         <div className="pt-2 border-t border-zinc-700/50 text-xs text-zinc-400 flex items-center gap-1">
-                          {getActiveTemplate().footerText} • Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {getActiveTemplate().footerText} • Today at{' '}
+                          {new Date().toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </div>
                       )}
                     </div>
@@ -1088,8 +1118,8 @@ export function IntegrationsView() {
                             del.status === 'completed'
                               ? 'border-success-800 bg-success-950/60 text-success-400'
                               : del.status === 'failed'
-                              ? 'border-danger-800 bg-danger-950/60 text-danger-400'
-                              : 'border-zinc-800 bg-zinc-950 text-zinc-400'
+                                ? 'border-danger-800 bg-danger-950/60 text-danger-400'
+                                : 'border-zinc-800 bg-zinc-950 text-zinc-400'
                           }`}
                         >
                           {del.status}

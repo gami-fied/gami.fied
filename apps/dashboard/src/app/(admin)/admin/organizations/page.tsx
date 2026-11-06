@@ -4,11 +4,12 @@ import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
-import { Building2, Search, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { Search, AlertOctagon, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dropdown, DropdownOption } from '@/components/ui/dropdown';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface AdminOrg {
   id: string;
@@ -60,7 +61,7 @@ export default function AdminOrganizationsPage() {
     if (
       !await confirmAction({ message: `Are you sure you want to ${actionName} organization "${org.name}"?\n\n${
           nextStatus === 'suspended'
-            ? 'All project API requests and event ingestions for this organization will be BLOCKED immediately.'
+            ? 'All API requests and events for this organization will be blocked straight away.'
             : 'Normal API access for this organization will be restored immediately.'
         }` })
     ) {
@@ -105,18 +106,12 @@ export default function AdminOrganizationsPage() {
 
   return (
     <div className="space-y-6 text-zinc-100">
-      <div className="border-b border-zinc-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-danger-400" />
-            Platform Organizations
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Global organization directory, tenant status management, and emergency suspension.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+      <PageHeader
+        title="Organizations"
+        description="Every organization on this server, with the option to suspend one."
+        actions={
+          <>
+<div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="w-full sm:w-48">
             <Dropdown
               theme="rose"
@@ -137,7 +132,9 @@ export default function AdminOrganizationsPage() {
             />
           </div>
         </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">

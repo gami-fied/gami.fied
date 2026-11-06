@@ -24,7 +24,7 @@ export default function ErrorPage({
         {error.digest && <p className="mt-2 text-xs text-zinc-400">Reference: {error.digest}</p>}
         <button
           onClick={reset}
-          className="mt-6 bg-brand-500 px-4 py-2 text-sm font-semibold text-black hover:bg-brand-400"
+          className="mt-6 bg-brand-500 px-4 py-2 text-sm font-semibold text-black hover:bg-brand-600"
         >
           Try again
         </button>

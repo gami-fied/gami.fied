@@ -6,7 +6,6 @@ import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
 import {
-  Users,
   UserPlus,
   Search,
   Shield,
@@ -17,7 +16,6 @@ import {
   Eye,
   AlertTriangle,
   ArrowRightLeft,
-  Lock,
 } from 'lucide-react';
 import { useDashboard } from '../context/dashboard-context';
 import { Button } from '@/components/ui/button';
@@ -28,8 +26,12 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { InviteModal } from './invite-modal';
 import { MemberDetailsDrawer } from './member-details-drawer';
 import type { OrganizationMemberRecord } from '@gami.fied/sdk';
+import { usePermissions } from '@/hooks/use-permissions';
+import { AdminOnly } from '@/components/ui/admin-only';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function MembersView() {
+  const { isAdminOrOwner } = usePermissions();
   const toast = useToast();
   const confirmAction = useConfirm();
   const { selectedOrg, session } = useDashboard();
@@ -45,7 +47,9 @@ export function MembersView() {
 
   // Modal States
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [selectedDrawerMember, setSelectedDrawerMember] = useState<OrganizationMemberRecord | null>(null);
+  const [selectedDrawerMember, setSelectedDrawerMember] = useState<OrganizationMemberRecord | null>(
+    null
+  );
 
   // Change Role Dialog State
   const [roleChangeMember, setRoleChangeMember] = useState<OrganizationMemberRecord | null>(null);
@@ -72,7 +76,9 @@ export function MembersView() {
       params.append('page', page.toString());
       params.append('limit', '10');
 
-      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/members?${params.toString()}`);
+      const res = await apiFetch(
+        `/api/organizations/${selectedOrg.id}/members?${params.toString()}`
+      );
       if (res.ok) {
         const data = await res.json();
         setMembers(data.members || []);
@@ -94,11 +100,14 @@ export function MembersView() {
     if (!selectedOrg || !roleChangeMember) return;
     setRoleSaving(true);
     try {
-      const res = await apiFetch(`/api/organizations/${selectedOrg.id}/members/${roleChangeMember.userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      });
+      const res = await apiFetch(
+        `/api/organizations/${selectedOrg.id}/members/${roleChangeMember.userId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole }),
+        }
+      );
       if (res.ok) {
         setRoleChangeMember(null);
         await fetchMembers();
@@ -139,7 +148,12 @@ export function MembersView() {
 
   const handleRemoveMember = async (mem: OrganizationMemberRecord) => {
     if (!selectedOrg) return;
-    if (!await confirmAction({ message: `Are you sure you want to remove ${mem.name || mem.email} from the organization?` })) return;
+    if (
+      !(await confirmAction({
+        message: `Are you sure you want to remove ${mem.name || mem.email} from the organization?`,
+      }))
+    )
+      return;
 
     try {
       const res = await apiFetch(`/api/organizations/${selectedOrg.id}/members/${mem.userId}`, {
@@ -166,46 +180,37 @@ export function MembersView() {
 
   const currentUserRole = selectedOrg.role || 'member';
   const isOwner = currentUserRole === 'owner';
-  const isAdminOrOwner = ['owner', 'admin'].includes(currentUserRole);
 
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-brand-400" />
-            Organization Members & Roles
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
+      <PageHeader
+        title="Team members"
+        description={
+          <>
             <span>
+              {' '}
               Manage developer team members, access roles, and project assignments for{' '}
-              <span className="text-brand-400 font-semibold">{selectedOrg.name}</span>.
+              <span className="text-zinc-200">{selectedOrg.name}</span>.{' '}
             </span>
-            {!isAdminOrOwner && (
-              <span className="text-xs font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 shrink-0 flex items-center gap-1">
-                <Lock className="w-3 h-3 text-zinc-400" /> READ-ONLY MEMBER
-              </span>
-            )}
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!isAdminOrOwner}
-          title={!isAdminOrOwner ? 'Requires Admin or Owner role to invite members' : undefined}
-          onClick={() => setIsInviteOpen(true)}
-          className={`font-medium h-9 ${
-            isAdminOrOwner
-              ? 'bg-brand-500 hover:bg-brand-600 text-on-accent'
-              : 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700'
-          }`}
-        >
-          <UserPlus className="w-4 h-4 mr-1" />
-          Invite Member
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <AdminOnly>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsInviteOpen(true)}
+                className={`font-medium h-9 ${'bg-brand-500 hover:bg-brand-600 text-on-accent'}`}
+              >
+                <UserPlus className="w-4 h-4 mr-1" />
+                Invite Member
+              </Button>
+            </AdminOnly>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
@@ -246,7 +251,12 @@ export function MembersView() {
             />
           </div>
 
-          <Button variant="secondary" size="sm" onClick={fetchMembers} className="h-9 border-zinc-800 text-zinc-400">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={fetchMembers}
+            className="h-9 border-zinc-800 text-zinc-400"
+          >
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
         </div>
@@ -289,14 +299,16 @@ export function MembersView() {
                     !(currentUserRole === 'admin' && mem.role === 'admin');
 
                   let roleDisabledReason = '';
-                  if (!isAdminOrOwner) roleDisabledReason = 'Requires Admin or Owner role';
-                  else if (isMemOwner) roleDisabledReason = 'Cannot modify role of Organization Owner';
+                  if (!isAdminOrOwner) roleDisabledReason = 'Needs an owner or admin';
+                  else if (isMemOwner)
+                    roleDisabledReason = 'Cannot modify role of Organization Owner';
                   else if (isSelf) roleDisabledReason = 'Cannot modify your own role';
 
                   let removeDisabledReason = '';
-                  if (!isAdminOrOwner) removeDisabledReason = 'Requires Admin or Owner role';
+                  if (!isAdminOrOwner) removeDisabledReason = 'Needs an owner or admin';
                   else if (isMemOwner) removeDisabledReason = 'Cannot remove Organization Owner';
-                  else if (isSelf) removeDisabledReason = 'Cannot remove your own account from list';
+                  else if (isSelf)
+                    removeDisabledReason = 'Cannot remove your own account from list';
                   else if (currentUserRole === 'admin' && mem.role === 'admin')
                     removeDisabledReason = 'Admins cannot remove other Admins';
 
@@ -327,18 +339,20 @@ export function MembersView() {
                             isMemOwner
                               ? 'border-warning-800 bg-warning-950/60 text-warning-400'
                               : mem.role === 'admin'
-                              ? 'border-info-800 bg-info-950/60 text-info-400'
-                              : 'border-zinc-800 bg-zinc-900 text-zinc-400'
+                                ? 'border-info-800 bg-info-950/60 text-info-400'
+                                : 'border-zinc-800 bg-zinc-900 text-zinc-400'
                           }`}
                         >
-                          {isMemOwner ? <Crown className="w-3 h-3 text-warning-400" /> : <Shield className="w-3 h-3" />}
+                          {isMemOwner ? (
+                            <Crown className="w-3 h-3 text-warning-400" />
+                          ) : (
+                            <Shield className="w-3 h-3" />
+                          )}
                           {mem.role}
                         </span>
                       </td>
 
-                      <td className="p-3 text-zinc-400">
-                        {formatDate(mem.createdAt)}
-                      </td>
+                      <td className="p-3 text-zinc-400">{formatDate(mem.createdAt)}</td>
 
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -377,7 +391,11 @@ export function MembersView() {
                               variant="secondary"
                               size="sm"
                               disabled={!canTransfer}
-                              title={!canTransfer ? 'Cannot transfer ownership to self or owner' : 'Transfer ownership'}
+                              title={
+                                !canTransfer
+                                  ? 'Cannot transfer ownership to self or owner'
+                                  : 'Transfer ownership'
+                              }
                               onClick={() => {
                                 if (!canTransfer) return;
                                 setTransferMember(mem);
@@ -397,7 +415,9 @@ export function MembersView() {
                             variant="secondary"
                             size="sm"
                             disabled={!canRemove}
-                            title={!canRemove ? removeDisabledReason : 'Remove member from organization'}
+                            title={
+                              !canRemove ? removeDisabledReason : 'Remove member from organization'
+                            }
                             onClick={() => {
                               if (!canRemove) return;
                               handleRemoveMember(mem);
@@ -423,7 +443,9 @@ export function MembersView() {
         {/* Pagination Footer */}
         {totalPages > 1 && (
           <div className="p-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-            <span>Page {page} of {totalPages}</span>
+            <span>
+              Page {page} of {totalPages}
+            </span>
             <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
@@ -471,15 +493,24 @@ export function MembersView() {
         >
           <form onSubmit={handleRoleChangeSubmit} className="space-y-4 text-xs">
             <p className="text-zinc-400">
-              Select a new access role for <span className="text-zinc-100 font-bold">{roleChangeMember.email}</span>.
+              Select a new access role for{' '}
+              <span className="text-zinc-100 font-bold">{roleChangeMember.email}</span>.
             </p>
 
             <div className="space-y-1.5">
               <label className="block text-[13px] font-medium text-zinc-300">Target Role</label>
               <Dropdown
                 options={[
-                  { value: 'member', label: 'Member', sublabel: 'Read project data and dashboards' },
-                  { value: 'admin', label: 'Admin', sublabel: 'Manage members, invitations & projects' },
+                  {
+                    value: 'member',
+                    label: 'Member',
+                    sublabel: 'Read project data and dashboards',
+                  },
+                  {
+                    value: 'admin',
+                    label: 'Admin',
+                    sublabel: 'Manage members, invitations & projects',
+                  },
                 ]}
                 value={newRole}
                 onChange={(val) => setNewRole(val as 'admin' | 'member')}
@@ -487,10 +518,21 @@ export function MembersView() {
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-800">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setRoleChangeMember(null)}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setRoleChangeMember(null)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" isLoading={roleSaving} className="bg-brand-500 hover:bg-brand-600 text-on-accent">
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={roleSaving}
+                className="bg-brand-500 hover:bg-brand-600 text-on-accent"
+              >
                 Save Role
               </Button>
             </div>
@@ -509,7 +551,8 @@ export function MembersView() {
             <div className="p-3 bg-warning-950/40 border border-warning-800 text-warning-300 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-warning-400 shrink-0" />
               <span>
-                Warning: Ownership transfer is permanent. You will step down as Owner and become an Admin.
+                Warning: Ownership transfer is permanent. You will step down as Owner and become an
+                Admin.
               </span>
             </div>
 
@@ -520,7 +563,12 @@ export function MembersView() {
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-800">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setTransferMember(null)}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setTransferMember(null)}
+              >
                 Cancel
               </Button>
               <Button

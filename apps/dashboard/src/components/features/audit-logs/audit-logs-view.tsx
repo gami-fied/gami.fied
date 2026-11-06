@@ -1,12 +1,14 @@
 'use client';
 
-import { ModalFrame } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/format';
 import { useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useAuditLogs } from '@/hooks/use-audit-logs';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
 import type { AuditLogItem } from '@/hooks/use-audit-logs';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 export function AuditLogsView() {
   const { selectedProject } = useDashboard();
@@ -35,7 +37,11 @@ export function AuditLogsView() {
     if (action.includes('created') || action.includes('reactivated')) {
       return 'border-success-700 bg-success-950/40 text-success-400';
     }
-    if (action.includes('deleted') || action.includes('deactivated') || action.includes('revoked')) {
+    if (
+      action.includes('deleted') ||
+      action.includes('deactivated') ||
+      action.includes('revoked')
+    ) {
       return 'border-danger-700 bg-danger-950/40 text-danger-400';
     }
     if (action.includes('updated') || action.includes('adjusted') || action.includes('rotated')) {
@@ -50,21 +56,25 @@ export function AuditLogsView() {
   return (
     <div className="space-y-6 text-zinc-100">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Project Audit Logs</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Immutable administrative action audit trail for project{' '}
-            <span className="text-success-400">{selectedProject.name}</span>. Secrets redacted.
-          </p>
-        </div>
-        <button
-          onClick={() => refresh(page)}
-          className="shrink-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-3 py-1.5 text-xs font-semibold transition"
-        >
-          ↻ Refresh Logs
-        </button>
-      </div>
+      <PageHeader
+        title="Audit Logs"
+        description={
+          <>
+            A record of who changed what in{' '}
+            <span className="text-zinc-200">{selectedProject.name}</span>. Secrets redacted.
+          </>
+        }
+        actions={
+          <>
+            <button
+              onClick={() => refresh(page)}
+              className="shrink-0 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-3 py-1.5 text-xs font-semibold transition"
+            >
+              ↻ Refresh Logs
+            </button>
+          </>
+        }
+      />
 
       {error && (
         <div className="border border-danger-800 bg-danger-950/40 p-4 text-xs text-danger-400">
@@ -75,24 +85,36 @@ export function AuditLogsView() {
       {/* Filter Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border border-zinc-800 bg-zinc-950 p-4">
         <div>
-          <label htmlFor="audit-logs-view-action-filter" className="block text-xs text-zinc-400 font-bold mb-1">Action Filter</label>
-          <input id="audit-logs-view-action-filter"
+          <label
+            htmlFor="audit-logs-view-action-filter"
+            className="block text-xs text-zinc-400 font-bold mb-1"
+          >
+            Action Filter
+          </label>
+          <input
+            id="audit-logs-view-action-filter"
             type="text"
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
             placeholder="e.g. user.created, xp.manually_adjusted"
-            className="w-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white focus:border-success-500 focus:outline-none"
+            className="w-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none"
           />
         </div>
 
         <div>
-          <label htmlFor="audit-logs-view-resource-filter" className="block text-xs text-zinc-400 font-bold mb-1">Resource Filter</label>
-          <input id="audit-logs-view-resource-filter"
+          <label
+            htmlFor="audit-logs-view-resource-filter"
+            className="block text-xs text-zinc-400 font-bold mb-1"
+          >
+            Resource Filter
+          </label>
+          <input
+            id="audit-logs-view-resource-filter"
             type="text"
             value={resourceFilter}
             onChange={(e) => setResourceFilter(e.target.value)}
             placeholder="e.g. user, rule, webhook, event"
-            className="w-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white focus:border-success-500 focus:outline-none"
+            className="w-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none"
           />
         </div>
 
@@ -147,19 +169,27 @@ export function AuditLogsView() {
                   </td>
 
                   <td className="px-4 py-3">
-                    <span className={`inline-block border px-2 py-0.5 text-xs font-bold ${getActionBadgeColor(log.action)}`}>
+                    <span
+                      className={`inline-block border px-2 py-0.5 text-xs font-bold ${getActionBadgeColor(log.action)}`}
+                    >
                       {log.action}
                     </span>
                   </td>
 
                   <td className="px-4 py-3 text-zinc-300">
                     <div className="text-[11px] font-semibold text-white">{log.actorType}</div>
-                    <div className="text-xs text-zinc-400 truncate max-w-[140px]">{log.actorId}</div>
+                    <div className="text-xs text-zinc-400 truncate max-w-[140px]">
+                      {log.actorId}
+                    </div>
                   </td>
 
                   <td className="px-4 py-3 text-zinc-300">
-                    <div className="text-[11px] font-semibold text-success-400">{log.resourceType}</div>
-                    <div className="text-xs text-zinc-400 truncate max-w-[160px]">{log.resourceId}</div>
+                    <div className="text-[11px] font-semibold text-success-400">
+                      {log.resourceType}
+                    </div>
+                    <div className="text-xs text-zinc-400 truncate max-w-[160px]">
+                      {log.resourceId}
+                    </div>
                   </td>
 
                   <td className="px-4 py-3 text-right">
@@ -180,7 +210,8 @@ export function AuditLogsView() {
       {/* Pagination Controls */}
       <div className="flex items-center justify-between border-t border-zinc-800 pt-4 text-xs">
         <span className="text-zinc-400">
-          Showing page <strong className="text-white">{page}</strong> of <strong className="text-white">{totalPages}</strong> ({total} total entries)
+          Showing page <strong className="text-white">{page}</strong> of{' '}
+          <strong className="text-white">{totalPages}</strong> ({total} total entries)
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -202,63 +233,56 @@ export function AuditLogsView() {
 
       {/* Details Drawer / Modal */}
       {selectedLogForDetails && (
-        <ModalFrame onClose={() => setSelectedLogForDetails(null)} label="Audit log details">
-          <div className="w-full max-w-2xl border border-zinc-700 bg-zinc-950 p-6 space-y-4 text-zinc-100 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-white tracking-wide">
-                  Audit Log Record: {selectedLogForDetails.action}
-                </h2>
-                <div className="text-xs text-zinc-400">{selectedLogForDetails.id}</div>
-              </div>
-              <button
-                onClick={() => setSelectedLogForDetails(null)}
-                className="text-zinc-400 hover:text-white text-xs border border-zinc-800 px-2 py-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="grid grid-cols-2 gap-4 bg-zinc-900/60 p-3 border border-zinc-800">
-                <div>
-                  <span className="text-xs text-zinc-400 block font-bold">Timestamp</span>
-                  <span className="text-zinc-200">{formatDateTime(selectedLogForDetails.createdAt)}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-zinc-400 block font-bold">Action</span>
-                  <span className="text-success-400 font-bold">{selectedLogForDetails.action}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-zinc-400 block font-bold">Actor</span>
-                  <span className="text-zinc-200">{selectedLogForDetails.actorType} ({selectedLogForDetails.actorId})</span>
-                </div>
-                <div>
-                  <span className="text-xs text-zinc-400 block font-bold">Target Resource</span>
-                  <span className="text-zinc-200">{selectedLogForDetails.resourceType} ({selectedLogForDetails.resourceId})</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-zinc-400 block font-bold mb-1">
-                  Metadata (Redacted)
-                </label>
-                <pre className="bg-zinc-900 border border-zinc-800 p-3 text-[11px] text-success-300 font-mono overflow-x-auto">
-                  {JSON.stringify(selectedLogForDetails.metadata, null, 2)}
-                </pre>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setSelectedLogForDetails(null)}
-                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-1.5 text-xs border border-zinc-700"
-              >
+        <Dialog
+          isOpen
+          onClose={() => setSelectedLogForDetails(null)}
+          title={selectedLogForDetails.action}
+          description={selectedLogForDetails.id}
+          maxWidth="2xl"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setSelectedLogForDetails(null)}>
                 Close
-              </button>
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-2 text-xs">
+            <div className="grid grid-cols-2 gap-4 bg-zinc-900/60 p-3 border border-zinc-800">
+              <div>
+                <span className="text-xs text-zinc-400 block font-bold">Timestamp</span>
+                <span className="text-zinc-200">
+                  {formatDateTime(selectedLogForDetails.createdAt)}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-zinc-400 block font-bold">Action</span>
+                <span className="text-success-400 font-bold">{selectedLogForDetails.action}</span>
+              </div>
+              <div>
+                <span className="text-xs text-zinc-400 block font-bold">Actor</span>
+                <span className="text-zinc-200">
+                  {selectedLogForDetails.actorType} ({selectedLogForDetails.actorId})
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-zinc-400 block font-bold">Target Resource</span>
+                <span className="text-zinc-200">
+                  {selectedLogForDetails.resourceType} ({selectedLogForDetails.resourceId})
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-zinc-400 block font-bold mb-1">
+                Metadata (Redacted)
+              </label>
+              <pre className="bg-zinc-900 border border-zinc-800 p-3 text-[11px] text-success-300 font-mono overflow-x-auto">
+                {JSON.stringify(selectedLogForDetails.metadata, null, 2)}
+              </pre>
             </div>
           </div>
-        </ModalFrame>
+        </Dialog>
       )}
     </div>
   );

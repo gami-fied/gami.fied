@@ -41,7 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               clsx(
                 'w-full h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-400 shadow-none outline-none',
                 'hover:border-zinc-700 hover:bg-zinc-900/90',
-                'focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-zinc-900 transition-colors duration-150',
+                'focus:outline-none focus:border-brand-500 focus:bg-zinc-900 transition-colors duration-150',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:bg-zinc-900/70',
                 leftIcon && 'pl-10',
                 rightIcon && 'pr-10',
@@ -93,7 +93,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             clsx(
               'w-full bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-400 leading-relaxed shadow-none outline-none resize-y',
               'hover:border-zinc-700 hover:bg-zinc-900/90',
-              'focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-zinc-900 transition-colors duration-150',
+              'focus:outline-none focus:border-brand-500 focus:bg-zinc-900 transition-colors duration-150',
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:bg-zinc-900/70',
               error && 'border-danger-500/80 focus:border-danger-500 hover:border-danger-500/80',
               className

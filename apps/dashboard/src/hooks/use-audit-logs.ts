@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface AuditLogItem {
   id: string;
@@ -22,7 +23,7 @@ export interface UseAuditLogsFilter {
 }
 
 export function useAuditLogs(projectId: string | null, filters?: UseAuditLogsFilter) {
-  const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [logs, setLogs] = useCachedState<AuditLogItem[]>(`auditLogs:${projectId}`, []);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -32,7 +33,7 @@ export function useAuditLogs(projectId: string | null, filters?: UseAuditLogsFil
   const fetchLogs = useCallback(
     async (targetPage = page) => {
       if (!projectId) return;
-      setLoading(true);
+      setLoading(!hasCachedState(`auditLogs:${projectId}`));
       setError(null);
       try {
         const query = new URLSearchParams({
@@ -62,7 +63,7 @@ export function useAuditLogs(projectId: string | null, filters?: UseAuditLogsFil
         setLoading(false);
       }
     },
-    [projectId, page, filters?.action, filters?.resourceType, filters?.actorId, filters?.startDate, filters?.endDate]
+    [projectId, page, filters?.action, filters?.resourceType, filters?.actorId, filters?.startDate, filters?.endDate, setLogs]
   );
 
   useEffect(() => {

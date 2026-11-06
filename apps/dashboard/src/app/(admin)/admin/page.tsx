@@ -2,7 +2,8 @@
 
 import { apiFetch } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
-import { Server, Building2, Folder, Users, Activity, CheckCircle } from 'lucide-react';
+import { Building2, Folder, Users, Activity, CheckCircle } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface SystemOverview {
   version?: string;
@@ -46,15 +47,10 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-800 pb-4">
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <Server className="w-5 h-5 text-danger-400" />
-          Platform System Overview
-        </h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Server-level operational health, database status, queue state, and tenant counts.
-        </p>
-      </div>
+      <PageHeader
+        title="Platform Overview"
+        description="How this server is doing right now."
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">
@@ -135,7 +131,7 @@ export default function AdminOverviewPage() {
                 {systemData.counts?.eventsIngested?.toLocaleString()}
               </div>
               <div className="text-xs text-zinc-400 mt-1">
-                Events Ingested
+                Events received
               </div>
             </div>
           </div>
@@ -147,25 +143,25 @@ export default function AdminOverviewPage() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-400 text-xs font-bold">Event Outbox</div>
+                <div className="text-zinc-400 text-xs font-bold">Event queue</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.eventPending || 0} pending
                 </div>
               </div>
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-400 text-xs font-bold">Email Outbox</div>
+                <div className="text-zinc-400 text-xs font-bold">Email queue</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.emailPending || 0} pending
                 </div>
               </div>
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-400 text-xs font-bold">In-App Outbox</div>
+                <div className="text-zinc-400 text-xs font-bold">In-app queue</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.notificationPending || 0} pending
                 </div>
               </div>
               <div className="border border-zinc-800 p-3 bg-zinc-900/40">
-                <div className="text-zinc-400 text-xs font-bold">Webhook Outbox</div>
+                <div className="text-zinc-400 text-xs font-bold">Webhook queue</div>
                 <div className="text-lg font-bold text-zinc-200">
                   {systemData.outboxes?.webhookPending || 0} pending
                 </div>

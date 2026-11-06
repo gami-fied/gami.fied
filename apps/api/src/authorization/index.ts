@@ -1,4 +1,4 @@
-import { auth, db, member, organizations, projectMembers, projects, users, Member } from '@gami/database';
+import { auth, db, member, organizations, projectMembers, projects, users } from '@gami/database';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { authenticateApiKey } from '../services/api-key.service.js';
@@ -156,46 +156,48 @@ export async function requireOrgRole(
 }
 
 /**
- * Checks whether a user has access to a project.
- * Evaluates Platform Admin, Org Owner, Org Admin, and explicit Project Members.
+ * Checks whether a user has access to a project, in one query because every dashboard request
+ * runs this. Platform admins, org owners and org admins can reach any project in the org. Other
+ * members need an explicit project assignment.
  */
-export async function checkUserProjectAccess(
-  userId: string,
-  projectId: string
-): Promise<{ allowed: boolean; isSuspended?: boolean; membership?: Member | null; isPlatformAdmin?: boolean }> {
-  const [prj] = await db.select().from(projects).where(eq(projects.id, projectId));
-  if (!prj) return { allowed: false };
+export async function checkUserProjectAccess(userId: string, projectId: string) {
+  const [row] = await db
+    .select({
+      project: projects,
+      orgStatus: organizations.status,
+      membership: member,
+      isPlatformAdmin: users.isPlatformAdmin,
+      assignmentId: projectMembers.id,
+    })
+    .from(projects)
+    .innerJoin(organizations, eq(organizations.id, projects.organizationId))
+    .leftJoin(
+      member,
+      and(eq(member.organizationId, projects.organizationId), eq(member.userId, userId))
+    )
+    .leftJoin(users, eq(users.id, userId))
+    .leftJoin(
+      projectMembers,
+      and(eq(projectMembers.projectId, projects.id), eq(projectMembers.userId, userId))
+    )
+    .where(eq(projects.id, projectId));
 
-  const isSuspended = await checkOrgSuspension(prj.organizationId);
-  if (isSuspended) return { allowed: false, isSuspended: true };
+  if (!row) return { allowed: false };
+  if (row.orgStatus === 'suspended') return { allowed: false, isSuspended: true };
 
-  // 1. Platform Admin -> Allowed
-  const [u] = await db.select({ isPlatformAdmin: users.isPlatformAdmin }).from(users).where(eq(users.id, userId));
-  if (u && u.isPlatformAdmin) {
-    const membership = await getOrgMembership(userId, prj.organizationId);
-    return { allowed: true, isPlatformAdmin: true, membership };
-  }
-
-  // 2. Org Membership
-  const membership = await getOrgMembership(userId, prj.organizationId);
+  const { project, membership, isPlatformAdmin, assignmentId } = row;
+  if (isPlatformAdmin) return { allowed: true, isPlatformAdmin: true, membership, project };
   if (!membership) return { allowed: false };
 
-  // 3. Owners & Admins -> Allowed
-  if (['owner', 'admin'].includes(membership.role)) {
-    return { allowed: true, membership };
-  }
+  const isOrgAdmin = ['owner', 'admin'].includes(membership.role);
+  return isOrgAdmin || assignmentId
+    ? { allowed: true, membership, project }
+    : { allowed: false };
+}
 
-  // 4. Regular Org Member -> Must be explicitly assigned in project_members table
-  const [pmRow] = await db
-    .select()
-    .from(projectMembers)
-    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)));
-
-  if (pmRow) {
-    return { allowed: true, membership };
-  }
-
-  return { allowed: false };
+/** Plain members work with users, but only admins and API keys handle their personal details. */
+export function canViewPersonalData(membership: { role: string }): boolean {
+  return ['owner', 'admin'].includes(membership.role);
 }
 
 export async function requireProjectAccess(
@@ -261,7 +263,7 @@ export async function requireProjectAccess(
     return null;
   }
 
-  const [prj] = await db.select().from(projects).where(eq(projects.id, projectId));
+  const prj = access.project;
   if (!prj) {
     sendAuthError(request, reply, 404, 'NOT_FOUND', 'Project not found');
     return null;
@@ -281,7 +283,11 @@ export async function requireProjectAccess(
     return null;
   }
 
-  return { session, project: prj, membership };
+  return {
+    session,
+    project: prj,
+    membership: access.isPlatformAdmin ? { ...membership, role: 'owner' } : membership,
+  };
 }
 
 /**

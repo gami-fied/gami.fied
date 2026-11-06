@@ -7,6 +7,9 @@
 # Then remove the published ports for api and dashboard in docker-compose.yml.
 
 app.example.com {
+	# Browser API calls go straight to the API, skipping a hop through the dashboard.
+	@api path /api/* /v1/*
+	reverse_proxy @api api:3001
 	reverse_proxy dashboard:3000
 }
 

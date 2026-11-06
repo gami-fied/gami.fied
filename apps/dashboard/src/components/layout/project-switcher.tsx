@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { useDashboard } from '../features/context/dashboard-context';
 import { FolderGit2 } from 'lucide-react';
 import { Dropdown } from '../ui/dropdown';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Dialog } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 
 export function ProjectSwitcher() {
-  const { session, selectedOrg, projects, selectedProject, setSelectedProject, createProject } =
+  const { selectedOrg, projects, selectedProject, setSelectedProject, createProject } =
     useDashboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
@@ -17,9 +18,7 @@ export function ProjectSwitcher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sessionUser = session?.user as { role?: string; isPlatformAdmin?: boolean } | undefined;
-  const isPlatformAdmin = sessionUser?.role === 'admin' || Boolean(sessionUser?.isPlatformAdmin);
-  const isAdminOrOwner = isPlatformAdmin || ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { isAdminOrOwner } = usePermissions();
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +47,7 @@ export function ProjectSwitcher() {
 
   return (
     <>
-      <div className="w-48 sm:w-56">
+      <div className="w-44 sm:w-52">
         <Dropdown
           options={dropdownOptions}
           value={selectedProject?.id || null}
@@ -56,8 +55,8 @@ export function ProjectSwitcher() {
             const prj = projects.find((p) => p.id === val);
             if (prj) setSelectedProject(prj);
           }}
-          placeholder={projects.length === 0 ? 'No Projects Assigned' : 'Select Project'}
-          actionLabel={isAdminOrOwner ? '+ Create New Project' : undefined}
+          placeholder={projects.length === 0 ? 'No projects yet' : 'Select a project'}
+          actionLabel={isAdminOrOwner ? '+ New project' : undefined}
           onActionClick={isAdminOrOwner ? () => setIsModalOpen(true) : undefined}
           disabled={!selectedOrg || projects.length === 0}
         />

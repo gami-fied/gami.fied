@@ -3,15 +3,19 @@
 import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 import type { CreateUserInput, UpdateUserInput, User } from '@gami/types';
+import { hasCachedState, useCachedState } from './use-cached-state';
+
+export type UserSort = 'newest' | 'oldest' | 'name';
 
 export function useUsers(
   projectId: string | null,
   initialPage = 1,
   initialLimit = 25,
-  initialSearch = ''
+  initialSearch = '',
+  sort: UserSort = 'newest'
 ) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [total, setTotal] = useState(0);
+  const [users, setUsers] = useCachedState<User[]>(`users:${projectId}`, []);
+  const [total, setTotal] = useCachedState(`userTotal:${projectId}`, 0);
   const [page, setPage] = useState(initialPage);
   const [limit, setLimit] = useState(initialLimit);
   const [search, setSearch] = useState(initialSearch);
@@ -26,7 +30,7 @@ export function useUsers(
         return;
       }
 
-      setLoading(true);
+      setLoading(!hasCachedState(`users:${projectId}`));
       setError(null);
 
       try {
@@ -37,6 +41,7 @@ export function useUsers(
         if (s.trim()) {
           query.set('search', s.trim());
         }
+        query.set('sort', sort);
 
         const res = await apiFetch(`/api/projects/${projectId}/users?${query.toString()}`, {
           headers: {
@@ -60,7 +65,7 @@ export function useUsers(
         setLoading(false);
       }
     },
-    [projectId, page, limit, search]
+    [projectId, page, limit, search, sort, setUsers, setTotal]
   );
 
   useEffect(() => {

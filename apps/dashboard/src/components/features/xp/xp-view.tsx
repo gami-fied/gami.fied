@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Coins, Search, PlusCircle, MinusCircle, Users, History, RefreshCw } from 'lucide-react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { PageHeader } from '@/components/ui/page-header';
 
 function generateIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -26,8 +27,7 @@ function generateIdempotencyKey(): string {
 }
 
 export function XpView() {
-  const { selectedProject, selectedOrg } = useDashboard();
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { selectedProject } = useDashboard();
   const { summary, ledger, userBalance, loadingLedger, fetchXpSummary, fetchUserLedger, adjustXp } =
     useXp(selectedProject?.id || null);
 
@@ -101,21 +101,20 @@ export function XpView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-zinc-100 tracking-tight">XP & Ledger System</h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          XP balance tracking, transaction ledger history, and manual adjustments for{' '}
-          <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
-        </p>
-      </div>
+      <PageHeader
+        title="XP History"
+        description={
+          <>
+            Every XP change in <span className="text-zinc-200">{selectedProject.name}</span>
+          </>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-zinc-400">
-              Total XP Awarded
-            </CardTitle>
+            <CardTitle className="text-xs font-semibold text-zinc-400">Total XP Awarded</CardTitle>
             <Coins className="w-4 h-4 text-brand-400" />
           </CardHeader>
           <CardContent>
@@ -137,15 +136,13 @@ export function XpView() {
             <div className="text-2xl font-black text-info-400">
               {summary?.totalTransactions?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Atomic ledger records</p>
+            <p className="text-[11px] text-zinc-400 mt-1">XP changes recorded</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-zinc-400">
-              Active End-Users
-            </CardTitle>
+            <CardTitle className="text-xs font-semibold text-zinc-400">Active End-Users</CardTitle>
             <Users className="w-4 h-4 text-success-400" />
           </CardHeader>
           <CardContent>
@@ -162,7 +159,7 @@ export function XpView() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-bold">End-User XP Ledger Inspection</CardTitle>
+              <CardTitle className="text-sm font-bold">Look up a user's XP</CardTitle>
               <CardDescription>
                 Search end-user ID to inspect total XP balance and full ledger history
               </CardDescription>
@@ -186,9 +183,7 @@ export function XpView() {
                 <div className="p-4 bg-zinc-950 rounded-none border border-zinc-800 flex items-center justify-between">
                   <div>
                     <span className="text-[11px] text-zinc-400 block">End-User ID</span>
-                    <span className="text-sm font-bold text-zinc-100">
-                      {activeSearchedUser}
-                    </span>
+                    <span className="text-sm font-bold text-zinc-100">{activeSearchedUser}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[11px] text-zinc-400 block">Current XP Balance</span>
@@ -337,7 +332,9 @@ export function XpView() {
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-zinc-300">Idempotency Key</label>
+                    <label className="text-xs font-medium text-zinc-300">
+                      Duplicate protection key
+                    </label>
                     <button
                       type="button"
                       onClick={refreshIdempotencyKey}
@@ -349,7 +346,7 @@ export function XpView() {
                     </button>
                   </div>
                   <Input
-                    placeholder="Auto-generated idempotency key"
+                    placeholder="Created for you"
                     value={adjIdempotencyKey}
                     onChange={(e) => setAdjIdempotencyKey(e.target.value)}
                     helperText="Auto-generated. Prevents duplicate submissions on retry."
@@ -359,10 +356,9 @@ export function XpView() {
                 <Button
                   type="submit"
                   variant={adjAmount >= 0 ? 'primary' : 'danger'}
-                  disabled={!isAdminOrOwner || submittingAdj}
-                  title={!isAdminOrOwner ? 'Requires Admin or Owner role to adjust XP' : undefined}
+                  disabled={submittingAdj}
                   isLoading={submittingAdj}
-                  className={`w-full ${!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : ''}`}
+                  className="w-full"
                 >
                   {adjAmount >= 0 ? (
                     <PlusCircle className="w-4 h-4" />

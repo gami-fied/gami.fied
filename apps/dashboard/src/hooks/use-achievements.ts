@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface AchievementRecord {
   id: string;
@@ -38,15 +39,15 @@ export interface UserAchievementAward {
 }
 
 export function useAchievements(projectId: string | null) {
-  const [achievements, setAchievements] = useState<AchievementRecord[]>([]);
-  const [summary, setSummary] = useState<AchievementSummary | null>(null);
+  const [achievements, setAchievements] = useCachedState<AchievementRecord[]>(`achievements:${projectId}`, []);
+  const [summary, setSummary] = useCachedState<AchievementSummary | null>(`achievementSummary:${projectId}`, null);
   const [userAwards, setUserAwards] = useState<UserAchievementAward[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAchievements = useCallback(async () => {
     if (!projectId) return;
-    setLoading(true);
+    setLoading(!hasCachedState(`achievements:${projectId}`));
     setError(null);
     try {
       const [listRes, summaryRes] = await Promise.all([
@@ -66,7 +67,7 @@ export function useAchievements(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setAchievements, setSummary]);
 
   const createAchievement = async (data: {
     key: string;

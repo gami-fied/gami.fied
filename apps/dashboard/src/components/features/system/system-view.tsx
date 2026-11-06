@@ -3,7 +3,9 @@
 import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState, useCallback } from 'react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
-import { Shield, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { setVisibleInterval } from '@/lib/visible-interval';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface PlatformMetrics {
   version: string;
@@ -73,8 +75,7 @@ export function SystemView() {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
+    return setVisibleInterval(fetchMetrics, 5000);
   }, [fetchMetrics]);
 
   const getStatusBadge = (status: string, isHealthy: boolean) => {
@@ -86,7 +87,9 @@ export function SystemView() {
             : 'border-danger-700 bg-danger-950/40 text-danger-400'
         }`}
       >
-        <span className={`w-1.5 h-1.5 rounded-none ${isHealthy ? 'bg-success-400 animate-pulse' : 'bg-danger-400'}`} />
+        <span
+          className={`w-1.5 h-1.5 rounded-none ${isHealthy ? 'bg-success-400 animate-pulse' : 'bg-danger-400'}`}
+        />
         {status}
       </span>
     );
@@ -95,29 +98,24 @@ export function SystemView() {
   return (
     <div className="space-y-6 text-zinc-100">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-danger-400" />
-            <h1 className="text-xl font-bold tracking-tight text-white">
-              Platform System Health &amp; Infrastructure
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Platform-wide PostgreSQL status, Redis health, BullMQ queue stats, worker heartbeats, and HTTP traffic latency.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setLoading(true);
-            fetchMetrics();
-          }}
-          className="shrink-0 flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-xs font-semibold transition text-zinc-300 hover:text-white"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Metrics
-        </button>
-      </div>
+      <PageHeader
+        title="Platform Health"
+        description="Platform-wide PostgreSQL status, Redis health, BullMQ queue stats, worker heartbeats, and HTTP traffic latency."
+        actions={
+          <>
+            <button
+              onClick={() => {
+                setLoading(true);
+                fetchMetrics();
+              }}
+              className="shrink-0 flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-xs font-semibold transition text-zinc-300 hover:text-white"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
       {error && (
         <div className="border border-danger-800 bg-danger-950/40 p-4 text-xs text-danger-400">
@@ -142,7 +140,10 @@ export function SystemView() {
           <div className="text-xs text-zinc-400 font-bold">Database</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">PostgreSQL</span>
-            {getStatusBadge(metrics?.health.postgres || 'checking', metrics?.health.postgres === 'healthy')}
+            {getStatusBadge(
+              metrics?.health.postgres || 'checking',
+              metrics?.health.postgres === 'healthy'
+            )}
           </div>
           <div className="text-[11px] text-zinc-400">Readiness probe: SELECT 1</div>
         </div>
@@ -152,7 +153,10 @@ export function SystemView() {
           <div className="text-xs text-zinc-400 font-bold">Cache &amp; Queue</div>
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-white">Redis</span>
-            {getStatusBadge(metrics?.health.redis || 'checking', metrics?.health.redis === 'healthy')}
+            {getStatusBadge(
+              metrics?.health.redis || 'checking',
+              metrics?.health.redis === 'healthy'
+            )}
           </div>
           <div className="text-[11px] text-zinc-400">Readiness probe: PING</div>
         </div>
@@ -169,7 +173,9 @@ export function SystemView() {
           </div>
           <div className="text-[11px] text-zinc-400 truncate">
             {metrics?.health.workerHeartbeat?.timestamp ? (
-              <span>Last Heartbeat: {formatRelativeTime(metrics.health.workerHeartbeat.timestamp)}</span>
+              <span>
+                Last Heartbeat: {formatRelativeTime(metrics.health.workerHeartbeat.timestamp)}
+              </span>
             ) : (
               <span className="text-warning-400">No active Redis heartbeat</span>
             )}
@@ -230,17 +236,23 @@ export function SystemView() {
 
           <div className="grid grid-cols-5 gap-2 text-center">
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
-              <div className="text-base font-bold text-warning-400">{metrics?.queue.waiting ?? 0}</div>
+              <div className="text-base font-bold text-warning-400">
+                {metrics?.queue.waiting ?? 0}
+              </div>
               <div className="text-xs text-zinc-400 mt-1">Waiting</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
-              <div className="text-base font-bold text-success-400">{metrics?.queue.active ?? 0}</div>
+              <div className="text-base font-bold text-success-400">
+                {metrics?.queue.active ?? 0}
+              </div>
               <div className="text-xs text-zinc-400 mt-1">Active</div>
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
-              <div className="text-base font-bold text-info-400">{metrics?.queue.completed ?? 0}</div>
+              <div className="text-base font-bold text-info-400">
+                {metrics?.queue.completed ?? 0}
+              </div>
               <div className="text-xs text-zinc-400 mt-1">Completed</div>
             </div>
 
@@ -250,7 +262,9 @@ export function SystemView() {
             </div>
 
             <div className="border border-zinc-800 bg-zinc-900/60 p-2.5">
-              <div className="text-base font-bold text-danger-400">{metrics?.queue.failed ?? 0}</div>
+              <div className="text-base font-bold text-danger-400">
+                {metrics?.queue.failed ?? 0}
+              </div>
               <div className="text-xs text-zinc-400 mt-1">Failed</div>
             </div>
           </div>
@@ -259,11 +273,15 @@ export function SystemView() {
             <div className="border border-zinc-800 bg-zinc-900/40 p-3 text-xs space-y-1">
               <div className="flex justify-between text-zinc-400">
                 <span>Worker Instance ID:</span>
-                <span className="text-zinc-200 font-mono">{metrics.health.workerHeartbeat.workerId}</span>
+                <span className="text-zinc-200 font-mono">
+                  {metrics.health.workerHeartbeat.workerId}
+                </span>
               </div>
               <div className="flex justify-between text-zinc-400">
                 <span>Total Events Processed:</span>
-                <span className="text-success-400 font-bold">{metrics.health.workerHeartbeat.processedCount}</span>
+                <span className="text-success-400 font-bold">
+                  {metrics.health.workerHeartbeat.processedCount}
+                </span>
               </div>
             </div>
           )}
@@ -290,14 +308,20 @@ export function SystemView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
-              {metrics?.process.httpRouteStats && Object.keys(metrics.process.httpRouteStats).length > 0 ? (
+              {metrics?.process.httpRouteStats &&
+              Object.keys(metrics.process.httpRouteStats).length > 0 ? (
                 Object.entries(metrics.process.httpRouteStats).map(([routeKey, stat]) => {
-                  const avgLatency = stat.requests > 0 ? Math.round(stat.totalDurationMs / stat.requests) : 0;
+                  const avgLatency =
+                    stat.requests > 0 ? Math.round(stat.totalDurationMs / stat.requests) : 0;
                   return (
                     <tr key={routeKey} className="hover:bg-zinc-900/40 font-mono">
                       <td className="px-3 py-2 font-semibold text-zinc-200">{routeKey}</td>
-                      <td className="px-3 py-2 text-right font-bold text-success-400">{stat.requests}</td>
-                      <td className="px-3 py-2 text-right font-bold text-danger-400">{stat.errors}</td>
+                      <td className="px-3 py-2 text-right font-bold text-success-400">
+                        {stat.requests}
+                      </td>
+                      <td className="px-3 py-2 text-right font-bold text-danger-400">
+                        {stat.errors}
+                      </td>
                       <td className="px-3 py-2 text-right text-zinc-400">{avgLatency} ms</td>
                     </tr>
                   );

@@ -1,19 +1,30 @@
 'use client';
 
-import { apiFetch } from '@/lib/api-client';
-import { QuickStart } from './quick-start';
-import React, { useEffect, useState, useCallback } from 'react';
-import { useDashboard } from '../context/dashboard-context';
-import { useXp } from '@/hooks/use-xp';
-import { useAchievements } from '@/hooks/use-achievements';
-import { useLevels } from '@/hooks/use-levels';
-import { useRules } from '@/hooks/use-rules';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight, CheckCircle2, Circle, Code2, FolderKanban } from 'lucide-react';
+import { apiJson } from '@/lib/api-client';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  Circle,
+  Coins,
+  Users,
+  X,
+} from 'lucide-react';
+import { QuickStart } from './quick-start';
+import { useDashboard } from '../context/dashboard-context';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { useCachedState } from '@/hooks/use-cached-state';
+import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { usePermissions } from '@/hooks/use-permissions';
 
-interface OnboardingStep {
+interface SetupStep {
   id: string;
   label: string;
   description: string;
@@ -21,388 +32,312 @@ interface OnboardingStep {
   href: string;
 }
 
-interface OnboardingData {
-  totalSteps: number;
-  completedCount: number;
-  progressPercentage: number;
-  steps: OnboardingStep[];
+interface OverviewData {
+  stats: {
+    eventsToday: number;
+    activeUsers: number;
+    totalUsers: number;
+    xpThisWeek: number;
+    failuresToday: number;
+    ruleCount: number;
+  };
+  recentEvents: {
+    id: string;
+    type: string;
+    occurredAt: string;
+    externalId: string | null;
+    name: string | null;
+  }[];
+  topUsers: { id: string; externalId: string; name: string | null; totalXp: number }[];
+  setup: {
+    totalSteps: number;
+    completedCount: number;
+    progressPercentage: number;
+    steps: SetupStep[];
+  };
+}
+
+interface StatCardProps {
+  label: string;
+  value: number;
+  detail: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone?: 'danger';
+}
+
+function StatCard({ label, value, detail, href, icon: Icon, tone }: StatCardProps) {
+  return (
+    <Link
+      href={href}
+      className="group border border-zinc-800/80 bg-zinc-900/60 p-4 hover:border-zinc-700 transition-colors"
+    >
+      <div className="flex items-center justify-between text-xs font-semibold text-zinc-400">
+        {label}
+        <Icon className={`w-4 h-4 ${tone === 'danger' ? 'text-danger-400' : 'text-zinc-400'}`} />
+      </div>
+      <div
+        className={`mt-2 text-2xl font-bold tracking-tight ${
+          tone === 'danger' ? 'text-danger-400' : 'text-zinc-100'
+        }`}
+      >
+        {value.toLocaleString()}
+      </div>
+      <div className="mt-1 text-xs text-zinc-400">{detail}</div>
+    </Link>
+  );
+}
+
+function SetupCard({ projectId, setup }: { projectId: string; setup: OverviewData['setup'] }) {
+  const dismissKey = `gami.setupDismissed.${projectId}`;
+  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    setDismissed(localStorage.getItem(dismissKey) === 'true');
+  }, [dismissKey]);
+
+  if (dismissed || setup.completedCount === setup.totalSteps) return null;
+
+  const next = setup.steps.find((step) => !step.completed);
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 p-4">
+        <button
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="flex flex-1 min-w-0 items-center gap-3 text-left"
+        >
+          <ChevronDown
+            className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform duration-200 ${
+              open ? 'rotate-180' : ''
+            }`}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-zinc-100">
+              Finish setting up: {setup.completedCount} of {setup.totalSteps} done
+            </span>
+            {next && (
+              <span className="block text-xs text-zinc-400 truncate">Next: {next.label}</span>
+            )}
+          </span>
+        </button>
+        <div className="hidden sm:block w-32 h-1.5 bg-zinc-800 overflow-hidden">
+          <div
+            className="h-full w-full origin-left bg-brand-500 transition-transform duration-500 ease-out"
+            style={{ transform: `scaleX(${setup.progressPercentage / 100})` }}
+          />
+        </div>
+        <button
+          onClick={() => {
+            localStorage.setItem(dismissKey, 'true');
+            setDismissed(true);
+          }}
+          aria-label="Hide setup steps"
+          className="p-1 text-zinc-400 hover:text-zinc-100 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      {open && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 px-4 pb-4">
+          {setup.steps.map((step) => (
+            <Link
+              key={step.id}
+              href={step.href}
+              className="group flex items-center gap-3 p-2 border border-zinc-800 hover:border-zinc-700 transition-colors"
+            >
+              {step.completed ? (
+                <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
+              ) : (
+                <Circle className="w-4 h-4 text-zinc-400 shrink-0" />
+              )}
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-zinc-200">{step.label}</span>
+                <span className="block text-xs text-zinc-400 truncate">{step.description}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 export function OverviewView() {
-  const { selectedProject, selectedOrg } = useDashboard();
-  const { summary: xpSummary, fetchXpSummary } = useXp(selectedProject?.id || null);
-  const { summary: achSummary, fetchAchievements } = useAchievements(selectedProject?.id || null);
-  const { summary: progSummary, fetchLevelsData } = useLevels(selectedProject?.id || null);
-  const { rules, fetchRules } = useRules(selectedProject?.id || null);
-
-  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
+  const { selectedProject } = useDashboard();
+  const { isAdminOrOwner } = usePermissions();
+  const projectId = selectedProject?.id ?? null;
+  const [data, setData] = useCachedState<OverviewData | null>(`overview:${projectId}`, null);
+  const [failed, setFailed] = useState(false);
   const [quickStartDone, setQuickStartDone] = useState(false);
-  const rulesLoaded = onboardingData !== null;
 
-  const fetchOnboarding = useCallback(async () => {
-    if (!selectedProject) return;
+  const load = React.useCallback(async () => {
+    if (!projectId) return;
     try {
-      const res = await apiFetch(`/api/projects/${selectedProject.id}/onboarding`);
-      if (res.ok) {
-        setOnboardingData(await res.json());
-      }
+      setData(await apiJson<OverviewData>(`/api/projects/${projectId}/overview`));
+      setFailed(false);
     } catch {
-      // Ignore fallback
+      setFailed(true);
     }
-  }, [selectedProject]);
+  }, [projectId, setData]);
 
   useEffect(() => {
-    if (selectedProject) {
-      fetchXpSummary();
-      fetchAchievements();
-      fetchLevelsData();
-      fetchRules();
-      fetchOnboarding();
-    }
-  }, [
-    selectedProject,
-    fetchXpSummary,
-    fetchAchievements,
-    fetchLevelsData,
-    fetchRules,
-    fetchOnboarding,
-  ]);
+    void load();
+  }, [load]);
 
-  if (!selectedProject) {
-    return (
-      <div className="p-8 text-center bg-zinc-950 border border-zinc-800 space-y-4 max-w-lg mx-auto my-12">
-        <div className="w-12 h-12 bg-warning-950/40 border border-warning-800/80 text-warning-400 flex items-center justify-center mx-auto">
-          <FolderKanban className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="text-base font-bold text-zinc-100 tracking-wide">No Projects Assigned</h3>
-          <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-            You have not been assigned to any project in <span className="text-brand-400 font-bold">{selectedOrg?.name || 'this organization'}</span> yet.
-            Please contact your organization Admin or Owner to request access to specific projects.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (!selectedProject) return null;
 
-  const activeRulesCount = rules.filter((r) => r.enabled).length;
-
-  const isComplete = onboardingData ? onboardingData.completedCount === onboardingData.totalSteps : false;
-
-  const showQuickStart = selectedProject && rulesLoaded && rules.length === 0 && !quickStartDone;
+  const showQuickStart = isAdminOrOwner && data?.stats.ruleCount === 0 && !quickStartDone;
 
   return (
-    <div className="space-y-8">
-      {showQuickStart && (
-        <QuickStart
-          projectId={selectedProject.id}
-          onDone={() => {
-            setQuickStartDone(true);
-            void fetchRules();
-          }}
+    <div className="space-y-6">
+      <PageHeader title="Overview" description={`What's happening in ${selectedProject.name}.`} />
+
+      {failed && !data && (
+        <EmptyState
+          icon={AlertTriangle}
+          title="Couldn't load this project"
+          description="The API didn't respond. Your data is safe, so try again in a moment."
+          action={{ label: 'Try again', onClick: () => void load() }}
         />
       )}
 
-      {/* Page Heading */}
-      <div>
-        <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Project Overview</h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Gamification metrics and progression distribution for{' '}
-          <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
-        </p>
-      </div>
-
-      {/* Analytics Grid — Game HUD Style */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* XP Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-brand-500/30 transition-all duration-300">
-          <div className="animate-shimmer absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-brand-500 rounded-none" />
-          <div className="flex items-start justify-between">
-            <div className="text-3xl leading-none select-none">⚡</div>
-            <span className="text-xs font-bold text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded-none">
-              XP
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-black text-white tracking-tight animate-count">
-              {xpSummary?.totalXpAwarded?.toLocaleString() || '0'}
-            </div>
-            <div className="text-xs text-brand-400 font-semibold mt-0.5">total XP awarded</div>
-            <div className="text-[11px] text-zinc-400 mt-2">
-              {xpSummary?.totalUsersWithXp || 0} players active
-            </div>
-          </div>
+      {!data && !failed && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
-
-        {/* Achievements Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-info-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-info-500 rounded-none" />
-          <div className="flex items-start justify-between">
-            <div className="text-3xl leading-none select-none">🏆</div>
-            <span className="text-xs font-bold text-info-400 bg-info-500/10 border border-info-500/20 px-2 py-0.5 rounded-none">
-              Badges
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-black text-white tracking-tight">
-              {achSummary?.enabledAchievements || 0}
-              <span className="text-xl font-medium text-zinc-400">
-                {' '}
-                / {achSummary?.totalAchievements || 0}
-              </span>
-            </div>
-            <div className="text-xs text-info-400 font-semibold mt-0.5">active achievements</div>
-            <div className="text-[11px] text-zinc-400 mt-2">
-              {achSummary?.totalAwards || 0} badges awarded total
-            </div>
-          </div>
-        </div>
-
-        {/* Levels Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-warning-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-warning-500 rounded-none" />
-          <div className="flex items-start justify-between">
-            <div className="text-3xl leading-none select-none">🎯</div>
-            <span className="text-xs font-bold text-warning-400 bg-warning-500/10 border border-warning-500/20 px-2 py-0.5 rounded-none">
-              Levels
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-black text-white tracking-tight">
-              L1 <span className="text-warning-400">→</span> L{progSummary?.maxConfiguredLevel || 0}
-            </div>
-            <div className="text-xs text-warning-400 font-semibold mt-0.5">progression ladder</div>
-            <div className="text-[11px] text-zinc-400 mt-2">
-              {progSummary?.configuredLevelCount || 0} levels configured
-            </div>
-          </div>
-        </div>
-
-        {/* Rules Card */}
-        <div className="relative overflow-hidden rounded-none border border-zinc-800/80 bg-zinc-900/60 p-5 group hover:border-success-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-success-500 rounded-none" />
-          <div className="flex items-start justify-between">
-            <div className="text-3xl leading-none select-none">⚙️</div>
-            <span className="text-xs font-bold text-success-400 bg-success-500/10 border border-success-500/20 px-2 py-0.5 rounded-none">
-              Rules
-            </span>
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-black text-white tracking-tight">
-              {activeRulesCount}
-              <span className="text-xl font-medium text-zinc-400"> / {rules.length}</span>
-            </div>
-            <div className="text-xs text-success-400 font-semibold mt-0.5">active rules</div>
-            <div className="text-[11px] text-zinc-400 mt-2">processing your event stream</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Backend-Driven Setup Checklist */}
-      {onboardingData && !isComplete && (
-        <Card className="border-brand-800/50 bg-gradient-to-b from-brand-950/20 to-zinc-900/80">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                  Backend-Driven Setup Checklist
-                  <Badge variant="orange">
-                    {onboardingData.completedCount}/{onboardingData.totalSteps}
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  Real-time database detection for Gami setup lifecycle steps
-                </CardDescription>
-              </div>
-              <div className="text-xs font-semibold text-brand-400">
-                {onboardingData.progressPercentage}% complete
-              </div>
-            </div>
-            {/* Progress bar */}
-            <div className="w-full bg-zinc-800 rounded-none h-2.5 mt-2 overflow-hidden border border-zinc-800 p-0.5">
-              <div
-                className="bg-brand-500 h-full rounded-none transition-all duration-500"
-                style={{ width: `${onboardingData.progressPercentage}%` }}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {onboardingData.steps.map((step) => (
-                <Link
-                  key={step.id}
-                  href={step.href}
-                  className={`flex items-center gap-3 p-3 rounded-none border transition group ${
-                    step.completed
-                      ? 'bg-success-950/20 border-success-800/40 cursor-default'
-                      : 'bg-zinc-950/40 border-zinc-800 hover:border-brand-500/50 hover:bg-zinc-900'
-                  }`}
-                  onClick={step.completed ? (e) => e.preventDefault() : undefined}
-                >
-                  {step.completed ? (
-                    <CheckCircle2 className="w-4 h-4 text-success-400 shrink-0" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-zinc-400 shrink-0 group-hover:text-brand-400 transition" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-xs font-semibold ${step.completed ? 'text-success-400 line-through' : 'text-zinc-200 group-hover:text-brand-300 transition'}`}
-                    >
-                      {step.label}
-                    </p>
-                    <p className="text-[11px] text-zinc-400 truncate">{step.description}</p>
-                  </div>
-                  {!step.completed && (
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-brand-400 transition shrink-0" />
-                  )}
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       )}
 
-      {/* Quick Actions Shortcuts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold text-zinc-100">Quick Actions</CardTitle>
-          <CardDescription>Direct navigation shortcuts to key project systems</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Link
-            href="/dashboard/events"
-            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-brand-500/50 transition group flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-brand-400 transition">
-                Inspect Events Log
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Filter incoming customer events</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-brand-400 transition" />
-          </Link>
+      {data && (
+        <>
+          {showQuickStart && (
+            <QuickStart
+              projectId={selectedProject.id}
+              onDone={() => {
+                setQuickStartDone(true);
+                void load();
+              }}
+            />
+          )}
 
-          <Link
-            href="/dashboard/rules"
-            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-success-500/50 transition group flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-success-400 transition">
-                Manage Rules Engine
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Configure event triggers &amp; actions</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-success-400 transition" />
-          </Link>
-
-          <Link
-            href="/dashboard/api-keys"
-            className="p-4 rounded-none bg-zinc-950/60 border border-zinc-800 hover:border-info-500/50 transition group flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-bold text-zinc-200 group-hover:text-info-400 transition">
-                Generate API Keys
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Authenticate event ingestion</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-info-400 transition" />
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* SDK & Developer Quickstart Card */}
-      <Card className="border-brand-500/20 bg-zinc-900/30">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Code2 className="w-5 h-5 text-brand-400" />
-              <CardTitle className="text-sm font-bold text-zinc-100">
-                TypeScript / JS SDK Integration (@gami.fied/sdk)
-              </CardTitle>
-            </div>
-            <Badge variant="orange">v0.1.0 Ready</Badge>
-          </div>
-          <CardDescription>
-            Integrate gamification events, XP, achievements, levels &amp; leaderboards directly in your
-            server-side Node.js / TypeScript apps.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Step 1: Install */}
-            <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-none space-y-1.5">
-              <span className="text-[11px] font-bold text-brand-400">
-                1. Install Package
-              </span>
-              <pre className="p-2 bg-zinc-900 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto rounded-none">
-                pnpm add @gami.fied/sdk
-              </pre>
-            </div>
-
-            {/* Step 2: Initialize */}
-            <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-none space-y-1.5">
-              <span className="text-[11px] font-bold text-brand-400">
-                2. Initialize Client
-              </span>
-              <pre className="p-2 bg-zinc-900 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto rounded-none">
-                {`import { Gami } from '@gami.fied/sdk';\nconst gami = new Gami({ apiKey: process.env.GAMI_API_KEY! });`}
-              </pre>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Events today"
+              value={data.stats.eventsToday}
+              detail="In the last 24 hours"
+              href="/dashboard/events"
+              icon={Activity}
+            />
+            <StatCard
+              label="Active users"
+              value={data.stats.activeUsers}
+              detail={`Last 7 days, of ${data.stats.totalUsers.toLocaleString()} total`}
+              href="/dashboard/users"
+              icon={Users}
+            />
+            <StatCard
+              label="XP awarded"
+              value={data.stats.xpThisWeek}
+              detail="In the last 7 days"
+              href="/dashboard/xp"
+              icon={Coins}
+            />
+            <StatCard
+              label="Problems"
+              value={data.stats.failuresToday}
+              detail={
+                data.stats.failuresToday > 0 ? 'Failed in the last 24 hours' : 'All clear today'
+              }
+              href="/dashboard/events"
+              icon={data.stats.failuresToday > 0 ? AlertTriangle : CheckCircle2}
+              tone={data.stats.failuresToday > 0 ? 'danger' : undefined}
+            />
           </div>
 
-          {/* Step 3: Track Event */}
-          <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-none space-y-1.5">
-            <span className="text-[11px] font-bold text-brand-400">3. Track Event</span>
-            <pre className="p-2.5 bg-zinc-900 text-xs font-mono text-success-400 border border-zinc-800 overflow-x-auto rounded-none">
-              {`await gami.events.track({\n  projectId: '${selectedProject.id}',\n  userId: 'usr_player_101',\n  type: 'order_completed',\n  properties: { amount: 149.99 }\n});`}
-            </pre>
-          </div>
-        </CardContent>
-      </Card>
+          {isAdminOrOwner && <SetupCard projectId={selectedProject.id} setup={data.setup} />}
 
-      {/* Level Distribution Summary */}
-      {progSummary && progSummary.distribution.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100">
-              End-User Level Distribution
-            </CardTitle>
-            <CardDescription>
-              Count of distinct end-users dynamically grouped by calculated progression levels
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const maxCount = Math.max(...progSummary.distribution.map((d) => d.userCount), 1);
-              return (
-                <div className="space-y-3">
-                  {progSummary.distribution.map((d) => {
-                    const pct = Math.round((d.userCount / maxCount) * 100);
-                    return (
-                      <div key={d.level} className="flex items-center gap-4">
-                        <div className="w-20 shrink-0 text-right">
-                          <span className="text-xs font-bold text-warning-400">L{d.level}</span>
-                          <span className="text-[11px] text-zinc-400 block truncate">{d.name}</span>
-                        </div>
-                        <div className="flex-1 bg-zinc-950/80 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
-                          <div
-                            className="bg-brand-500 h-full rounded-none transition-all duration-700 ease-out"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <div className="w-16 text-right shrink-0">
-                          <span className="text-sm font-bold text-brand-400">{d.userCount}</span>
-                          <span className="text-xs text-zinc-400 block">users</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2">
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Recent activity</CardTitle>
+                  <Link
+                    href="/dashboard/events"
+                    className="flex items-center gap-1 text-xs text-brand-400 hover:underline"
+                  >
+                    All events <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {data.recentEvents.length === 0 ? (
+                  <EmptyState
+                    icon={Activity}
+                    title="No events yet"
+                    description="Events appear here as soon as your app sends them. You can try one from the Events page."
+                    action={{ label: 'Send a test event', href: '/dashboard/events' }}
+                  />
+                ) : (
+                  <ul className="divide-y divide-zinc-800/80">
+                    {data.recentEvents.map((event) => (
+                      <li key={event.id} className="flex items-center gap-3 py-2 text-xs">
+                        <span className="font-mono text-zinc-200 truncate">{event.type}</span>
+                        <span className="text-zinc-400 truncate">
+                          {event.name || event.externalId}
+                        </span>
+                        <span className="ml-auto shrink-0 text-zinc-400">
+                          {formatRelativeTime(event.occurredAt)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Top users</CardTitle>
+                  <Link
+                    href="/dashboard/leaderboard"
+                    className="flex items-center gap-1 text-xs text-brand-400 hover:underline"
+                  >
+                    Leaderboard <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {data.topUsers.length === 0 ? (
+                  <CardDescription className="py-6 text-center">
+                    Users appear here once they earn XP.
+                  </CardDescription>
+                ) : (
+                  <ol className="divide-y divide-zinc-800/80">
+                    {data.topUsers.map((user, index) => (
+                      <li key={user.id} className="flex items-center gap-3 py-2 text-xs">
+                        <span className="w-4 text-zinc-400">{index + 1}</span>
+                        <Link
+                          href={`/dashboard/users?user=${encodeURIComponent(user.id)}`}
+                          className="text-zinc-200 truncate hover:text-brand-400 transition-colors"
+                        >
+                          {user.name || user.externalId}
+                        </Link>
+                        <span className="ml-auto shrink-0 font-semibold text-zinc-200">
+                          {user.totalXp.toLocaleString()} XP
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
     </div>
   );

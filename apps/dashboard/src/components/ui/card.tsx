@@ -2,13 +2,16 @@ import React, { HTMLAttributes, forwardRef } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+/** Two balanced columns of cards of different heights, so short pages use the full width. */
+export const SETTINGS_COLUMNS = 'gap-6 lg:columns-2 [&>*]:mb-6 [&>*]:break-inside-avoid';
+
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={twMerge(
         clsx(
-          'bg-zinc-900/80 border border-zinc-800/80 rounded-none shadow-sm backdrop-blur-sm relative',
+          'bg-zinc-900/80 border border-zinc-800/80 rounded-none shadow-sm relative',
           className
         )
       )}

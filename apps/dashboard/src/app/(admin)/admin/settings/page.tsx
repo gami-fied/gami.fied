@@ -2,25 +2,21 @@
 
 import { SmtpSettingsView } from '@/components/features/settings/smtp-settings-view';
 import { PlatformSettingsForm } from '@/components/features/settings/platform-settings-form';
-import { Settings, Mail, SlidersHorizontal } from 'lucide-react';
+import { Mail, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'smtp' | 'platform'>('smtp');
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-800 pb-4">
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <Settings className="w-5 h-5 text-danger-400" />
-          Global Server Settings
-        </h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Server-level SMTP mail delivery, feature toggles, and global integration rules.
-        </p>
-      </div>
+      <PageHeader
+        title="Server Settings"
+        description="Email, features and integrations for this server."
+      />
 
-      <div className="flex border-b border-zinc-800 gap-2">
+      <div className="page-toolbar flex border-b border-zinc-800 gap-2">
         <button
           onClick={() => setActiveTab('smtp')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-bold border-b-2 transition ${

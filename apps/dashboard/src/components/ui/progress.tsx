@@ -21,7 +21,7 @@ export function Progress({ value, max = 100, label, sublabel, showPercent = true
       )}
       <div className="w-full bg-zinc-950 rounded-none h-3 overflow-hidden border border-zinc-800 p-0.5 relative flex">
         <div
-          className="h-full bg-brand-500 transition-all duration-300 ease-out rounded-none"
+          className="h-full bg-brand-500 transition-[width] duration-300 ease-out rounded-none"
           style={{
             width: `${percentage}%`,
           }}

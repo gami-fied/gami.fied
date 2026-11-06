@@ -10,7 +10,7 @@ import {
   type DateRangePreset,
 } from '@gami/database';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { requireProjectAccess } from '../authorization/index.js';
+import { canViewPersonalData, requireProjectAccess } from '../authorization/index.js';
 
 interface AnalyticsQuery {
   range?: DateRangePreset;
@@ -107,7 +107,10 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       const exportType = request.query.type || 'overview';
-      const csvContent = await getExportCsvData(db, projectId, exportType, request.query);
+      const csvContent = await getExportCsvData(db, projectId, exportType, {
+        ...request.query,
+        hideEmail: !canViewPersonalData(authResult.membership),
+      });
 
       const filename = `gami-analytics-${projectId}-${exportType}-${Date.now()}.csv`;
 

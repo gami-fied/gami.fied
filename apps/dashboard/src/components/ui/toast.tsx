@@ -103,7 +103,7 @@ function ToastCard({
         transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
       }}
       className={clsx(
-        'absolute bottom-0 right-0 w-full flex items-start gap-3 p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-none shadow-2xl backdrop-blur-md overflow-hidden',
+        'absolute bottom-0 right-0 w-full flex items-start gap-3 p-3.5 bg-zinc-900/95 border border-zinc-800 rounded-none shadow-2xl  overflow-hidden',
         (isEntering || isExiting) && 'pointer-events-none'
       )}
     >
@@ -216,7 +216,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {activeCount > 1 && (
           <div
             className={clsx(
-              'absolute -top-7 right-1 z-40 flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 rounded-none text-[11px] font-semibold text-zinc-300 shadow-md backdrop-blur-md transition-all duration-300',
+              'absolute -top-7 right-1 z-40 flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 rounded-none text-[11px] font-semibold text-zinc-300 shadow-md  transition-[transform,opacity]',
               isHovered ? 'opacity-0 pointer-events-none' : 'opacity-100'
             )}
           >
@@ -227,7 +227,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
         <div
           style={{ height: `${containerHeight}px` }}
-          className="relative transition-all duration-350 ease-out"
+          className="relative transition-[transform,opacity] duration-200 ease-out"
         >
           {toasts.map((t, index) => (
             <ToastCard

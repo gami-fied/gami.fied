@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checklist, ChecklistItem } from '@/components/ui/checklist';
 import { User, Shield, CheckCircle2, Lock, Bell, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { SETTINGS_COLUMNS } from '@/components/ui/card';
 
 interface UserProfileData {
   id: string;
@@ -115,13 +117,15 @@ export function ProfileView() {
     {
       value: 'system_emails',
       label: 'System & Platform Notification Emails',
-      description: 'Receive non-critical platform updates, digest summaries, and operational email alerts.',
+      description:
+        'Receive non-critical platform updates, digest summaries, and operational email alerts.',
       badge: 'Optional',
     },
     {
       value: 'security_otp_emails',
       label: 'Security & Email OTP Verification Emails',
-      description: 'Mandatory transactional security events (Email OTP verification, login alerts, password resets).',
+      description:
+        'Mandatory transactional security events (Email OTP verification, login alerts, password resets).',
       badge: 'Mandatory',
       disabled: true, // Cannot be unsubscribed!
     },
@@ -137,26 +141,21 @@ export function ProfileView() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl text-zinc-100">
+    <div className="space-y-6 text-zinc-100">
       {/* Header */}
-      <div className="border-b border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-brand-400" />
-            <h1 className="text-xl font-bold text-white">
-              User Profile &amp; Account Settings
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Manage your personal profile, account credentials, and email notification subscription preferences.
-          </p>
-        </div>
-        {profile?.isPlatformAdmin && (
-          <Badge variant="orange" className="shrink-0">
-            <Shield className="w-3 h-3 mr-1" /> Platform Admin
-          </Badge>
-        )}
-      </div>
+      <PageHeader
+        title="Your profile"
+        description="Your details, password and email preferences."
+        actions={
+          <>
+            {profile?.isPlatformAdmin && (
+              <Badge variant="orange" className="shrink-0">
+                <Shield className="w-3 h-3 mr-1" /> Platform Admin
+              </Badge>
+            )}
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
@@ -173,112 +172,131 @@ export function ProfileView() {
       )}
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* Profile Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-              <User className="w-4 h-4 text-brand-400" />
-              Personal Profile Credentials
-            </CardTitle>
-            <CardDescription>Update your display name, avatar, and security password.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="profile-view-full-name" className="block text-xs text-zinc-400 font-bold mb-1">
-                  Full Name *
-                </label>
-                <Input id="profile-view-full-name"
-                  type="text"
-                  required
-                  placeholder="Your Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-zinc-400 font-bold mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
+        <div className={SETTINGS_COLUMNS}>
+          {/* Profile Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                <User className="w-4 h-4 text-brand-400" />
+                Personal Profile Credentials
+              </CardTitle>
+              <CardDescription>
+                Update your display name, avatar, and security password.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="profile-view-full-name"
+                    className="block text-xs text-zinc-400 font-bold mb-1"
+                  >
+                    Full Name *
+                  </label>
                   <Input
-                    type="email"
-                    disabled
-                    value={profile?.email || session?.user?.email || ''}
-                    className="opacity-70 bg-zinc-950"
+                    id="profile-view-full-name"
+                    type="text"
+                    required
+                    placeholder="Your Full Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                   />
-                  {profile?.emailVerified && (
-                    <span className="absolute right-3 top-2.5 text-xs text-success-400 font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Verified
-                    </span>
-                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs text-zinc-400 font-bold mb-1">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      disabled
+                      value={profile?.email || session?.user?.email || ''}
+                      className="opacity-70 bg-zinc-950"
+                    />
+                    {profile?.emailVerified && (
+                      <span className="absolute right-3 top-2.5 text-xs text-success-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="profile-view-avatar-image-url"
+                    className="block text-xs text-zinc-400 font-bold mb-1"
+                  >
+                    Avatar Image URL
+                  </label>
+                  <Input
+                    id="profile-view-avatar-image-url"
+                    type="url"
+                    placeholder="https://example.com/avatar.png"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="profile-view-new-password-optional"
+                    className="block text-xs text-zinc-400 font-bold mb-1"
+                  >
+                    New Password (Optional)
+                  </label>
+                  <Input
+                    id="profile-view-new-password-optional"
+                    type="password"
+                    placeholder="Leave blank to keep unchanged"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div>
-                <label htmlFor="profile-view-avatar-image-url" className="block text-xs text-zinc-400 font-bold mb-1">
-                  Avatar Image URL
-                </label>
-                <Input id="profile-view-avatar-image-url"
-                  type="url"
-                  placeholder="https://example.com/avatar.png"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                />
+          {/* Email Subscription Preferences using Custom Checklist Component */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                <Bell className="w-4 h-4 text-info-400" />
+                Email Notification Subscriptions
+              </CardTitle>
+              <CardDescription>
+                Choose which platform email notifications you want to receive.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Custom Checklist UI Component */}
+              <Checklist
+                title="EMAIL SUBSCRIPTION PREFERENCES"
+                items={subscriptionItems}
+                selectedValues={selectedSubscriptions}
+                onChange={handleSubscriptionChange}
+                showSelectAll={false}
+                showSearch={false}
+              />
+
+              <div className="p-3 bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2">
+                <Lock className="w-4 h-4 text-info-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold text-white text-[11px] block">
+                    Mandatory Security Guarantee
+                  </span>
+                  <p className="text-[11px] leading-relaxed text-zinc-400">
+                    Email OTP Verification codes and security alert emails are critical
+                    transactional security events. They are{' '}
+                    <span className="text-info-400 font-bold">mandatory</span> and will NEVER be
+                    disabled or unsubscribed, even if optional system email notifications are turned
+                    off.
+                  </p>
+                </div>
               </div>
-
-              <div>
-                <label htmlFor="profile-view-new-password-optional" className="block text-xs text-zinc-400 font-bold mb-1">
-                  New Password (Optional)
-                </label>
-                <Input id="profile-view-new-password-optional"
-                  type="password"
-                  placeholder="Leave blank to keep unchanged"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Subscription Preferences using Custom Checklist Component */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-info-400" />
-              Email Notification Subscriptions
-            </CardTitle>
-            <CardDescription>
-              Choose which platform email notifications you want to receive.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Custom Checklist UI Component */}
-            <Checklist
-              title="EMAIL SUBSCRIPTION PREFERENCES"
-              items={subscriptionItems}
-              selectedValues={selectedSubscriptions}
-              onChange={handleSubscriptionChange}
-              showSelectAll={false}
-              showSearch={false}
-            />
-
-            <div className="p-3 bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2">
-              <Lock className="w-4 h-4 text-info-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="font-bold text-white text-[11px] block">
-                  Mandatory Security Guarantee
-                </span>
-                <p className="text-[11px] leading-relaxed text-zinc-400">
-                  Email OTP Verification codes and security alert emails are critical transactional security events.
-                  They are <span className="text-info-400 font-bold">mandatory</span> and will NEVER be disabled or unsubscribed, even if optional system email notifications are turned off.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="flex justify-end">
           <Button type="submit" disabled={saving} variant="orange">
@@ -289,9 +307,7 @@ export function ProfileView() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-bold text-zinc-100">
-            Delete Account
-          </CardTitle>
+          <CardTitle className="text-sm font-bold text-zinc-100">Delete Account</CardTitle>
           <CardDescription>
             This permanently removes your account. Transfer or delete any organizations you own
             first.
@@ -313,6 +329,7 @@ export function ProfileView() {
               variant="danger"
               disabled={!deletePassword}
               onClick={handleDeleteAccount}
+              className="shrink-0 whitespace-nowrap"
             >
               Delete Account
             </Button>

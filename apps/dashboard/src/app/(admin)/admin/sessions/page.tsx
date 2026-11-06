@@ -5,9 +5,10 @@ import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
-import { KeyRound, UserX } from 'lucide-react';
+import { UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface ActiveSession {
   id: string;
@@ -82,15 +83,10 @@ export default function AdminSessionsPage() {
 
   return (
     <div className="space-y-6 text-zinc-100">
-      <div className="border-b border-zinc-800 pb-4">
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <KeyRound className="w-5 h-5 text-danger-400" />
-          Active Administrative &amp; User Sessions
-        </h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Monitor active user sessions, inspect IP addresses/user agents, and execute emergency session revocations.
-        </p>
-      </div>
+      <PageHeader
+        title="Sessions"
+        description="See who's signed in, and sign out a session if needed."
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs">

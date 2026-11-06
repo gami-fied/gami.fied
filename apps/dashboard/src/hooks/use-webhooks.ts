@@ -8,9 +8,10 @@ import type {
   WebhookDeliveryRecord,
   WebhookEndpointRecord,
 } from '@gami.fied/sdk';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export function useWebhooks(projectId: string | null) {
-  const [endpoints, setEndpoints] = useState<WebhookEndpointRecord[]>([]);
+  const [endpoints, setEndpoints] = useCachedState<WebhookEndpointRecord[]>(`webhooks:${projectId}`, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +21,7 @@ export function useWebhooks(projectId: string | null) {
       return;
     }
 
-    setLoading(true);
+    setLoading(!hasCachedState(`webhooks:${projectId}`));
     setError(null);
 
     try {
@@ -37,7 +38,7 @@ export function useWebhooks(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setEndpoints]);
 
   useEffect(() => {
     fetchEndpoints();

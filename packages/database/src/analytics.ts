@@ -379,7 +379,7 @@ export async function getExportCsvData(
   db: NodePgDatabase<Record<string, unknown>>,
   projectId: string,
   exportType: 'all' | 'overview' | 'users' | 'events' | 'xp' | 'achievements' | 'challenges' | 'rules' | 'notifications' | 'integrations' | string,
-  options?: DateRangeOptions
+  options?: DateRangeOptions & { hideEmail?: boolean }
 ): Promise<string> {
   const { start, end, preset } = resolveDateRange(options);
   const maxCap = 5000;
@@ -403,7 +403,7 @@ export async function getExportCsvData(
       u.id,
       u.externalId,
       u.name || '',
-      u.email || '',
+      options?.hideEmail ? '' : u.email || '',
       u.active ? 'true' : 'false',
       u.createdAt.toISOString(),
     ]);

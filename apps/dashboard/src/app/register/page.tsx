@@ -72,9 +72,7 @@ export default function RegisterPage() {
           <div className="inline-flex w-12 h-12 rounded-none bg-brand-500 items-center justify-center text-on-accent">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-            Create Gami.Fied Account
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Create your account</h1>
           <p className="text-xs text-zinc-400">Set up your gamification control center</p>
         </div>
 

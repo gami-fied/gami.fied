@@ -1,6 +1,6 @@
 'use client';
 
-import { ModalFrame } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/format';
 import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState } from 'react';
@@ -11,11 +11,12 @@ import {
   Trash2,
   RotateCcw,
   Plus,
-  AlertTriangle,
   FileCheck,
   Lock,
   HardDrive,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 interface BackupRecord {
   id: string;
@@ -106,7 +107,9 @@ export default function AdminBackupsPage() {
     if (!backupToDelete) return;
     setActionLoading(true);
     try {
-      const res = await apiFetch(`/api/v1/admin/backups/${backupToDelete.id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/v1/admin/backups/${backupToDelete.id}`, {
+        method: 'DELETE',
+      });
       if (res.ok) {
         toast.success('Platform backup deleted successfully');
         setBackupToDelete(null);
@@ -148,33 +151,31 @@ export default function AdminBackupsPage() {
   return (
     <div className="space-y-6 text-zinc-100">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-        <div>
-          <h1 className="text-xl font-bold text-white">Platform Backups</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            PostgreSQL multi-tenant database snapshots, checksum verifications, and disaster recovery.
-          </p>
-        </div>
+      <PageHeader
+        title="Backups"
+        description="Database backups for this server, and how to restore them."
+        actions={
+          <>
+            <button
+              onClick={fetchBackups}
+              className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 transition"
+              title="Refresh Catalog"
+              aria-label="Refresh Catalog"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchBackups}
-            className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 transition"
-            title="Refresh Catalog" aria-label="Refresh Catalog"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            onClick={handleCreateBackup}
-            disabled={actionLoading}
-            className="px-4 py-2 bg-danger-950 hover:bg-danger-900 text-danger-300 border border-danger-800 text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            Create PostgreSQL Backup
-          </button>
-        </div>
-      </div>
+            <button
+              onClick={handleCreateBackup}
+              disabled={actionLoading}
+              className="px-4 py-2 bg-danger-950 hover:bg-danger-900 text-danger-300 border border-danger-800 text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              Create PostgreSQL Backup
+            </button>
+          </>
+        }
+      />
 
       {/* Info Card */}
       <div className="bg-zinc-950 border border-zinc-800 p-4 flex items-start gap-3">
@@ -184,7 +185,9 @@ export default function AdminBackupsPage() {
             Platform Infrastructure Security Guarantee
           </p>
           <p className="text-zinc-400 leading-relaxed">
-            Platform backups snapshot all system-wide infrastructure and multi-tenant tables. Physical files are stored on persistent host storage with SHA-256 integrity verification and AES-256-GCM encryption at rest.
+            Platform backups snapshot all system-wide infrastructure and multi-tenant tables.
+            Physical files are stored on persistent host storage with SHA-256 integrity verification
+            and AES-256-GCM encryption at rest.
           </p>
         </div>
       </div>
@@ -196,11 +199,15 @@ export default function AdminBackupsPage() {
             <HardDrive className="w-4 h-4 text-danger-400" />
             <h2 className="text-sm font-bold text-white">Backup Catalog</h2>
           </div>
-          <span className="text-xs text-zinc-400 font-semibold">{backups.length} total backup(s)</span>
+          <span className="text-xs text-zinc-400 font-semibold">
+            {backups.length} total backup(s)
+          </span>
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-xs text-zinc-400">Loading platform backup catalog...</div>
+          <div className="py-8 text-center text-xs text-zinc-400">
+            Loading platform backup catalog...
+          </div>
         ) : backups.length === 0 ? (
           <div className="py-8 text-center text-xs text-zinc-400">
             No platform backups created yet. Click "Create PostgreSQL Backup" above.
@@ -231,8 +238,8 @@ export default function AdminBackupsPage() {
                           b.status === 'verified' || b.status === 'available'
                             ? 'bg-success-950/60 text-success-400 border-success-800/60'
                             : b.status === 'restored'
-                            ? 'bg-info-950/60 text-info-400 border-info-800/60'
-                            : 'bg-danger-950/60 text-danger-400 border-danger-800/60'
+                              ? 'bg-info-950/60 text-info-400 border-info-800/60'
+                              : 'bg-danger-950/60 text-danger-400 border-danger-800/60'
                         }`}
                       >
                         {b.status}
@@ -299,87 +306,69 @@ export default function AdminBackupsPage() {
 
       {/* Delete Confirmation Modal */}
       {backupToDelete && (
-        <ModalFrame onClose={() => setBackupToDelete(null)} label="Delete backup">
-          <div className="bg-zinc-950 border border-danger-800 p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <div className="flex items-center gap-3 border-b border-zinc-800 pb-3">
-              <Trash2 className="w-6 h-6 text-danger-400 shrink-0" />
-              <div>
-                <h3 className="text-base font-bold text-white">Confirm Delete Platform Backup</h3>
-                <p className="text-xs text-zinc-400">
-                  Backup ID: <span className="font-mono text-danger-400">{backupToDelete.id}</span>
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Are you sure you want to permanently delete backup file{' '}
-              <span className="text-white">{backupToDelete.filename}</span> from platform storage?
-            </p>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setBackupToDelete(null)}
-                className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-bold"
-              >
+        <Dialog
+          isOpen
+          onClose={() => setBackupToDelete(null)}
+          title="Delete this backup?"
+          description={`Backup ${backupToDelete.id}`}
+          maxWidth="md"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setBackupToDelete(null)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="danger"
                 onClick={handleConfirmDeleteBackup}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-danger-950 hover:bg-danger-900 border border-danger-800 text-danger-300 text-xs font-bold"
+                isLoading={actionLoading}
               >
-                {actionLoading ? 'Deleting...' : 'Confirm & Delete'}
-              </button>
-            </div>
-          </div>
-        </ModalFrame>
+                Delete backup
+              </Button>
+            </>
+          }
+        >
+          <p className="text-xs text-zinc-300 leading-relaxed">
+            Are you sure you want to permanently delete backup file{' '}
+            <span className="text-white">{backupToDelete.filename}</span> from platform storage?
+          </p>
+        </Dialog>
       )}
 
       {/* Restore Confirmation Modal */}
       {showRestoreModal && selectedBackup && (
-        <ModalFrame onClose={() => setShowRestoreModal(false)} label="Restore backup">
-          <div className="bg-zinc-950 border border-warning-800 p-6 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex items-center gap-3 border-b border-zinc-800 pb-3">
-              <AlertTriangle className="w-6 h-6 text-warning-400 shrink-0" />
-              <div>
-                <h3 className="text-base font-bold text-white">Confirm Destructive Database Restore</h3>
-                <p className="text-xs text-zinc-400">
-                  Target Backup: <span className="font-mono text-warning-400">{selectedBackup.id}</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="text-xs text-zinc-300 space-y-2 bg-warning-950/40 border border-warning-800/60 p-3">
-              <p className="font-bold text-warning-300">⚠️ Critical Safeguards Notice:</p>
-              <ul className="list-disc list-inside space-y-1 text-zinc-400">
-                <li>
-                  Restoration will replace committed database state with the backup snapshot taken on{' '}
-                  <span className="text-white">{formatDateTime(selectedBackup.createdAt)}</span>.
-                </li>
-                <li>
-                  A mandatory <span className="text-success-400 font-semibold">Pre-Restore Safety Backup</span> will be created automatically before restoring.
-                </li>
-                <li>Requested backup SHA-256 integrity will be verified prior to restoration.</li>
-              </ul>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowRestoreModal(false)}
-                className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-bold"
-              >
+        <Dialog
+          isOpen
+          onClose={() => setShowRestoreModal(false)}
+          title="Restore this backup?"
+          description={`Backup ${selectedBackup.id}`}
+          maxWidth="lg"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setShowRestoreModal(false)}>
                 Cancel
-              </button>
-              <button
-                onClick={handleRestoreBackup}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-warning-950 hover:bg-warning-900 border border-warning-800 text-warning-300 text-xs font-bold flex items-center gap-2"
-              >
-                {actionLoading ? 'Executing Restore...' : 'Confirm & Restore Database'}
-              </button>
-            </div>
+              </Button>
+              <Button variant="danger" onClick={handleRestoreBackup} isLoading={actionLoading}>
+                Restore database
+              </Button>
+            </>
+          }
+        >
+          <div className="text-xs text-zinc-300 space-y-2 bg-warning-950/40 border border-warning-800/60 p-3">
+            <p className="font-bold text-warning-300">⚠️ Critical Safeguards Notice:</p>
+            <ul className="list-disc list-inside space-y-1 text-zinc-400">
+              <li>
+                Restoration will replace committed database state with the backup snapshot taken on{' '}
+                <span className="text-white">{formatDateTime(selectedBackup.createdAt)}</span>.
+              </li>
+              <li>
+                A mandatory{' '}
+                <span className="text-success-400 font-semibold">Pre-Restore Safety Backup</span>{' '}
+                will be created automatically before restoring.
+              </li>
+              <li>Requested backup SHA-256 integrity will be verified prior to restoration.</li>
+            </ul>
           </div>
-        </ModalFrame>
+        </Dialog>
       )}
     </div>
   );

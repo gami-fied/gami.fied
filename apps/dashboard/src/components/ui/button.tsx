@@ -23,21 +23,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-none';
+      'inline-flex items-center justify-center font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-none';
 
     const variants = {
       primary:
-        'bg-brand-500 hover:bg-brand-400 text-on-accent focus:ring-brand-500 active:scale-[0.98]',
+        'bg-brand-500 hover:bg-brand-600 text-on-accent active:scale-[0.98]',
       secondary:
-        'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700/80 focus:ring-zinc-500 active:scale-[0.98]',
+        'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700/80 active:scale-[0.98]',
       outline:
-        'bg-transparent hover:bg-zinc-800/60 text-zinc-200 border border-zinc-700 focus:ring-zinc-500 active:scale-[0.98]',
-      ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white focus:ring-zinc-500',
-      danger: 'bg-danger-600 hover:bg-danger-500 text-on-accent focus:ring-danger-500 active:scale-[0.98]',
-      cyan: 'bg-info-600 hover:bg-info-500 text-on-accent focus:ring-info-500 active:scale-[0.98]',
-      orange: 'bg-brand-600 hover:bg-brand-500 text-on-accent focus:ring-brand-500 active:scale-[0.98]',
-      rose: 'bg-danger-950/80 hover:bg-danger-900 text-danger-300 border border-danger-800 focus:ring-danger-500 active:scale-[0.98]',
-      emerald: 'bg-success-950/80 hover:bg-success-900 text-success-300 border border-success-800 focus:ring-success-500 active:scale-[0.98]',
+        'bg-transparent hover:bg-zinc-800/60 text-zinc-200 border border-zinc-700 active:scale-[0.98]',
+      ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 hover:text-white',
+      danger: 'bg-danger-600 hover:bg-danger-500 text-on-accent active:scale-[0.98]',
+      cyan: 'bg-info-600 hover:bg-info-500 text-on-accent active:scale-[0.98]',
+      orange: 'bg-brand-600 hover:bg-brand-500 text-on-accent active:scale-[0.98]',
+      rose: 'bg-danger-950/80 hover:bg-danger-900 text-danger-300 border border-danger-800 active:scale-[0.98]',
+      emerald: 'bg-success-950/80 hover:bg-success-900 text-success-300 border border-success-800 active:scale-[0.98]',
     };
 
     const sizes = {

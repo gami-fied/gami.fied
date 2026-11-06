@@ -1,6 +1,6 @@
 'use client';
 
-import { apiFetch } from '@/lib/api-client';
+import { apiFetch, queryClient } from '@/lib/api-client';
 import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
@@ -40,6 +40,14 @@ interface DashboardContextType {
   loadingProjects: boolean;
   /** True when projects could not load, which is different from having none. */
   projectsFailed: boolean;
+  isPlatformAdmin: boolean;
+}
+
+interface BootstrapData {
+  organizations: Organization[];
+  organizationId: string | null;
+  projects: Project[];
+  isPlatformAdmin: boolean;
 }
 
 const ORG_STORAGE_KEY = 'gami.selectedOrgId';
@@ -48,7 +56,7 @@ const PROJECT_STORAGE_KEY = 'gami.selectedProjectId';
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, error: sessionError } = authClient.useSession();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -60,6 +68,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [projectsFailed, setProjectsFailed] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Keep a stable ref of current selected IDs to avoid unnecessary object reference updates
@@ -89,10 +98,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   // Unauthenticated user redirect protection
   useEffect(() => {
-    if (!isPending && session === null) {
+    // A failed check isn't a signed-out user, so a brief API blip doesn't end the visit.
+    if (!isPending && session === null && !sessionError) {
       router.replace('/login');
     }
-  }, [session, isPending, router]);
+  }, [session, isPending, sessionError, router]);
 
   // Fetch organizations only when the authenticated user ID changes
   const userId = session?.user?.id;
@@ -103,37 +113,41 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  const applyProjects = (data: Project[]) => {
+    setProjects(data);
+    setProjectsFailed(false);
+
+    const linkedId = new URLSearchParams(window.location.search).get('project');
+    const currentId =
+      selectedProjectIdRef.current ?? linkedId ?? localStorage.getItem(PROJECT_STORAGE_KEY);
+    const targetProject = data.find((p) => p.id === currentId) ?? data[0] ?? null;
+
+    // Preserve reference if ID hasn't changed to prevent modal resets on tab switch
+    setSelectedProject((prev) => (prev?.id === targetProject?.id ? prev : targetProject));
+  };
+
+  /** Loads organizations and the active one's projects in a single request. */
   const fetchOrganizations = async (): Promise<Organization[]> => {
     setLoadingOrgs(true);
     try {
-      const res = await apiFetch('/api/organizations', { credentials: 'include' });
-      if (res.ok) {
-        const data: Organization[] = await res.json();
-        setOrganizations(data);
-
-        if (data.length > 0) {
-          const currentId = selectedOrgIdRef.current ?? localStorage.getItem(ORG_STORAGE_KEY);
-          const matchingOrg = currentId ? data.find((o) => o.id === currentId) : null;
-          const targetOrg = matchingOrg || data[0] || null;
-
-          // Preserve reference if ID hasn't changed
-          setSelectedOrg((prev) => {
-            if (prev && targetOrg && prev.id === targetOrg.id) return prev;
-            return targetOrg;
-          });
-
-          if (targetOrg) {
-            await fetchProjects(targetOrg.id);
-          }
-        } else {
-          setSelectedOrg(null);
-          setProjects([]);
-          setSelectedProject(null);
-        }
-        return data;
+      const currentId = selectedOrgIdRef.current ?? localStorage.getItem(ORG_STORAGE_KEY);
+      const query = currentId ? `?organizationId=${encodeURIComponent(currentId)}` : '';
+      const res = await apiFetch(`/api/bootstrap${query}`, { credentials: 'include' });
+      if (!res.ok) {
+        setProjectsFailed(true);
+        return [];
       }
+
+      const data: BootstrapData = await res.json();
+      const targetOrg = data.organizations.find((o) => o.id === data.organizationId) ?? null;
+      setOrganizations(data.organizations);
+      setIsPlatformAdmin(data.isPlatformAdmin);
+      setSelectedOrg((prev) => (prev?.id === targetOrg?.id ? prev : targetOrg));
+      applyProjects(data.projects);
+      return data.organizations;
     } catch {
-      setError('Failed to fetch organizations');
+      setProjectsFailed(true);
+      setError('Failed to load your workspace');
     } finally {
       setLoadingOrgs(false);
     }
@@ -143,27 +157,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const fetchProjects = async (orgId: string): Promise<Project[]> => {
     setLoadingProjects(true);
     try {
-      const res = await apiFetch(`/api/projects?organizationId=${orgId}`, { credentials: 'include' });
+      const res = await apiFetch(`/api/projects?organizationId=${orgId}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const data: Project[] = await res.json();
-        setProjects(data);
-        setProjectsFailed(false);
-
-        if (data.length > 0) {
-          const linkedId = new URLSearchParams(window.location.search).get('project');
-          const currentId =
-            selectedProjectIdRef.current ?? linkedId ?? localStorage.getItem(PROJECT_STORAGE_KEY);
-          const matchingProject = currentId ? data.find((p) => p.id === currentId) : null;
-          const targetProject = matchingProject || data[0] || null;
-
-          // Preserve reference if ID hasn't changed to prevent modal resets on tab switch
-          setSelectedProject((prev) => {
-            if (prev && targetProject && prev.id === targetProject.id) return prev;
-            return targetProject;
-          });
-        } else {
-          setSelectedProject(null);
-        }
+        applyProjects(data);
         return data;
       }
     } catch {
@@ -222,6 +221,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await authClient.signOut();
+    queryClient.clear();
     router.replace('/login');
   };
 
@@ -249,6 +249,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         loadingOrgs,
         loadingProjects,
         projectsFailed,
+        isPlatformAdmin,
       }}
     >
       {children}

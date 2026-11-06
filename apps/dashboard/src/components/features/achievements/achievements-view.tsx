@@ -12,10 +12,11 @@ import { Dialog } from '@/components/ui/dialog';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { Trophy, Plus, Search, Award } from 'lucide-react';
+import { AdminOnly } from '@/components/ui/admin-only';
+import { PageHeader } from '@/components/ui/page-header';
 
 export function AchievementsView() {
-  const { selectedProject, selectedOrg } = useDashboard();
-  const isAdminOrOwner = ['owner', 'admin'].includes(selectedOrg?.role || 'member');
+  const { selectedProject } = useDashboard();
   const toast = useToast();
   const {
     achievements,
@@ -106,27 +107,24 @@ export function AchievementsView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Achievements & Badges</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Project-scoped achievement definitions and award tracking for{' '}
-            <span className="text-brand-400 font-semibold">{selectedProject.name}</span>
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!isAdminOrOwner}
-          title={!isAdminOrOwner ? 'Requires Admin or Owner role to create achievements' : undefined}
-          onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
-          className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-        >
-          <Plus className="w-4 h-4" />
-          Create Achievement
-        </Button>
-      </div>
+      <PageHeader
+        title="Achievements"
+        description={
+          <>
+            Badges users can unlock in <span className="text-zinc-200">{selectedProject.name}</span>
+          </>
+        }
+        actions={
+          <>
+            <AdminOnly>
+              <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Create Achievement
+              </Button>
+            </AdminOnly>
+          </>
+        }
+      />
 
       {/* Analytics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -156,15 +154,13 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-brand-400">
               {summary?.totalAwards?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Granted to end-users</p>
+            <p className="text-[11px] text-zinc-400 mt-1">Awarded to users</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-b from-zinc-900 to-zinc-900/60">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold text-zinc-400">
-              Unique Achievers
-            </CardTitle>
+            <CardTitle className="text-xs font-semibold text-zinc-400">Unique Achievers</CardTitle>
             <Trophy className="w-4 h-4 text-success-400" />
           </CardHeader>
           <CardContent>
@@ -202,8 +198,8 @@ export function AchievementsView() {
           {searchedUser && (
             <div className="space-y-3 pt-2">
               <p className="text-xs font-semibold text-zinc-300">
-                Badges Awarded to <span className="text-brand-400">{searchedUser}</span>{' '}
-                ({userAwards.length}):
+                Badges Awarded to <span className="text-brand-400">{searchedUser}</span> (
+                {userAwards.length}):
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {userAwards.map((a) => (
@@ -218,12 +214,8 @@ export function AchievementsView() {
                       <p className="text-xs font-bold text-zinc-100 truncate">
                         {a.achievementName}
                       </p>
-                      <p className="text-xs text-zinc-400 truncate">
-                        {a.achievementKey}
-                      </p>
-                      <p className="text-xs text-zinc-400">
-                        {formatDate(a.awardedAt)}
-                      </p>
+                      <p className="text-xs text-zinc-400 truncate">{a.achievementKey}</p>
+                      <p className="text-xs text-zinc-400">{formatDate(a.awardedAt)}</p>
                     </div>
                   </div>
                 ))}
@@ -250,18 +242,18 @@ export function AchievementsView() {
         )}
 
         {loading && achievements.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {achievements.map((a) => (
               <Card key={a.id} className="flex flex-col justify-between">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       <div className="w-10 h-10 rounded-none bg-info-950/80 border border-info-800/60 flex items-center justify-center text-info-300 font-bold text-sm shrink-0 overflow-hidden">
                         {a.iconUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -278,12 +270,14 @@ export function AchievementsView() {
                           '🏆'
                         )}
                       </div>
-                      <div>
-                        <CardTitle className="text-sm font-bold">{a.name}</CardTitle>
-                        <span className="font-mono text-[11px] text-zinc-400 block">{a.key}</span>
+                      <div className="min-w-0">
+                        <CardTitle className="truncate text-sm font-bold">{a.name}</CardTitle>
+                        <span className="block truncate font-mono text-[11px] text-zinc-400">
+                          {a.key}
+                        </span>
                       </div>
                     </div>
-                    <Badge variant={a.enabled ? 'emerald' : 'rose'}>
+                    <Badge className="shrink-0" variant={a.enabled ? 'emerald' : 'rose'}>
                       {a.enabled ? 'Enabled' : 'Disabled'}
                     </Badge>
                   </div>
@@ -297,18 +291,18 @@ export function AchievementsView() {
 
                 <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center justify-between">
                   <span className="text-[11px] font-mono text-zinc-400">{a.id}</span>
-                  <button
-                    disabled={!isAdminOrOwner}
-                    title={!isAdminOrOwner ? 'Requires Admin or Owner role to toggle achievement' : undefined}
-                    onClick={() => isAdminOrOwner && handleToggleDisable(a)}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-none transition ${
-                      a.enabled
-                        ? 'bg-danger-950/40 text-danger-400 hover:bg-danger-900/60'
-                        : 'bg-success-950/40 text-success-400 hover:bg-success-900/60'
-                    } ${!isAdminOrOwner ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    {a.enabled ? 'Soft Disable' : 'Enable'}
-                  </button>
+                  <AdminOnly>
+                    <button
+                      onClick={() => handleToggleDisable(a)}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-none transition ${
+                        a.enabled
+                          ? 'bg-danger-950/40 text-danger-400 hover:bg-danger-900/60'
+                          : 'bg-success-950/40 text-success-400 hover:bg-success-900/60'
+                      }`}
+                    >
+                      {a.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                  </AdminOnly>
                 </div>
               </Card>
             ))}
@@ -316,23 +310,15 @@ export function AchievementsView() {
             {achievements.length === 0 && (
               <div className="col-span-full p-12 text-center bg-zinc-900/40 rounded-none border border-zinc-800 space-y-3">
                 <Trophy className="w-8 h-8 text-zinc-400 mx-auto" />
-                <h3 className="text-base font-semibold text-zinc-200">
-                  No Achievements Configured
-                </h3>
+                <h3 className="text-base font-semibold text-zinc-200">No achievements yet</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                  Define achievements that can be granted to end-users automatically by the Rules
-                  Engine.
+                  Achievements are badges users unlock. Rules can award them automatically.
                 </p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={!isAdminOrOwner}
-                  title={!isAdminOrOwner ? 'Requires Admin or Owner role to create achievements' : undefined}
-                  onClick={() => isAdminOrOwner && setIsCreateOpen(true)}
-                  className={!isAdminOrOwner ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-400 border-zinc-700' : undefined}
-                >
-                  Create First Achievement
-                </Button>
+                <AdminOnly>
+                  <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+                    Create an achievement
+                  </Button>
+                </AdminOnly>
               </div>
             )}
           </div>

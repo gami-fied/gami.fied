@@ -28,6 +28,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
+      - run: node scripts/check-bundle.mjs
       - run: pnpm docs:check
 
   test:

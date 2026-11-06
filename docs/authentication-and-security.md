@@ -71,5 +71,5 @@ All sensitive vault secrets—including SMTP passwords, Webhook signing secrets,
 - **First-Time Bootstrap**: `POST /api/admin/bootstrap` allows claiming the initial Platform Admin role when 0 Platform Admins exist in PostgreSQL, protected by `PLATFORM_BOOTSTRAP_SECRET`.
 - **Emergency CLI Promotion**: Run server-side directly against PostgreSQL:
   ```bash
-  pnpm --filter @gami/api admin:promote --email user@example.com
+  pnpm --filter @gami/database admin:promote --email user@example.com
   ```

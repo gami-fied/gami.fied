@@ -87,13 +87,19 @@ pnpm --filter @gami/dashboard dev # Start dashboard UI only
 
 When Gami is launched for the first time:
 
-1. Open `http://localhost:3000/sign-up` in your browser.
+1. Open `http://localhost:3000/register` in your browser.
 2. Register a new user account.
 3. If no Platform Admin exists yet, you can claim the Platform Admin role via the initial bootstrap endpoint or using the emergency CLI tool:
 
 ```bash
 # Promote an existing user to Platform Administrator directly via CLI
-pnpm --filter @gami/api admin:promote --email admin@example.com
+pnpm --filter @gami/database admin:promote --email admin@example.com
+```
+
+With the published Docker images, run the built script inside the API container:
+
+```bash
+docker compose exec api node packages/database/dist/scripts/promote-admin.js --email admin@example.com
 ```
 
 ---

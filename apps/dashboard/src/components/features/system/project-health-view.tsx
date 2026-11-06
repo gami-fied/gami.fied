@@ -3,15 +3,9 @@
 import { apiFetch } from '@/lib/api-client';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../context/dashboard-context';
-import {
-  Activity,
-  Webhook,
-  Layers,
-  CheckCircle2,
-  AlertTriangle,
-  RefreshCw,
-  FolderGit2,
-} from 'lucide-react';
+import { Activity, Webhook, Layers, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { setVisibleInterval } from '@/lib/visible-interval';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface ProjectHealthMetrics {
   projectId: string;
@@ -66,14 +60,13 @@ export function ProjectHealthView() {
     setLoading(true);
     fetchMetrics();
 
-    const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
+    return setVisibleInterval(fetchMetrics, 5000);
   }, [selectedProject, fetchMetrics]);
 
   if (!selectedProject) {
     return (
       <div className="p-8 text-center text-zinc-400 border border-zinc-800 bg-zinc-950 my-8">
-        Please select a project to inspect delivery health &amp; operational pipelines.
+        Choose a project to see its delivery health.
       </div>
     );
   }
@@ -81,30 +74,29 @@ export function ProjectHealthView() {
   return (
     <div className="space-y-6 text-zinc-100">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <FolderGit2 className="w-5 h-5 text-brand-400" />
-            <h1 className="text-xl font-bold text-white">
-              Project Delivery Health
-            </h1>
-          </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Real-time delivery status, outbox queues, webhook health, and channel integrations for project{' '}
-            <span className="text-brand-400 font-bold">{selectedProject.name}</span>.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setLoading(true);
-            fetchMetrics();
-          }}
-          className="shrink-0 flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-xs transition text-zinc-300 hover:text-white"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Pipeline
-        </button>
-      </div>
+      <PageHeader
+        title="Delivery Health"
+        description={
+          <>
+            Real-time delivery status, outbox queues, webhook health, and channel integrations for
+            project <span className="text-zinc-200">{selectedProject.name}</span>.
+          </>
+        }
+        actions={
+          <>
+            <button
+              onClick={() => {
+                setLoading(true);
+                fetchMetrics();
+              }}
+              className="shrink-0 flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-xs transition text-zinc-300 hover:text-white"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800 text-danger-300 text-xs flex items-center gap-2">
@@ -117,7 +109,7 @@ export function ProjectHealthView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Total Events Ingested</span>
+            <span>Total events received</span>
             <Activity className="w-4 h-4 text-brand-400" />
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
@@ -139,7 +131,8 @@ export function ProjectHealthView() {
             <span className="text-xs font-normal text-zinc-400">delivered</span>
           </div>
           <p className="text-[11px] text-zinc-400">
-            Successful HTTP webhook deliveries. Failed: {(metrics?.webhookStats.failed ?? 0).toLocaleString()}.
+            Successful HTTP webhook deliveries. Failed:{' '}
+            {(metrics?.webhookStats.failed ?? 0).toLocaleString()}.
           </p>
         </div>
 
@@ -153,7 +146,8 @@ export function ProjectHealthView() {
             <span className="text-xs font-normal text-zinc-400">channel messages</span>
           </div>
           <p className="text-[11px] text-zinc-400">
-            Discord embed dispatches. Failed: {(metrics?.integrationStats.failed ?? 0).toLocaleString()}.
+            Discord embed dispatches. Failed:{' '}
+            {(metrics?.integrationStats.failed ?? 0).toLocaleString()}.
           </p>
         </div>
       </div>
@@ -165,9 +159,7 @@ export function ProjectHealthView() {
             <CheckCircle2 className="w-4 h-4 text-success-400" />
             Project Outbox Processing Queues
           </h2>
-          <span className="text-xs text-zinc-400">
-            Project Scoped Only
-          </span>
+          <span className="text-xs text-zinc-400">Project Scoped Only</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
@@ -209,8 +201,11 @@ export function ProjectHealthView() {
 
         {(metrics?.outbox.staleProcessingRecords ?? 0) > 0 && (
           <div className="p-3 bg-warning-950/40 border border-warning-800 text-warning-300 text-xs flex items-center justify-between">
-            <span>Notice: {metrics?.outbox.staleProcessingRecords} records in processing status &gt; 5 min.</span>
-            <span className="text-xs font-bold text-warning-400">Outbox Recovery Active</span>
+            <span>
+              Notice: {metrics?.outbox.staleProcessingRecords} records in processing status &gt; 5
+              min.
+            </span>
+            <span className="text-xs font-bold text-warning-400">Retrying stuck deliveries</span>
           </div>
         )}
       </div>

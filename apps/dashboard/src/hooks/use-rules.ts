@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import { useState, useCallback, useEffect } from 'react';
+import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface RuleRecord {
   id: string;
@@ -15,13 +16,13 @@ export interface RuleRecord {
 }
 
 export function useRules(projectId: string | null) {
-  const [rules, setRules] = useState<RuleRecord[]>([]);
+  const [rules, setRules] = useCachedState<RuleRecord[]>(`rules:${projectId}`, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRules = useCallback(async () => {
     if (!projectId) return;
-    setLoading(true);
+    setLoading(!hasCachedState(`rules:${projectId}`));
     setError(null);
     try {
       const res = await apiFetch(`/api/projects/${projectId}/rules`);
@@ -37,7 +38,7 @@ export function useRules(projectId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, setRules]);
 
   useEffect(() => {
     if (projectId) {
