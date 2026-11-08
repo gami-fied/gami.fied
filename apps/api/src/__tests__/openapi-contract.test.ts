@@ -11,6 +11,9 @@ import {
   userAchievements,
   userXpBalances,
   xpLedger,
+  segments,
+  referralPrograms,
+  referralCodes,
 } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -116,6 +119,8 @@ describe('API docs contract', () => {
     achievementId: `ach_doc_${suffix}`,
     challengeId: `chl_doc_${suffix}`,
     levelId: `lvl_doc_${suffix}`,
+    segmentId: 'docs_segment',
+    friendId: 'user_789',
   };
 
   beforeAll(async () => {
@@ -155,6 +160,13 @@ describe('API docs contract', () => {
       target: 10,
       rewards: [{ type: 'xp', amount: 100 }],
     });
+
+    // A friend, a segment and an invite program, so the social and segment examples have something to act on.
+    const friendId = `usr_docf_${suffix}`;
+    await db.insert(endUsers).values({ id: friendId, projectId, externalId: 'user_789', name: 'Grace' });
+    await db.insert(segments).values({ id: `seg_doc_${suffix}`, projectId, key: 'docs_segment', name: 'Docs', filter: { match: 'all', conditions: [{ field: 'name', operator: 'exists' }] } });
+    await db.insert(referralPrograms).values({ projectId, enabled: true, qualifyingEvent: 'first_purchase' });
+    await db.insert(referralCodes).values({ id: `rfc_doc_${suffix}`, projectId, userId: friendId, code: 'DOCSCODE' });
 
     apiKey = (await createApiKey(projectId, 'Docs', ['*'])).rawSecret;
   });

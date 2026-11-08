@@ -216,7 +216,7 @@ export async function socialRoutes(fastify: FastifyInstance) {
     const friend = await user(projectId, request.params.friendId, reply);
     if (!friend) return;
     await removeFriend(projectId, id, friend);
-    return reply.status(204).send();
+    return reply.send({ removed: true });
   });
 
   fastify.post<{ Params: { projectId: string; userId: string } }>('/api/projects/:projectId/users/:userId/kudos', async (request, reply) => {

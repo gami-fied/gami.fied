@@ -102,7 +102,7 @@ export class SocialResource {
   }
 
   public async removeFriend(params: WithProject & { userId: string; friendId: string }) {
-    await this.http.request<void>({ method: 'DELETE', path: projectPath(params.projectId, `/users/${user(params, 'gami.social.removeFriend()')}/friends/${encodeURIComponent(params.friendId)}`) });
+    return this.http.request<{ removed: true }>({ method: 'DELETE', path: projectPath(params.projectId, `/users/${user(params, 'gami.social.removeFriend()')}/friends/${encodeURIComponent(params.friendId)}`) });
   }
 
   /** One kudos per pair per day, and at most 30 a day from one person. */
