@@ -1,7 +1,7 @@
 import type { NotificationType } from '../types.js';
 import type { RenderedEmailTemplate } from './types.js';
 
-function renderBaseHtmlLayout(title: string, contentHtml: string, appName = 'Gami'): string {
+export function renderBaseHtmlLayout(title: string, contentHtml: string, appName = 'Gami'): string {
   return `<!DOCTYPE html>
 <html>
 <head>

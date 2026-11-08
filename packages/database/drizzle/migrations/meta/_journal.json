@@ -232,6 +232,13 @@
       "when": 1794134319793,
       "tag": "0032_multi_step_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794135958370,
+      "tag": "0033_lifecycle_campaigns",
+      "breakpoints": true
     }
   ]
 }

@@ -11,6 +11,7 @@ import {
   History,
   KeyRound,
   LayoutDashboard,
+  Mail,
   Medal,
   Settings,
   Target,
@@ -55,6 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: 'Streaks', href: '/dashboard/streaks', icon: Flame, keywords: 'daily habit consecutive' },
       { name: 'Levels', href: '/dashboard/levels', icon: TrendingUp, keywords: 'progression' },
       { name: 'Challenges', href: '/dashboard/challenges', icon: Target, keywords: 'quests' },
+      { name: 'Campaigns', href: '/dashboard/campaigns', icon: Mail, adminOnly: true, keywords: 'email reminders recap winback' },
     ],
   },
   {

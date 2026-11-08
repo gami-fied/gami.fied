@@ -23,3 +23,4 @@ export * from './server-configs.js';
 export * from './platform-backups.js';
 
 export * from './streaks.js';
+export * from './lifecycle.js';

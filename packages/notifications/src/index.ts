@@ -5,3 +5,4 @@ export * from './email/types.js';
 export * from './email/templates.js';
 export * from './email/provider.js';
 export * from './email/unsubscribe.js';
+export * from './lifecycle.js';

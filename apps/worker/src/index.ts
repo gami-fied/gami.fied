@@ -7,6 +7,7 @@ import {
   stopWorkerHeartbeat,
 } from '@gami/queue';
 import { Worker } from 'bullmq';
+import { startLifecycle, stopLifecycle } from './lifecycle.js';
 import { startMaintenance, stopMaintenance } from './maintenance.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
@@ -22,6 +23,7 @@ const connection = getRedisConnection();
 startOutboxPoller();
 startWorkerHeartbeat();
 startMaintenance();
+startLifecycle();
 
 /** Jobs processed at once. Each holds a database connection while it works. */
 const concurrency = Math.min(50, Math.max(1, Number(process.env['WORKER_CONCURRENCY']) || 4));
@@ -60,7 +62,7 @@ const handleShutdown = async (signal: string) => {
   const finish = (async () => {
     // Stop taking new work first, then let what is running finish.
     stopWorkerHeartbeat();
-    await Promise.all([worker.close(), stopOutboxPoller(), stopMaintenance()]);
+    await Promise.all([worker.close(), stopOutboxPoller(), stopMaintenance(), stopLifecycle()]);
     await connection.quit();
   })();
   const timeout = new Promise<'timeout'>((resolve) =>

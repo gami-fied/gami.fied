@@ -1,0 +1,43 @@
+{
+  "name": "@gami.fied/react",
+  "version": "0.1.0",
+  "description": "React components and hooks for Gami.Fied: progress bars, badges, streaks, leaderboards and live toasts.",
+  "keywords": ["gamification", "react", "xp", "achievements", "leaderboard", "streaks", "badges"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "type": "module",
+  "sideEffects": ["**/*.css"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gami-fied/gami.fied.git",
+    "directory": "packages/react"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/styles.css','dist/styles.css')\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gami.fied/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}

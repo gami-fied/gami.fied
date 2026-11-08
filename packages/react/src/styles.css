@@ -1,0 +1,308 @@
+/*
+ * Default look for @gami.fied/react. Every colour and size is a variable, so restyle by setting
+ * them on a parent element, or ignore this file and style the `gami-*` class names yourself.
+ */
+.gami-card,
+.gami-toasts {
+  --gami-bg: #ffffff;
+  --gami-fg: #18181b;
+  --gami-muted: #52525b;
+  --gami-border: #e4e4e7;
+  --gami-accent: #ea580c;
+  --gami-accent-fg: #ffffff;
+  --gami-track: #e4e4e7;
+  --gami-good: #15803d;
+  --gami-warn: #b45309;
+  --gami-radius: 8px;
+  --gami-gap: 12px;
+  font-family: inherit;
+  color: var(--gami-fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .gami-card,
+  .gami-toasts {
+    --gami-bg: #18181b;
+    --gami-fg: #f4f4f5;
+    --gami-muted: #a1a1aa;
+    --gami-border: #3f3f46;
+    --gami-track: #3f3f46;
+    --gami-good: #4ade80;
+    --gami-warn: #fbbf24;
+  }
+}
+
+.gami-card {
+  background: var(--gami-bg);
+  border: 1px solid var(--gami-border);
+  border-radius: var(--gami-radius);
+  padding: 16px;
+  display: grid;
+  gap: var(--gami-gap);
+}
+
+.gami-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gami-spacer {
+  flex: 1;
+}
+.gami-big {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.gami-small {
+  font-size: 0.8125rem;
+}
+.gami-muted {
+  color: var(--gami-muted);
+}
+.gami-done {
+  color: var(--gami-good);
+}
+.gami-warn {
+  color: var(--gami-warn);
+  border-color: var(--gami-warn);
+}
+.gami-status {
+  margin: 0;
+  color: var(--gami-muted);
+  font-size: 0.875rem;
+}
+.gami-status-error {
+  color: #b91c1c;
+}
+.gami-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.gami-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--gami-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Progress bar */
+.gami-progress {
+  display: grid;
+  gap: 4px;
+  font-size: 0.8125rem;
+}
+.gami-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gami-bar {
+  height: 8px;
+  background: var(--gami-track);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.gami-bar-fill {
+  height: 100%;
+  background: var(--gami-accent);
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gami-bar-fill {
+    transition: none;
+  }
+}
+
+/* Badges */
+.gami-grid,
+.gami-list,
+.gami-board,
+.gami-days,
+.gami-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.gami-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--gami-gap);
+}
+.gami-badge {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+  padding: 12px;
+  border: 1px solid var(--gami-border);
+  border-radius: var(--gami-radius);
+}
+.gami-badge > .gami-progress {
+  width: 100%;
+  text-align: left;
+}
+.gami-locked {
+  opacity: 0.6;
+}
+.gami-badge-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  border-radius: 50%;
+  background: var(--gami-track);
+  overflow: hidden;
+}
+.gami-badge-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gami-badge-name {
+  font-weight: 700;
+}
+
+/* Streaks */
+.gami-streak {
+  display: grid;
+  gap: 8px;
+}
+.gami-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  max-width: 280px;
+}
+.gami-day {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--gami-track);
+}
+.gami-day-on {
+  background: var(--gami-accent);
+}
+.gami-day-today {
+  outline: 2px solid var(--gami-fg);
+  outline-offset: 1px;
+}
+
+/* Leaderboard */
+.gami-board {
+  display: grid;
+  gap: 2px;
+}
+.gami-board-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+.gami-rank {
+  font-weight: 700;
+  color: var(--gami-muted);
+}
+.gami-me {
+  background: color-mix(in srgb, var(--gami-accent) 14%, transparent);
+  font-weight: 700;
+}
+.gami-pinned {
+  margin-top: 6px;
+  border-top: 1px dashed var(--gami-border);
+  border-radius: 0 0 4px 4px;
+}
+
+/* Lists */
+.gami-list {
+  display: grid;
+  gap: var(--gami-gap);
+}
+.gami-challenge,
+.gami-note {
+  display: grid;
+  gap: 6px;
+}
+.gami-note-title {
+  font-weight: 700;
+}
+.gami-steps {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8125rem;
+  color: var(--gami-muted);
+}
+.gami-step-done {
+  color: var(--gami-good);
+}
+
+/* Toasts */
+.gami-toasts {
+  position: fixed;
+  z-index: 2147483000;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.gami-toasts-bottom-right {
+  right: 16px;
+  bottom: 16px;
+}
+.gami-toasts-bottom-left {
+  left: 16px;
+  bottom: 16px;
+}
+.gami-toasts-top-right {
+  right: 16px;
+  top: 16px;
+}
+.gami-toasts-top-left {
+  left: 16px;
+  top: 16px;
+}
+.gami-toast {
+  pointer-events: auto;
+  position: relative;
+  background: var(--gami-bg);
+  border: 1px solid var(--gami-border);
+  border-left: 4px solid var(--gami-accent);
+  border-radius: var(--gami-radius);
+  padding: 12px 36px 12px 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  animation: gami-in 0.25s ease;
+}
+.gami-toast-title {
+  font-weight: 700;
+}
+.gami-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: 0;
+  background: none;
+  color: var(--gami-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+@keyframes gami-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gami-toast {
+    animation: none;
+  }
+}

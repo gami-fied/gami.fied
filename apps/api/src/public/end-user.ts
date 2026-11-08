@@ -15,7 +15,7 @@ import {
   userXpBalances,
 } from '@gami/database';
 import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
-import { getUserRank } from '@gami/leaderboards';
+import { getLeaderboard, getUserRank, type LeaderboardPeriod } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
 import { and, desc, eq, or } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -355,6 +355,37 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       .orderBy(desc(notifications.createdAt))
       .limit(50);
     return reply.send({ data });
+  });
+
+  // A board a player can be shown. It leaves out the project's own IDs and any email address.
+  fastify.get<{ Querystring: { period?: string; limit?: string } }>('/v1/me/leaderboard', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+
+    const periods = ['all_time', 'daily', 'weekly', 'monthly'];
+    const period = (periods.includes(request.query.period ?? '') ? request.query.period : 'all_time') as LeaderboardPeriod;
+    const limit = Math.min(50, Math.max(1, Number(request.query.limit) || 10));
+
+    const [board, mine] = await Promise.all([
+      getLeaderboard(context.projectId, { period, page: 1, limit }),
+      getUserRank(context.projectId, context.userId, { period }),
+    ]);
+
+    const shape = (entry: { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName?: string; userId: string }) => ({
+      rank: entry.rank,
+      name: entry.name,
+      avatarUrl: entry.avatarUrl,
+      xp: entry.xp,
+      levelName: entry.levelName ?? null,
+      isMe: entry.userId === context.userId,
+    });
+
+    return reply.send({
+      period,
+      total: board.total,
+      entries: board.entries.map(shape),
+      me: mine.entry ? shape(mine.entry) : null,
+    });
   });
 
   fastify.get('/v1/me/rank', async (request, reply) => {

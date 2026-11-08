@@ -1096,6 +1096,27 @@ export function buildOpenApiDocument() {
         lastActivityAt: optionalDate('When they last counted toward it.'),
       })),
     },
+    '/v1/me/leaderboard': {
+      get: {
+        ...meOperation('/v1/me/leaderboard', 'Show a leaderboard to the current user', 'Returns the top players for a period and the token holder\'s own place, with names and XP only, so it is safe to show in a browser. Use `period` (`all_time`, `daily`, `weekly`, `monthly`) and `limit` (up to 50).', object({
+          period: { type: 'string', enum: ['all_time', 'daily', 'weekly', 'monthly'], description: 'The period used.', example: 'weekly' },
+          total: count('Ranked players.', 240),
+          entries: { type: 'array', description: 'The top players.', items: object({
+            rank: count('Place, starting at 1.', 1),
+            name: optionalText('Display name.', 'Ada Lovelace'),
+            avatarUrl: optionalText('Link to a profile picture.', null),
+            xp: count('XP for the period.', 1200),
+            levelName: optionalText('Level name, if the project has levels.', 'Gold'),
+            isMe: flag('Whether this is the token holder.', false),
+          }) },
+          me: { ...nullable('object'), description: 'The token holder\'s own entry. Null if they have no XP in the period.', additionalProperties: true },
+        })),
+        parameters: [
+          { name: 'period', in: 'query', required: false, description: 'all_time, daily, weekly or monthly.', schema: { type: 'string', default: 'all_time' } },
+          { name: 'limit', in: 'query', required: false, description: 'How many players, up to 50.', schema: { type: 'integer', default: 10 } },
+        ],
+      },
+    },
     '/v1/me/challenges': {
       get: meOperation('/v1/me/challenges', "List the current user's challenges", 'Lists the challenges open right now, started or not, with the token holder\'s progress. Daily and weekly challenges show the current period.', meItems({
         key: text('The challenge\'s key.', 'ten_orders'),

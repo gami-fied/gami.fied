@@ -66,7 +66,7 @@ const RESOURCE_ALIASES: Record<string, ScopeResource> = {
 const SESSION_ONLY_RESOURCES = new Set(['api-keys', 'members']);
 
 /** Reads that expose operational data, so plain members cannot see them. */
-const ADMIN_READ_RESOURCES = new Set(['audit-logs', 'email-deliveries', 'api-keys', 'members']);
+const ADMIN_READ_RESOURCES = new Set(['audit-logs', 'email-deliveries', 'api-keys', 'members', 'campaigns']);
 
 /** POST routes that compute a result and change nothing. */
 const READ_ONLY_POST_PATTERNS = [/^rules\/preview$/, /^integrations\/[^/]+\/templates\/preview$/];

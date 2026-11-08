@@ -1075,6 +1075,183 @@
         }
       }
     },
+    "/v1/me/leaderboard": {
+      "get": {
+        "operationId": "getV1MeLeaderboard",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Show a leaderboard to the current user",
+        "description": "Returns the top players for a period and the token holder's own place, with names and XP only, so it is safe to show in a browser. Use `period` (`all_time`, `daily`, `weekly`, `monthly`) and `limit` (up to 50).",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Show a leaderboard to the current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "period",
+                    "total",
+                    "entries",
+                    "me"
+                  ],
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "enum": [
+                        "all_time",
+                        "daily",
+                        "weekly",
+                        "monthly"
+                      ],
+                      "description": "The period used.",
+                      "example": "weekly"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Ranked players.",
+                      "example": 240
+                    },
+                    "entries": {
+                      "type": "array",
+                      "description": "The top players.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "rank",
+                          "name",
+                          "avatarUrl",
+                          "xp",
+                          "levelName",
+                          "isMe"
+                        ],
+                        "properties": {
+                          "rank": {
+                            "type": "integer",
+                            "description": "Place, starting at 1.",
+                            "example": 1
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Display name.",
+                            "example": "Ada Lovelace"
+                          },
+                          "avatarUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Link to a profile picture.",
+                            "example": null
+                          },
+                          "xp": {
+                            "type": "integer",
+                            "description": "XP for the period.",
+                            "example": 1200
+                          },
+                          "levelName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Level name, if the project has levels.",
+                            "example": "Gold"
+                          },
+                          "isMe": {
+                            "type": "boolean",
+                            "description": "Whether this is the token holder.",
+                            "example": false
+                          }
+                        }
+                      }
+                    },
+                    "me": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "The token holder's own entry. Null if they have no XP in the period.",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "description": "all_time, daily, weekly or monthly.",
+            "schema": {
+              "type": "string",
+              "default": "all_time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "How many players, up to 50.",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ]
+      }
+    },
     "/v1/me/challenges": {
       "get": {
         "operationId": "getV1MeChallenges",
