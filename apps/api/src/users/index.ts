@@ -137,11 +137,6 @@ export async function userRoutes(fastify: FastifyInstance) {
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-      return reply
-        .status(403)
-        .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-    }
 
     const parseResult = createUserSchema.safeParse(request.body);
     if (!parseResult.success) {
@@ -212,11 +207,6 @@ export async function userRoutes(fastify: FastifyInstance) {
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-      return reply
-        .status(403)
-        .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-    }
 
     const [targetUser] = await db
       .select()
@@ -368,11 +358,6 @@ export async function userRoutes(fastify: FastifyInstance) {
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-      return reply
-        .status(403)
-        .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-    }
 
     if (request.body?.confirm !== true) {
       return reply.status(400).send({
@@ -429,11 +414,6 @@ export async function userRoutes(fastify: FastifyInstance) {
     const authResult = await requireProjectAccess(request, reply, projectId);
     if (!authResult) return;
 
-    if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-      return reply
-        .status(403)
-        .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-    }
 
     const [targetUser] = await db
       .select()

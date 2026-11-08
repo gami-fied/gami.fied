@@ -22,7 +22,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | Phase | Goal | Done / Total | Status |
 | :--- | :--- | :---: | :--- |
 | 0 | Baseline: green CI, runnable stack | 13 / 15 | In progress |
-| 1 | Security and tenant safety | 20 / 23 | In progress, 2 partly done, 1 moved to FEAT-17 |
+| 1 | Security and tenant safety | 21 / 23 | In progress, 1 partly done, 1 moved to FEAT-17 |
 | 2 | Core engine correctness | 32 / 32 | Done |
 | 3 | Make every promise true | 25 / 27 | In progress, 2 partly done |
 | 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
@@ -160,7 +160,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [x] **SEC-08** `P0` Project API keys get `owner` over the whole organization at [authorization/index.ts:102](apps/api/src/authorization/index.ts:102). One leaked key can delete the organization, export every project, or manage members. Block API keys from all organization routes. `[code]` Done. This is a breaking change: `gami.organizations` in the SDK now needs a signed-in session.
 - [x] **SEC-09** `P0` API keys get `admin` on project routes at [authorization/index.ts:239](apps/api/src/authorization/index.ts:239), so a key can mint more keys, delete the project, and create webhooks that exfiltrate data. Key management must require a user session. `[code]`
 - [x] **SEC-10** `P1` Any project `member` can create, edit or delete rules, which award XP. [rules/index.ts](apps/api/src/rules/index.ts) has no role check, unlike levels and challenges. `[ran]`
-- [~] **SEC-11** `P1` Replace scattered role checks with one declarative permission map, so a missing check is impossible. Generate the docs matrix from it. `[code]` Done: `apps/api/src/authorization/permissions.ts` protects new routes by default. The docs matrix is now generated from the registered routes (`docs/permissions.md`), and a test fails when it drifts. Left: remove the older checks that now duplicate the map.
+- [x] **SEC-11** `P1` Replace scattered role checks with one declarative permission map, so a missing check is impossible. Generate the docs matrix from it. `[code]` Done: `apps/api/src/authorization/permissions.ts` protects new routes by default. The docs matrix is now generated from the registered routes (`docs/permissions.md`), and a test fails when it drifts. The 20 handler checks that duplicated the map are removed. Four stricter checks stay on purpose: project update and delete, and the two delivery-history reads, which the map allows for members.
 - [x] **SEC-12** `P1` Cross-tenant write. [xp/index.ts:161](apps/api/src/xp/index.ts:161) inserts the path `userId` with `onConflictDoNothing`, and the ledger foreign key has no project check. A user ID from another project passes. Verify the user belongs to the project, and add composite foreign keys. `[code]` Done. An adjustment for an unknown user now returns 404 instead of creating one, and four tables have composite foreign keys.
 - [x] **SEC-13** `P1` Add key expiry and scopes to the create route and dashboard, plus rotation with an overlap window. List responses should include scopes and expiry. `[code]`
 - [-] **SEC-14** `P2` Separate test and live keys by environment. `[code]` Dropped here: it depends on project environments, so it moves to FEAT-17.

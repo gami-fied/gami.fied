@@ -35,11 +35,6 @@ export async function achievementRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (!['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const parseResult = createAchievementSchema.safeParse(request.body);
       if (!parseResult.success) {
@@ -127,11 +122,6 @@ export async function achievementRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (!['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const parseResult = updateAchievementSchema.safeParse(request.body);
       if (!parseResult.success) {
@@ -172,11 +162,6 @@ export async function achievementRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (!['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [existing] = await db
         .select()

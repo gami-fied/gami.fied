@@ -2,7 +2,6 @@ import { randomUUID } from 'crypto';
 import {
   db,
   endUsers,
-  events,
   isTabularExport,
   organizations,
   projects,

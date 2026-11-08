@@ -145,11 +145,6 @@ export async function xpRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (!['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [targetUser] = await db
         .select({ id: endUsers.id })

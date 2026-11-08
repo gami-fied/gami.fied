@@ -48,11 +48,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const { allowWebhookCreation } = await getPlatformSettings('registration');
       if (!allowWebhookCreation) {
@@ -245,11 +240,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [ep] = await db
         .select()
@@ -349,11 +339,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [ep] = await db
         .select()
@@ -386,11 +371,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [ep] = await db
         .select()
@@ -435,11 +415,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [ep] = await db
         .select()
@@ -563,11 +538,6 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       const authResult = await requireProjectAccess(request, reply, projectId);
       if (!authResult) return;
 
-      if (authResult.membership && !['owner', 'admin'].includes(authResult.membership.role)) {
-        return reply
-          .status(403)
-          .send({ error: 'Forbidden', message: 'Insufficient role permissions' });
-      }
 
       const [targetDelivery] = await db
         .select()
