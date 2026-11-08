@@ -463,7 +463,7 @@ export function IntegrationsView() {
             <MessageSquare className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-zinc-200">No Integrations Connected</h3>
             <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
-              Connect Discord to deliver real-time custom embeds when users earn XP, unlock
+              Connect Discord, Slack, Teams, a webhook or push notifications to deliver updates when users earn XP, unlock
               achievements, or level up.
             </p>
             <Button

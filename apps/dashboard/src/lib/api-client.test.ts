@@ -16,6 +16,19 @@ describe('apiFetch', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
+  it('labels a text body as JSON, unless the caller chose a type', async () => {
+    fetchMock.mockImplementation(async () => json({}));
+
+    await apiFetch('/api/things', { method: 'POST', body: JSON.stringify({ a: 1 }) });
+    await apiFetch('/api/things', { method: 'POST', body: 'a=1', headers: { 'Content-Type': 'text/plain' } });
+    await apiFetch('/api/things', { method: 'POST' });
+
+    const typeOf = (call: number) => new Headers(fetchMock.mock.calls[call]![1].headers).get('content-type');
+    expect(typeOf(0)).toBe('application/json');
+    expect(typeOf(1)).toBe('text/plain');
+    expect(typeOf(2)).toBeNull();
+  });
+
   it('shares identical reads made at the same time', async () => {
     fetchMock.mockImplementation(async () => json({ ok: true }));
 

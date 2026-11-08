@@ -90,7 +90,16 @@ async function readThroughCache(url: string, init?: RequestInit): Promise<Respon
  * briefly and shared between components, and any write clears the cache so screens never show old
  * data. It also sends expired sessions to sign in, and reports when the API can't be reached.
  */
-export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+/** A string body is JSON in this app, so it is labelled as such unless the caller says otherwise. */
+function withJsonType(init?: RequestInit): RequestInit | undefined {
+  if (typeof init?.body !== 'string') return init;
+  const headers = new Headers(init.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  return { ...init, headers };
+}
+
+export async function apiFetch(url: string, rawInit?: RequestInit): Promise<Response> {
+  const init = withJsonType(rawInit);
   if (cacheable(url, init)) return readThroughCache(url, init);
 
   const response = await fetch(url, init);

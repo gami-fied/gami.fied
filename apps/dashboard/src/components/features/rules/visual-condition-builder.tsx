@@ -230,7 +230,7 @@ export function VisualConditionBuilder({
                     <div className="self-center text-xs text-zinc-400">of this user&apos;s events</div>
                   )}
                   <Input
-                    placeholder="Event type (blank = this rule's trigger)"
+                    placeholder="Event (blank: the trigger)"
                     value={cond.totalEvent ?? ''}
                     onChange={(e) => handleUpdateCondition(cond.id, { totalEvent: e.target.value })}
                     aria-label="Event type to total"

@@ -57,6 +57,7 @@ interface LedgerRow {
   ruleId: string | null;
   ruleExecutionId: string | null;
   eventId: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -591,6 +592,15 @@ export function UserDetailView({ userId }: { userId: string }) {
   );
 }
 
+/** Where an XP change came from, in words, using what was saved with the entry. */
+function sourceOf(entry: LedgerRow): { label: string; href?: string } {
+  if (entry.ruleId) return { label: 'Rule', href: '/dashboard/rules' };
+  if (entry.metadata?.['challengeId']) return { label: 'Challenge', href: '/dashboard/challenges' };
+  if (entry.metadata?.['achievementKey']) return { label: 'Achievement', href: '/dashboard/achievements' };
+  if (entry.eventId) return { label: 'Event', href: '/dashboard/events' };
+  return { label: 'Manual adjustment' };
+}
+
 function LedgerTable({ rows, loading, showSource = false }: { rows: LedgerRow[]; loading: boolean; showSource?: boolean }) {
   if (loading && rows.length === 0) return <Skeleton className="h-24 w-full" />;
   return (
@@ -614,14 +624,16 @@ function LedgerTable({ rows, loading, showSource = false }: { rows: LedgerRow[];
             <TableCell className="text-xs text-zinc-300">{entry.reason}</TableCell>
             {showSource && (
               <TableCell className="text-[11px] text-zinc-400">
-                {entry.ruleId ? (
-                  <Link href="/dashboard/rules" className="hover:underline" title={entry.ruleId}>
-                    Rule
-                  </Link>
-                ) : (
-                  'Manual'
-                )}
-                {entry.eventId && <span className="ml-1 font-mono" title={entry.eventId}>· event</span>}
+                {(() => {
+                  const source = sourceOf(entry);
+                  return source.href ? (
+                    <Link href={source.href} className="hover:underline" title={entry.ruleId ?? entry.eventId ?? undefined}>
+                      {source.label}
+                    </Link>
+                  ) : (
+                    source.label
+                  );
+                })()}
               </TableCell>
             )}
             <TableCell className="text-xs text-zinc-400" title={formatDateTime(entry.createdAt)}>
