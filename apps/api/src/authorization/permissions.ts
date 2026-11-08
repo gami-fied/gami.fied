@@ -69,7 +69,7 @@ const SESSION_ONLY_RESOURCES = new Set(['api-keys', 'members']);
 const ADMIN_READ_RESOURCES = new Set(['audit-logs', 'email-deliveries', 'api-keys', 'members', 'campaigns']);
 
 /** POST routes that compute a result and change nothing. */
-const READ_ONLY_POST_PATTERNS = [/^rules\/preview$/, /^integrations\/[^/]+\/templates\/preview$/];
+const READ_ONLY_POST_PATTERNS = [/^rules\/preview$/, /^rules\/simulate$/, /^integrations\/[^/]+\/templates\/preview$/];
 
 /** Writes that any project member may perform. */
 const MEMBER_WRITE_PATTERNS = [

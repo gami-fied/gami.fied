@@ -42,6 +42,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { BacktestPanel } from './backtest-panel';
 
 interface StoredCondition {
   aggregate?: AggregateCondition['aggregate'];
@@ -920,6 +921,26 @@ export function RulesView() {
                 className="w-full p-3 rounded-none border border-zinc-800 focus:outline-none focus:border-brand-500 text-xs bg-zinc-950 text-zinc-200"
               />
             </div>
+          )}
+
+          {selectedProject && (
+            <BacktestPanel
+              projectId={selectedProject.id}
+              getRule={() => {
+                if (!trigger.trim()) return 'Enter the trigger event first.';
+                try {
+                  const conditions =
+                    editorMode === 'visual'
+                      ? buildRulesEngineConditions(matchMode, visualConditions)
+                      : JSON.parse(rawConditionsJson || 'null');
+                  const actions = editorMode === 'visual' ? buildRulesEngineActions(visualActions) : JSON.parse(rawActionsJson || '[]');
+                  if (!Array.isArray(actions) || actions.length === 0) return 'Add at least one action first.';
+                  return { trigger: trigger.trim(), conditions, actions };
+                } catch {
+                  return 'The JSON is not valid yet.';
+                }
+              }}
+            />
           )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">

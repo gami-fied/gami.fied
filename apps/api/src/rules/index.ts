@@ -1,14 +1,15 @@
 import crypto from 'crypto';
-import { achievements, db, events, measureAggregate, ruleExecutions, rules } from '@gami/database';
+import { achievements, db, endUsers, events, measureAggregate, ruleExecutions, rules, xpLedger } from '@gami/database';
 import {
   ActionDefinition,
   evaluateRule,
   EventData,
+  collectAggregateSpecs,
   getReferencedAchievementKeys,
   resolveAggregates,
   validateRuleForSave,
 } from '@gami/rules';
-import { eq, and, asc, desc, inArray } from 'drizzle-orm';
+import { eq, and, asc, desc, gte, inArray, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
@@ -59,6 +60,10 @@ async function checkAchievementReferences(
       .map((row) => `Achievement "${row.key}" is disabled, so this rule will fail until it is enabled`),
   };
 }
+
+/** How many past events a backtest reads. Totals over time need extra queries per event, so they read fewer. */
+const MAX_SIMULATED_EVENTS = 5000;
+const MAX_SIMULATED_WITH_TOTALS = 400;
 
 export async function ruleRoutes(fastify: FastifyInstance) {
   // 1. Create Rule
@@ -372,6 +377,122 @@ export async function ruleRoutes(fastify: FastifyInstance) {
 
       const result = evaluateRule(rawRule, sampleEvent);
       return reply.send(result);
+    }
+  );
+
+  // 7. Backtest a rule against the events already stored, without giving anyone anything.
+  fastify.post<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/rules/simulate',
+    async (request, reply) => {
+      const { projectId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const parsed = z
+        .object({
+          rule: z.object({ trigger: z.string().min(1), conditions: z.unknown().optional(), actions: z.array(z.unknown()).min(1) }),
+          days: z.number().int().min(1).max(90).default(30),
+        })
+        .safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Bad Request', message: 'Send a rule and how many days to look back' });
+      }
+      const { rule, days } = parsed.data;
+      try {
+        validateRuleForSave({ trigger: rule.trigger, conditions: rule.conditions || undefined, actions: rule.actions });
+      } catch (err) {
+        return reply.status(400).send({ error: 'Bad Request', message: (err as Error).message });
+      }
+
+      const hasTotals = collectAggregateSpecs(rule.conditions as never, rule.trigger).size > 0;
+      // Totals need queries per event, so they look at fewer.
+      const cap = hasTotals ? MAX_SIMULATED_WITH_TOTALS : MAX_SIMULATED_EVENTS;
+      const since = new Date(Date.now() - days * 86_400_000);
+
+      const past = await db
+        .select()
+        .from(events)
+        .where(and(eq(events.projectId, projectId), eq(events.type, rule.trigger), gte(events.occurredAt, since)))
+        .orderBy(asc(events.occurredAt))
+        .limit(cap + 1);
+      const truncated = past.length > cap;
+      const considered = past.slice(0, cap);
+
+      const matches: { eventId: string; userId: string | null; at: Date; xp: number }[] = [];
+      const badges = new Map<string, number>();
+      for (const event of considered) {
+        const eventData: EventData = {
+          id: event.id,
+          projectId,
+          userId: event.userId,
+          type: event.type,
+          payload: (event.payload as Record<string, unknown>) || {},
+          occurredAt: event.occurredAt,
+        };
+        const aggregates = hasTotals
+          ? await resolveAggregates(rule.conditions, eventData, (query) =>
+              measureAggregate({
+                projectId,
+                userId: event.userId as string,
+                metric: query.spec.metric,
+                eventType: query.event,
+                field: query.spec.field,
+                start: query.start,
+                end: query.at,
+                excludeEventId: query.excludeEventId,
+              })
+            )
+          : undefined;
+        const result = evaluateRule({ trigger: rule.trigger, conditions: rule.conditions || undefined, actions: rule.actions }, eventData, undefined, aggregates);
+        if (!result.matched) continue;
+
+        let xp = 0;
+        for (const action of result.actions) {
+          const params = (action.params ?? {}) as { amount?: number; achievementKey?: string };
+          if (action.type === 'award_xp' && typeof params.amount === 'number') xp += params.amount;
+          if (action.type === 'award_achievement' && params.achievementKey) badges.set(params.achievementKey, (badges.get(params.achievementKey) ?? 0) + 1);
+        }
+        matches.push({ eventId: event.id, userId: event.userId, at: event.occurredAt, xp });
+      }
+
+      const byDay = new Map<string, { matched: number; xp: number }>();
+      const byUser = new Map<string, number>();
+      for (const match of matches) {
+        const day = match.at.toISOString().slice(0, 10);
+        const bucket = byDay.get(day) ?? { matched: 0, xp: 0 };
+        bucket.matched++;
+        bucket.xp += match.xp;
+        byDay.set(day, bucket);
+        if (match.userId) byUser.set(match.userId, (byUser.get(match.userId) ?? 0) + match.xp);
+      }
+
+      const [existing] = await db
+        .select({ xp: sql<number>`COALESCE(SUM(${xpLedger.amount}) FILTER (WHERE ${xpLedger.amount} > 0), 0)::int` })
+        .from(xpLedger)
+        .where(and(eq(xpLedger.projectId, projectId), gte(xpLedger.createdAt, since)));
+
+      const totalXp = matches.reduce((sum, match) => sum + match.xp, 0);
+      const topIds = [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const names = topIds.length
+        ? await db.select({ id: endUsers.id, externalId: endUsers.externalId, name: endUsers.name }).from(endUsers).where(inArray(endUsers.id, topIds.map(([id]) => id)))
+        : [];
+
+      return reply.send({
+        days,
+        eventsConsidered: considered.length,
+        truncated,
+        matched: matches.length,
+        usersAffected: byUser.size,
+        xpTotal: totalXp,
+        xpPerMatch: matches.length > 0 ? Math.round(totalXp / matches.length) : 0,
+        // How much this rule alone would have added on top of what was really given over the same days.
+        existingXp: existing?.xp ?? 0,
+        inflationPercent: (existing?.xp ?? 0) > 0 ? Math.round((totalXp / (existing?.xp as number)) * 100) : null,
+        achievements: [...badges.entries()].map(([key, count]) => ({ key, count })),
+        byDay: [...byDay.entries()].sort().map(([date, value]) => ({ date, ...value })),
+        topUsers: topIds.map(([id, xp]) => ({ userId: id, externalId: names.find((n) => n.id === id)?.externalId ?? id, name: names.find((n) => n.id === id)?.name ?? null, xp })),
+        note: 'XP is what the rule gives before any boost or limit.',
+      });
     }
   );
 }

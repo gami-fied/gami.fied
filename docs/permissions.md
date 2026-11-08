@@ -90,6 +90,7 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `PATCH` | `/rules/:ruleId` | Admin | API key with `rules:write` |
 | `GET` | `/rules/:ruleId/trace` | Member | API key with `rules:read` |
 | `POST` | `/rules/preview` | Member | API key with `rules:read` |
+| `POST` | `/rules/simulate` | Member | API key with `rules:read` |
 | `GET` | `/streaks` | Member | API key with `streaks:read` |
 | `POST` | `/streaks` | Admin | API key with `streaks:write` |
 | `DELETE` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
