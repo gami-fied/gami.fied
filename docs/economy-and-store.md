@@ -44,6 +44,7 @@ XP is for ranking. A **currency** is a separate kind of point people can save an
 - Give a currency out with the **Give currency** rule action, or by hand on a user's **Wallet** tab.
 - A currency can expire points a number of days after they are earned. Changing the expiry affects points earned from then on.
 - Spending uses the points that expire soonest first. A balance never goes below zero, and expired points are written off to the history by the worker.
+- Three days before points expire, their owner gets a `points_expiring` notification (in the app, and by email if they get emails), once per batch of points.
 - Every change is a row in the history, with the reason, so a balance can always be explained.
 
 `award_currency` in a rule takes `{ "currency": "coins", "amount": 25 }`. It runs once per rule run, even if the event is retried.
@@ -53,7 +54,8 @@ XP is for ranking. A **currency** is a separate kind of point people can save an
 A reward has a price in one currency, optional stock, an optional limit per person, and a kind:
 
 - **You deliver it.** A purchase waits under **Purchases**. A `reward.redeemed` webhook tells your systems. Mark it delivered when done, or cancel it to refund.
-- **Hands out a code.** Paste a pool of codes. Each purchase gets one, and is delivered at once. When the codes run out the reward cannot be bought.
+- **Hands out a code from a list.** Paste a pool of codes. Each purchase gets one, and is delivered at once. When the codes run out the reward cannot be bought.
+- **Makes a unique coupon code.** Each purchase gets a fresh code, your prefix followed by 10 random letters and digits, such as `COFFEE-7H2KQX9M4P`. It never runs out; your shop accepts the codes it receives in the `reward.redeemed` webhook.
 
 Buying happens in one step: the points, the stock, the person's limit and the code change together or not at all. Two people cannot take the last item, and one person cannot spend the same points twice at once.
 

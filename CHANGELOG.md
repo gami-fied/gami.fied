@@ -8,6 +8,11 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ### Added
 
+- Platform administrators can turn features on and off for the whole instance or one organization. Base features stay on, dependencies are followed both ways with a confirmation that lists what else changes, and the API, player routes, worker and dashboard all respect it. See `docs/platform-administration-features.md`.
+- Organization rules with instance defaults: project and member limits, allowed email domains, API key lifetimes, API address allowlists, event rate limits and required player-token sites. Administrators can also change member roles, remove members, revoke every API key and sign everyone out.
+- Velocity flags that mark people earning or sending events unusually fast, with optional automatic hiding and a review queue.
+- Store rewards that generate a unique coupon code per purchase, and notifications three days before points expire.
+
 - Segments, and leaderboards narrowed to a segment, to a player's friends, or to people who share the player's country or any other attribute, plus team and country boards ranked by total or average XP.
 - Leagues: tiers of small groups that compete each week or day, with promotion and relegation, a Leagues page, and `gami.me.leagues()`.
 - Friends, kudos, an activity feed, signed share-card images for achievements, and invite codes with rewards for both sides and a `referral.completed` webhook.

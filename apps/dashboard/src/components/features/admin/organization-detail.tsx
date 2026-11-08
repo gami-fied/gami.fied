@@ -212,7 +212,7 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
       </motion.div>
 
       <LayoutGroup>
-        <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-zinc-800">
+        <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-zinc-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map((item) => (
             <button
               key={item.id}

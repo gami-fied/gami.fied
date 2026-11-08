@@ -18,6 +18,7 @@ import {
   Blocks,
   Coins,
   Cpu,
+  Loader2,
   Lock,
   MessageSquare,
   RotateCcw,
@@ -304,9 +305,9 @@ export function FeatureBoard({ organizationId, onChange }: { organizationId?: st
                       const dim = hovered !== null && hovered !== feature.key && !isNeed && !isDependent;
                       const lockedByInstance = Boolean(organizationId) && !feature.instanceEnabled && !feature.base;
                       return (
+                        // GSAP moves the wrapper in on first load; Motion owns the card's own hover and dimming.
+                        <div key={feature.key} data-feature-card>
                         <motion.div
-                          key={feature.key}
-                          data-feature-card
                           layout
                           onMouseEnter={() => setHovered(feature.key)}
                           onMouseLeave={() => setHovered(null)}
@@ -339,7 +340,7 @@ export function FeatureBoard({ organizationId, onChange }: { organizationId?: st
                             </div>
                             <div className="pt-0.5">
                               {busy === feature.key ? (
-                                <motion.span className="block h-5 w-5 border-2 border-brand-500 border-t-transparent" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />
+                                <Loader2 className="h-5 w-5 animate-spin text-brand-400" aria-label="Saving" />
                               ) : (
                                 <Switch
                                   checked={feature.enabled}
@@ -366,6 +367,7 @@ export function FeatureBoard({ organizationId, onChange }: { organizationId?: st
                             </div>
                           )}
                         </motion.div>
+                        </div>
                       );
                     })}
                 </div>
