@@ -218,6 +218,13 @@
       "when": 1794131338719,
       "tag": "0030_streaks",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794133606288,
+      "tag": "0031_achievement_criteria",
+      "breakpoints": true
     }
   ]
 }

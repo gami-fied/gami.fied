@@ -1,4 +1,11 @@
 import {
+  AGGREGATE_FIELD_PATTERN,
+  AGGREGATE_METRICS,
+  AGGREGATE_OPERATORS,
+  AGGREGATE_WINDOWS,
+  isAggregateCondition,
+} from './aggregates.js';
+import {
   ActionDefinition,
   Condition,
   Operator,
@@ -39,6 +46,32 @@ function countAndCheckConditions(
     throw new Error(
       `Condition nesting depth exceeds maximum allowed limit of ${SAFETY_LIMITS.MAX_NESTING_DEPTH}`
     );
+  }
+
+  if (isAggregateCondition(cond)) {
+    const { aggregate } = cond;
+    if (!(AGGREGATE_METRICS as readonly string[]).includes(aggregate.metric)) {
+      throw new Error(`Unsupported aggregate metric: ${String(aggregate.metric)}`);
+    }
+    if (!AGGREGATE_WINDOWS.includes(aggregate.window)) {
+      throw new Error(`Unsupported aggregate window: ${String(aggregate.window)}`);
+    }
+    if (!(AGGREGATE_OPERATORS as readonly string[]).includes(cond.operator)) {
+      throw new Error(`Unsupported aggregate operator: ${String(cond.operator)}`);
+    }
+    if (typeof cond.value !== 'number' || !Number.isFinite(cond.value)) {
+      throw new Error('An aggregate condition needs a number to compare with');
+    }
+    if (aggregate.metric !== 'count' && (!aggregate.field || !AGGREGATE_FIELD_PATTERN.test(aggregate.field))) {
+      throw new Error('Sum and unique need a payload field such as "payload.amount"');
+    }
+    if (aggregate.field !== undefined && !AGGREGATE_FIELD_PATTERN.test(aggregate.field)) {
+      throw new Error('An aggregate field must look like "payload.amount"');
+    }
+    if (aggregate.event !== undefined && (typeof aggregate.event !== 'string' || aggregate.event.trim() === '')) {
+      throw new Error('An aggregate event must be a non-empty event type');
+    }
+    return { count: 1, maxDepth: depth };
   }
 
   if (isSimpleCondition(cond)) {

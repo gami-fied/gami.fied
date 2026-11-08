@@ -1,10 +1,11 @@
 import crypto from 'crypto';
-import { achievements, db, events, ruleExecutions, rules } from '@gami/database';
+import { achievements, db, events, measureAggregate, ruleExecutions, rules } from '@gami/database';
 import {
   ActionDefinition,
   evaluateRule,
   EventData,
   getReferencedAchievementKeys,
+  resolveAggregates,
   validateRuleForSave,
 } from '@gami/rules';
 import { eq, and, asc, desc, inArray } from 'drizzle-orm';
@@ -295,22 +296,36 @@ export async function ruleRoutes(fastify: FastifyInstance) {
                 )
               );
 
-      const data = recent.map((event) => {
+      const data = await Promise.all(recent.map(async (event) => {
+        const eventData: EventData = {
+          id: event.id,
+          projectId,
+          userId: event.userId,
+          type: event.type,
+          payload: (event.payload as Record<string, unknown>) || {},
+          occurredAt: event.occurredAt,
+        };
+        const aggregates = await resolveAggregates(rule.conditions, eventData, (query) =>
+          measureAggregate({
+            projectId,
+            userId: event.userId as string,
+            metric: query.spec.metric,
+            eventType: query.event,
+            field: query.spec.field,
+            start: query.start,
+            end: query.at,
+            excludeEventId: query.excludeEventId,
+          })
+        );
         const result = evaluateRule(
           {
             trigger: rule.trigger,
             conditions: rule.conditions || undefined,
             actions: rule.actions || [],
           },
-          {
-            id: event.id,
-            projectId,
-            userId: event.userId,
-            type: event.type,
-            payload: (event.payload as Record<string, unknown>) || {},
-            occurredAt: event.occurredAt,
-          },
-          rule.id
+          eventData,
+          rule.id,
+          aggregates
         );
         const execution = executions.find((row) => row.eventId === event.id);
 
@@ -321,7 +336,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
           reason: result.error ?? (result.matched ? null : 'The conditions did not match this event'),
           execution: execution ? { status: execution.status, error: execution.error } : null,
         };
-      });
+      }));
 
       return reply.send({ data });
     }

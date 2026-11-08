@@ -1,11 +1,12 @@
 import { evaluateConditionTree } from './evaluator.js';
-import { EvaluationResult, EventData, RuleDefinition } from './types.js';
+import { AggregateValues, EvaluationResult, EventData, RuleDefinition } from './types.js';
 import { validateRuleDefinition } from './validator.js';
 
 export function evaluateRule(
   rawRule: unknown,
   event: EventData,
-  ruleId?: string
+  ruleId?: string,
+  aggregates?: AggregateValues
 ): EvaluationResult {
   try {
     const rule: RuleDefinition = validateRuleDefinition(rawRule);
@@ -25,7 +26,7 @@ export function evaluateRule(
     // Step 2: Condition Evaluation
     let conditionsMatched = true;
     if (rule.conditions) {
-      conditionsMatched = evaluateConditionTree(rule.conditions, event);
+      conditionsMatched = evaluateConditionTree(rule.conditions, event, aggregates);
     }
 
     const matched = triggerMatched && conditionsMatched;

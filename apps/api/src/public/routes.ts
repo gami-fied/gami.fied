@@ -45,6 +45,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     'achievements:read',
     "Get one of a user's achievements"
   ),
+  get('/users/:userId/achievements/progress', 'achievements:read', "Get a user's progress toward achievements"),
   get('/users/:userId/challenges', 'challenges:read', "List a user's challenges"),
   get(
     '/users/:userId/challenges/:challengeId',

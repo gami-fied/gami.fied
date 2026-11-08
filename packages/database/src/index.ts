@@ -6,4 +6,4 @@ export * from './auth.js';
 export * from './migrate.js';
 export * from './platform-settings.js';
 export * from './analytics.js';
-
+export * from './event-aggregates.js';

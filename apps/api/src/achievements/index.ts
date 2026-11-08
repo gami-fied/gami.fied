@@ -3,7 +3,9 @@ import { achievements, db, userAchievements, isUniqueViolation } from '@gami/dat
 import { eq, and, desc, count, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { validateAchievementCriteria } from '@gami/rules';
 import { requireProjectAccess } from '../authorization/index.js';
+import { loadAchievementProgress } from './progress.js';
 
 const createAchievementSchema = z.object({
   key: z
@@ -17,6 +19,9 @@ const createAchievementSchema = z.object({
   description: z.string().max(1000).optional(),
   iconUrl: z.string().url().max(512).optional().or(z.literal('')),
   enabled: z.boolean().optional().default(true),
+  hidden: z.boolean().optional().default(false),
+  criteria: z.unknown().optional(),
+  tiers: z.array(z.unknown()).optional(),
 });
 
 const updateAchievementSchema = z.object({
@@ -24,7 +29,26 @@ const updateAchievementSchema = z.object({
   description: z.string().max(1000).optional(),
   iconUrl: z.string().url().max(512).optional().or(z.literal('')),
   enabled: z.boolean().optional(),
+  hidden: z.boolean().optional(),
+  /** Send null to stop the achievement measuring itself. */
+  criteria: z.unknown().optional(),
+  tiers: z.array(z.unknown()).nullable().optional(),
 });
+
+type CriteriaFields = { criteria?: unknown; tiers?: unknown };
+
+/** Checks criteria and tiers together, and says what is wrong in words. */
+function normaliseCriteria(input: CriteriaFields): { criteria: unknown; tiers: unknown } | { error: string } {
+  if (input.criteria === undefined || input.criteria === null) {
+    return { criteria: null, tiers: null };
+  }
+  try {
+    const { criteria, tiers } = validateAchievementCriteria(input.criteria, input.tiers ?? []);
+    return { criteria, tiers: tiers.length > 0 ? tiers : null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'The criteria are not valid' };
+  }
+}
 
 export async function achievementRoutes(fastify: FastifyInstance) {
   // 1. Create Achievement Definition (Owner / Admin Only)
@@ -45,7 +69,11 @@ export async function achievementRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { key, name, description, iconUrl, enabled } = parseResult.data;
+      const { key, name, description, iconUrl, enabled, hidden } = parseResult.data;
+      const measured = normaliseCriteria(parseResult.data);
+      if ('error' in measured) {
+        return reply.status(400).send({ error: 'Bad Request', message: measured.error });
+      }
       const achievementId = `ach_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
       try {
@@ -59,6 +87,9 @@ export async function achievementRoutes(fastify: FastifyInstance) {
             description: description || null,
             iconUrl: iconUrl || null,
             enabled: enabled ?? true,
+            hidden: hidden ?? false,
+            criteria: measured.criteria,
+            tiers: measured.tiers,
           })
           .returning();
 
@@ -141,10 +172,25 @@ export async function achievementRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Not Found', message: 'Achievement not found' });
       }
 
+      // Criteria and tiers are checked together, using what is already saved for whichever is not sent.
+      const { criteria: sentCriteria, tiers: sentTiers, ...plain } = parseResult.data;
+      const changes: Record<string, unknown> = { ...plain };
+      if (sentCriteria !== undefined || sentTiers !== undefined) {
+        const measured = normaliseCriteria({
+          criteria: sentCriteria === undefined ? existing.criteria : sentCriteria,
+          tiers: sentTiers === undefined ? existing.tiers : sentTiers,
+        });
+        if ('error' in measured) {
+          return reply.status(400).send({ error: 'Bad Request', message: measured.error });
+        }
+        changes['criteria'] = measured.criteria;
+        changes['tiers'] = measured.tiers;
+      }
+
       const [updated] = await db
         .update(achievements)
         .set({
-          ...parseResult.data,
+          ...changes,
           updatedAt: new Date(),
         })
         .where(eq(achievements.id, achievementId))
@@ -183,6 +229,20 @@ export async function achievementRoutes(fastify: FastifyInstance) {
         message: 'Achievement soft disabled successfully',
         achievement: disabled,
       });
+    }
+  );
+
+  // 5b. How far a user is toward each achievement that measures itself (Member+)
+  fastify.get<{ Params: { projectId: string; userId: string } }>(
+    '/api/projects/:projectId/users/:userId/achievements/progress',
+    async (request, reply) => {
+      const { projectId, userId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      // Staff and server keys see secret achievements too, flagged as hidden.
+      const data = await loadAchievementProgress(projectId, userId, { includeHidden: true });
+      return reply.send({ data });
     }
   );
 

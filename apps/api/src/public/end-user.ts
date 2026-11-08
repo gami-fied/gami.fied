@@ -8,17 +8,20 @@ import {
   levels,
   notifications,
   projects,
+  streakDefinitions,
   userAchievements,
+  userStreaks,
   userChallengeProgress,
   userXpBalances,
 } from '@gami/database';
 import { getUserRank } from '@gami/leaderboards';
-import { calculateLevel } from '@gami/progression';
+import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
 import { and, desc, eq, or } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
+import { loadAchievementProgress } from '../achievements/progress.js';
 
 const TOKEN_PREFIX = 'geu_';
 const DEFAULT_TOKEN_SECONDS = 900;
@@ -187,6 +190,80 @@ export async function endUserRoutes(fastify: FastifyInstance) {
         )
       )
       .orderBy(desc(userAchievements.awardedAt));
+    return reply.send({ data });
+  });
+
+  fastify.get('/v1/me/achievements/progress', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+
+    // Players never see a secret achievement, or how close they are to it, until they earn it.
+    const entries = await loadAchievementProgress(context.projectId, context.userId, { includeHidden: false });
+    const data = entries.map((entry) => ({
+      key: entry.key,
+      name: entry.name,
+      description: entry.description,
+      iconUrl: entry.iconUrl,
+      earned: entry.earned,
+      tier: entry.tier,
+      tierCount: entry.tierCount,
+      tierName: entry.tierName,
+      value: entry.value,
+      nextTarget: entry.nextTarget,
+      fraction: entry.fraction,
+      complete: entry.complete,
+    }));
+    return reply.send({ data });
+  });
+
+  fastify.get('/v1/me/streaks', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+
+    const [definitions, states, [user]] = await Promise.all([
+      db
+        .select()
+        .from(streakDefinitions)
+        .where(and(eq(streakDefinitions.projectId, context.projectId), eq(streakDefinitions.enabled, true)))
+        .orderBy(streakDefinitions.createdAt, streakDefinitions.id),
+      db
+        .select()
+        .from(userStreaks)
+        .where(and(eq(userStreaks.projectId, context.projectId), eq(userStreaks.userId, context.userId))),
+      db.select({ id: endUsers.id }).from(endUsers).where(eq(endUsers.id, context.userId)),
+    ]);
+    if (!user) return reply.status(404).send({ code: 'NOT_FOUND', message: 'User not found' });
+
+    const byDefinition = new Map(states.map((state) => [state.definitionId, state]));
+    const now = new Date();
+    const data = definitions.map((definition) => {
+      const row = byDefinition.get(definition.id);
+      const zone = row?.timeZone ?? definition.timeZone;
+      const status = row
+        ? streakStatus(
+            { current: row.current, longest: row.longest, lastPeriod: row.lastPeriod, freezes: row.freezes },
+            now,
+            {
+              cadence: definition.cadence as StreakCadence,
+              timeZone: definition.timeZone,
+              freezeEvery: definition.freezeEvery,
+              maxFreezes: definition.maxFreezes,
+            },
+            zone
+          )
+        : { alive: false, atRisk: false, current: 0 };
+      return {
+        key: definition.key,
+        name: definition.name,
+        cadence: definition.cadence,
+        current: status.current,
+        longest: row?.longest ?? 0,
+        freezes: row?.freezes ?? 0,
+        atRisk: status.atRisk,
+        timeZone: zone,
+        lastActivityAt: row?.lastActivityAt ?? null,
+      };
+    });
     return reply.send({ data });
   });
 

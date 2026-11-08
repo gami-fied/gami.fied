@@ -730,6 +730,318 @@
         }
       }
     },
+    "/v1/me/achievements/progress": {
+      "get": {
+        "operationId": "getV1MeAchievementsProgress",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Show the current user's achievement progress",
+        "description": "Shows how far the token holder is toward each achievement that measures itself. Secret achievements are left out until they are earned.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Show the current user's achievement progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "description",
+                          "iconUrl",
+                          "earned",
+                          "tier",
+                          "tierCount",
+                          "tierName",
+                          "value",
+                          "nextTarget",
+                          "fraction",
+                          "complete"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "The achievement's key.",
+                            "example": "bookworm"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Bookworm"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "How to earn it.",
+                            "example": "Finish lessons"
+                          },
+                          "iconUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Link to a badge image.",
+                            "example": null
+                          },
+                          "earned": {
+                            "type": "boolean",
+                            "description": "Whether the first tier is reached.",
+                            "example": true
+                          },
+                          "tier": {
+                            "type": "integer",
+                            "description": "Highest tier reached. 0 means none yet.",
+                            "example": 2
+                          },
+                          "tierCount": {
+                            "type": "integer",
+                            "description": "How many tiers there are.",
+                            "example": 3
+                          },
+                          "tierName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Name of the tier reached, from the second tier up.",
+                            "example": "Silver"
+                          },
+                          "value": {
+                            "type": "integer",
+                            "description": "What the user has so far.",
+                            "example": 63
+                          },
+                          "nextTarget": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "description": "The next number to reach. Null once every tier is done.",
+                            "example": 100
+                          },
+                          "fraction": {
+                            "type": "number",
+                            "description": "How far toward the next target, from 0 to 1.",
+                            "example": 0.63
+                          },
+                          "complete": {
+                            "type": "boolean",
+                            "description": "Whether every tier is done.",
+                            "example": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/streaks": {
+      "get": {
+        "operationId": "getV1MeStreaks",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "List the current user's streaks",
+        "description": "Shows the token holder's progress on each streak, as of now. A streak that has ended reads 0, and `atRisk` is true while they have not yet been active this period.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List the current user's streaks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "cadence",
+                          "current",
+                          "longest",
+                          "freezes",
+                          "atRisk",
+                          "timeZone",
+                          "lastActivityAt"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "The streak's key.",
+                            "example": "daily_lesson"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Daily lesson"
+                          },
+                          "cadence": {
+                            "type": "string",
+                            "enum": [
+                              "daily",
+                              "weekly"
+                            ],
+                            "description": "How often they need to be active.",
+                            "example": "daily"
+                          },
+                          "current": {
+                            "type": "integer",
+                            "description": "Days or weeks in a row right now.",
+                            "example": 12
+                          },
+                          "longest": {
+                            "type": "integer",
+                            "description": "Their best.",
+                            "example": 30
+                          },
+                          "freezes": {
+                            "type": "integer",
+                            "description": "Freezes they hold.",
+                            "example": 1
+                          },
+                          "atRisk": {
+                            "type": "boolean",
+                            "description": "True when they have not yet been active this period.",
+                            "example": false
+                          },
+                          "timeZone": {
+                            "type": "string",
+                            "description": "The zone their days are counted in.",
+                            "example": "Europe/London"
+                          },
+                          "lastActivityAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "When they last counted toward it.",
+                            "example": null
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/me/challenges": {
       "get": {
         "operationId": "getV1MeChallenges",
@@ -2472,6 +2784,92 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserAchievement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{userId}/achievements/progress": {
+      "get": {
+        "operationId": "getUsersUserIdAchievementsProgress",
+        "tags": [
+          "Achievements"
+        ],
+        "summary": "Get a user's progress toward achievements",
+        "description": "Shows how far a user is toward every achievement that measures itself, with tiers. Secret achievements are included and flagged `hidden`, so keep them out of anything players see. Use `/v1/me/achievements/progress` for a player-facing view.",
+        "x-required-scope": "achievements:read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress for each achievement.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "One entry per achievement with criteria.",
+                      "items": {
+                        "$ref": "#/components/schemas/AchievementProgress"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -4705,6 +5103,125 @@
           }
         }
       },
+      "AchievementProgress": {
+        "type": "object",
+        "required": [
+          "achievementId",
+          "key",
+          "name",
+          "description",
+          "iconUrl",
+          "hidden",
+          "earned",
+          "awardedAt",
+          "measures",
+          "tier",
+          "tierCount",
+          "tierName",
+          "value",
+          "nextTarget",
+          "fraction",
+          "complete"
+        ],
+        "properties": {
+          "achievementId": {
+            "type": "string",
+            "description": "ID of the achievement.",
+            "example": "ach_1762421400000_q1w2e"
+          },
+          "key": {
+            "type": "string",
+            "description": "The achievement's key.",
+            "example": "bookworm"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Bookworm"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How to earn it.",
+            "example": "Finish lessons"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to a badge image.",
+            "example": null
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "A secret achievement, which players do not see until they earn it.",
+            "example": false
+          },
+          "earned": {
+            "type": "boolean",
+            "description": "Whether the user has reached the first tier.",
+            "example": true
+          },
+          "awardedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the first tier was reached.",
+            "example": null
+          },
+          "measures": {
+            "type": "string",
+            "description": "What it measures, in plain words.",
+            "example": "lesson_completed: events"
+          },
+          "tier": {
+            "type": "integer",
+            "description": "Highest tier reached. 0 means none yet.",
+            "example": 2
+          },
+          "tierCount": {
+            "type": "integer",
+            "description": "How many tiers there are, counting the first.",
+            "example": 3
+          },
+          "tierName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Name of the tier reached, from the second tier up.",
+            "example": "Silver"
+          },
+          "value": {
+            "type": "integer",
+            "description": "What the user has so far.",
+            "example": 63
+          },
+          "nextTarget": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "The next number to reach. Null once every tier is done.",
+            "example": 100
+          },
+          "fraction": {
+            "type": "number",
+            "description": "How far toward the next target, from 0 to 1.",
+            "example": 0.63
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "Whether every tier is done.",
+            "example": false
+          }
+        }
+      },
       "Achievement": {
         "type": "object",
         "required": [
@@ -4715,6 +5232,9 @@
           "description",
           "iconUrl",
           "enabled",
+          "hidden",
+          "criteria",
+          "tiers",
           "createdAt",
           "updatedAt"
         ],
@@ -4759,6 +5279,43 @@
             "type": "boolean",
             "description": "Whether it can still be awarded.",
             "example": true
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "A secret achievement. Players do not see it, or their progress, until they earn it.",
+            "example": false
+          },
+          "criteria": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "How it is earned without a rule: `{ event, metric, field, window, target }`, or `{ metric: \"streak\", streak, target }` for a streak. Null when only rules and challenges grant it.",
+            "additionalProperties": true,
+            "example": {
+              "event": "lesson_completed",
+              "metric": "count",
+              "window": "all_time",
+              "target": 10
+            }
+          },
+          "tiers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Higher levels after the first, each with a `name`, a `target` above the one before, and optional `xp` given on reaching it.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "example": [
+              {
+                "name": "Silver",
+                "target": 50,
+                "xp": 100
+              }
+            ]
           },
           "createdAt": {
             "type": "string",

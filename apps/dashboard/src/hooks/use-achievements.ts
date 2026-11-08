@@ -10,8 +10,26 @@ export interface AchievementRecord {
   description: string | null;
   iconUrl: string | null;
   enabled: boolean;
+  hidden: boolean;
+  criteria: AchievementCriteriaRecord | null;
+  tiers: AchievementTierRecord[] | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AchievementCriteriaRecord {
+  metric: 'count' | 'sum' | 'unique' | 'streak';
+  event?: string;
+  field?: string;
+  window?: 'all_time' | 'last_24h' | 'last_7d' | 'last_30d' | 'last_90d' | 'calendar_day' | 'calendar_week' | 'calendar_month';
+  streak?: string;
+  target: number;
+}
+
+export interface AchievementTierRecord {
+  name: string;
+  target: number;
+  xp?: number;
 }
 
 export interface AchievementSummary {
@@ -75,6 +93,9 @@ export function useAchievements(projectId: string | null) {
     description?: string;
     iconUrl?: string;
     enabled?: boolean;
+    hidden?: boolean;
+    criteria?: AchievementCriteriaRecord | null;
+    tiers?: AchievementTierRecord[] | null;
   }) => {
     if (!projectId) return;
     const res = await apiFetch(`/api/projects/${projectId}/achievements`, {
@@ -93,7 +114,15 @@ export function useAchievements(projectId: string | null) {
 
   const updateAchievement = async (
     achievementId: string,
-    data: Partial<{ name: string; description: string; iconUrl: string; enabled: boolean }>
+    data: Partial<{
+      name: string;
+      description: string;
+      iconUrl: string;
+      enabled: boolean;
+      hidden: boolean;
+      criteria: AchievementCriteriaRecord | null;
+      tiers: AchievementTierRecord[] | null;
+    }>
   ) => {
     if (!projectId) return;
     const res = await apiFetch(`/api/projects/${projectId}/achievements/${achievementId}`, {

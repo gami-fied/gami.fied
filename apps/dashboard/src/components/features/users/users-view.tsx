@@ -3,6 +3,7 @@
 import { useConfirm } from '@/components/ui/confirm';
 import { formatDate } from '@/lib/format';
 import { UserTimeline } from './user-timeline';
+import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { useUserRank } from '@/hooks/use-leaderboard';
@@ -531,6 +532,15 @@ export function UsersView() {
                           className="flex items-center justify-end gap-1.5"
                           onClick={(e) => e.stopPropagation()}
                         >
+                          <Link
+                            href={`/dashboard/users/${user.id}?tab=ledger`}
+                            className="px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs transition flex items-center gap-1 hover:bg-zinc-800 text-zinc-300"
+                            title="See this user's XP ledger"
+                          >
+                            <Coins className="w-3 h-3 text-zinc-400" />
+                            Ledger
+                          </Link>
+
                           <AdminOnly>
                             <button
                               onClick={(e) => handleOpenEditModal(user, e)}
@@ -861,7 +871,19 @@ export function UsersView() {
         ) : userRank?.entry ? (
           <div className="space-y-6">
             {/* Quick Action Banner */}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Link href={`/dashboard/users/${selectedUserId}?tab=ledger`}>
+                <Button variant="outline" size="sm">
+                  <Coins className="w-3.5 h-3.5" />
+                  XP ledger
+                </Button>
+              </Link>
+              <Link href={`/dashboard/users/${selectedUserId}`}>
+                <Button variant="outline" size="sm">
+                  <UserIcon className="w-3.5 h-3.5" />
+                  Full profile
+                </Button>
+              </Link>
               <Button
                 variant="primary"
                 size="sm"

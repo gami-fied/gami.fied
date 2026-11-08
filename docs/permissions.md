@@ -78,6 +78,7 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/streaks` | Admin | API key with `streaks:write` |
 | `DELETE` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
 | `PATCH` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
+| `GET` | `/streaks/:streakId/leaders` | Member | API key with `streaks:read` |
 | `GET` | `/system/metrics` | Member | API key with `system:read` |
 | `GET` | `/users` | Member | API key with `users:read` |
 | `POST` | `/users` | Admin | API key with `users:write` |
@@ -86,6 +87,7 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `PATCH` | `/users/:userId` | Admin | API key with `users:write` |
 | `GET` | `/users/:userId/achievements` | Member | API key with `achievements:read` |
 | `GET` | `/users/:userId/achievements/:achievementId` | Member | API key with `achievements:read` |
+| `GET` | `/users/:userId/achievements/progress` | Member | API key with `achievements:read` |
 | `GET` | `/users/:userId/challenges` | Member | API key with `challenges:read` |
 | `GET` | `/users/:userId/challenges/:challengeId` | Member | API key with `challenges:read` |
 | `POST` | `/users/:userId/erase` | Admin | API key with `users:write` |

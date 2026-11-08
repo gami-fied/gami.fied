@@ -1,6 +1,14 @@
 import crypto from 'crypto';
 import { createLogger } from '@gami/config';
-import { db, endUsers, streakDefinitions, streakHistory, userStreaks } from '@gami/database';
+import {
+  db,
+  endUsers,
+  eventOutbox,
+  events,
+  streakDefinitions,
+  streakHistory,
+  userStreaks,
+} from '@gami/database';
 import {
   applyActivity,
   isValidTimeZone,
@@ -11,6 +19,13 @@ import type { EventData } from '@gami/rules';
 import { and, eq } from 'drizzle-orm';
 
 const log = createLogger('Streaks');
+
+/**
+ * Emitted every time a streak starts, grows, is saved by a freeze, or ends. It goes through the
+ * normal event pipeline, so rules can award XP or badges on it, for example "streak_updated where
+ * payload.streak is daily_lesson and payload.current is 7".
+ */
+export const STREAK_EVENT_TYPE = 'streak_updated';
 
 const newId = (prefix: string) => `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
@@ -28,7 +43,8 @@ function zoneFrom(...sources: unknown[]): string | null {
  * already counted and changes nothing.
  */
 export async function processStreaksForEvent(event: EventData): Promise<number> {
-  if (!event.userId) return 0;
+  // The event a streak emits must never feed a streak, or the two would loop.
+  if (!event.userId || event.type === STREAK_EVENT_TYPE) return 0;
 
   const definitions = await db
     .select()
@@ -120,6 +136,41 @@ export async function processStreaksForEvent(event: EventData): Promise<number> 
         freezesEarned: update.freezesEarned,
         brokenStreak: update.brokenStreak,
       });
+
+      const derivedId = `evt_${crypto.randomUUID()}`;
+      const [derived] = await tx
+        .insert(events)
+        .values({
+          id: derivedId,
+          projectId: event.projectId,
+          userId: user.id,
+          type: STREAK_EVENT_TYPE,
+          payload: {
+            streak: definition.key,
+            streakId: definition.id,
+            cadence: definition.cadence,
+            change: update.change,
+            current: update.state.current,
+            longest: update.state.longest,
+            freezes: update.state.freezes,
+            freezesUsed: update.freezesUsed,
+            freezesEarned: update.freezesEarned,
+            brokenStreak: update.brokenStreak,
+            sourceEventId: event.id,
+          },
+          // One per source event and streak, so replaying the source cannot emit it twice.
+          idempotencyKey: `streak:${definition.id}:${event.id}`,
+          occurredAt,
+        })
+        .onConflictDoNothing()
+        .returning({ id: events.id });
+      if (derived) {
+        await tx.insert(eventOutbox).values({
+          id: newId('out'),
+          eventId: derived.id,
+          status: 'pending',
+        });
+      }
 
       changed++;
       log.info('Streak updated', {

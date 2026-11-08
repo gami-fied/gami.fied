@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dropdown } from '@/components/ui/dropdown';
 import { Plus, Trash2, Layers } from 'lucide-react';
+import {
+  buildTotalCondition,
+  type AggregateCondition,
+  type AggregateMetric,
+  type AggregateWindow,
+} from './total-condition';
+
+export { buildTotalCondition, parseTotalCondition } from './total-condition';
+export type { AggregateCondition, AggregateMetric, AggregateWindow } from './total-condition';
 
 export type Operator =
   | 'equals'
@@ -33,13 +42,51 @@ export interface ConditionGroup {
   not?: Condition;
 }
 
-export type Condition = SimpleCondition | ConditionGroup;
+export type Condition = SimpleCondition | AggregateCondition | ConditionGroup;
 
 export interface VisualCondition {
   id: string;
   field: string;
   operator: Operator;
   value: string;
+  /** `total` looks back over the user's past events instead of reading this event. */
+  kind?: 'field' | 'total';
+  metric?: AggregateMetric;
+  /** Event type to total. Empty means the rule's own trigger. */
+  totalEvent?: string;
+  window?: AggregateWindow;
+  /** Match only on the event that reaches the number, so a rule fires once per window. */
+  crossing?: boolean;
+}
+
+export const METRIC_OPTIONS: { value: AggregateMetric; label: string; sublabel: string }[] = [
+  { value: 'sum', label: 'Total of', sublabel: 'Adds up a number from each event' },
+  { value: 'count', label: 'Number of events', sublabel: 'Counts the events' },
+  { value: 'unique', label: 'Different values of', sublabel: 'Counts distinct values' },
+];
+
+export const WINDOW_OPTIONS: { value: AggregateWindow; label: string; sublabel?: string }[] = [
+  { value: 'calendar_day', label: 'Today', sublabel: 'Since midnight UTC' },
+  { value: 'calendar_week', label: 'This week', sublabel: 'Since Monday, UTC' },
+  { value: 'calendar_month', label: 'This month', sublabel: 'Since the 1st, UTC' },
+  { value: 'last_24h', label: 'Last 24 hours' },
+  { value: 'last_7d', label: 'Last 7 days' },
+  { value: 'last_30d', label: 'Last 30 days' },
+  { value: 'last_90d', label: 'Last 90 days' },
+  { value: 'all_time', label: 'All time' },
+];
+
+const NUMBER_OPERATORS = OPERATOR_OPTIONS_FOR_TOTALS();
+
+function OPERATOR_OPTIONS_FOR_TOTALS() {
+  return [
+    { value: 'greater_than_or_equal' as Operator, label: 'Reaches (≥)' },
+    { value: 'greater_than' as Operator, label: 'Goes over (>)' },
+    { value: 'equals' as Operator, label: 'Equals exactly (=)' },
+    { value: 'less_than' as Operator, label: 'Is below (<)' },
+    { value: 'less_than_or_equal' as Operator, label: 'Is at most (≤)' },
+    { value: 'not_equals' as Operator, label: 'Is not (≠)' },
+  ];
 }
 
 export const OPERATOR_OPTIONS: { value: Operator; label: string; sublabel?: string }[] = [
@@ -83,6 +130,23 @@ export function VisualConditionBuilder({
       value: '',
     };
     onChange([...conditions, newCond]);
+  };
+
+  const handleAddTotal = () => {
+    onChange([
+      ...conditions,
+      {
+        id: `cond_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        kind: 'total',
+        field: 'payload.amount',
+        operator: 'greater_than_or_equal',
+        value: '100',
+        metric: 'sum',
+        totalEvent: '',
+        window: 'calendar_month',
+        crossing: true,
+      },
+    ]);
   };
 
   const handleRemoveCondition = (id: string) => {
@@ -131,6 +195,81 @@ export function VisualConditionBuilder({
       <div className="space-y-3">
         {conditions.map((cond, idx) => {
           const noValueNeeded = cond.operator === 'exists' || cond.operator === 'not_exists';
+
+          if (cond.kind === 'total') {
+            const needsField = cond.metric !== 'count';
+            return (
+              <div key={cond.id} className="space-y-2 rounded-none border border-zinc-800 bg-zinc-900/80 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-zinc-400">
+                    {idx === 0 ? 'IF' : matchMode.toUpperCase()} · TOTAL OVER PAST EVENTS
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCondition(cond.id)}
+                    className="shrink-0 p-1.5 text-zinc-400 transition hover:bg-danger-950/40 hover:text-danger-400"
+                    title="Remove condition"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <Dropdown
+                    options={METRIC_OPTIONS}
+                    value={cond.metric ?? 'sum'}
+                    onChange={(val) => handleUpdateCondition(cond.id, { metric: val as AggregateMetric })}
+                  />
+                  {needsField ? (
+                    <Input
+                      placeholder="payload.amount"
+                      value={cond.field}
+                      onChange={(e) => handleUpdateCondition(cond.id, { field: e.target.value })}
+                      aria-label="Payload field to total"
+                    />
+                  ) : (
+                    <div className="self-center text-xs text-zinc-400">of this user&apos;s events</div>
+                  )}
+                  <Input
+                    placeholder="Event type (blank = this rule's trigger)"
+                    value={cond.totalEvent ?? ''}
+                    onChange={(e) => handleUpdateCondition(cond.id, { totalEvent: e.target.value })}
+                    aria-label="Event type to total"
+                  />
+                  <Dropdown
+                    options={WINDOW_OPTIONS}
+                    value={cond.window ?? 'calendar_month'}
+                    onChange={(val) => handleUpdateCondition(cond.id, { window: val as AggregateWindow })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[12rem_1fr]">
+                  <Dropdown
+                    options={NUMBER_OPERATORS}
+                    value={cond.operator}
+                    onChange={(val) => handleUpdateCondition(cond.id, { operator: val as Operator })}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="e.g. 100"
+                    value={cond.value}
+                    onChange={(e) => handleUpdateCondition(cond.id, { value: e.target.value })}
+                    aria-label="Number to compare with"
+                  />
+                </div>
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={cond.crossing !== false}
+                    onChange={(e) => handleUpdateCondition(cond.id, { crossing: e.target.checked })}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    Only on the event that gets there. Turn this off to match on every event while it is true, which
+                    would give the reward again each time.
+                  </span>
+                </label>
+              </div>
+            );
+          }
 
           return (
             <div
@@ -195,16 +334,16 @@ export function VisualConditionBuilder({
         )}
       </div>
 
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={handleAddCondition}
-        className="w-full"
-      >
-        <Plus className="w-4 h-4" />
-        Add Condition Filter
-      </Button>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Button type="button" variant="secondary" size="sm" onClick={handleAddCondition}>
+          <Plus className="w-4 h-4" />
+          Add Condition Filter
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={handleAddTotal}>
+          <Plus className="w-4 h-4" />
+          Add total over time
+        </Button>
+      </div>
     </div>
   );
 }
@@ -216,7 +355,8 @@ export function buildRulesEngineConditions(
 ): ConditionGroup | null {
   if (conditions.length === 0) return null;
 
-  const simpleConditions: SimpleCondition[] = conditions.map((c) => {
+  const simpleConditions: Condition[] = conditions.map((c): Condition => {
+    if (c.kind === 'total') return buildTotalCondition(c);
     let typedValue: unknown = c.value;
     if (['in', 'not_in'].includes(c.operator) && typeof c.value === 'string') {
       typedValue = c.value

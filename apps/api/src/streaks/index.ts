@@ -8,7 +8,7 @@ import {
   userStreaks,
 } from '@gami/database';
 import { isValidTimeZone, streakStatus, type StreakCadence } from '@gami/progression';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
@@ -23,7 +23,13 @@ const createStreakSchema = z.object({
     .regex(/^[a-zA-Z0-9_-]+$/, { message: 'Key must contain only letters, numbers, underscores or dashes' }),
   name: z.string().min(1).max(128),
   description: z.string().max(1000).optional(),
-  triggerEvent: z.string().min(1).max(128),
+  triggerEvent: z
+    .string()
+    .min(1)
+    .max(128)
+    .refine((value) => value !== 'streak_updated', {
+      message: 'streak_updated is emitted by streaks themselves, so it cannot also start one',
+    }),
   cadence: z.enum(['daily', 'weekly']).default('daily'),
   timeZone: timeZone.default('UTC'),
   freezeEvery: z.number().int().min(0).max(365).default(0),
@@ -98,6 +104,79 @@ export async function streakRoutes(fastify: FastifyInstance) {
       .orderBy(desc(streakDefinitions.createdAt), desc(streakDefinitions.id));
     return reply.send({ data });
   });
+
+  // 2b. Who has the longest streak running right now
+  fastify.get<{ Params: { projectId: string; streakId: string } }>(
+    '/api/projects/:projectId/streaks/:streakId/leaders',
+    async (request, reply) => {
+      const { projectId, streakId } = request.params;
+      const authResult = await requireProjectAccess(request, reply, projectId);
+      if (!authResult) return;
+
+      const [definition] = await db
+        .select()
+        .from(streakDefinitions)
+        .where(and(eq(streakDefinitions.id, streakId), eq(streakDefinitions.projectId, projectId)));
+      if (!definition) return reply.status(404).send({ error: 'Not Found', message: 'Streak not found' });
+
+      const rows = await db
+        .select({
+          userId: userStreaks.userId,
+          externalId: endUsers.externalId,
+          name: endUsers.name,
+          current: userStreaks.current,
+          longest: userStreaks.longest,
+          lastPeriod: userStreaks.lastPeriod,
+          lastActivityAt: userStreaks.lastActivityAt,
+          freezes: userStreaks.freezes,
+          timeZone: userStreaks.timeZone,
+
+        })
+        .from(userStreaks)
+        .innerJoin(endUsers, eq(endUsers.id, userStreaks.userId))
+        .where(
+          and(
+            eq(userStreaks.projectId, projectId),
+            eq(userStreaks.definitionId, streakId),
+            eq(endUsers.active, true),
+            gt(userStreaks.current, 0)
+          )
+        )
+        .orderBy(desc(userStreaks.current), desc(userStreaks.longest), userStreaks.userId)
+        .limit(50);
+
+      // A streak that has lapsed is stored until the user's next action, so read each as of now.
+      const now = new Date();
+      const settings = {
+        cadence: definition.cadence as StreakCadence,
+        timeZone: definition.timeZone,
+        freezeEvery: definition.freezeEvery,
+        maxFreezes: definition.maxFreezes,
+      };
+      const data = rows
+        .map((row) => {
+          const status = streakStatus(
+            { current: row.current, longest: row.longest, lastPeriod: row.lastPeriod, freezes: row.freezes },
+            now,
+            settings,
+            row.timeZone ?? definition.timeZone
+          );
+          return {
+            userId: row.userId,
+            externalId: row.externalId,
+            name: row.name,
+            current: status.current,
+            longest: row.longest,
+            atRisk: status.atRisk,
+            lastActivityAt: row.lastActivityAt,
+          };
+        })
+        .filter((row) => row.current > 0)
+        .slice(0, 10);
+
+      return reply.send({ data });
+    }
+  );
 
   // 3. Update a streak (admin)
   fastify.patch<{ Params: { projectId: string; streakId: string } }>(

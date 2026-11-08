@@ -4,6 +4,7 @@ import { ActionDefinition, evaluateRule, EventData } from '@gami/rules';
 import { eq, and } from 'drizzle-orm';
 import { executeAwardAchievementAction } from './actions/award-achievement.js';
 import { executeAwardXpAction } from './actions/award-xp.js';
+import { computeAggregates } from './aggregates.js';
 import { createLogger } from '@gami/config';
 
 const log = createLogger('RuleExecutor');
@@ -106,6 +107,7 @@ export async function executeRuleForEvent(
 
   try {
     // 2. Evaluate Rule via @gami/rules engine
+    const aggregates = await computeAggregates(rule.conditions, eventData);
     const evalResult = evaluateRule(
       {
         trigger: rule.trigger,
@@ -113,7 +115,8 @@ export async function executeRuleForEvent(
         actions: rule.actions || [],
       },
       eventData,
-      rule.id
+      rule.id,
+      aggregates
     );
 
     if (evalResult.error) {

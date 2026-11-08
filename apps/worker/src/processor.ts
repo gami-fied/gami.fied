@@ -9,6 +9,7 @@ import {
 } from './challenge-processor.js';
 import { createLogger } from '@gami/config';
 import { processStreaksForEvent } from './streak-processor.js';
+import { processAchievementCriteriaForEvent } from './achievement-progress.js';
 
 const log = createLogger('Processor');
 
@@ -74,7 +75,14 @@ export async function processEventJob(
     eventLog.error('Streak processing failed', streakErr);
   }
 
-  // 5. Process challenges for event with Failure Isolation & Outbox Dispatch
+  // 5. Move achievements that measure progress themselves, with failure isolation
+  try {
+    await processAchievementCriteriaForEvent(eventData);
+  } catch (achievementErr) {
+    eventLog.error('Achievement progress failed', achievementErr);
+  }
+
+  // 6. Process challenges for event with Failure Isolation & Outbox Dispatch
   try {
     await processChallengesForEvent(eventData);
     await dispatchPendingChallengeRewards(50);
@@ -82,7 +90,7 @@ export async function processEventJob(
     eventLog.error('Challenge processing failed', chErr);
   }
 
-  // 6. Dispatch pending notifications with Failure Isolation
+  // 7. Dispatch pending notifications with Failure Isolation
   try {
     await dispatchPendingNotifications(50);
   } catch (notifErr) {

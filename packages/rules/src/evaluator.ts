@@ -1,4 +1,5 @@
-import { Condition, ConditionGroup, EventData, SimpleCondition } from './types.js';
+import { aggregateKey, compareAggregate, isAggregateCondition } from './aggregates.js';
+import { AggregateValues, Condition, ConditionGroup, EventData, SimpleCondition } from './types.js';
 
 /** The rule builder saves lists as text, so "5" in a list has to match the number 5. */
 function listIncludes(list: unknown[], value: unknown): boolean {
@@ -108,7 +109,20 @@ function evaluateSimpleCondition(cond: SimpleCondition, eventData: EventData): b
   }
 }
 
-export function evaluateConditionTree(cond: Condition, eventData: EventData): boolean {
+export function evaluateConditionTree(
+  cond: Condition,
+  eventData: EventData,
+  aggregates: AggregateValues = {}
+): boolean {
+  if (isAggregateCondition(cond)) {
+    const found = aggregates[aggregateKey(cond.aggregate, eventData.type)];
+    // Without a computed value the condition cannot hold, so a rule never fires on a guess.
+    if (!found) return false;
+    const holds = compareAggregate(cond.operator, found.value, cond.value);
+    if (cond.crossing === false) return holds;
+    return holds && !compareAggregate(cond.operator, found.previous, cond.value);
+  }
+
   if (isSimpleCondition(cond)) {
     return evaluateSimpleCondition(cond, eventData);
   }
@@ -117,7 +131,7 @@ export function evaluateConditionTree(cond: Condition, eventData: EventData): bo
 
   if (group.all) {
     for (const child of group.all) {
-      if (!evaluateConditionTree(child, eventData)) {
+      if (!evaluateConditionTree(child, eventData, aggregates)) {
         return false;
       }
     }
@@ -126,7 +140,7 @@ export function evaluateConditionTree(cond: Condition, eventData: EventData): bo
   if (group.any) {
     let anyMatched = false;
     for (const child of group.any) {
-      if (evaluateConditionTree(child, eventData)) {
+      if (evaluateConditionTree(child, eventData, aggregates)) {
         anyMatched = true;
         break;
       }
@@ -135,7 +149,7 @@ export function evaluateConditionTree(cond: Condition, eventData: EventData): bo
   }
 
   if (group.not) {
-    if (evaluateConditionTree(group.not, eventData)) {
+    if (evaluateConditionTree(group.not, eventData, aggregates)) {
       return false;
     }
   }

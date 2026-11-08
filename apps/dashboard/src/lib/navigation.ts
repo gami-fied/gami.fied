@@ -5,6 +5,7 @@ import {
   Blocks,
   Code2,
   Coins,
+  Flame,
   FileText,
   HeartPulse,
   History,
@@ -51,6 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: 'Rules', href: '/dashboard/rules', icon: Zap },
       { name: 'Achievements', href: '/dashboard/achievements', icon: Trophy, keywords: 'badges' },
+      { name: 'Streaks', href: '/dashboard/streaks', icon: Flame, keywords: 'daily habit consecutive' },
       { name: 'Levels', href: '/dashboard/levels', icon: TrendingUp, keywords: 'progression' },
       { name: 'Challenges', href: '/dashboard/challenges', icon: Target, keywords: 'quests' },
     ],

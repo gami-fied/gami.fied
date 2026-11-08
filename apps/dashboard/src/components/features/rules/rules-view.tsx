@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useDashboard } from '../context/dashboard-context';
 import { useRules, RuleRecord } from '@/hooks/use-rules';
 import type { VisualCondition } from './visual-condition-builder';
+import { buildTotalCondition, parseTotalCondition, type AggregateCondition } from './total-condition';
 import type { VisualAction } from './visual-action-builder';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
@@ -43,6 +44,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 
 interface StoredCondition {
+  aggregate?: AggregateCondition['aggregate'];
+  crossing?: boolean;
   field?: string;
   fact?: string;
   operator?: string;
@@ -180,12 +183,16 @@ export function RulesView() {
     const condList = (isAny ? conditionsObj.any : conditionsObj.all) ?? [];
     setMatchMode(isAny ? 'any' : 'all');
 
-    const mapped: VisualCondition[] = condList.map((c, index) => ({
-      id: `c_${index}_${Date.now()}`,
-      field: c.field || c.fact || '',
-      operator: (c.operator || 'equals') as VisualCondition['operator'],
-      value: String(c.value ?? ''),
-    }));
+    const mapped: VisualCondition[] = condList.map((c, index) =>
+      c.aggregate
+        ? parseTotalCondition(c as unknown as AggregateCondition)
+        : {
+            id: `c_${index}_${Date.now()}`,
+            field: c.field || c.fact || '',
+            operator: (c.operator || 'equals') as VisualCondition['operator'],
+            value: String(c.value ?? ''),
+          }
+    );
     setVisualConditions(mapped);
   };
 
@@ -214,6 +221,7 @@ export function RulesView() {
   const buildRulesEngineConditions = (mode: 'all' | 'any', conds: VisualCondition[]) => {
     if (conds.length === 0) return null;
     const formatted = conds.map((c) => {
+      if (c.kind === 'total') return buildTotalCondition(c);
       let val: string | number | boolean = c.value;
       if (c.value === 'true') val = true;
       else if (c.value === 'false') val = false;
@@ -260,8 +268,51 @@ export function RulesView() {
         { id: `c_1_${Date.now()}`, field: 'payload.amount', operator: 'greater_than', value: '50' },
       ]);
       setVisualActions([createActionObj('award_xp', 250)]);
+    } else if (presetKey === 'streak') {
+      setName('7-day streak bonus');
+      setTrigger('streak_updated');
+      setDescription('Awards 200 XP when someone reaches a 7 day streak. Change the streak key to match yours.');
+      setMatchMode('all');
+      setVisualConditions([
+        { id: `c_1_${Date.now()}`, field: 'payload.streak', operator: 'equals', value: 'daily_lesson' },
+        { id: `c_2_${Date.now()}`, field: 'payload.current', operator: 'equals', value: '7' },
+      ]);
+      setVisualActions([createActionObj('award_xp', 200)]);
+    } else if (presetKey === 'spend') {
+      setName('Big spender');
+      setTrigger('purchase');
+      setDescription('Awards 500 XP once, the moment someone spends $100 in a month');
+      setMatchMode('all');
+      setVisualConditions([
+        {
+          id: `c_1_${Date.now()}`,
+          kind: 'total',
+          metric: 'sum',
+          field: 'payload.amount',
+          totalEvent: '',
+          window: 'calendar_month',
+          operator: 'greater_than_or_equal',
+          value: '100',
+          crossing: true,
+        },
+      ]);
+      setVisualActions([createActionObj('award_xp', 500)]);
     }
   };
+
+  // Links such as /dashboard/rules?trigger=streak_updated open a new rule with that event filled in.
+  useEffect(() => {
+    const linked = new URLSearchParams(window.location.search).get('trigger');
+    if (!linked) return;
+    setTrigger(linked);
+    if (linked === 'streak_updated') handleApplyPreset('streak');
+    setIsCreateOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('trigger');
+    window.history.replaceState(null, '', url);
+    // Runs once, for the address the page was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveRule = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -721,6 +772,20 @@ export function RulesView() {
               >
                 Order Reward (+250 XP)
               </button>
+              <button
+                type="button"
+                onClick={() => handleApplyPreset('streak')}
+                className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
+              >
+                7-day streak (+200 XP)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyPreset('spend')}
+                className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs rounded-none transition"
+              >
+                Spent $100 this month (+500 XP)
+              </button>
             </div>
           </div>
 
@@ -783,8 +848,20 @@ export function RulesView() {
               placeholder="e.g. user_signed_up"
               value={trigger}
               onChange={(e) => setTrigger(e.target.value)}
+              list="rule-trigger-suggestions"
+              helperText={
+                trigger === 'streak_updated'
+                  ? 'Sent each time a streak starts, grows, is saved by a freeze, or ends. Use payload.streak, payload.current and payload.change.'
+                  : undefined
+              }
               required
             />
+            <datalist id="rule-trigger-suggestions">
+              <option value="streak_updated">When a streak changes</option>
+              {Array.from(new Set(rules.map((r) => r.trigger))).map((value) => (
+                <option key={value} value={value} />
+              ))}
+            </datalist>
           </div>
 
           <Input

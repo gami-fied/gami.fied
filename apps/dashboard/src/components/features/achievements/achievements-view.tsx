@@ -11,7 +11,16 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog } from '@/components/ui/dialog';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
-import { Trophy, Plus, Search, Award } from 'lucide-react';
+import { Trophy, Plus, Search, Award, Edit2, EyeOff, Zap } from 'lucide-react';
+import { Switch } from '@/components/ui/checkbox';
+import {
+  CriteriaEditor,
+  describeCriteria,
+  draftFromRecord,
+  EMPTY_CRITERIA,
+  payloadFromDraft,
+  type CriteriaDraft,
+} from './criteria-editor';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -36,6 +45,9 @@ export function AchievementsView() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
+  const [hidden, setHidden] = useState(false);
+  const [criteria, setCriteria] = useState<CriteriaDraft>(EMPTY_CRITERIA);
+  const [editing, setEditing] = useState<AchievementRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -55,24 +67,64 @@ export function AchievementsView() {
     setFormError(null);
 
     try {
-      await createAchievement({
-        key,
-        name,
-        description: description || undefined,
-        iconUrl: iconUrl || undefined,
-        enabled: true,
-      });
+      const measured = payloadFromDraft(criteria);
+      if (editing) {
+        await updateAchievement(editing.id, {
+          name,
+          description,
+          iconUrl,
+          hidden,
+          criteria: measured.criteria,
+          tiers: measured.tiers,
+        });
+        toast.success(`Saved "${name}"`);
+      } else {
+        await createAchievement({
+          key,
+          name,
+          description: description || undefined,
+          iconUrl: iconUrl || undefined,
+          enabled: true,
+          hidden,
+          ...(measured.criteria ? { criteria: measured.criteria, tiers: measured.tiers } : {}),
+        });
+      }
 
       setIsCreateOpen(false);
-      setKey('');
-      setName('');
-      setDescription('');
-      setIconUrl('');
+      resetForm();
     } catch (err: unknown) {
       setFormError((err as Error).message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setEditing(null);
+    setKey('');
+    setName('');
+    setDescription('');
+    setIconUrl('');
+    setHidden(false);
+    setCriteria(EMPTY_CRITERIA);
+    setFormError(null);
+  };
+
+  const openCreate = () => {
+    resetForm();
+    setIsCreateOpen(true);
+  };
+
+  const openEdit = (achievement: AchievementRecord) => {
+    setEditing(achievement);
+    setKey(achievement.key);
+    setName(achievement.name);
+    setDescription(achievement.description ?? '');
+    setIconUrl(achievement.iconUrl ?? '');
+    setHidden(achievement.hidden);
+    setCriteria(draftFromRecord(achievement.criteria, achievement.tiers));
+    setFormError(null);
+    setIsCreateOpen(true);
   };
 
   const handleToggleDisable = async (ach: AchievementRecord) => {
@@ -117,7 +169,7 @@ export function AchievementsView() {
         actions={
           <>
             <AdminOnly>
-              <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Button variant="primary" size="sm" onClick={openCreate}>
                 <Plus className="w-4 h-4" />
                 Create Achievement
               </Button>
@@ -277,9 +329,15 @@ export function AchievementsView() {
                         </span>
                       </div>
                     </div>
-                    <Badge className="shrink-0" variant={a.enabled ? 'emerald' : 'rose'}>
-                      {a.enabled ? 'Enabled' : 'Disabled'}
-                    </Badge>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <Badge variant={a.enabled ? 'emerald' : 'rose'}>{a.enabled ? 'Enabled' : 'Disabled'}</Badge>
+                      {a.hidden && (
+                        <Badge variant="zinc">
+                          <EyeOff className="mr-1 h-3 w-3" />
+                          Secret
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -287,11 +345,36 @@ export function AchievementsView() {
                   <p className="text-xs text-zinc-400 line-clamp-2">
                     {a.description || 'No description provided.'}
                   </p>
+                  {a.criteria && (
+                    <div className="space-y-1.5 border border-zinc-800 bg-zinc-950/60 p-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <Zap className="h-3 w-3 text-brand-400" />
+                        {describeCriteria(a.criteria)}
+                      </div>
+                      {a.tiers && a.tiers.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {a.tiers.map((tier) => (
+                            <Badge key={tier.name} variant="amber">
+                              {tier.name} · {tier.target}
+                              {tier.xp ? ` · +${tier.xp} XP` : ''}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
 
                 <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center justify-between">
                   <span className="text-[11px] font-mono text-zinc-400">{a.id}</span>
                   <AdminOnly>
+                    <button
+                      onClick={() => openEdit(a)}
+                      className="mr-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                      Edit
+                    </button>
                     <button
                       onClick={() => handleToggleDisable(a)}
                       className={`text-xs font-semibold px-2.5 py-1 rounded-none transition ${
@@ -315,7 +398,7 @@ export function AchievementsView() {
                   Achievements are badges users unlock. Rules can award them automatically.
                 </p>
                 <AdminOnly>
-                  <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
+                  <Button variant="primary" size="sm" onClick={openCreate}>
                     Create an achievement
                   </Button>
                 </AdminOnly>
@@ -329,8 +412,8 @@ export function AchievementsView() {
       <Dialog
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Create Achievement Definition"
-        description="Add a project-scoped badge definition."
+        title={editing ? `Edit ${editing.name}` : 'Create Achievement Definition'}
+        description="Add a badge. Rules and challenges can award it, or it can earn itself from what users do."
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           {formError && <div className="text-xs text-danger-400 font-medium">{formError}</div>}
@@ -340,6 +423,7 @@ export function AchievementsView() {
             placeholder="e.g. first_purchase"
             value={key}
             onChange={(e) => setKey(e.target.value)}
+            disabled={Boolean(editing)}
             required
           />
 
@@ -364,6 +448,18 @@ export function AchievementsView() {
             value={iconUrl}
             onChange={(e) => setIconUrl(e.target.value)}
           />
+
+          <div className="flex items-start justify-between gap-3 border border-zinc-800 p-3">
+            <div>
+              <div className="text-sm text-zinc-200">Secret badge</div>
+              <div className="text-xs text-zinc-400">
+                Players don&apos;t see it, or how close they are, until they earn it.
+              </div>
+            </div>
+            <Switch checked={hidden} onChange={(e) => setHidden(e.target.checked)} aria-label="Secret badge" />
+          </div>
+
+          <CriteriaEditor value={criteria} onChange={setCriteria} />
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
