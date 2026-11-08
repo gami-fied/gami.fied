@@ -21,6 +21,7 @@ const webhookEventTypeEnum = z.enum([
   'user.deactivated',
   'reward.redeemed',
   'reward.cancelled',
+  'referral.completed',
   'webhook.test',
 ]);
 

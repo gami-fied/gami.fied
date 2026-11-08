@@ -79,7 +79,15 @@ export interface ConditionGroup {
   not?: Condition;
 }
 
-export type Condition = SimpleCondition | AggregateCondition | ConditionGroup;
+/**
+ * A JSONLogic expression over the event, for conditions the builder cannot express. It sees
+ * `type`, `userId`, `occurredAt` and `payload`, for example `{ ">": [{ "*": [{ "var": "payload.price" }, { "var": "payload.qty" }] }, 100] }`.
+ */
+export interface LogicCondition {
+  logic: unknown;
+}
+
+export type Condition = SimpleCondition | AggregateCondition | LogicCondition | ConditionGroup;
 
 export interface ActionDefinition {
   type: string;

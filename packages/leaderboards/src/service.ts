@@ -1,7 +1,10 @@
 import { db, endUsers, levels, userXpBalances, xpLedger } from '@gami/database';
 import { calculateLevel } from '@gami/progression';
 import { and, eq, sql } from 'drizzle-orm';
+import { groupValueOf } from './segments.js';
 import {
+  GroupLeaderboardOptions,
+  GroupLeaderboardResponse,
   LeaderboardEntry,
   LeaderboardOptions,
   LeaderboardPeriod,
@@ -152,11 +155,12 @@ export async function getLeaderboard(
   const offset = (page - 1) * limit;
   const search = options.search?.trim();
   const now = options.now || new Date();
+  const extra = options.filter ? sql`AND ${options.filter}` : sql``;
 
   let rawEntries: RawRow[];
   let fastTotal: number | null = null;
 
-  if (period === 'all_time' && !search) {
+  if (period === 'all_time' && !search && !options.filter) {
     [rawEntries, fastTotal] = await Promise.all([
       allTimePage(projectId, limit, offset),
       countRankedUsers(projectId),
@@ -177,6 +181,7 @@ export async function getLeaderboard(
         WHERE eu.project_id = ${projectId}
           AND eu.active = true AND eu.ranking_hidden = false
           AND COALESCE(uxb.total_xp, 0) > 0
+          ${extra}
       )
       SELECT 
         "userId", "externalId", "name", "avatarUrl", "xp", "totalXp", "rank",
@@ -217,11 +222,12 @@ export async function getLeaderboard(
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
           AND eu.active = true AND eu.ranking_hidden = false
+          ${extra}
         GROUP BY eu.id, eu.external_id, eu.name, eu.avatar_url, uxb.total_xp
         HAVING COALESCE(SUM(xl.amount), 0) > 0
       ),
       global_ranks AS (
-        SELECT 
+        SELECT
           "userId", "externalId", "name", "avatarUrl", "xp", "totalXp",
           ROW_NUMBER() OVER (ORDER BY "xp" DESC, "userId" ASC)::int AS "rank"
         FROM user_period_xp
@@ -293,8 +299,9 @@ export async function getUserRank(
   const now = options.now || new Date();
 
   let rawRow: RawRow | null = null;
+  const extra = options.filter ? sql`AND ${options.filter}` : sql``;
 
-  if (period === 'all_time') {
+  if (period === 'all_time' && !options.filter) {
     const [found, totalUsers] = await Promise.all([
       allTimeUser(projectId, userId),
       countRankedUsers(projectId),
@@ -304,29 +311,37 @@ export async function getUserRank(
     const { periodStart, nextPeriodStart } = getUtcPeriodBoundaries(period, now);
     const startStr = periodStart.toISOString();
     const endStr = nextPeriodStart.toISOString();
+    // All time with a filter reads the balance; a period sums the ledger.
+    const xpExpr = period === 'all_time' ? sql`COALESCE(uxb.total_xp, 0)` : sql`COALESCE(SUM(xl.amount), 0)`;
 
     const query = sql`
       WITH user_period_xp AS (
-        SELECT 
+        SELECT
           eu.id AS "userId",
           eu.external_id AS "externalId",
           eu.name AS "name",
           eu.avatar_url AS "avatarUrl",
-          COALESCE(SUM(xl.amount), 0)::bigint AS "xp",
+          ${xpExpr}::bigint AS "xp",
           COALESCE(uxb.total_xp, 0)::bigint AS "totalXp"
         FROM ${endUsers} eu
-        LEFT JOIN ${xpLedger} xl ON eu.id = xl.user_id 
+        ${
+          // All time reads the balance, so the ledger is not joined (its end date is out of range for Postgres).
+          period === 'all_time'
+            ? sql``
+            : sql`LEFT JOIN ${xpLedger} xl ON eu.id = xl.user_id
           AND xl.project_id = ${projectId}
-          AND xl.created_at >= ${startStr}::timestamptz 
-          AND xl.created_at < ${endStr}::timestamptz
+          AND xl.created_at >= ${startStr}::timestamptz
+          AND xl.created_at < ${endStr}::timestamptz`
+        }
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
           AND eu.active = true AND eu.ranking_hidden = false
+          ${extra}
         GROUP BY eu.id, eu.external_id, eu.name, eu.avatar_url, uxb.total_xp
-        HAVING COALESCE(SUM(xl.amount), 0) > 0
+        HAVING ${xpExpr} > 0
       ),
       global_ranks AS (
-        SELECT 
+        SELECT
           "userId", "externalId", "name", "avatarUrl", "xp", "totalXp",
           ROW_NUMBER() OVER (ORDER BY "xp" DESC, "userId" ASC)::int AS "rank",
           COUNT(*) OVER()::int AS "totalUsers"
@@ -377,5 +392,55 @@ export async function getUserRank(
     rank: Number(rawRow.rank),
     totalUsers: rawRow.totalUsers ? Number(rawRow.totalUsers) : 0,
     entry,
+  };
+}
+
+/**
+ * Teams, countries or any other attribute ranked against each other. Each person's XP counts toward
+ * the group named by their own value of `groupBy`. People without a value are left out.
+ */
+export async function getGroupLeaderboard(projectId: string, options: GroupLeaderboardOptions): Promise<GroupLeaderboardResponse> {
+  const period = options.period || 'all_time';
+  const score = options.score === 'average' ? 'average' : 'total';
+  const limit = Math.min(100, Math.max(1, options.limit || 20));
+  const group = groupValueOf(options.groupBy);
+  const extra = options.filter ? sql`AND ${options.filter}` : sql``;
+  const { periodStart, nextPeriodStart } = getUtcPeriodBoundaries(period, options.now || new Date());
+
+  const personXp =
+    period === 'all_time'
+      ? sql`COALESCE((SELECT b.total_xp FROM ${userXpBalances} b WHERE b.project_id = eu.project_id AND b.user_id = eu.id), 0)`
+      : sql`COALESCE((SELECT SUM(xl.amount) FROM ${xpLedger} xl WHERE xl.project_id = eu.project_id AND xl.user_id = eu.id
+          AND xl.created_at >= ${periodStart.toISOString()}::timestamptz AND xl.created_at < ${nextPeriodStart.toISOString()}::timestamptz), 0)`;
+
+  const rows = rowsOf(
+    await db.execute<RawRow>(sql`
+      WITH people AS (
+        SELECT ${group} AS "group", ${personXp}::bigint AS "xp"
+        FROM ${endUsers} eu
+        WHERE eu.project_id = ${projectId} AND eu.active = true AND eu.ranking_hidden = false
+          AND ${group} IS NOT NULL AND ${group} <> ''
+          ${extra}
+      ),
+      groups AS (
+        SELECT "group", COUNT(*)::int AS "members",
+          ${score === 'average' ? sql`ROUND(AVG("xp"))` : sql`SUM("xp")`}::bigint AS "xp"
+        FROM people GROUP BY "group"
+      )
+      SELECT "group", "members", "xp",
+        ROW_NUMBER() OVER (ORDER BY "xp" DESC, "group" ASC)::int AS "rank",
+        COUNT(*) OVER()::int AS "totalCount"
+      FROM groups
+      ORDER BY "rank" ASC
+      LIMIT ${limit}
+    `)
+  );
+
+  return {
+    period,
+    groupBy: options.groupBy,
+    score,
+    total: rows[0]?.totalCount !== undefined ? Number(rows[0].totalCount) : 0,
+    entries: rows.map((row) => ({ rank: Number(row.rank), group: String(row['group']), xp: Number(row.xp), members: Number(row['members']) })),
   };
 }

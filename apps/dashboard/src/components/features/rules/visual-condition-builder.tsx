@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
 import { Dropdown } from '@/components/ui/dropdown';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Layers } from 'lucide-react';
+import { Plus, Trash2, Layers, Braces } from 'lucide-react';
 import {
   buildTotalCondition,
   type AggregateCondition,
@@ -50,8 +50,8 @@ export interface VisualCondition {
   field: string;
   operator: Operator;
   value: string;
-  /** `total` looks back over the user's past events instead of reading this event. */
-  kind?: 'field' | 'total';
+  /** `total` looks back over the user's past events instead of reading this event. `logic` is a JSONLogic expression, kept as text in `value`. */
+  kind?: 'field' | 'total' | 'logic';
   metric?: AggregateMetric;
   /** Event type to total. Empty means the rule's own trigger. */
   totalEvent?: string;
@@ -150,6 +150,19 @@ export function VisualConditionBuilder({
     ]);
   };
 
+  const handleAddLogic = () => {
+    onChange([
+      ...conditions,
+      {
+        id: `cond_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        kind: 'logic',
+        field: '',
+        operator: 'equals',
+        value: '{ ">": [{ "*": [{ "var": "payload.price" }, { "var": "payload.quantity" }] }, 100] }',
+      },
+    ]);
+  };
+
   const handleRemoveCondition = (id: string) => {
     onChange(conditions.filter((c) => c.id !== id));
   };
@@ -196,6 +209,42 @@ export function VisualConditionBuilder({
       <div className="space-y-3">
         {conditions.map((cond, idx) => {
           const noValueNeeded = cond.operator === 'exists' || cond.operator === 'not_exists';
+
+          if (cond.kind === 'logic') {
+            let invalid: string | null = null;
+            try {
+              JSON.parse(cond.value);
+            } catch {
+              invalid = 'This is not valid JSON yet.';
+            }
+            return (
+              <div key={cond.id} className="space-y-2 rounded-none border border-zinc-800 bg-zinc-900/80 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-zinc-400">
+                    {idx === 0 ? 'IF' : matchMode.toUpperCase()} · EXPRESSION
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCondition(cond.id)}
+                    className="shrink-0 p-1.5 text-zinc-400 transition hover:bg-danger-950/40 hover:text-danger-400"
+                    title="Remove condition"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <Textarea
+                  aria-label="Expression"
+                  rows={3}
+                  className="font-mono text-xs"
+                  value={cond.value}
+                  onChange={(e) => handleUpdateCondition(cond.id, { value: e.target.value })}
+                />
+                <p className={`text-[11px] ${invalid ? 'text-warning-300' : 'text-zinc-500'}`}>
+                  {invalid ?? 'JSONLogic. It can read type, userId, occurredAt and payload, for example { "var": "payload.amount" }.'}
+                </p>
+              </div>
+            );
+          }
 
           if (cond.kind === 'total') {
             const needsField = cond.metric !== 'count';
@@ -329,7 +378,7 @@ export function VisualConditionBuilder({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Button type="button" variant="secondary" size="sm" onClick={handleAddCondition}>
           <Plus className="w-4 h-4" />
           Add Condition Filter
@@ -338,9 +387,33 @@ export function VisualConditionBuilder({
           <Plus className="w-4 h-4" />
           Add total over time
         </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={handleAddLogic}>
+          <Braces className="w-4 h-4" />
+          Add expression
+        </Button>
       </div>
     </div>
   );
+}
+
+/** An expression condition. Throws a readable error when the text is not JSON, so the rule is not saved half-written. */
+export function buildLogicCondition(c: VisualCondition): Condition {
+  try {
+    return { logic: JSON.parse(c.value) } as unknown as Condition;
+  } catch {
+    throw new Error('An expression condition is not valid JSON.');
+  }
+}
+
+/** True when the builder can show a stored condition tree without losing anything. */
+export function fitsVisualBuilder(cond: unknown): boolean {
+  if (!cond) return true;
+  if (typeof cond !== 'object') return false;
+  const group = cond as { all?: unknown[]; any?: unknown[]; not?: unknown };
+  if (group.not !== undefined || (group.all && group.any)) return false;
+  const list = group.all ?? group.any;
+  if (!Array.isArray(list)) return false;
+  return list.every((item) => item !== null && typeof item === 'object' && ('field' in item || 'aggregate' in item || 'logic' in item));
 }
 
 /** Helper utility to convert visual condition state to Rules Engine Condition Object */
@@ -352,6 +425,7 @@ export function buildRulesEngineConditions(
 
   const simpleConditions: Condition[] = conditions.map((c): Condition => {
     if (c.kind === 'total') return buildTotalCondition(c);
+    if (c.kind === 'logic') return buildLogicCondition(c);
     let typedValue: unknown = c.value;
     if (['in', 'not_in'].includes(c.operator) && typeof c.value === 'string') {
       typedValue = c.value

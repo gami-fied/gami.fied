@@ -1,4 +1,5 @@
 import { projectPath, type HttpClient } from './http.js';
+import type { GroupLeaderboardRecord } from './community.js';
 import type {
   GetUserRankParams,
   ListLeaderboardParams,
@@ -23,7 +24,22 @@ export class LeaderboardsResource {
         page: params.page ?? 1,
         limit: params.limit ?? 20,
         search: params.search,
+        segment: params.segment,
+        friendsOf: params.friendsOf,
       },
+    });
+  }
+
+  /**
+   * Teams, countries or any other attribute ranked against each other, such as `metadata.team`.
+   * `score: 'average'` divides by the members, so small groups can win.
+   */
+  public async groups(params: { projectId?: string; groupBy: string; period?: ListLeaderboardParams['period']; score?: 'total' | 'average'; segment?: string; limit?: number }): Promise<GroupLeaderboardRecord> {
+    if (!params.groupBy) throw new Error('groupBy is required for gami.leaderboards.groups()');
+    return this.http.request<GroupLeaderboardRecord>({
+      method: 'GET',
+      path: projectPath(params.projectId, '/leaderboard'),
+      query: { groupBy: params.groupBy, period: params.period ?? 'all_time', score: params.score, segment: params.segment, limit: params.limit },
     });
   }
 

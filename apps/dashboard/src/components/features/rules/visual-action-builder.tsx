@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
 import { useAchievements } from '@/hooks/use-achievements';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
 import { Dropdown } from '@/components/ui/dropdown';
-import { Plus, Trash2, ArrowUp, ArrowDown, Zap, Award, Coins } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Zap, Award, Coins, Puzzle } from 'lucide-react';
 
 export interface ActionDefinition {
   type: string;
@@ -22,6 +22,8 @@ export interface VisualAction {
   achievementKey: string;
   /** Key of the currency, for `award_currency`. */
   currency?: string;
+  /** Parameters for a plugin action, passed through as they are. */
+  params?: Record<string, unknown>;
 }
 
 const ACTION_TYPE_OPTIONS = [
@@ -43,6 +45,16 @@ export interface VisualActionBuilderProps {
 export function VisualActionBuilder({ projectId, actions, onChange }: VisualActionBuilderProps) {
   const { achievements } = useAchievements(projectId);
   const [currencies, setCurrencies] = useState<{ key: string; name: string; symbol: string | null }[]>([]);
+  const [pluginActions, setPluginActions] = useState<{ type: string; label: string; description: string | null }[]>([]);
+  const [paramText, setParamText] = useState<Record<string, string>>({});
+
+  // Actions that installed plugins add, offered next to the built-in ones.
+  useEffect(() => {
+    apiFetch('/api/plugins')
+      .then((res) => (res.ok ? res.json() : { actions: [] }))
+      .then((body: { actions: { type: string; label: string; description: string | null }[] }) => setPluginActions(body.actions ?? []))
+      .catch(() => setPluginActions([]));
+  }, []);
 
   useEffect(() => {
     if (!projectId) return;
@@ -124,7 +136,11 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                 </span>
                 <div className="w-56">
                   <Dropdown
-                    options={ACTION_TYPE_OPTIONS}
+                    options={[
+                      ...ACTION_TYPE_OPTIONS,
+                      ...pluginActions.map((item) => ({ value: item.type, label: item.label, sublabel: item.description ?? item.type, icon: <Puzzle className="w-3.5 h-3.5 text-zinc-400" /> })),
+                      ...(act.type.includes('.') && !pluginActions.some((item) => item.type === act.type) ? [{ value: act.type, label: act.type, sublabel: 'Plugin not loaded on this server' }] : []),
+                    ]}
                     value={act.type}
                     onChange={(val) => handleUpdateAction(act.id, { type: val, ...(val === 'award_currency' && !act.currency ? { currency: currencies[0]?.key ?? '' } : {}) })}
                   />
@@ -179,6 +195,27 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                   value={act.reason}
                   onChange={(e) => handleUpdateAction(act.id, { reason: e.target.value })}
                   required
+                />
+              </div>
+            )}
+
+            {act.type.includes('.') && (
+              <div className="pt-1 border-t border-zinc-800/60">
+                <Textarea
+                  label="Parameters (JSON)"
+                  rows={3}
+                  className="font-mono text-xs"
+                  value={paramText[act.id] ?? JSON.stringify(act.params ?? {}, null, 2)}
+                  onChange={(e) => {
+                    setParamText({ ...paramText, [act.id]: e.target.value });
+                    try {
+                      const parsed = JSON.parse(e.target.value);
+                      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) handleUpdateAction(act.id, { params: parsed });
+                    } catch {
+                      // Keep the text until it is valid JSON.
+                    }
+                  }}
+                  helperText="Passed to the plugin. It checks them when the rule is saved."
                 />
               </div>
             )}
@@ -281,7 +318,7 @@ export function buildRulesEngineActions(actions: VisualAction[]): ActionDefiniti
     } else {
       return {
         type: act.type,
-        params: {},
+        params: act.params ?? {},
       };
     }
   });

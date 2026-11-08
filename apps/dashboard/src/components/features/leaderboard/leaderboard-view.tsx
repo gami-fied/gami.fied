@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
+import { Dropdown } from '@/components/ui/dropdown';
 import { useDashboard } from '../context/dashboard-context';
 import { useLeaderboard, useUserRank } from '@/hooks/use-leaderboard';
 import { LeaderboardPeriod } from '@gami/leaderboards';
@@ -37,7 +39,50 @@ export function LeaderboardView() {
   const [lookupInput, setLookupInput] = useState('');
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
-  const { leaderboard, loading, error, refresh } = useLeaderboard(projectId, period, page, 20, search);
+  // Narrow the board to a segment, or rank teams, countries or another attribute instead of people.
+  const [segment, setSegment] = useState('');
+  const [segmentOptions, setSegmentOptions] = useState<{ value: string; label: string; sublabel?: string }[]>([]);
+  const [groupBy, setGroupBy] = useState('');
+  const [groupInput, setGroupInput] = useState('metadata.team');
+  const [score, setScore] = useState<'total' | 'average'>('total');
+  const [groups, setGroups] = useState<{ rank: number; group: string; xp: number; members: number }[] | null>(null);
+  const [groupError, setGroupError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!projectId) return;
+    apiFetch(`/api/projects/${projectId}/segments`)
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((body: { data: { key: string; name: string; description: string | null }[] }) =>
+        setSegmentOptions(body.data.map((item) => ({ value: item.key, label: item.name, sublabel: item.description ?? item.key })))
+      )
+      .catch(() => setSegmentOptions([]));
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId || !groupBy) {
+      setGroups(null);
+      return;
+    }
+    let cancelled = false;
+    setGroupError(null);
+    const params = new URLSearchParams({ period, groupBy, score, limit: '50' });
+    if (segment) params.set('segment', segment);
+    apiFetch(`/api/projects/${projectId}/leaderboard?${params.toString()}`)
+      .then(async (res) => {
+        const body = await res.json();
+        if (cancelled) return;
+        if (!res.ok) throw new Error(body.message ?? 'The board could not load');
+        setGroups(body.entries);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setGroupError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, groupBy, score, period, segment]);
+
+  const { leaderboard, loading, error, refresh } = useLeaderboard(projectId, period, page, 20, search, segment);
   const live = useLiveUpdates(projectId, refresh);
   const {
     userRank,
@@ -94,9 +139,88 @@ export function LeaderboardView() {
                 </button>
               ))}
             </div>
+            <div className="w-48">
+              <Dropdown
+                options={[{ value: '', label: 'Everyone' }, ...segmentOptions]}
+                value={segment}
+                onChange={(value) => {
+                  setSegment(value);
+                  setPage(1);
+                }}
+                placeholder="Everyone"
+              />
+            </div>
+            <div className="w-52">
+              <Dropdown
+                options={[
+                  { value: '', label: 'Rank people' },
+                  { value: 'groups', label: 'Rank groups', sublabel: 'Teams, countries or any attribute' },
+                ]}
+                value={groupBy ? 'groups' : ''}
+                onChange={(value) => setGroupBy(value === 'groups' ? groupInput : '')}
+              />
+            </div>
           </>
         }
       />
+
+      {groupBy && (
+        <Card className="bg-zinc-900/80 border-zinc-800">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <CardTitle className="text-base font-semibold">Groups by {groupBy}</CardTitle>
+              <CardDescription>Each person&apos;s XP counts for the group named by their own value. People without a value are left out.</CardDescription>
+            </div>
+            <form
+              className="flex items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (groupInput.trim()) setGroupBy(groupInput.trim());
+              }}
+            >
+              <Input label="Group by" value={groupInput} onChange={(e) => setGroupInput(e.target.value)} placeholder="metadata.country" />
+              <div className="w-40">
+                <Dropdown
+                  options={[
+                    { value: 'total', label: 'Total XP' },
+                    { value: 'average', label: 'Average XP', sublabel: 'Fair to small groups' },
+                  ]}
+                  value={score}
+                  onChange={(value) => setScore(value as 'total' | 'average')}
+                />
+              </div>
+              <Button type="submit" variant="secondary" size="sm">Apply</Button>
+            </form>
+          </CardHeader>
+          <CardContent className="p-0">
+            {groupError && <p className="p-4 text-xs text-danger-300">{groupError}</p>}
+            {!groupError && !groups && <TableSkeleton rows={4} />}
+            {groups && groups.length === 0 && <p className="p-6 text-center text-xs text-zinc-400">Nobody has a value for {groupBy} yet. Store it in each user&apos;s metadata.</p>}
+            {groups && groups.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16 text-center">Rank</TableHead>
+                    <TableHead>Group</TableHead>
+                    <TableHead>{score === 'average' ? 'Average XP' : 'Total XP'}</TableHead>
+                    <TableHead>Members</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {groups.map((group) => (
+                    <TableRow key={group.group}>
+                      <TableCell className="text-center text-xs font-bold text-zinc-300">#{group.rank}</TableCell>
+                      <TableCell className="text-xs font-semibold text-zinc-200">{group.group}</TableCell>
+                      <TableCell className="text-xs font-bold text-brand-400">{group.xp.toLocaleString()} XP</TableCell>
+                      <TableCell className="text-xs text-zinc-400">{group.members.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <div className="p-4 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none flex items-center gap-2">

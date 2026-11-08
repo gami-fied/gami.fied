@@ -18,6 +18,15 @@ import { lifecycleRoutes } from './lifecycle/index.js';
 import { ruleVersionRoutes } from './rules/versions.js';
 import { xpPolicyRoutes } from './xp-policy/index.js';
 import { storeRoutes } from './store/index.js';
+import { loadPlugins } from '@gami/rules';
+import { segmentRoutes } from './segments/index.js';
+import { leagueRoutes } from './engagement/leagues.js';
+import { socialRoutes } from './engagement/social.js';
+import { referralRoutes } from './engagement/referrals.js';
+import { connectorRoutes } from './connectors/index.js';
+import { environmentRoutes } from './environments/index.js';
+import { pluginRoutes } from './plugins/index.js';
+import { endUserSocialRoutes } from './public/end-user-social.js';
 import { registerPushProviders } from '@gami/integrations';
 import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
 import { adminBackupRoutes } from './admin/backups/index.js';
@@ -71,6 +80,8 @@ import { requestTracingHook } from './middleware/request-tracing.js';
 export const registeredRoutes: { method: string; url: string }[] = [];
 
 export async function buildServer() {
+  // Rules that use plugin actions are checked against the plugins installed here.
+  await loadPlugins();
   const fastify = Fastify({
     logger: {
       level: process.env.NODE_ENV === 'test' ? 'silent' : 'info',
@@ -245,6 +256,13 @@ export async function buildServer() {
   await fastify.register(ruleVersionRoutes);
   await fastify.register(xpPolicyRoutes);
   await fastify.register(storeRoutes);
+  await fastify.register(segmentRoutes);
+  await fastify.register(leagueRoutes);
+  await fastify.register(socialRoutes);
+  await fastify.register(referralRoutes);
+  await fastify.register(connectorRoutes);
+  await fastify.register(environmentRoutes);
+  await fastify.register(pluginRoutes);
   registerPushProviders();
 
   // Register Level & Progression System endpoints
@@ -303,6 +321,7 @@ export async function buildServer() {
   await fastify.register(unsubscribeRoutes);
   await fastify.register(publicApiRoutes);
   await fastify.register(endUserRoutes);
+  await fastify.register(endUserSocialRoutes);
 
   // Register Project Analytics & Reporting endpoints (/api/projects/:projectId/analytics/*)
   await fastify.register(analyticsRoutes);

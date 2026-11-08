@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
+import { Dropdown } from '@/components/ui/dropdown';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { useDashboard } from '../context/dashboard-context';
@@ -80,16 +82,20 @@ function DeleteDialog({
 export function ProjectSettingsView() {
   const router = useRouter();
   const toast = useToast();
-  const { selectedOrg, selectedProject, fetchOrganizations } = useDashboard();
+  const { selectedOrg, selectedProject, projects, fetchOrganizations } = useDashboard();
 
   const [projectName, setProjectName] = useState('');
   const [orgName, setOrgName] = useState('');
   const [origins, setOrigins] = useState('');
   const [deleting, setDeleting] = useState<'project' | 'organization' | null>(null);
+  const [environment, setEnvironment] = useState<'production' | 'staging' | 'development'>('production');
+  const [promotesTo, setPromotesTo] = useState('');
 
   useEffect(() => {
     setProjectName(selectedProject?.name ?? '');
     setOrigins((selectedProject?.allowedOrigins ?? []).join('\n'));
+    setEnvironment(selectedProject?.environment ?? 'production');
+    setPromotesTo(selectedProject?.promotesToProjectId ?? '');
   }, [selectedProject]);
 
   useEffect(() => {
@@ -125,6 +131,14 @@ export function ProjectSettingsView() {
       () =>
         send(`/api/projects/${selectedProject.id}`, 'PATCH', { name: projectName, allowedOrigins }),
       'Project saved'
+    );
+  };
+
+  const saveEnvironment = (event: React.FormEvent) => {
+    event.preventDefault();
+    return run(
+      () => send(`/api/projects/${selectedProject.id}`, 'PATCH', { environment, promotesToProjectId: promotesTo || null }),
+      'Environment saved'
     );
   };
 
@@ -190,6 +204,49 @@ export function ProjectSettingsView() {
         </Card>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Environment</CardTitle>
+              <CardDescription>Build in a staging project, then promote its rules and rewards to production in one step.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={saveEnvironment} className="space-y-4">
+                <div>
+                  <span className="mb-1 block text-sm text-zinc-300">This project is</span>
+                  <Dropdown
+                    options={[
+                      { value: 'production', label: 'Production', sublabel: 'Live players. Keys start gami_live_' },
+                      { value: 'staging', label: 'Staging', sublabel: 'For testing. Keys start gami_test_' },
+                      { value: 'development', label: 'Development', sublabel: 'For building. Keys start gami_test_' },
+                    ]}
+                    value={environment}
+                    onChange={(value) => setEnvironment(value as 'production' | 'staging' | 'development')}
+                  />
+                  <p className="mt-1 text-xs text-zinc-400">Keys made before a change keep their prefix.</p>
+                </div>
+                <div>
+                  <span className="mb-1 block text-sm text-zinc-300">Promotes to</span>
+                  <Dropdown
+                    options={[
+                      { value: '', label: 'Nowhere' },
+                      ...projects.filter((project) => project.id !== selectedProject.id).map((project) => ({ value: project.id, label: project.name, sublabel: project.environment ?? 'production' })),
+                    ]}
+                    value={promotesTo}
+                    onChange={setPromotesTo}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="submit">Save environment</Button>
+                  {selectedProject.promotesToProjectId && (
+                    <Link href="/dashboard/promotion" className="text-sm text-brand-400 hover:underline">
+                      Compare and promote
+                    </Link>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Organization</CardTitle>

@@ -27,3 +27,4 @@ export * from './lifecycle.js';
 export * from './push-devices.js';
 export * from './xp-policy.js';
 export * from './store.js';
+export * from './engagement.js';

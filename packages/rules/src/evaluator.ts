@@ -1,5 +1,16 @@
 import { aggregateKey, compareAggregate, isAggregateCondition } from './aggregates.js';
-import { AggregateValues, Condition, ConditionGroup, EventData, SimpleCondition } from './types.js';
+import { applyLogic, truthy } from './logic.js';
+import { AggregateValues, Condition, ConditionGroup, EventData, LogicCondition, SimpleCondition } from './types.js';
+
+export function isLogicCondition(cond: Condition): cond is LogicCondition {
+  return typeof cond === 'object' && cond !== null && 'logic' in cond;
+}
+
+/** What a logic condition can read. Dates become ISO text so they compare as strings. */
+export function logicDataFor(eventData: EventData): Record<string, unknown> {
+  const occurredAt = eventData.occurredAt instanceof Date ? eventData.occurredAt.toISOString() : eventData.occurredAt;
+  return { type: eventData.type, userId: eventData.userId ?? null, occurredAt, payload: eventData.payload ?? {} };
+}
 
 /** The rule builder saves lists as text, so "5" in a list has to match the number 5. */
 function listIncludes(list: unknown[], value: unknown): boolean {
@@ -121,6 +132,10 @@ export function evaluateConditionTree(
     const holds = compareAggregate(cond.operator, found.value, cond.value);
     if (cond.crossing === false) return holds;
     return holds && !compareAggregate(cond.operator, found.previous, cond.value);
+  }
+
+  if (isLogicCondition(cond)) {
+    return truthy(applyLogic(cond.logic, logicDataFor(eventData)));
   }
 
   if (isSimpleCondition(cond)) {

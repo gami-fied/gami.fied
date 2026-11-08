@@ -54,6 +54,12 @@ const WEBHOOK_EVENT_ITEMS: ChecklistItem<SdkWebhookEventType>[] = [
     badge: 'Store',
   },
   {
+    value: 'referral.completed',
+    label: 'referral.completed',
+    description: 'When an invited friend qualifies and the invite is rewarded.',
+    badge: 'Social',
+  },
+  {
     value: 'user.created',
     label: 'user.created',
     description: 'When a new user is created.',
@@ -75,6 +81,7 @@ const EVENT_COLOR: Record<string, string> = {
   'challenge.completed': 'bg-info-950/60 text-info-300 border-info-800/60',
   'reward.redeemed': 'bg-brand-950/60 text-brand-300 border-brand-800/60',
   'reward.cancelled': 'bg-zinc-800 text-zinc-400 border-zinc-700',
+  'referral.completed': 'bg-success-950/60 text-success-300 border-success-800/60',
   'user.created': 'bg-success-950/60 text-success-300 border-success-800/60',
   'user.deactivated': 'bg-zinc-800 text-zinc-400 border-zinc-700',
 };

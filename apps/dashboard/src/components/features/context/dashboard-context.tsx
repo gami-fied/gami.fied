@@ -18,6 +18,8 @@ export interface Project {
   name: string;
   slug: string;
   allowedOrigins?: string[];
+  environment?: 'production' | 'staging' | 'development';
+  promotesToProjectId?: string | null;
 }
 
 interface DashboardContextType {

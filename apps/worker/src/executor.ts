@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { db, ruleExecutions } from '@gami/database';
-import { ActionDefinition, evaluateRule, EventData } from '@gami/rules';
+import { ActionDefinition, evaluateRule, EventData, getPluginAction } from '@gami/rules';
 import { eq, and } from 'drizzle-orm';
 import { executeAwardAchievementAction } from './actions/award-achievement.js';
 import { executeAwardCurrencyAction } from './actions/award-currency.js';
@@ -80,7 +80,16 @@ async function runAction(
   } else if (action.type === 'award_currency') {
     await executeAwardCurrencyAction(action, eventData, { ...context, actionIndex });
   } else {
-    throw new Error(`Unsupported action type: ${action.type}`);
+    const plugin = getPluginAction(action.type);
+    if (!plugin) throw new Error(`Unsupported action type: ${action.type}`);
+    await plugin.run({
+      projectId: eventData.projectId,
+      userId: eventData.userId ?? null,
+      event: eventData,
+      params: action.params ?? {},
+      ruleId: rule.id,
+      idempotencyKey: `rule:${ruleExecutionId}:${actionIndex}`,
+    });
   }
 }
 

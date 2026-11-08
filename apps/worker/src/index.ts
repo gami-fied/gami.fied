@@ -12,10 +12,15 @@ import { startLifecycle, stopLifecycle } from './lifecycle.js';
 import { startMaintenance, stopMaintenance } from './maintenance.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
+import { listPlugins, loadPlugins } from '@gami/rules';
 
 const log = createLogger('Worker');
 
 validateProductionConfig(process.env, { service: 'worker' });
+
+// Plugins add rule actions. A plugin that cannot load stops start-up, so rules never fail quietly.
+await loadPlugins();
+if (listPlugins().plugins.length > 0) log.info('Loaded plugins', { plugins: listPlugins().plugins.map((plugin) => plugin.name) });
 
 const cfg = getQueueConfig();
 const connection = getRedisConnection();

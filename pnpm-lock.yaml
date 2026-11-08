@@ -195,6 +195,9 @@ importers:
       '@gami/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations
+      '@gami/leaderboards':
+        specifier: workspace:*
+        version: link:../../packages/leaderboards
       '@gami/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications

@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { UserTimeline } from './user-timeline';
 import { UserWallet } from './user-wallet';
+import { UserCommunity } from './user-community';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,12 +32,13 @@ import { ArrowLeft, Coins, Flame, Gift, Medal, Trophy } from 'lucide-react';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
 
-type Tab = 'overview' | 'ledger' | 'wallet' | 'streaks' | 'achievements' | 'challenges';
+type Tab = 'overview' | 'ledger' | 'wallet' | 'community' | 'streaks' | 'achievements' | 'challenges';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'ledger', label: 'XP ledger' },
   { id: 'wallet', label: 'Wallet' },
+  { id: 'community', label: 'Community' },
   { id: 'streaks', label: 'Streaks' },
   { id: 'achievements', label: 'Achievements' },
   { id: 'challenges', label: 'Challenges' },
@@ -412,6 +414,7 @@ export function UserDetailView({ userId }: { userId: string }) {
       )}
 
       {tab === 'wallet' && base && <UserWallet base={base} />}
+      {tab === 'community' && base && <UserCommunity base={base} />}
 
       {tab === 'streaks' && (
         <div className="space-y-6">

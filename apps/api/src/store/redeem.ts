@@ -11,7 +11,6 @@ import {
 import {
   creditWallet,
   CurrencyUnavailableError,
-  findCurrency,
   InsufficientBalanceError,
   spendWallet,
 } from '@gami/rewards';

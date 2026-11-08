@@ -5,6 +5,8 @@ import {
   AGGREGATE_WINDOWS,
   isAggregateCondition,
 } from './aggregates.js';
+import { validateLogic } from './logic.js';
+import { getPluginAction } from './plugins.js';
 import {
   ActionDefinition,
   Condition,
@@ -71,6 +73,11 @@ function countAndCheckConditions(
     if (aggregate.event !== undefined && (typeof aggregate.event !== 'string' || aggregate.event.trim() === '')) {
       throw new Error('An aggregate event must be a non-empty event type');
     }
+    return { count: 1, maxDepth: depth };
+  }
+
+  if (typeof cond === 'object' && cond !== null && 'logic' in cond) {
+    validateLogic((cond as { logic: unknown }).logic);
     return { count: 1, maxDepth: depth };
   }
 
@@ -185,7 +192,9 @@ function checkSavedAction(action: ActionDefinition): void {
       throw new Error(`award_currency amount must be an integer between 1 and ${MAX_XP_PER_ACTION}`);
     }
   } else {
-    throw new Error(`Unsupported action type: ${action.type}`);
+    const plugin = getPluginAction(action.type);
+    if (!plugin) throw new Error(`Unsupported action type: ${action.type}`);
+    plugin.validate?.(action.params ?? {});
   }
 }
 

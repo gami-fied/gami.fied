@@ -13,6 +13,10 @@ export const projects = pgTable(
     slug: text('slug').notNull(),
     /** Sites allowed to use end-user tokens. Empty allows any site. */
     allowedOrigins: jsonb('allowed_origins').$type<string[]>().default([]).notNull(),
+    /** Staging and development projects get test keys (`gami_test_`), so they are never mixed up with live ones. */
+    environment: text('environment').$type<'production' | 'staging' | 'development'>().default('production').notNull(),
+    /** The project this one's configuration is promoted to, usually production. */
+    promotesToProjectId: text('promotes_to_project_id'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },

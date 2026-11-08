@@ -1,6 +1,6 @@
 export function sanitizeMessage(input: string): string {
   if (!input) return input;
-  return input.replace(/gami_live_[a-zA-Z0-9_-]+/g, '[REDACTED_API_KEY]');
+  return input.replace(/gami_(?:live|test)_[a-zA-Z0-9_-]+/g, '[REDACTED_API_KEY]');
 }
 
 export class GamiError extends Error {

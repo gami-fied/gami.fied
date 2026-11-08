@@ -25,7 +25,9 @@ export async function createApiKey(
   expiresAt?: Date | null
 ): Promise<GeneratedApiKey> {
   const secretBytes = crypto.randomBytes(32).toString('hex');
-  const rawSecret = `gami_live_${secretBytes}`;
+  // Staging and development projects get test keys, so a key's prefix says where it belongs.
+  const [project] = await db.select({ environment: projects.environment }).from(projects).where(eq(projects.id, projectId));
+  const rawSecret = `${project && project.environment !== 'production' ? 'gami_test_' : 'gami_live_'}${secretBytes}`;
   const keyPrefix = rawSecret.substring(0, 18);
   const keyHash = hashApiKey(rawSecret);
 
@@ -64,7 +66,7 @@ export async function createApiKey(
 const LAST_USED_REFRESH_MS = 60_000;
 
 export async function authenticateApiKey(rawSecret: string) {
-  if (!rawSecret || !rawSecret.startsWith('gami_live_')) {
+  if (!rawSecret || !(rawSecret.startsWith('gami_live_') || rawSecret.startsWith('gami_test_'))) {
     return null;
   }
 

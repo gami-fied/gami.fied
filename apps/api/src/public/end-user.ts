@@ -20,15 +20,17 @@ import {
 } from '@gami/database';
 import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
 import { walletBalance } from '@gami/rewards';
-import { getLeaderboard, getUserRank, type LeaderboardPeriod } from '@gami/leaderboards';
+import { getLeaderboard, getUserRank, isSegmentField, segmentWhere, usersWhere, type LeaderboardPeriod } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
-import { and, desc, eq, or } from 'drizzle-orm';
+import { and, desc, eq, or, type SQL } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { loadAchievementProgress } from '../achievements/progress.js';
 import { redeemReward, StoreError } from '../store/redeem.js';
+import { friendCircle } from '../leaderboards/index.js';
+import { loadSegmentFilter } from '../segments/index.js';
 import { MAX_STREAMS_PER_PROCESS, MAX_STREAMS_PER_USER, realtimeHub, startPlayerStream } from '../realtime/index.js';
 
 const TOKEN_PREFIX = 'geu_';
@@ -72,7 +74,7 @@ export function verifyEndUserToken(token: string): EndUserContext | null {
 }
 
 /** Tokens only read one user's data. A project's allowlist also limits which sites can use them. */
-async function authenticateEndUser(
+export async function authenticateEndUser(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<EndUserContext | null> {
@@ -482,7 +484,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
   });
 
   // A board a player can be shown. It leaves out the project's own IDs and any email address.
-  fastify.get<{ Querystring: { period?: string; limit?: string } }>('/v1/me/leaderboard', async (request, reply) => {
+  fastify.get<{ Querystring: { period?: string; limit?: string; scope?: string; segment?: string; sameAs?: string } }>('/v1/me/leaderboard', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
 
@@ -490,9 +492,35 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     const period = (periods.includes(request.query.period ?? '') ? request.query.period : 'all_time') as LeaderboardPeriod;
     const limit = Math.min(50, Math.max(1, Number(request.query.limit) || 10));
 
+    // `scope=friends` ranks the player and their friends. `segment` uses a saved segment's key.
+    // `sameAs=metadata.country` ranks people who share the player's own value, such as their country.
+    const filters: SQL[] = [];
+    if (request.query.scope === 'friends') filters.push(usersWhere(await friendCircle(context.projectId, context.userId)));
+    if (request.query.segment) {
+      const segment = await loadSegmentFilter(context.projectId, request.query.segment);
+      if (!segment) return reply.status(404).send({ code: 'NOT_FOUND', message: `There is no segment "${request.query.segment}"` });
+      filters.push(segmentWhere(segment));
+    }
+    if (request.query.sameAs) {
+      const field = request.query.sameAs;
+      if (!field.startsWith('metadata.') || !isSegmentField(field)) {
+        return reply.status(400).send({ code: 'BAD_REQUEST', message: 'sameAs must be a metadata field, such as metadata.country' });
+      }
+      const [me] = await db.select({ metadata: endUsers.metadata }).from(endUsers).where(eq(endUsers.id, context.userId));
+      const own = field
+        .slice('metadata.'.length)
+        .split('.')
+        .reduce<unknown>((value, part) => (value && typeof value === 'object' ? (value as Record<string, unknown>)[part] : undefined), me?.metadata);
+      if (own === undefined || own === null || typeof own === 'object') {
+        return reply.send({ period, total: 0, entries: [], me: null });
+      }
+      filters.push(segmentWhere({ match: 'all', conditions: [{ field, operator: 'equals', value: String(own) }] }));
+    }
+    const filter = filters.length === 0 ? undefined : filters.length === 1 ? filters[0] : and(...filters);
+
     const [board, mine] = await Promise.all([
-      getLeaderboard(context.projectId, { period, page: 1, limit }),
-      getUserRank(context.projectId, context.userId, { period }),
+      getLeaderboard(context.projectId, { period, page: 1, limit, filter }),
+      getUserRank(context.projectId, context.userId, { period, filter }),
     ]);
 
     const shape = (entry: { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName?: string; userId: string }) => ({

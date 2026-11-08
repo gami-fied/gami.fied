@@ -8,6 +8,14 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ### Added
 
+- Segments, and leaderboards narrowed to a segment, to a player's friends, or to people who share the player's country or any other attribute, plus team and country boards ranked by total or average XP.
+- Leagues: tiers of small groups that compete each week or day, with promotion and relegation, a Leagues page, and `gami.me.leagues()`.
+- Friends, kudos, an activity feed, signed share-card images for achievements, and invite codes with rewards for both sides and a `referral.completed` webhook.
+- Connectors for Segment, RudderStack, Stripe and GitHub, with signature checks and idempotent delivery.
+- Staging and development projects with `gami_test_` keys, and promotion of a project's design to production with references fixed and rule history kept.
+- Expression conditions in rules, using a safe subset of JSONLogic.
+- Plugins: rule actions of your own, loaded from `GAMI_PLUGINS`. See `docs/connectors-environments-and-plugins.md`.
+
 - Currencies, wallets and a reward store: points that can expire and be spent, rewards with stock, limits and code pools, purchases that cannot oversell, fulfilment and refunds, and `reward.redeemed` and `reward.cancelled` webhooks. Use `gami.store`, `gami.me.store()` and `gami.me.redeem()`, the `award_currency` rule action, and the Store page. See `docs/economy-and-store.md`.
 - Boosts, XP limits and cooldowns, a blocked-XP log, and hiding people from rankings.
 - Rule backtests over past events, drafts, publishing, history and rollback.

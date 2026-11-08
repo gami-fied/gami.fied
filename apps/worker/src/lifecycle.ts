@@ -17,6 +17,7 @@ import {
   type LifecycleCampaign,
 } from '@gami/database';
 import { expireLots } from '@gami/rewards';
+import { closeEndedSeasons } from '@gami/leaderboards';
 import { renderLifecycleEmail, type LifecycleKind } from '@gami/notifications';
 import { periodIndex, streakStatus, type StreakCadence } from '@gami/progression';
 import { getRedisConnection } from '@gami/queue';
@@ -379,6 +380,9 @@ async function tick(): Promise<void> {
     // Points whose time is up are written off, so wallet history shows what happened to them.
     const closed = await db.transaction((tx) => expireLots(tx));
     if (closed > 0) log.info('Expired wallet points', { lots: closed });
+    // Seasons that have ended are scored, and players move up or down for the next one.
+    const seasons = await closeEndedSeasons();
+    if (seasons > 0) log.info('Closed league seasons', { seasons });
   } catch (err) {
     log.error('Lifecycle pass failed', { error: (err as Error).message });
   }

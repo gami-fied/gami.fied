@@ -28,7 +28,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
-| 7 | New product features | 7 / 26 | In progress, 7 partly done |
+| 7 | New product features | 15 / 26 | In progress, 7 partly done |
 | 8 | Launch and community | 0 / 11 | Not started |
 
 ## Decisions needed from the maintainer
@@ -480,18 +480,18 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 
 - [~] **FEAT-09** `P2` Points currencies and wallets: multiple currencies, spending, expiry and balances. `[ran]` Done: currencies with optional expiry, wallets with a history, spending the soonest-to-expire points first, a rule action, manual adjustments, SDK and API reads, and a Wallet tab on each user. Left: an expiry notification.
 - [~] **FEAT-10** `P2` Reward store: catalogue, redemption, stock, coupons, and fulfilment webhooks. `[ran]` Done: the catalogue, stock, a limit per person, code pools, one-step purchases that cannot oversell, fulfil and cancel with refunds, `reward.redeemed` and `reward.cancelled` webhooks, and a Store page. Left: coupons that the store generates itself.
-- [ ] **FEAT-11** `P2` Segments, and leaderboards by cohort, team, country or custom attribute.
-- [ ] **FEAT-12** `P2` League systems with promotion and relegation, plus team and friend leaderboards.
+- [x] **FEAT-11** `P2` Segments, and leaderboards by cohort, team, country or custom attribute. `[ran]` Done: segments on user fields and metadata with a live preview, boards narrowed to a segment or to friends, a player's own country or other attribute through `sameAs`, and team or country boards by total or average XP.
+- [x] **FEAT-12** `P2` League systems with promotion and relegation, plus team and friend leaderboards. `[ran]` Done: tiers, groups filled in order, weekly or daily seasons closed by the worker with promotion and relegation, a Leagues page, player and server reads, plus friend boards.
 - [x] **FEAT-13** `P2` XP multipliers, boosts, and double-XP weekends, with scheduling. `[ran]` Done: boosts by time, day, hour and event, strongest wins, evaluated at event time, with a Boosts page.
 - [~] **FEAT-14** `P2` Anti-abuse: per-user caps, cooldowns, velocity checks, anomaly flags, and shadow-banning from rankings. `[ran]` Done: XP caps, award caps and cooldowns, a log of blocked XP, and hiding someone from every leaderboard. Left: automatic anomaly flags.
-- [~] **FEAT-15** `P2` Rule versioning, draft and publish, rollback, and environment promotion. `[ran]` Done: drafts, publish, history and rollback. Left: promotion between environments, which needs FEAT-17.
+- [x] **FEAT-15** `P2` Rule versioning, draft and publish, rollback, and environment promotion. `[ran]` Done: drafts, publish, history and rollback. Promotion between environments came with FEAT-17.
 - [x] **FEAT-16** `P2` Rule simulation: backtest a rule against past events, and show XP inflation before launch. `[ran]` Done: a dry-run backtest over stored events with an estimate of XP inflation, in the rule editor.
-- [ ] **FEAT-17** `P2` Project environments (staging and production) with config promotion, including separate test and live API keys (from SEC-14).
-- [ ] **FEAT-18** `P2` Inbound connectors for Segment, RudderStack, Stripe and GitHub.
-- [ ] **FEAT-19** `P3` Referral and invite rewards.
-- [ ] **FEAT-20** `P3` Social features: activity feed, sharing cards and kudos.
-- [ ] **FEAT-21** `P3` Scripted rule conditions using a safe expression language such as CEL or JSONLogic.
-- [ ] **FEAT-22** `P3` Plugin SDK for custom actions. The action registry is a good base.
+- [~] **FEAT-17** `P2` Project environments (staging and production) with config promotion, including separate test and live API keys (from SEC-14). `[ran]` Done: production, staging and development projects, `gami_test_` keys outside production, and promotion of the design with a preview, chosen items, fixed references and rule history. Left: test keys that write to a separate data area inside one project.
+- [x] **FEAT-18** `P2` Inbound connectors for Segment, RudderStack, Stripe and GitHub. `[ran]` Done: Segment, RudderStack, Stripe and GitHub, with signatures checked over the raw body, idempotent delivery, identify calls filling profiles, and a Connectors page.
+- [x] **FEAT-19** `P3` Referral and invite rewards. `[ran]` Done: invite codes, rewards in XP and currency for both sides on sign-up or a qualifying event, a per-player limit, a 30-day window, a `referral.completed` webhook, and an Invites page.
+- [x] **FEAT-20** `P3` Social features: activity feed, sharing cards and kudos. `[ran]` Done: friends added by invite code, kudos with daily limits, an activity feed, and signed share-card images. Shown on a Community tab for each user.
+- [x] **FEAT-21** `P3` Scripted rule conditions using a safe expression language such as CEL or JSONLogic. `[ran]` Done: JSONLogic expressions as rule conditions, with a safe evaluator, size limits checked on save, and an expression row in the rule builder.
+- [x] **FEAT-22** `P3` Plugin SDK for custom actions. The action registry is a good base. `[ran]` Done: plugins loaded from `GAMI_PLUGINS` with namespaced actions, validation on save, retries with an idempotency key, and their actions offered in the rule builder. An example is in `examples/plugins`.
 
 ### 7.3 Insight and enterprise
 

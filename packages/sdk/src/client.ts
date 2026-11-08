@@ -1,5 +1,6 @@
 import { AchievementsResource } from './achievements.js';
 import { StoreResource } from './store.js';
+import { LeaguesResource, ReferralsResource, SegmentsResource, SocialResource } from './community.js';
 import { StreaksResource } from './streaks.js';
 import { AnalyticsResource } from './analytics.js';
 import { AuditLogsResource } from './audit-logs.js';
@@ -29,6 +30,10 @@ export class Gami {
   public readonly achievements: AchievementsResource;
   public readonly streaks: StreaksResource;
   public readonly store: StoreResource;
+  public readonly segments: SegmentsResource;
+  public readonly leagues: LeaguesResource;
+  public readonly social: SocialResource;
+  public readonly referrals: ReferralsResource;
   public readonly levels: LevelsResource;
   public readonly leaderboards: LeaderboardsResource;
   public readonly challenges: ChallengesResource;
@@ -50,6 +55,10 @@ export class Gami {
     this.achievements = new AchievementsResource(this.http);
     this.streaks = new StreaksResource(this.http);
     this.store = new StoreResource(this.http);
+    this.segments = new SegmentsResource(this.http);
+    this.leagues = new LeaguesResource(this.http);
+    this.social = new SocialResource(this.http);
+    this.referrals = new ReferralsResource(this.http);
     this.levels = new LevelsResource(this.http);
     this.leaderboards = new LeaderboardsResource(this.http);
     this.challenges = new ChallengesResource(this.http);

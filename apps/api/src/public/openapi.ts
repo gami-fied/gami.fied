@@ -1316,7 +1316,7 @@ export function buildOpenApiDocument() {
           type: 'apiKey',
           in: 'header',
           name: 'x-api-key',
-          description: 'A project API key, starting `gami_live_`. Keep it on your server.',
+          description: 'A project API key, starting `gami_live_`, or `gami_test_` for a staging or development project. Keep it on your server.',
         },
         endUserToken: {
           type: 'http',

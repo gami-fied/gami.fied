@@ -7,6 +7,7 @@ export type WebhookEventType =
   | 'user.deactivated'
   | 'reward.redeemed'
   | 'reward.cancelled'
+  | 'referral.completed'
   | 'webhook.test';
 
 export const SUPPORTED_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
@@ -18,6 +19,7 @@ export const SUPPORTED_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'user.deactivated',
   'reward.redeemed',
   'reward.cancelled',
+  'referral.completed',
 ];
 
 export interface WebhookPayload {

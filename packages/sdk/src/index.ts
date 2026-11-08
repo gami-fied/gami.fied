@@ -4,6 +4,7 @@ export type { LiveConnection, LiveHandlers, LiveNotification } from './stream.js
 export { DEFAULT_WEBHOOK_TOLERANCE_SECONDS, verifyWebhook } from './webhook-verification.js';
 export type { VerifyWebhookOptions } from './webhook-verification.js';
 export type { RedeemParams, RedemptionRecord, StoreRewardRecord, WalletRecord } from './store.js';
+export type { FeedItemRecord, GroupLeaderboardRecord, LeagueStandingRecord, ReferralSummary, UserLeagueRecord } from './community.js';
 export {
   GamiAuthenticationError,
   GamiAuthorizationError,

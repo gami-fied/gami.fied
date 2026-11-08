@@ -186,6 +186,8 @@ Everything is in the [`docs/`](./docs) folder:
 - ⚡ [Quick starts](./docs/quickstarts/rest.md) for REST, Node.js, Python, Next.js and React
 - 🎮 [Gamification mechanics](./docs/gamification-mechanics.md)
 - 🛒 [Economy and store](./docs/economy-and-store.md)
+- 🏆 [Segments, leagues and social](./docs/social-and-competition.md)
+- 🔌 [Connectors, environments and plugins](./docs/connectors-environments-and-plugins.md)
 - 🛠️ [API reference](./docs/api-reference.md) and [TypeScript SDK](./docs/sdk.md)
 - 🔔 [Notifications, webhooks and integrations](./docs/notifications-and-integrations.md)
 - 🐳 [Deployment and production](./docs/deployment-and-production.md)

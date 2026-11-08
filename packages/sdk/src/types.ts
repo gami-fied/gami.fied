@@ -8,7 +8,7 @@ export interface RetryConfig {
 }
 
 export interface GamiConfig {
-  /** Server-side Gami API key (starts with gami_live_). Never put this in browser code. */
+  /** Server-side Gami API key (starts with gami_live_, or gami_test_ for a staging project). Never put this in browser code. */
   apiKey?: string;
   /** Short-lived token for one end user, created by your backend. Safe in a browser. */
   endUserToken?: string;
@@ -394,6 +394,10 @@ export interface ListLeaderboardParams {
   page?: number;
   limit?: number;
   search?: string;
+  /** Rank only the people in this segment, by its key. */
+  segment?: string;
+  /** Rank only this user and their friends. */
+  friendsOf?: string;
 }
 
 export interface LeaderboardEntry {
@@ -555,6 +559,7 @@ export type SdkWebhookEventType =
   | 'user.deactivated'
   | 'reward.redeemed'
   | 'reward.cancelled'
+  | 'referral.completed'
   | 'webhook.test';
 
 export interface WebhookEndpointRecord {

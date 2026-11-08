@@ -10,10 +10,12 @@ export function useLeaderboard(
   period: LeaderboardPeriod = 'all_time',
   page: number = 1,
   limit: number = 20,
-  search: string = ''
+  search: string = '',
+  segment: string = ''
 ) {
-  const [data, setData] = useCachedState<LeaderboardResponse | null>(`leaderboard:${projectId}:${period}:${page}:${limit}:${search}`, null);
-  const [loading, setLoading] = useState<boolean>(!hasCachedState(`leaderboard:${projectId}:${period}:${page}:${limit}:${search}`));
+  const cacheKey = `leaderboard:${projectId}:${period}:${page}:${limit}:${search}:${segment}`;
+  const [data, setData] = useCachedState<LeaderboardResponse | null>(cacheKey, null);
+  const [loading, setLoading] = useState<boolean>(!hasCachedState(cacheKey));
   const [error, setError] = useState<string | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -23,7 +25,7 @@ export function useLeaderboard(
       return;
     }
 
-    setLoading(!hasCachedState(`leaderboard:${projectId}:${period}:${page}:${limit}:${search}`));
+    setLoading(!hasCachedState(cacheKey));
     setError(null);
 
     try {
@@ -33,6 +35,7 @@ export function useLeaderboard(
         limit: String(limit),
       });
       if (search.trim()) params.set('search', search.trim());
+      if (segment) params.set('segment', segment);
 
       const res = await apiFetch(`/api/projects/${projectId}/leaderboard?${params.toString()}`, {
         credentials: 'include',
@@ -50,7 +53,7 @@ export function useLeaderboard(
     } finally {
       setLoading(false);
     }
-  }, [projectId, period, page, limit, search, setData]);
+  }, [projectId, period, page, limit, search, segment, cacheKey, setData]);
 
   useEffect(() => {
     fetchLeaderboard();

@@ -29,6 +29,10 @@ export const SCOPE_RESOURCES = [
   'rewards',
   'levels',
   'leaderboard',
+  'segments',
+  'leagues',
+  'social',
+  'referrals',
   'challenges',
   'notifications',
   'webhooks',
@@ -53,6 +57,11 @@ const USER_SUB_RESOURCES: Record<string, ScopeResource> = {
   wallets: 'wallets',
   redemptions: 'rewards',
   rewards: 'rewards',
+  friends: 'social',
+  kudos: 'social',
+  feed: 'social',
+  leagues: 'leagues',
+  referral: 'referrals',
   challenges: 'challenges',
   notifications: 'notifications',
   'notification-preferences': 'notifications',
@@ -65,16 +74,18 @@ const RESOURCE_ALIASES: Record<string, ScopeResource> = {
   metrics: 'system',
   onboarding: 'system',
   'email-deliveries': 'notifications',
+  'referral-program': 'referrals',
 };
 
 /** Credentials and team access. A leaked key must never be able to widen its own reach. */
-const SESSION_ONLY_RESOURCES = new Set(['api-keys', 'members']);
+// Connectors hold shared secrets, and promotion copies a whole design between projects.
+const SESSION_ONLY_RESOURCES = new Set(['api-keys', 'members', 'connectors', 'promotion']);
 
 /** Reads that expose operational data, so plain members cannot see them. */
 const ADMIN_READ_RESOURCES = new Set(['audit-logs', 'email-deliveries', 'api-keys', 'members', 'campaigns']);
 
 /** POST routes that compute a result and change nothing. */
-const READ_ONLY_POST_PATTERNS = [/^rules\/preview$/, /^rules\/simulate$/, /^integrations\/[^/]+\/templates\/preview$/];
+const READ_ONLY_POST_PATTERNS = [/^rules\/preview$/, /^rules\/simulate$/, /^segments\/preview$/, /^integrations\/[^/]+\/templates\/preview$/];
 
 /** Writes that any project member may perform. */
 const MEMBER_WRITE_PATTERNS = [

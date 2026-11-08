@@ -100,12 +100,16 @@ export class MeResource {
   }
 
   /** The top players for a period and the player's own place. Names and XP only, so it is safe to show. */
-  public leaderboard(options: { period?: 'all_time' | 'daily' | 'weekly' | 'monthly'; limit?: number } = {}) {
+  /**
+   * `scope: 'friends'` ranks the player among their friends, `segment` uses a segment's key, and
+   * `sameAs: 'metadata.country'` ranks people who share the player's own value, such as their country.
+   */
+  public leaderboard(options: { period?: 'all_time' | 'daily' | 'weekly' | 'monthly'; limit?: number; scope?: 'everyone' | 'friends'; segment?: string; sameAs?: string } = {}) {
     type Entry = { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName: string | null; isMe: boolean };
     return this.http.request<{ period: string; total: number; entries: Entry[]; me: Entry | null }>({
       method: 'GET',
       path: '/v1/me/leaderboard',
-      query: { period: options.period, limit: options.limit },
+      query: { period: options.period, limit: options.limit, scope: options.scope === 'friends' ? 'friends' : undefined, segment: options.segment, sameAs: options.sameAs },
     });
   }
 
@@ -163,6 +167,54 @@ export class MeResource {
     return this.http.request<{
       data: { id: string; reward: string; cost: number; status: 'pending' | 'fulfilled' | 'cancelled'; code: string | null; createdAt: string }[];
     }>({ method: 'GET', path: '/v1/me/redemptions' });
+  }
+
+  /** The player's group in each league this season, with who is moving up and down. */
+  public leagues() {
+    type Row = { rank: number; name: string | null; avatarUrl: string | null; xp: number; zone: 'promotion' | 'relegation' | 'safe'; isMe: boolean };
+    return this.http.request<{ data: { league: { key: string; name: string }; tier: number; tierName: string; groupNo: number; seasonEndsAt: string; standings: Row[] }[] }>({ method: 'GET', path: '/v1/me/leagues' });
+  }
+
+  /** The player's invite code and how their invites went. Share the code; friends use it with `useReferral`. */
+  public referral() {
+    return this.http.request<{ code: string; invited: number; rewarded: number; pending: number }>({ method: 'GET', path: '/v1/me/referral' });
+  }
+
+  /** Uses a friend's invite code. Works once, in the player's first 30 days. */
+  public useReferral(code: string) {
+    return this.http.request<{ status: 'pending' | 'rewarded' | 'capped' }>({ method: 'POST', path: '/v1/me/referral', body: { code } });
+  }
+
+  /** Friends, found by their invite code so nobody's ID is exposed. */
+  public friends() {
+    return this.http.request<{ data: { name: string | null; avatarUrl: string | null; totalXp: number; code: string | null }[] }>({ method: 'GET', path: '/v1/me/friends' });
+  }
+
+  public addFriend(code: string) {
+    return this.http.request<{ friends: true }>({ method: 'POST', path: '/v1/me/friends', body: { code } });
+  }
+
+  public removeFriend(code: string) {
+    return this.http.request<void>({ method: 'DELETE', path: `/v1/me/friends/${encodeURIComponent(code)}` });
+  }
+
+  /** What the player and their friends did lately: badges, kudos and promotions. */
+  public feed() {
+    return this.http.request<{ data: { type: 'achievement' | 'kudos' | 'promotion'; at: string; name: string | null; title: string; detail: string | null; isMe: boolean }[] }>({ method: 'GET', path: '/v1/me/feed' });
+  }
+
+  /** Thanks a friend. One per friend per day. */
+  public giveKudos(code: string, message?: string) {
+    return this.http.request<{ id: string }>({ method: 'POST', path: '/v1/me/kudos', body: { code, message } });
+  }
+
+  public kudos() {
+    return this.http.request<{ data: { from: string | null; message: string | null; createdAt: string }[] }>({ method: 'GET', path: '/v1/me/kudos' });
+  }
+
+  /** A link to an image of an achievement the player earned, to share on social media. */
+  public shareAchievement(achievementKey: string) {
+    return this.http.request<{ url: string }>({ method: 'GET', path: `/v1/me/achievements/${encodeURIComponent(achievementKey)}/share` });
   }
 
   public rank() {

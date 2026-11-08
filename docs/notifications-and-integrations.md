@@ -35,6 +35,7 @@ Webhooks tell your own systems when something happens. The events are:
 | `challenge.completed` | A user finishes a challenge |
 | `reward.redeemed` | A user buys a reward in the store. Use it to ship the item or send the code |
 | `reward.cancelled` | A purchase is cancelled and the points are refunded |
+| `referral.completed` | An invited friend qualified and the invite was rewarded |
 | `user.created` | A user is created |
 | `user.deactivated` | A user is deactivated |
 

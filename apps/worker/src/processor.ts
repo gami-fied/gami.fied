@@ -11,6 +11,8 @@ import { createLogger } from '@gami/config';
 import { publishRealtime } from '@gami/queue';
 import { processStreaksForEvent } from './streak-processor.js';
 import { processAchievementCriteriaForEvent } from './achievement-progress.js';
+import { joinLeaguesForUser } from '@gami/leaderboards';
+import { qualifyReferral } from '@gami/rewards';
 
 const log = createLogger('Processor');
 
@@ -83,12 +85,30 @@ export async function processEventJob(
     eventLog.error('Achievement progress failed', achievementErr);
   }
 
+  // An invite counts once the new player sends the program's qualifying event.
+  if (evt.userId) {
+    try {
+      await qualifyReferral(evt.projectId, evt.userId, evt.type);
+    } catch (referralErr) {
+      eventLog.error('Referral check failed', referralErr);
+    }
+  }
+
   // 6. Process challenges for event with Failure Isolation & Outbox Dispatch
   try {
     await processChallengesForEvent(eventData);
     await dispatchPendingChallengeRewards(50);
   } catch (chErr) {
     eventLog.error('Challenge processing failed', chErr);
+  }
+
+  // A player who earned XP this season takes their place in each league.
+  if (evt.userId) {
+    try {
+      await joinLeaguesForUser(evt.projectId, evt.userId);
+    } catch (leagueErr) {
+      eventLog.error('League placement failed', leagueErr);
+    }
   }
 
   // 7. Dispatch pending notifications with Failure Isolation

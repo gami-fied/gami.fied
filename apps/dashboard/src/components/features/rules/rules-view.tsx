@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useDashboard } from '../context/dashboard-context';
 import { useRules, RuleRecord } from '@/hooks/use-rules';
-import type { VisualCondition } from './visual-condition-builder';
+import { buildLogicCondition, fitsVisualBuilder, type VisualCondition } from './visual-condition-builder';
 import { buildTotalCondition, parseTotalCondition, type AggregateCondition } from './total-condition';
 import type { VisualAction } from './visual-action-builder';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -48,6 +48,7 @@ import { BacktestPanel } from './backtest-panel';
 import { RuleHistoryDialog } from './rule-history-dialog';
 
 interface StoredCondition {
+  logic?: unknown;
   aggregate?: AggregateCondition['aggregate'];
   crossing?: boolean;
   field?: string;
@@ -66,7 +67,7 @@ interface StoredAction {
   amount?: number;
   achievementId?: string;
   achievementKey?: string;
-  params?: { amount?: number; achievementId?: string; achievementKey?: string; currency?: string };
+  params?: { amount?: number; achievementId?: string; achievementKey?: string; currency?: string; [key: string]: unknown };
 }
 
 interface RuleTestResult {
@@ -180,6 +181,8 @@ export function RulesView() {
       parseActionsToVisual(source.actions);
       setRawConditionsJson(JSON.stringify(source.conditions, null, 2));
       setRawActionsJson(JSON.stringify(source.actions, null, 2));
+      // Nested groups cannot be shown in the builder, so open those in JSON rather than lose part of them.
+      if (!fitsVisualBuilder(source.conditions)) setEditorMode('json');
     }
   }, [editingRule]);
 
@@ -194,7 +197,9 @@ export function RulesView() {
     setMatchMode(isAny ? 'any' : 'all');
 
     const mapped: VisualCondition[] = condList.map((c, index) =>
-      c.aggregate
+      c.logic !== undefined
+        ? { id: `c_${index}_${Date.now()}`, kind: 'logic' as const, field: '', operator: 'equals' as const, value: JSON.stringify(c.logic) }
+        : c.aggregate
         ? parseTotalCondition(c as unknown as AggregateCondition)
         : {
             id: `c_${index}_${Date.now()}`,
@@ -226,6 +231,8 @@ export function RulesView() {
       if (a.type === 'award_currency') {
         return createActionObj('award_currency', Number(a.params?.amount) || 100, '', '', '', String(a.params?.currency ?? ''));
       }
+      // A plugin action keeps its own parameters as they are.
+      if (a.type && a.type.includes('.')) return { ...createActionObj(a.type, 0), params: (a.params as Record<string, unknown>) ?? {} };
       return createActionObj('award_xp', 100);
     });
     setVisualActions(mapped);
@@ -235,6 +242,7 @@ export function RulesView() {
     if (conds.length === 0) return null;
     const formatted = conds.map((c) => {
       if (c.kind === 'total') return buildTotalCondition(c);
+      if (c.kind === 'logic') return buildLogicCondition(c);
       let val: string | number | boolean = c.value;
       if (c.value === 'true') val = true;
       else if (c.value === 'false') val = false;
@@ -261,7 +269,7 @@ export function RulesView() {
       if (a.type === 'award_currency') {
         return { type: 'award_currency', params: { currency: a.currency || '', amount: a.amount || 100 } };
       }
-      return a;
+      return { type: a.type, params: a.params ?? {} };
     });
   };
 

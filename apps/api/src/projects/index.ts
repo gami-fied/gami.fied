@@ -21,13 +21,19 @@ const updateProjectSchema = z.object({
   name: z.string().min(1).max(128).optional(),
   slug: z.string().min(1).max(128).optional(),
   allowedOrigins: z.array(originSchema).max(50).optional(),
+  environment: z.enum(['production', 'staging', 'development']).optional(),
+  /** Where this project's configuration is promoted to. Must be another project in the same organization. */
+  promotesToProjectId: z.string().min(1).max(128).nullable().optional(),
 });
 
 export async function projectRoutes(fastify: FastifyInstance) {
   // Create project
   fastify.post('/api/projects', async (request, reply) => {
-    const { organizationId, name, slug } =
-      (request.body as { organizationId?: string; name?: string; slug?: string }) || {};
+    const { organizationId, name, slug, environment } =
+      (request.body as { organizationId?: string; name?: string; slug?: string; environment?: string }) || {};
+    if (environment !== undefined && !['production', 'staging', 'development'].includes(environment)) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'environment must be production, staging or development' });
+    }
 
     if (!organizationId || !name || !slug) {
       return reply
@@ -49,6 +55,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
             organizationId,
             name,
             slug,
+            ...(environment ? { environment: environment as 'production' | 'staging' | 'development' } : {}),
           })
           .returning();
 
@@ -189,7 +196,16 @@ export async function projectRoutes(fastify: FastifyInstance) {
         details: parsed.error.format(),
       });
     }
-    const { name, slug, allowedOrigins } = parsed.data;
+    const { name, slug, allowedOrigins, environment, promotesToProjectId } = parsed.data;
+    if (promotesToProjectId) {
+      if (promotesToProjectId === prjId) {
+        return reply.status(400).send({ error: 'Bad Request', message: 'A project cannot promote to itself' });
+      }
+      const [target] = await db.select({ organizationId: projects.organizationId }).from(projects).where(eq(projects.id, promotesToProjectId));
+      if (!target || target.organizationId !== authResult.project.organizationId) {
+        return reply.status(400).send({ error: 'Bad Request', message: 'Choose a project in the same organization' });
+      }
+    }
 
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
@@ -197,6 +213,9 @@ export async function projectRoutes(fastify: FastifyInstance) {
     if (name) updateData['name'] = name;
     if (slug) updateData['slug'] = slug;
     if (allowedOrigins) updateData['allowedOrigins'] = allowedOrigins;
+    // Existing keys keep their prefix. Keys made after the change get the new one.
+    if (environment) updateData['environment'] = environment;
+    if (promotesToProjectId !== undefined) updateData['promotesToProjectId'] = promotesToProjectId;
 
     try {
       const [updatedPrj] = await db
