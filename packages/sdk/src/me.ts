@@ -101,14 +101,11 @@ export class MeResource {
 
   /** The top players for a period and the player's own place. Names and XP only, so it is safe to show. */
   public leaderboard(options: { period?: 'all_time' | 'daily' | 'weekly' | 'monthly'; limit?: number } = {}) {
-    const query = new URLSearchParams();
-    if (options.period) query.set('period', options.period);
-    if (options.limit) query.set('limit', String(options.limit));
-    const suffix = query.size > 0 ? `?${query.toString()}` : '';
     type Entry = { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName: string | null; isMe: boolean };
     return this.http.request<{ period: string; total: number; entries: Entry[]; me: Entry | null }>({
       method: 'GET',
-      path: `/v1/me/leaderboard${suffix}`,
+      path: '/v1/me/leaderboard',
+      query: { period: options.period, limit: options.limit },
     });
   }
 
