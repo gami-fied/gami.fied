@@ -766,6 +766,8 @@ export interface IntegrationRecord {
     channelName?: string | null;
     enabledEvents?: string[];
     configured: boolean;
+    /** For the generic webhook provider: whether requests are signed. */
+    signed?: boolean;
   };
 }
 

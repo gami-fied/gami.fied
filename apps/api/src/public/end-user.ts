@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import crypto, { createHmac, timingSafeEqual } from 'crypto';
 import {
   achievements,
   challenges,
@@ -8,6 +8,7 @@ import {
   levels,
   notifications,
   projects,
+  pushDevices,
   streakDefinitions,
   userAchievements,
   userStreaks,
@@ -209,6 +210,51 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       return reply.status(429).send({ code: 'TOO_MANY_STREAMS', message: 'Too many live connections for this user' });
     }
     startPlayerStream(request, reply, context);
+  });
+
+  // Phones register themselves here so the server can send them push notifications.
+  fastify.post<{ Body: { token?: string; platform?: string } }>('/v1/me/devices', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+
+    const parsed = z
+      .object({ token: z.string().min(16).max(4096), platform: z.enum(['ios', 'android']) })
+      .safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a device token and a platform of ios or android' });
+    }
+
+    // A token belongs to one player. If the phone changed hands, it follows the new signed-in player.
+    await db
+      .insert(pushDevices)
+      .values({
+        id: `pdv_${crypto.randomUUID()}`,
+        projectId: context.projectId,
+        userId: context.userId,
+        platform: parsed.data.platform,
+        token: parsed.data.token,
+      })
+      .onConflictDoUpdate({
+        target: [pushDevices.projectId, pushDevices.token],
+        set: { userId: context.userId, platform: parsed.data.platform, active: true, lastSeenAt: new Date() },
+      });
+    return reply.status(201).send({ registered: true });
+  });
+
+  fastify.delete<{ Params: { token: string } }>('/v1/me/devices/:token', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+
+    await db
+      .delete(pushDevices)
+      .where(
+        and(
+          eq(pushDevices.projectId, context.projectId),
+          eq(pushDevices.userId, context.userId),
+          eq(pushDevices.token, request.params.token)
+        )
+      );
+    return reply.send({ removed: true });
   });
 
   fastify.get('/v1/me/achievements/progress', async (request, reply) => {

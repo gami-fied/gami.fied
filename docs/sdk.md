@@ -39,7 +39,7 @@ Your API key identifies the project, so you can leave out `projectId`, which als
 | `gami.streaks` | `list`, `forUser`, `history` |
 | `gami.leaderboards` | `list`, `getUserRank` |
 | `gami.endUserTokens` | `create` |
-| `gami.me` | `get`, `achievements`, `challenges`, `notifications`, `rank` |
+| `gami.me` | `get`, `achievements`, `achievementProgress`, `streaks`, `challenges`, `leaderboard`, `notifications`, `rank`, `subscribe`, `registerDevice`, `unregisterDevice` |
 
 `gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. These use `/api/projects` routes, so they need a `projectId` and can change between releases.
 

@@ -17,6 +17,15 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 - Streaks: daily or weekly, counted in each user's own time zone, with automatic freezes, live reads, and a history. Read them with `gami.streaks`, `GET /v1/streaks` and `GET /v1/users/:userId/streaks`. See `docs/gamification-mechanics.md`.
 
+- Challenges can be steps done in order, can count only events that meet conditions, and can repeat every day or week.
+- Rules can compare a total over past events, such as spending this month, and fire once when it is reached.
+- Achievements can earn themselves from a count, total, unique values or a streak, with tiers, bonus XP and secret badges.
+- Live updates: `GET /v1/me/stream` pushes notifications and XP to players, and the dashboard refreshes as things happen.
+- `@gami.fied/react`: a provider, hooks and components for levels, badges, streaks, leaderboards, challenges, notifications and toasts, and `GET /v1/me/leaderboard`.
+- Campaigns: streak reminders, weekly recaps and win-back emails with editable templates and timing.
+- Integrations for Slack, Microsoft Teams and any HTTPS webhook, and push notifications through Firebase and Apple, with `POST /v1/me/devices`.
+- A profile page for each user with their XP ledger, streaks, achievements and challenges.
+
 ### Changed
 
 - The all-time leaderboard reads from an index, so a page of 20 takes about 1.5 ms instead of about 185 ms at 100,000 users.

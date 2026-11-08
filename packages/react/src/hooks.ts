@@ -30,7 +30,6 @@ function useResource<T>(load: (client: ReturnType<typeof useGami>['client']) => 
       cancelled = true;
     };
     // `load` is an inline function, so the values that shape the request are passed in `deps`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, version, ...deps]);
 
   return { ...state, refresh };

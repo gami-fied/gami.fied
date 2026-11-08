@@ -45,7 +45,18 @@ import type {
   IntegrationRecord,
 } from '@gami.fied/sdk';
 import { PageHeader } from '@/components/ui/page-header';
+import { ConnectPushDialog, PUSH_INFO, type PushProvider } from './connect-push-dialog';
+import { ConnectWebhookDialog, EventsDialog, PROVIDER_INFO, type WebhookProvider } from './connect-webhook-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+
+const PROVIDER_LABELS: Record<string, string> = {
+  discord: 'Discord',
+  slack: 'Slack',
+  teams: 'Microsoft Teams',
+  http: 'your webhook',
+  fcm: 'Android devices',
+  apns: 'iPhone devices',
+};
 
 export function IntegrationsView() {
   const toast = useToast();
@@ -54,6 +65,11 @@ export function IntegrationsView() {
   const [integrations, setIntegrations] = useState<IntegrationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Slack, Teams and generic webhook connections
+  const [connectingProvider, setConnectingProvider] = useState<WebhookProvider | null>(null);
+  const [connectingPush, setConnectingPush] = useState<PushProvider | null>(null);
+  const [eventsFor, setEventsFor] = useState<IntegrationRecord | null>(null);
 
   // Connect Integration Modal State
   const [isConnectOpen, setIsConnectOpen] = useState(false);
@@ -159,14 +175,14 @@ export function IntegrationsView() {
         }
       );
       if (res.ok) {
-        toast.success('Test notification successfully sent to Discord!');
+        toast.success(`Test notification sent to ${PROVIDER_LABELS[intg.provider] ?? intg.provider}.`);
         await fetchIntegrations();
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(`Test Failed: ${err.message || 'Failed to send test notification'}`);
       }
     } catch {
-      toast.error('Network error testing Discord integration');
+      toast.error('Network error testing the integration');
     }
   };
 
@@ -521,14 +537,24 @@ export function IntegrationsView() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-zinc-400">
-                        <span>Custom Embed Templates:</span>
-                        <span className="text-success-400 font-bold">
-                          {customTplCount > 0
-                            ? `${customTplCount} Customized`
-                            : 'Using System Defaults'}
-                        </span>
-                      </div>
+                      {intg.provider === 'discord' && (
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span>Custom Embed Templates:</span>
+                          <span className="text-success-400 font-bold">
+                            {customTplCount > 0
+                              ? `${customTplCount} Customized`
+                              : 'Using System Defaults'}
+                          </span>
+                        </div>
+                      )}
+                      {intg.provider === 'http' && (
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span>Requests signed:</span>
+                          <span className={intg.config?.signed ? 'text-success-400 font-bold' : 'text-zinc-500'}>
+                            {intg.config?.signed ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      )}
 
                       {intg.lastError && (
                         <p className="text-[11px] text-danger-400 bg-danger-950/30 border border-danger-900 p-2 mt-1">
@@ -543,11 +569,11 @@ export function IntegrationsView() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => openConfigModal(intg)}
+                        onClick={() => (intg.provider === 'discord' ? openConfigModal(intg) : setEventsFor(intg))}
                         className={`text-xs h-7 px-2.5 font-medium ${'border-success-900/60 hover:bg-success-950/40 text-success-400'}`}
                       >
                         <Sliders className="w-3 h-3 mr-1 text-success-400" />
-                        Configure Templates & Events
+                        {intg.provider === 'discord' ? 'Configure Templates & Events' : 'Choose updates'}
                       </Button>
                       <Button
                         variant="secondary"
@@ -603,6 +629,46 @@ export function IntegrationsView() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(['slack', 'teams', 'http'] as WebhookProvider[]).map((key) => (
+            <Card key={key} className="p-4 bg-zinc-950 border-zinc-800 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-zinc-900 border border-zinc-700 text-zinc-300 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-100">{PROVIDER_INFO[key].label}</h3>
+                    <span className="text-xs text-success-400 font-semibold">Available</span>
+                  </div>
+                </div>
+                <p className="text-xs text-zinc-400 mt-3 leading-relaxed">{PROVIDER_INFO[key].blurb}</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setConnectingProvider(key)} className="w-full text-xs">
+                <Plus className="w-3.5 h-3.5 mr-1" /> Connect {PROVIDER_INFO[key].label}
+              </Button>
+            </Card>
+          ))}
+
+          {(['fcm', 'apns'] as PushProvider[]).map((key) => (
+            <Card key={key} className="p-4 bg-zinc-950 border-zinc-800 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-zinc-900 border border-zinc-700 text-zinc-300 flex items-center justify-center">
+                    <Radio className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-100">{PUSH_INFO[key].label}</h3>
+                    <span className="text-xs text-success-400 font-semibold">Available</span>
+                  </div>
+                </div>
+                <p className="text-xs text-zinc-400 mt-3 leading-relaxed">{PUSH_INFO[key].blurb}</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setConnectingPush(key)} className="w-full text-xs">
+                <Plus className="w-3.5 h-3.5 mr-1" /> Connect {key === 'fcm' ? 'Firebase' : 'Apple push'}
+              </Button>
+            </Card>
+          ))}
+
           {/* Discord */}
           <Card className="p-4 bg-zinc-950 border-zinc-800 flex flex-col justify-between space-y-4">
             <div>
@@ -631,6 +697,26 @@ export function IntegrationsView() {
           </Card>
         </div>
       </div>
+
+      <ConnectWebhookDialog
+        provider={connectingProvider}
+        projectId={selectedProject.id}
+        onClose={() => setConnectingProvider(null)}
+        onConnected={() => void fetchIntegrations()}
+      />
+      <ConnectPushDialog
+        provider={connectingPush}
+        projectId={selectedProject.id}
+        onClose={() => setConnectingPush(null)}
+        onConnected={() => void fetchIntegrations()}
+      />
+      <EventsDialog
+        open={Boolean(eventsFor)}
+        integration={eventsFor as never}
+        projectId={selectedProject.id}
+        onClose={() => setEventsFor(null)}
+        onSaved={() => void fetchIntegrations()}
+      />
 
       {/* Connect Discord Dialog */}
       <Dialog

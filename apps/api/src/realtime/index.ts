@@ -145,9 +145,7 @@ export interface PlayerStreamContext {
  * the database in order, so a reconnect with Last-Event-ID picks up exactly where it stopped.
  */
 export function startPlayerStream(request: FastifyRequest, reply: FastifyReply, context: PlayerStreamContext): void {
-  let timer: NodeJS.Timeout | undefined;
-  let heartbeat: NodeJS.Timeout | undefined;
-  let catchUp: NodeJS.Timeout | undefined;
+  const timers: { flush?: NodeJS.Timeout; heartbeat?: NodeJS.Timeout; catchUp?: NodeJS.Timeout } = {};
   let busy = false;
   let again = false;
   let cursor: Cursor = parseCursor(request.headers['last-event-id']) ?? { at: new Date(), id: '' };
@@ -158,16 +156,16 @@ export function startPlayerStream(request: FastifyRequest, reply: FastifyReply, 
     userId: context.userId,
     write: (event, data, id) => out.write(event, data, id),
     wake: () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => void flush(), COALESCE_MS);
+      clearTimeout(timers.flush);
+      timers.flush = setTimeout(() => void flush(), COALESCE_MS);
     },
     end: () => out.close(),
   };
 
   const out = openStream(request, reply, () => {
-    clearTimeout(timer);
-    clearInterval(heartbeat);
-    clearInterval(catchUp);
+    clearTimeout(timers.flush);
+    clearInterval(timers.heartbeat);
+    clearInterval(timers.catchUp);
     realtimeHub.remove(stream);
   });
 
@@ -225,16 +223,15 @@ export function startPlayerStream(request: FastifyRequest, reply: FastifyReply, 
   }
 
   realtimeHub.add(stream);
-  heartbeat = setInterval(() => out.comment('ping'), HEARTBEAT_MS);
-  catchUp = setInterval(() => void flush(), CATCH_UP_MS);
+  timers.heartbeat = setInterval(() => out.comment('ping'), HEARTBEAT_MS);
+  timers.catchUp = setInterval(() => void flush(), CATCH_UP_MS);
   out.write('ready', { userId: context.userId });
   void flush();
 }
 
 /** A staff stream carries only nudges, so a page knows when to refetch its own data. */
 export function startProjectStream(request: FastifyRequest, reply: FastifyReply, projectId: string): void {
-  let heartbeat: NodeJS.Timeout | undefined;
-  let timer: NodeJS.Timeout | undefined;
+  const timers: { heartbeat?: NodeJS.Timeout; nudge?: NodeJS.Timeout } = {};
 
   const stream: Stream = {
     projectId,
@@ -243,22 +240,22 @@ export function startProjectStream(request: FastifyRequest, reply: FastifyReply,
     end: () => out.close(),
     wake: () => {
       // One nudge per half second is plenty for a dashboard.
-      if (timer) return;
-      timer = setTimeout(() => {
-        timer = undefined;
+      if (timers.nudge) return;
+      timers.nudge = setTimeout(() => {
+        timers.nudge = undefined;
         out.write('activity', { at: new Date().toISOString() });
       }, 500);
     },
   };
 
   const out = openStream(request, reply, () => {
-    clearInterval(heartbeat);
-    clearTimeout(timer);
+    clearInterval(timers.heartbeat);
+    clearTimeout(timers.nudge);
     realtimeHub.remove(stream);
   });
 
   realtimeHub.add(stream);
-  heartbeat = setInterval(() => out.comment('ping'), HEARTBEAT_MS);
+  timers.heartbeat = setInterval(() => out.comment('ping'), HEARTBEAT_MS);
   out.write('ready', { projectId });
 }
 

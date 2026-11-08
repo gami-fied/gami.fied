@@ -7,6 +7,7 @@ import {
   stopWorkerHeartbeat,
 } from '@gami/queue';
 import { Worker } from 'bullmq';
+import { registerPushProviders } from '@gami/integrations';
 import { startLifecycle, stopLifecycle } from './lifecycle.js';
 import { startMaintenance, stopMaintenance } from './maintenance.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
@@ -22,6 +23,7 @@ const connection = getRedisConnection();
 // Start background outbox dispatcher poller automatically on worker startup
 startOutboxPoller();
 startWorkerHeartbeat();
+registerPushProviders();
 startMaintenance();
 startLifecycle();
 

@@ -15,6 +15,7 @@ import { achievementRoutes } from './achievements/index.js';
 import { streakRoutes } from './streaks/index.js';
 import { realtimeRoutes } from './realtime/index.js';
 import { lifecycleRoutes } from './lifecycle/index.js';
+import { registerPushProviders } from '@gami/integrations';
 import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
 import { adminBackupRoutes } from './admin/backups/index.js';
 import { adminBootstrapRoutes } from './admin/bootstrap/index.js';
@@ -238,6 +239,7 @@ export async function buildServer() {
   await fastify.register(streakRoutes);
   await fastify.register(realtimeRoutes);
   await fastify.register(lifecycleRoutes);
+  registerPushProviders();
 
   // Register Level & Progression System endpoints
   await fastify.register(levelRoutes);

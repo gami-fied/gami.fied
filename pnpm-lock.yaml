@@ -299,9 +299,15 @@ importers:
 
   packages/integrations:
     dependencies:
+      '@gami/database':
+        specifier: workspace:*
+        version: link:../database
       '@gami/webhooks':
         specifier: workspace:*
         version: link:../webhooks
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(kysely@0.29.8)(postgres@3.4.9)
     devDependencies:
       '@types/node':
         specifier: ^26.6.6

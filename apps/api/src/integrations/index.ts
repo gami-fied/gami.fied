@@ -8,7 +8,7 @@ import {
   registry,
   validateDiscordEmbedTemplate,
 } from '@gami/integrations';
-import { encryptSecret } from '@gami/webhooks';
+import { encryptSecret, validateWebhookUrl } from '@gami/webhooks';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -20,6 +20,12 @@ const createIntegrationSchema = z.object({
   name: z.string().min(1).max(128),
   provider: z.string().min(1).max(64),
   webhookUrl: z.string().url().optional(),
+  /** For the generic HTTP provider: requests are signed with this so the receiver can verify them. */
+  signingSecret: z.string().min(8).max(256).optional(),
+  /** For push providers: the Firebase service account JSON, or the Apple key details. */
+  credentials: z.union([z.string().max(20_000), z.record(z.string(), z.unknown())]).optional(),
+  /** For `apns`: send through Apple's test servers. */
+  sandbox: z.boolean().optional(),
   enabledEvents: z.array(z.string()).optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
@@ -89,7 +95,9 @@ export function redactIntegrationRecord(intg: IntegrationRecord) {
       channelName: cfg.channelName || null,
       enabledEvents: (cfg.enabledEvents as string[]) || ['xp_awarded', 'achievement_unlocked', 'level_up', 'challenge_completed'],
       customTemplates: (cfg.customTemplates as Record<string, DiscordEmbedTemplate>) || {},
-      configured: Boolean(cfg.encryptedWebhookUrl || cfg.encryptedToken || cfg.webhookUrl),
+      configured: Boolean(cfg.encryptedWebhookUrl || cfg.encryptedToken || cfg.webhookUrl || cfg.encryptedCredentials),
+      signed: Boolean(cfg.encryptedSigningSecret),
+      sandbox: cfg.sandbox === true,
     },
   };
 }
@@ -155,7 +163,8 @@ export async function integrationRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const { name, provider, webhookUrl, enabledEvents, config } = parseResult.data;
+      const { name, provider, webhookUrl, signingSecret, credentials, sandbox, enabledEvents, config } = parseResult.data;
+      const isPush = provider === 'fcm' || provider === 'apns';
 
       // Check global provider setting
       const integrationsConfig = await ServerConfigService.getIntegrationsConfig();
@@ -173,6 +182,35 @@ export async function integrationRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Only providers this server can deliver to may be saved, and a bad address is caught now
+      // instead of failing quietly on every delivery.
+      const implementation = registry.get(provider);
+      if (!implementation) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: `"${provider}" is not a supported provider. Use one of: ${registry.listRegisteredTypes().join(', ')}.`,
+        });
+      }
+      if (!isPush && (provider !== 'discord' || webhookUrl)) {
+        if (!webhookUrl) {
+          return reply.status(400).send({ error: 'Bad Request', message: 'A webhook URL is required.' });
+        }
+        const accepted = await implementation.validateConfig({ webhookUrl });
+        if (!accepted) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            message: `That doesn't look like a ${provider} webhook URL. Check you copied the whole address from ${provider}.`,
+          });
+        }
+        // Slack, Teams and Discord have fixed hosts. Only an arbitrary address needs the network check.
+        if (provider === 'http') {
+          const checked = await validateWebhookUrl(webhookUrl);
+          if (!checked.valid) {
+            return reply.status(400).send({ error: 'Bad Request', message: checked.error ?? 'That address is not allowed.' });
+          }
+        }
+      }
+
       const integrationId = `intg_${crypto.randomUUID()}`;
       const finalConfig: Record<string, unknown> = {
         ...config,
@@ -187,6 +225,27 @@ export async function integrationRoutes(fastify: FastifyInstance) {
 
       if (webhookUrl) {
         finalConfig.encryptedWebhookUrl = encryptSecret(webhookUrl);
+      }
+      if (signingSecret && provider === 'http') {
+        finalConfig.encryptedSigningSecret = encryptSecret(signingSecret);
+      }
+      if (isPush) {
+        if (!credentials) {
+          return reply.status(400).send({ error: 'Bad Request', message: 'Push credentials are required.' });
+        }
+        // Stored encrypted and never returned. Devices are looked up by project, so that is saved too.
+        finalConfig.encryptedCredentials = encryptSecret(typeof credentials === 'string' ? credentials : JSON.stringify(credentials));
+        finalConfig.projectId = projectId;
+        if (sandbox !== undefined) finalConfig.sandbox = sandbox;
+        if (!(await implementation.validateConfig(finalConfig))) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            message:
+              provider === 'fcm'
+                ? 'That is not a Firebase service account key. Download the JSON from Firebase project settings, Service accounts.'
+                : 'Those Apple credentials are not valid. Check the .p8 key, key ID, team ID and bundle ID.',
+          });
+        }
       }
 
       const [inserted] = await db

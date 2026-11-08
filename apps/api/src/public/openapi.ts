@@ -1041,6 +1041,38 @@ export function buildOpenApiDocument() {
         progressPercent: { ...nullable('integer'), description: 'Percent of the way to the next level.', example: 50 },
       })),
     },
+    '/v1/me/devices': {
+      post: {
+        operationId: 'postMeDevices',
+        tags: ['Current user'],
+        summary: "Register the current user's phone for push notifications",
+        description: "Call this from your mobile app with the token the phone's push service gave it, each time the app starts. A token belongs to one player, so if the phone is later used by someone else it moves to them. Needs a push integration (Apple or Firebase) set up in the dashboard.'",
+        security: [{ endUserToken: [] }],
+        requestBody: jsonBody(
+          {
+            type: 'object',
+            required: ['token', 'platform'],
+            properties: {
+              token: { type: 'string', minLength: 16, maxLength: 4096, description: 'The APNs device token, or the FCM registration token.', example: 'fMyDeviceTokenFromFirebase1234567890' },
+              platform: { type: 'string', enum: ['ios', 'android'], description: 'Which push service the token is for.', example: 'android' },
+            },
+          },
+          { token: 'fMyDeviceTokenFromFirebase1234567890', platform: 'android' }
+        ),
+        responses: responses(201, 'The phone is registered.', object({ registered: flag('Always true.', true) }), [400, 401, 403, 429]),
+      },
+    },
+    '/v1/me/devices/{token}': {
+      delete: {
+        operationId: 'deleteMeDevicesToken',
+        tags: ['Current user'],
+        summary: "Remove the current user's phone",
+        description: "Call this when the player signs out, so they stop getting notifications on that phone. Only removes a phone registered to the token holder.'",
+        security: [{ endUserToken: [] }],
+        parameters: [{ name: 'token', in: 'path', required: true, description: 'The device token, URL-encoded.', schema: { type: 'string' } }],
+        responses: responses(200, 'The phone is removed, or was not registered.', object({ removed: flag('Always true.', true) }), [401]),
+      },
+    },
     '/v1/me/stream': {
       get: {
         operationId: 'getMeStream',

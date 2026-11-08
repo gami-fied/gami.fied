@@ -26,6 +26,13 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/api-keys/:keyId` | Admin | Signed-in user only |
 | `POST` | `/api-keys/:keyId/rotate` | Admin | Signed-in user only |
 | `GET` | `/audit-logs` | Admin | API key with `audit-logs:read` |
+| `GET` | `/campaigns` | Admin | Signed-in user only |
+| `POST` | `/campaigns` | Admin | Signed-in user only |
+| `DELETE` | `/campaigns/:campaignId` | Admin | Signed-in user only |
+| `PATCH` | `/campaigns/:campaignId` | Admin | Signed-in user only |
+| `GET` | `/campaigns/:campaignId/sends` | Admin | Signed-in user only |
+| `POST` | `/campaigns/preview` | Admin | Signed-in user only |
+| `GET` | `/campaigns/templates` | Admin | Signed-in user only |
 | `GET` | `/challenges` | Member | API key with `challenges:read` |
 | `POST` | `/challenges` | Admin | API key with `challenges:write` |
 | `DELETE` | `/challenges/:challengeId` | Admin | API key with `challenges:write` |

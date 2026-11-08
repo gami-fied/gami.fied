@@ -42,7 +42,7 @@ describe('multi-step and repeating challenges', () => {
     return processChallengesForEvent({ id, projectId, userId, type, payload, occurredAt: at });
   };
 
-  const progressOf = async (userId: string, challengeId: string) =>
+  const progressOf = async (userId: string) =>
     db.select().from(userChallengeProgress).where(eq(userChallengeProgress.userId, userId));
 
   const xp = async (userId: string) =>
@@ -165,7 +165,7 @@ describe('multi-step and repeating challenges', () => {
     expect(await view(userId, body.id)).toMatchObject({ progress: 2, completed: true, completions: 2 });
     expect(await xp(userId)).toBe(50);
 
-    const rows = await progressOf(userId, body.id);
+    const rows = await progressOf(userId);
     expect(rows.map((row) => row.periodKey).sort()).toHaveLength(2);
     expect(new Set(rows.map((row) => row.periodKey)).size).toBe(2);
   }, 240_000);

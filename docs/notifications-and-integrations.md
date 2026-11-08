@@ -80,3 +80,34 @@ The Discord integration posts to a channel through a Discord webhook.
 
 - Choose which events are posted, for example level ups and achievements but not every XP award.
 - Customise the title, colour, thumbnail and fields of the embed for each event.
+
+---
+
+## 5. Slack, Microsoft Teams and any webhook
+
+Connect them from **Integrations**. Each needs the address of an incoming webhook, which is stored encrypted and never shown again, and each sends the same four updates as Discord (XP, achievements, level-ups and finished challenges), which you can switch on and off per integration.
+
+| Provider | What to paste | Notes |
+| :--- | :--- | :--- |
+| Slack | An Incoming Webhook URL from `hooks.slack.com` | Sent as a Block Kit message. Names and titles are escaped so a player can't mention `@everyone` |
+| Microsoft Teams | A Workflows webhook URL (`*.logic.azure.com`, `*.webhook.office.com` or `*.powerplatform.com`) | Sent as an Adaptive Card |
+| Webhook (any URL) | Any public HTTPS address | Sent as JSON. Add a signing secret and each request carries the same `X-Gami-Signature` headers as webhooks. Addresses on private networks are refused |
+
+The address is checked when you save it, and again each time something is sent. Rate limits and server errors are retried, while a deleted or mistyped webhook is reported as a failure that retrying won't fix. The delivery log shows each attempt.
+
+## 6. Push notifications
+
+Push sends a notification straight to a player's phone. Connect **Android push (Firebase)** or **iPhone push (Apple)** from Integrations.
+
+- **Firebase**: upload a service account key (Project settings, Service accounts, Generate new private key).
+- **Apple**: give the team ID, key ID and bundle ID, and paste the `.p8` key. Turn on Sandbox for development builds.
+
+Credentials are encrypted and never returned. Then your app registers each phone once per launch with the token the system gave it, using an end-user token:
+
+```bash
+curl -X POST https://api.example.com/v1/me/devices \
+  -H "Authorization: Bearer geu_REPLACE_ME" -H "Content-Type: application/json" \
+  -d '{ "token": "<APNs or FCM token>", "platform": "android" }'
+```
+
+`gami.me.registerDevice({ token, platform })` and `gami.me.unregisterDevice(token)` do the same from the SDK. A phone belongs to one player, so if someone else signs in on it, it moves to them. Call unregister when a player signs out. Phones that Apple or Google report as gone are forgotten automatically. A player with no registered phone simply gets no push, and nothing fails.

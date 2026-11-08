@@ -82,6 +82,37 @@ A condition's `field` is a dot path into the event, so details you sent are unde
 
 The Rules page has a builder for all of this, a simulator for trying a rule against a sample event, and a trace showing why a rule did or didn't fire.
 
+### Totals over past events
+
+A condition can look back over what the user has already done, such as "spent $100 this month". It adds up, counts or tallies different values from the user's earlier events of one type, inside a window that ends at the event being handled.
+
+```json
+{
+  "name": "Big spender",
+  "trigger": "purchase",
+  "conditions": {
+    "aggregate": { "metric": "sum", "field": "payload.amount", "window": "calendar_month" },
+    "operator": "greater_than_or_equal",
+    "value": 100
+  },
+  "actions": [{ "type": "award_xp", "params": { "amount": 500 } }]
+}
+```
+
+| Part | Choices |
+| :--- | :--- |
+| `metric` | `sum` of a number, `count` of events, or `unique` for how many different values |
+| `field` | A payload path such as `payload.amount`. Not needed for `count` |
+| `event` | The event type to look at. Defaults to the rule's trigger |
+| `window` | `all_time`, `last_24h`, `last_7d`, `last_30d`, `last_90d`, or the calendar `calendar_day`, `calendar_week` (from Monday) and `calendar_month`, all in UTC |
+| `crossing` | On by default: the rule matches only on the event that makes it true, so it fires once per window. Set it to `false` to match on every event while it stays true |
+
+Totals are worked out from the events table when each event is processed, and each window ends at the event's own time, so running the same event again gives the same answer. The in-browser rule simulator can't see past events, so totals read as not met there.
+
+### Reacting to streaks
+
+Each time a streak starts, grows, is saved by a freeze or ends, it sends a `streak_updated` event. Use it as a trigger to reward milestones, for example `payload.streak` equals `daily_lesson` and `payload.current` equals `7`. The payload also has `change`, `longest`, `freezes`, `freezesUsed`, `freezesEarned` and `brokenStreak`.
+
 ---
 
 ## 3. XP
@@ -89,6 +120,12 @@ The Rules page has a builder for all of this, a simulator for trying a rule agai
 - Every change is a row in `xp_ledger`, with an amount and a reason. XP History in the dashboard shows these.
 - Each user's total is kept in `user_xp_balances`, so reading a balance is fast.
 - A manual adjustment can add or remove XP, but can't take a balance below zero.
+
+---
+
+### Looking at one user
+
+Open any user from **Users**, then **Full profile** (or **Ledger** on their row, to go straight to their XP). The page has tabs for an overview, the full XP ledger with where each entry came from, streaks and their history, achievements with progress (secret ones included), and challenges with steps. Project admins can give or remove XP from there, and every change is recorded in the ledger with a reason. It updates as things happen. The ledger tab is open to anyone who can see the project's users, and email addresses stay hidden from plain members.
 
 ---
 
@@ -104,6 +141,23 @@ Reaching a new level creates a `level_up` notification and a `level.up` webhook.
 
 An achievement has a unique key, a name, and an optional description and icon. It's awarded by a rule's `award_achievement` action or a challenge reward, and a user can only earn each one once. Awards are stored in `user_achievements`.
 
+### Earning itself
+
+An achievement can also measure something and be earned on its own, with a progress bar for the player and no rule to write. Turn on "Earn it automatically" when you create or edit it:
+
+| Setting | Meaning |
+| :--- | :--- |
+| `metric` | `count` events, `sum` a number from them, count `unique` values, or follow a `streak` |
+| `event`, `field`, `window` | What to measure and over what period. The windows are the same as for rule totals |
+| `streak` | For the `streak` metric, the key of the streak. Progress is the user's longest run |
+| `target` | The number that earns the badge |
+| `tiers` | Optional higher levels, each with a `name`, a `target` above the one before, and optional bonus `xp` |
+| `hidden` | A secret badge: players see neither it nor their progress until they earn it |
+
+Reaching the target grants the achievement, with its usual notification and webhook. Each higher tier sends another `achievement.unlocked` webhook and notification, with `tier` and `tierName` in the webhook data, and gives its bonus XP once. Tiers only go up, so repeating an event never rewards twice. Rolling windows can fall again, so the best reading is kept.
+
+`GET /v1/users/:userId/achievements/progress` returns every achievement that measures itself, including secret ones marked `hidden`. For a player's own screen use `GET /v1/me/achievements/progress`, which leaves secret ones out until they are earned.
+
 ---
 
 ## 6. Challenges
@@ -113,6 +167,17 @@ A challenge counts events with a given name until it reaches a target, within op
 - Each event counts once per challenge, tracked in `challenge_event_progress`.
 - Rewards are XP or an achievement, up to 10 per challenge.
 - Rewards go through `challenge_reward_outbox`, so a crash can delay them but not lose or repeat them.
+
+### Steps, conditions and repeats
+
+| Setting | Meaning |
+| :--- | :--- |
+| `type: "steps"` | A list of 2 to 10 `steps`, each with a `name`, an `event` and optional `filters`. A step only counts once the ones before it are done, and an event for a later step is ignored until then. The target is the number of steps |
+| `filters` | Conditions on the event's payload, such as `payload.score` at least 80. An event that doesn't meet them doesn't count. A step can have its own as well |
+| `recurrence` | `daily` or `weekly` starts the challenge over each UTC day or Monday-to-Sunday week, with its own progress and its own rewards each time. Leave it empty for a challenge done once |
+| `startAt`, `endAt` | A time-limited event, as before |
+
+Progress for a repeating challenge shows the current period, `completions` counts every time the user has finished it, and `periodEndsAt` says when it starts over. The steps of a challenge can't be changed once users have progress on it, so create a new one instead; names, rewards, dates and conditions can still change.
 
 ---
 
@@ -158,3 +223,17 @@ curl https://api.example.com/v1/users/user_123/streaks -H "x-api-key: gami_live_
 ```
 
 Not built yet: reminder notifications when a streak is at risk, paying to repair a broken streak, a calendar view in the dashboard, and rules that react to a streak reaching a milestone.
+
+---
+
+## 9. Campaigns
+
+Campaigns are emails the engine sends on its own. Create them on the **Campaigns** page. They need email set up in Settings, and they go through the same email queue as other notifications, so retries and the unsubscribe link work the same way. Anyone who has unsubscribed or turned email notifications off is never emailed.
+
+| Kind | Sent when |
+| :--- | :--- |
+| Streak reminder | A person's streak is still alive but they haven't done it yet this day or week, and it is past a local hour you choose (default 18:00 in their time zone) |
+| Weekly recap | At a day and hour you choose (UTC), to people who earned XP in the last 7 days |
+| Win-back | A person has been away for a number of days (default 14), and stops after another number (default 90) |
+
+Each person gets at most one email per campaign for a given day, week or spell of being away. Subjects and messages are plain text with `{{variables}}`: every campaign has `{{name}}`, `{{app_name}}` and `{{xp_total}}`, and the page lists the others for each kind, such as `{{streak_name}}`, `{{streak_days}}`, `{{xp_week}}` and `{{days_away}}`. Blank lines start new paragraphs, values are escaped in the HTML, and the editor shows a preview with example values. A campaign starts switched off, so you can check the message first. The worker checks for due emails every 10 minutes.

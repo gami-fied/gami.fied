@@ -21,7 +21,9 @@
     "test": "vitest run src/__tests__"
   },
   "dependencies": {
-    "@gami/webhooks": "workspace:*"
+    "@gami/database": "workspace:*",
+    "@gami/webhooks": "workspace:*",
+    "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

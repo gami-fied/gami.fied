@@ -28,7 +28,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
-| 7 | New product features | 0 / 26 | In progress, 1 partly done |
+| 7 | New product features | 5 / 26 | In progress, 3 partly done |
 | 8 | Launch and community | 0 / 11 | Not started |
 
 ## Decisions needed from the maintainer
@@ -467,14 +467,14 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 
 ### 7.1 Parity (needed to compete)
 
-- [~] **FEAT-01** `P1` Streaks: daily or weekly, by user time zone, with freezes, repair, risk alerts and history. Build it as a first-class engine, not a rule preset. `[ran]` Done: an engine with time zones, weeks, daylight saving and automatic freezes (`packages/progression/src/streaks.ts`), tables, worker step, admin API, `/v1` reads with an `atRisk` flag, history, SDK and docs. Left: repair, reminder notifications, a dashboard view, and rules that react to milestones.
-- [ ] **FEAT-02** `P1` React components: progress bar, badge grid, leaderboard, streak calendar, toast, and notification feed. MIT licensed.
-- [ ] **FEAT-03** `P1` Real-time updates through SSE or WebSockets, for instant toasts and live leaderboards.
-- [ ] **FEAT-04** `P1` Achievement criteria built into the achievement itself, such as "100 lessons", with progress, tiers, and hidden or secret badges.
-- [ ] **FEAT-05** `P1` Multi-step challenges: ordered steps, payload filters, recurring daily and weekly quests, and time-limited events.
-- [ ] **FEAT-06** `P1` Metric aggregation in rules: sum, count, or unique values over a window, such as "spent $100 this month".
-- [ ] **FEAT-07** `P2` Lifecycle messaging: streak reminders, weekly recaps, win-back emails, editable templates and scheduling.
-- [ ] **FEAT-08** `P2` Mobile push through APNs and FCM, plus Slack, Teams and generic HTTP integrations.
+- [~] **FEAT-01** `P1` Streaks: daily or weekly, by user time zone, with freezes, repair, risk alerts and history. Build it as a first-class engine, not a rule preset. `[ran]` Done: the engine, tables, worker step, admin API, `/v1` reads with `atRisk`, history, SDK, a Streaks page, a Streaks tab on each user, `streak_updated` events that rules and achievements can react to, and reminder emails through Campaigns. Left: repair of a broken streak.
+- [~] **FEAT-02** `P1` React components: progress bar, badge grid, leaderboard, streak calendar, toast, and notification feed. MIT licensed. `[code]` Done: `@gami.fied/react` with a provider, hooks, all six components and a small themeable stylesheet, plus a player-safe `/v1/me/leaderboard`. Tested by rendering on the server, not in a browser. Left: a look in real browsers, and publishing to npm.
+- [x] **FEAT-03** `P1` Real-time updates through SSE or WebSockets, for instant toasts and live leaderboards. `[ran]` Done with SSE: `GET /v1/me/stream` for players, with resume from `Last-Event-ID`, and a staff stream that refreshes the Leaderboard, Events and user pages. Needs Redis, which the stack already uses. WebSockets were not needed.
+- [x] **FEAT-04** `P1` Achievement criteria built into the achievement itself, such as "100 lessons", with progress, tiers, and hidden or secret badges. `[ran]` Done: criteria on count, sum, unique values or a streak, tiers with bonus XP, secret badges, progress endpoints, and an editor with progress bars on the user page.
+- [x] **FEAT-05** `P1` Multi-step challenges: ordered steps, payload filters, recurring daily and weekly quests, and time-limited events. `[ran]` Done: steps in order, conditions on the event, daily and weekly repeats with history, start and end dates, and a builder in the dashboard.
+- [x] **FEAT-06** `P1` Metric aggregation in rules: sum, count, or unique values over a window, such as "spent $100 this month". `[ran]` Done: a total-over-time condition that fires once when it is reached, in the rule builder, with a preset.
+- [x] **FEAT-07** `P2` Lifecycle messaging: streak reminders, weekly recaps, win-back emails, editable templates and scheduling. `[ran]` Done: Campaigns with editable subject and message, variables, a live preview, timing, and no repeats or emails to anyone who unsubscribed. Tested by queueing into the email outbox, not against a real mail server.
+- [~] **FEAT-08** `P2` Mobile push through APNs and FCM, plus Slack, Teams and generic HTTP integrations. `[code]` Done: all five, with device registration, encrypted credentials and dashboard setup. Slack, Teams and HTTP are tested against stand-ins, and push against stand-ins for Apple and Google. Left: a run with real Apple and Google accounts.
 
 ### 7.2 Differentiators
 

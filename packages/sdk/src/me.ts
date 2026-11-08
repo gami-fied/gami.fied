@@ -112,6 +112,19 @@ export class MeResource {
     });
   }
 
+  /**
+   * Registers this phone for push notifications. Call it each time the app starts, with the token
+   * the phone's push service gave you. A phone belongs to the player who registered it last.
+   */
+  public registerDevice(device: { token: string; platform: 'ios' | 'android' }) {
+    return this.http.request<{ registered: boolean }>({ method: 'POST', path: '/v1/me/devices', body: device });
+  }
+
+  /** Stops push notifications to this phone, for example when the player signs out. */
+  public unregisterDevice(token: string) {
+    return this.http.request<{ removed: boolean }>({ method: 'DELETE', path: `/v1/me/devices/${encodeURIComponent(token)}` });
+  }
+
   public rank() {
     return this.http.request<{ rank: number | null; totalUsers: number }>({
       method: 'GET',
