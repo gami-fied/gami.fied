@@ -53,6 +53,8 @@ export const walletLots = pgTable(
     amount: integer('amount').notNull(),
     remaining: integer('remaining').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
+    /** Set once the owner has been told these points are about to expire, so they are told once. */
+    expiryWarnedAt: timestamp('expiry_warned_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
   (table) => [
@@ -121,6 +123,8 @@ export const rewards = pgTable(
     perUserLimit: integer('per_user_limit'),
     /** `code` hands out a code from a pool, and `fulfilled_by_you` leaves delivery to your own system. */
     kind: text('kind').default('fulfilled_by_you').notNull(),
+    /** For a `generated` reward: the text each new code starts with, such as `COFFEE-`. */
+    codePrefix: text('code_prefix'),
     enabled: boolean('enabled').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),

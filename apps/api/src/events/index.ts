@@ -1,11 +1,11 @@
 import crypto from 'crypto';
-import { db, eventOutbox, events } from '@gami/database';
+import { db, eventOutbox, events, policyFor } from '@gami/database';
 import { eq, and, count, desc, gte, lte, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { requireProjectAccess } from '../authorization/index.js';
+import { ipAllowed, requireProjectAccess } from '../authorization/index.js';
 import { hasScope } from '../authorization/permissions.js';
-import { checkRateLimit } from '../middleware/rate-limiter.js';
+import { checkPolicyRateLimit, checkRateLimit } from '../middleware/rate-limiter.js';
 import { waitForEventRewards } from '../public/event-rewards.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { ingestEvent } from '../services/event-ingestion.js';
@@ -58,6 +58,11 @@ async function authorizeIngestion(request: FastifyRequest, reply: FastifyReply) 
     return deny(403, 'FORBIDDEN', 'API key lacks required scope "events:write"');
   }
 
+  const policy = await policyFor(authResult.project.organizationId);
+  if (!ipAllowed(request.ip, policy.apiIpAllowlist)) {
+    return deny(403, 'IP_NOT_ALLOWED', 'This API key cannot be used from this address');
+  }
+  if (!(await checkPolicyRateLimit(request, reply, authResult.project.id, policy.eventsPerMinute))) return null;
   return (await checkRateLimit(request, reply, authResult.project.id)) ? authResult.project : null;
 }
 

@@ -4,7 +4,10 @@ import {
   challenges,
   db,
   endUsers,
+  featuresFor,
   getAuthSecret,
+  organizations,
+  policyFor,
   levels,
   notifications,
   currencies,
@@ -26,6 +29,8 @@ import { and, desc, eq, or, type SQL } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
+import { featureDisabledBody, featureForPlayerPath } from '../authorization/features.js';
+import { ipAllowed } from '../authorization/index.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { loadAchievementProgress } from '../achievements/progress.js';
 import { redeemReward, StoreError } from '../store/redeem.js';
@@ -88,12 +93,28 @@ export async function authenticateEndUser(
   }
 
   const [project] = await db
-    .select({ allowedOrigins: projects.allowedOrigins })
+    .select({ allowedOrigins: projects.allowedOrigins, organizationId: projects.organizationId, orgStatus: organizations.status })
     .from(projects)
+    .innerJoin(organizations, eq(organizations.id, projects.organizationId))
     .where(eq(projects.id, context.projectId));
+  if (!project || project.orgStatus === 'suspended') {
+    await reply.status(403).send({ code: 'FORBIDDEN', message: 'Organization account is suspended' });
+    return null;
+  }
+
+  const feature = featureForPlayerPath(request.url);
+  if (feature && !(await featuresFor(project.organizationId))[feature]) {
+    await reply.status(403).send(featureDisabledBody(feature));
+    return null;
+  }
 
   const origin = request.headers.origin;
-  const allowed = (project?.allowedOrigins ?? []) as string[];
+  const allowed = (project.allowedOrigins ?? []) as string[];
+  // The administrator can require every project to list its sites before players can use tokens.
+  if (allowed.length === 0 && (await policyFor(project.organizationId)).requireAllowedOrigins) {
+    await reply.status(403).send({ code: 'ORIGINS_REQUIRED', message: 'This project must list the sites allowed to use player tokens' });
+    return null;
+  }
   if (origin && allowed.length > 0 && !allowed.includes(origin)) {
     await reply
       .status(403)
@@ -116,6 +137,9 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       return reply
         .status(403)
         .send({ code: 'FORBIDDEN', message: 'API key lacks required scope "users:write"' });
+    }
+    if (!ipAllowed(request.ip, (await policyFor(auth.project.organizationId)).apiIpAllowlist)) {
+      return reply.status(403).send({ code: 'IP_NOT_ALLOWED', message: 'This API key cannot be used from this address' });
     }
 
     const parsed = createTokenSchema.safeParse(request.body);

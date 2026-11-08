@@ -104,6 +104,21 @@ export function renderEmailTemplate(
       const textBody = `[${appName}] ${subject}\n\nSuccess! You completed the ${challengeName} challenge and unlocked your completion rewards.\n\nSent by ${appName} Gamification Engine.`;
       return { subject, htmlBody, textBody };
     }
+    case 'points_expiring': {
+      const amount = Number(data['amount']) || 0;
+      const currencyName = (data['currencyName'] as string) || 'points';
+      const when = String(data['expiresAt'] ?? '').slice(0, 10);
+      const subject = `${amount} ${currencyName} expire soon`;
+      const htmlBody = renderBaseHtmlLayout(
+        subject,
+        `<div class="badge">⏳ EXPIRING SOON</div>
+         <div class="title">${amount} ${currencyName}</div>
+         <div class="body-content">These expire on <strong>${when}</strong>. Spend them before then so they are not lost.</div>`,
+        appName
+      );
+      const textBody = `[${appName}] ${subject}\n\n${amount} ${currencyName} expire on ${when}. Spend them before then so they are not lost.\n\nSent by ${appName} Gamification Engine.`;
+      return { subject, htmlBody, textBody };
+    }
   }
 }
 

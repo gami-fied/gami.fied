@@ -47,6 +47,29 @@ export async function ipRateLimitHook(request: FastifyRequest, reply: FastifyRep
   }
 }
 
+/**
+ * An organization's own ceiling on event requests per project per minute, set by the platform
+ * administrator. It sits under the instance-wide limit. Fails open if Redis is down, like the rest.
+ */
+export async function checkPolicyRateLimit(request: FastifyRequest, reply: FastifyReply, projectId: string, perMinute: number | null): Promise<boolean> {
+  if (!perMinute) return true;
+  try {
+    const redis = getRedisConnection();
+    const minute = Math.floor(Date.now() / 60_000);
+    const key = `ratelimit:policy:${projectId}:${minute}`;
+    const used = await redis.incr(key);
+    if (used === 1) await redis.expire(key, 60);
+    if (used > perMinute) {
+      reply.header('Retry-After', 60 - Math.floor((Date.now() / 1000) % 60));
+      reply.status(429).send({ code: 'TOO_MANY_REQUESTS', message: `This organization may send at most ${perMinute} event requests a minute per project` });
+      return false;
+    }
+  } catch (err: unknown) {
+    request.log.warn({ err }, '[RateLimiter] Redis unavailable for the organization limit, failing open');
+  }
+  return true;
+}
+
 export async function checkRateLimit(
   request: FastifyRequest,
   reply: FastifyReply,

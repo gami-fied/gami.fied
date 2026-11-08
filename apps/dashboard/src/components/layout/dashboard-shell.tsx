@@ -12,7 +12,9 @@ import { OnboardingFlow } from '../features/onboarding/onboarding-flow';
 import { EmptyState } from '../ui/empty-state';
 import { ShellSkeleton } from '../ui/skeleton';
 import { usePermissions } from '@/hooks/use-permissions';
-import { findAdminOnlyRoute } from '@/lib/navigation';
+import { findAdminOnlyRoute, findFeatureRoute } from '@/lib/navigation';
+import { useProjectFeatures } from '@/hooks/use-project-features';
+import { FeatureOff } from './feature-off';
 import { FolderKanban, ShieldAlert } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'gami.sidebarCollapsed';
@@ -34,6 +36,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     error,
     setError,
   } = useDashboard();
+  const { isOn: isFeatureOn } = useProjectFeatures(selectedProject?.id);
 
   const { isAdminOrOwner, roleLabel } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -80,6 +83,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     (organizations.length === 0 || !selectedOrg || (isAdminOrOwner && !selectedProject));
 
   const restrictedRoute = isAdminOrOwner ? undefined : findAdminOnlyRoute(pathname);
+  const featureRoute = findFeatureRoute(pathname);
+  const featureOff = featureRoute && !isFeatureOn(featureRoute.feature) ? featureRoute : undefined;
   const hasNoProject =
     !isAdminOrOwner &&
     !projectsFailed &&
@@ -146,6 +151,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               description={`You're a ${roleLabel.toLowerCase()} of ${selectedOrg?.name ?? 'this organization'}. Ask an owner or admin if you need this page.`}
               action={{ label: 'Back to Overview', href: '/dashboard' }}
             />
+          ) : featureOff ? (
+            <FeatureOff name={featureOff.name} feature={featureOff.feature!} />
           ) : hasNoProject ? (
             <EmptyState
               icon={FolderKanban}

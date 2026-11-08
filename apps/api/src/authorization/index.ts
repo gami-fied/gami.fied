@@ -1,4 +1,6 @@
-import { auth, db, member, organizations, projectMembers, projects, users } from '@gami/database';
+import { auth, db, featuresFor, member, organizations, policyFor, projectMembers, projects, users } from '@gami/database';
+import { BlockList, isIP } from 'net';
+import { featureDisabledBody, featureForProjectRoute } from './features.js';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { authenticateApiKey } from '../services/api-key.service.js';
@@ -200,7 +202,48 @@ export function canViewPersonalData(membership: { role: string }): boolean {
   return ['owner', 'admin'].includes(membership.role);
 }
 
-export async function requireProjectAccess(
+/** True when `ip` is in one of the addresses or CIDR ranges. An empty list allows every address. */
+export function ipAllowed(ip: string, allowlist: string[]): boolean {
+  if (allowlist.length === 0) return true;
+  const address = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  const family = isIP(address) === 6 ? 'ipv6' : 'ipv4';
+  const list = new BlockList();
+  for (const entry of allowlist) {
+    const [base, bits] = entry.split('/');
+    const entryFamily = isIP(base ?? '') === 6 ? 'ipv6' : 'ipv4';
+    if (!base || !isIP(base)) continue;
+    if (bits !== undefined) list.addSubnet(base, Number(bits), entryFamily);
+    else list.addAddress(base, entryFamily);
+  }
+  return isIP(address) ? list.check(address, family) : false;
+}
+
+/**
+ * The gate for every project route: who is asking, whether they may, whether the feature the
+ * route belongs to is on for the organization, and whether an API key is used from an allowed address.
+ */
+export async function requireProjectAccess(request: FastifyRequest, reply: FastifyReply, projectId: string) {
+  const access = await resolveProjectAccess(request, reply, projectId);
+  if (!access) return null;
+
+  const orgId = access.project.organizationId;
+  const feature = featureForProjectRoute(request.routeOptions.url ?? request.url);
+  if (feature && !(await featuresFor(orgId))[feature]) {
+    reply.status(403).send(featureDisabledBody(feature));
+    return null;
+  }
+
+  if (!access.session) {
+    const policy = await policyFor(orgId);
+    if (!ipAllowed(request.ip, policy.apiIpAllowlist)) {
+      sendAuthError(request, reply, 403, 'IP_NOT_ALLOWED', 'This API key cannot be used from this address');
+      return null;
+    }
+  }
+  return access;
+}
+
+async function resolveProjectAccess(
   request: FastifyRequest,
   reply: FastifyReply,
   projectId: string

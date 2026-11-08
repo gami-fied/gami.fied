@@ -274,6 +274,13 @@
       "when": 1794145925489,
       "tag": "0038_differentiators",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794155230599,
+      "tag": "0039_platform_controls",
+      "breakpoints": true
     }
   ]
 }

@@ -43,7 +43,9 @@ const rewardSchema = z.object({
   cost: z.number().int().min(1).max(100_000_000),
   stock: z.number().int().min(0).max(100_000_000).nullable().optional(),
   perUserLimit: z.number().int().min(1).max(10_000).nullable().optional(),
-  kind: z.enum(['fulfilled_by_you', 'code']).default('fulfilled_by_you'),
+  kind: z.enum(['fulfilled_by_you', 'code', 'generated']).default('fulfilled_by_you'),
+  /** For `generated`: what each new code starts with. */
+  codePrefix: z.string().max(24).regex(/^[A-Za-z0-9_-]*$/, 'Use letters, numbers, dashes and underscores').nullable().optional(),
   enabled: z.boolean().default(true),
 });
 
@@ -162,6 +164,7 @@ export async function storeRoutes(fastify: FastifyInstance) {
           stock: d.stock ?? null,
           perUserLimit: d.perUserLimit ?? null,
           kind: d.kind,
+          codePrefix: d.kind === 'generated' ? (d.codePrefix ?? '') : null,
           enabled: d.enabled,
         })
         .returning();

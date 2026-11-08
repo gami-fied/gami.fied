@@ -46,7 +46,8 @@ interface Reward {
   cost: number;
   stock: number | null;
   perUserLimit: number | null;
-  kind: 'fulfilled_by_you' | 'code';
+  kind: 'fulfilled_by_you' | 'code' | 'generated';
+  codePrefix?: string | null;
   enabled: boolean;
   codesTotal: number;
   codesLeft: number;
@@ -68,7 +69,8 @@ interface Purchase {
 
 const KIND_OPTIONS = [
   { value: 'fulfilled_by_you', label: 'You deliver it', sublabel: 'A purchase waits for you. A webhook tells your systems.' },
-  { value: 'code', label: 'Hands out a code', sublabel: 'Gift cards and coupons. Delivered the moment it is bought.' },
+  { value: 'code', label: 'Hands out a code from a list', sublabel: 'Gift cards you paste in. Delivered the moment it is bought.' },
+  { value: 'generated', label: 'Makes a unique coupon code', sublabel: 'For coupons your shop accepts. Never runs out.' },
 ];
 
 const STATUS_FILTERS = [
@@ -118,6 +120,7 @@ export function StoreView() {
   const [rStock, setRStock] = useState('');
   const [rLimit, setRLimit] = useState('');
   const [rKind, setRKind] = useState<Reward['kind']>('fulfilled_by_you');
+  const [rPrefix, setRPrefix] = useState('');
 
   // Codes form
   const [codesFor, setCodesFor] = useState<Reward | null>(null);
@@ -213,6 +216,7 @@ export function StoreView() {
     setRStock(reward?.stock != null ? String(reward.stock) : '');
     setRLimit(reward?.perUserLimit != null ? String(reward.perUserLimit) : '');
     setRKind(reward?.kind ?? 'fulfilled_by_you');
+    setRPrefix(reward?.codePrefix ?? '');
     setFormError(null);
     setRewardOpen(true);
   };
@@ -231,7 +235,7 @@ export function StoreView() {
         stock: rStock === '' ? null : Number(rStock),
         perUserLimit: rLimit === '' ? null : Number(rLimit),
       };
-      const body = editingReward ? shared : { ...shared, key: rKey.trim(), currency: rCurrency, kind: rKind };
+      const body = editingReward ? shared : { ...shared, key: rKey.trim(), currency: rCurrency, kind: rKind, ...(rKind === 'generated' ? { codePrefix: rPrefix.trim() || null } : {}) };
       const res = await apiFetch(editingReward ? `/api/projects/${projectId}/rewards/${editingReward.id}` : `/api/projects/${projectId}/rewards`, {
         method: editingReward ? 'PATCH' : 'POST',
         body: JSON.stringify(body),
@@ -542,6 +546,9 @@ export function StoreView() {
               <span className="mb-1 block text-xs font-semibold text-zinc-300">How it is delivered</span>
               <Dropdown options={KIND_OPTIONS} value={rKind} onChange={(value) => setRKind(value as Reward['kind'])} />
             </div>
+          )}
+          {!editingReward && rKind === 'generated' && (
+            <Input label="Code prefix (optional)" value={rPrefix} onChange={(e) => setRPrefix(e.target.value)} placeholder="COFFEE-" helperText="Each code is this followed by 10 random letters and digits." />
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <Input label="Stock (optional)" type="number" min={0} value={rStock} onChange={(e) => setRStock(e.target.value)} helperText="Blank means unlimited." />

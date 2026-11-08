@@ -16,8 +16,9 @@ import {
   xpLedger,
   type LifecycleCampaign,
 } from '@gami/database';
-import { expireLots } from '@gami/rewards';
+import { expireLots, warnExpiringLots } from '@gami/rewards';
 import { closeEndedSeasons } from '@gami/leaderboards';
+import { isFeatureEnabledForProject } from '@gami/database';
 import { renderLifecycleEmail, type LifecycleKind } from '@gami/notifications';
 import { periodIndex, streakStatus, type StreakCadence } from '@gami/progression';
 import { getRedisConnection } from '@gami/queue';
@@ -294,6 +295,7 @@ export async function runCampaign(campaign: LifecycleCampaign, now: Date = new D
   const kind = campaign.kind as LifecycleKind;
   const find = FINDERS[kind];
   if (!find) return 0;
+  if (!(await isFeatureEnabledForProject(campaign.projectId, 'campaigns'))) return 0;
 
   const [project] = await db.select({ name: projects.name }).from(projects).where(eq(projects.id, campaign.projectId));
   const candidates = await find(campaign, now);
@@ -380,6 +382,8 @@ async function tick(): Promise<void> {
     // Points whose time is up are written off, so wallet history shows what happened to them.
     const closed = await db.transaction((tx) => expireLots(tx));
     if (closed > 0) log.info('Expired wallet points', { lots: closed });
+    const warned = await warnExpiringLots();
+    if (warned > 0) log.info('Warned about expiring points', { people: warned });
     // Seasons that have ended are scored, and players move up or down for the next one.
     const seasons = await closeEndedSeasons();
     if (seasons > 0) log.info('Closed league seasons', { seasons });

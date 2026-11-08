@@ -1,5 +1,5 @@
 export type NotificationType =
-  'xp_awarded' | 'achievement_unlocked' | 'level_up' | 'challenge_completed';
+  'xp_awarded' | 'achievement_unlocked' | 'level_up' | 'challenge_completed' | 'points_expiring';
 
 export interface XpAwardedPayload {
   amount: number;
@@ -26,11 +26,19 @@ export interface ChallengeCompletedPayload {
   challengeName: string;
 }
 
+export interface PointsExpiringPayload {
+  currency: string;
+  currencyName: string;
+  amount: number;
+  expiresAt: string;
+}
+
 export type NotificationPayloadMap = {
   xp_awarded: XpAwardedPayload;
   achievement_unlocked: AchievementUnlockedPayload;
   level_up: LevelUpPayload;
   challenge_completed: ChallengeCompletedPayload;
+  points_expiring: PointsExpiringPayload;
 };
 
 export type NotificationPayload<T extends NotificationType = NotificationType> =

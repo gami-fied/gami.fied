@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { db, ruleExecutions } from '@gami/database';
 import { ActionDefinition, evaluateRule, EventData, getPluginAction } from '@gami/rules';
+import { isFeatureEnabledForProject, type FeatureKey } from '@gami/database';
 import { eq, and } from 'drizzle-orm';
 import { executeAwardAchievementAction } from './actions/award-achievement.js';
 import { executeAwardCurrencyAction } from './actions/award-currency.js';
@@ -72,6 +73,14 @@ async function runAction(
   ruleExecutionId: string
 ): Promise<void> {
   const context = { ruleId: rule.id, ruleExecutionId };
+
+  // An action for a feature the administrator turned off does nothing, rather than failing the rule.
+  const feature: FeatureKey | null =
+    action.type === 'award_achievement' ? 'achievements' : action.type === 'award_currency' ? 'wallets' : action.type.includes('.') ? 'plugins' : null;
+  if (feature && !(await isFeatureEnabledForProject(eventData.projectId, feature))) {
+    log.info('Skipped an action whose feature is turned off', { ...ids(rule, eventData), action: action.type, feature });
+    return;
+  }
 
   if (action.type === 'award_xp') {
     await executeAwardXpAction(action, eventData, { ...context, actionIndex });

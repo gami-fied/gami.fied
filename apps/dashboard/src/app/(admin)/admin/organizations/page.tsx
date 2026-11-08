@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import { useConfirm } from '@/components/ui/confirm';
 import { useToast } from '@/components/ui/toast';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Search, AlertOctagon, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -170,7 +171,11 @@ export default function AdminOrganizationsPage() {
               ) : (
                 filteredOrgs.map((org) => (
                   <tr key={org.id} className="hover:bg-zinc-900/40 transition">
-                    <td className="px-4 py-3 font-bold text-white">{org.name}</td>
+                    <td className="px-4 py-3 font-bold text-white">
+                      <Link href={`/admin/organizations/${org.id}`} className="hover:text-brand-300 hover:underline">
+                        {org.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-zinc-400">{org.slug}</td>
                     <td className="px-4 py-3 text-zinc-300">{org.projectCount}</td>
                     <td className="px-4 py-3 text-zinc-300">{org.memberCount}</td>

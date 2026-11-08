@@ -8,6 +8,7 @@ import {
   userXpBalances,
   levels,
 } from '@gami/database';
+import { isFeatureEnabledForProject } from '@gami/database';
 import { registry } from '@gami/integrations';
 import { and, eq } from 'drizzle-orm';
 import { claimDueRows } from './outbox.js';
@@ -93,6 +94,17 @@ export async function dispatchPendingIntegrations(
           })
           .where(eq(integrationDeliveries.id, delivery.id));
         result.retried++;
+        continue;
+      }
+
+      // The administrator can turn chat integrations (or push, for phone providers) off for an organization.
+      const feature = intg.provider === 'fcm' || intg.provider === 'apns' ? 'push' : 'integrations';
+      if (!(await isFeatureEnabledForProject(delivery.projectId, feature))) {
+        await db
+          .update(integrationDeliveries)
+          .set({ status: 'failed', lastError: 'Turned off for this organization by the platform administrator', updatedAt: new Date() })
+          .where(eq(integrationDeliveries.id, delivery.id));
+        result.failed++;
         continue;
       }
 

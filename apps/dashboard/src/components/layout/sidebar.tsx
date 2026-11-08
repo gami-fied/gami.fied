@@ -8,6 +8,7 @@ import { useDashboard } from '../features/context/dashboard-context';
 import { OrganizationSwitcher } from './organization-switcher';
 import { usePermissions } from '@/hooks/use-permissions';
 import { isNavItemActive, visibleNavGroups } from '@/lib/navigation';
+import { useProjectFeatures } from '@/hooks/use-project-features';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -24,10 +25,11 @@ export function Sidebar({
   onNavigate,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { session, selectedOrg, logout } = useDashboard();
+  const { session, selectedOrg, selectedProject, logout } = useDashboard();
   const { isAdminOrOwner, isPlatformAdmin, roleLabel } = usePermissions();
 
-  const navGroups = visibleNavGroups(isAdminOrOwner);
+  const { isOn } = useProjectFeatures(selectedProject?.id);
+  const navGroups = visibleNavGroups(isAdminOrOwner, isOn);
   const linkLayout = isCollapsed ? 'justify-center px-0' : 'px-3';
 
   return (

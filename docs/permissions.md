@@ -7,6 +7,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 
 | Method | Path | Lowest role | Credential |
 | :--- | :--- | :--- | :--- |
+| `GET` | `/abuse/flags` | Member | Signed-in user only |
+| `POST` | `/abuse/flags/:flagId` | Admin | Signed-in user only |
+| `GET` | `/abuse/settings` | Member | Signed-in user only |
+| `PUT` | `/abuse/settings` | Admin | Signed-in user only |
 | `GET` | `/achievements` | Member | API key with `achievements:read` |
 | `POST` | `/achievements` | Admin | API key with `achievements:write` |
 | `DELETE` | `/achievements/:achievementId` | Admin | API key with `achievements:write` |
@@ -57,6 +61,7 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/events/:eventId/replay` | Admin | API key with `events:write` |
 | `GET` | `/events/dead-letter` | Member | API key with `events:read` |
 | `POST` | `/events/test` | Member | API key with `events:write` |
+| `GET` | `/features` | Member | Signed-in user only |
 | `GET` | `/integrations` | Member | API key with `integrations:read` |
 | `POST` | `/integrations` | Admin | API key with `integrations:write` |
 | `DELETE` | `/integrations/:integrationId` | Admin | API key with `integrations:write` |

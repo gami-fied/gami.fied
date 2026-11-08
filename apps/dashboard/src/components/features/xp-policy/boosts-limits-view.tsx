@@ -22,8 +22,9 @@ import { CardSkeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { Edit2, Gauge, Plus, Rocket, ShieldAlert, Trash2 } from 'lucide-react';
+import { AbuseFlagsPanel } from './abuse-flags-panel';
 
-type Tab = 'boosts' | 'limits' | 'hits';
+type Tab = 'boosts' | 'limits' | 'hits' | 'flags';
 
 interface Boost {
   id: string;
@@ -291,7 +292,7 @@ export function BoostsLimitsView() {
         description="Run promotions such as double XP weekends, and keep rule rewards from being farmed."
         actions={
           <AdminOnly>
-            {tab === 'limits' ? (
+            {tab === 'flags' ? null : tab === 'limits' ? (
               <Button variant="primary" size="sm" onClick={openLimit}>
                 <Plus className="h-4 w-4" />
                 New limit
@@ -306,7 +307,7 @@ export function BoostsLimitsView() {
         }
         toolbar={
           <div role="tablist" className="flex gap-1 overflow-x-auto">
-            {([['boosts', 'Boosts'], ['limits', 'Limits'], ['hits', 'Blocked XP']] as [Tab, string][]).map(([id, label]) => (
+            {([['boosts', 'Boosts'], ['limits', 'Limits'], ['hits', 'Blocked XP'], ['flags', 'Flags']] as [Tab, string][]).map(([id, label]) => (
               <button
                 key={id}
                 role="tab"
@@ -445,6 +446,8 @@ export function BoostsLimitsView() {
           )}
         </>
       )}
+
+      {tab === 'flags' && projectId && <AbuseFlagsPanel projectId={projectId} />}
 
       <Dialog isOpen={boostOpen} onClose={() => setBoostOpen(false)} title={editingBoost ? `Edit ${editingBoost.name}` : 'New boost'} description="Multiply the XP rules give, for as long as the promotion runs.">
         <form onSubmit={saveBoost} className="space-y-4">

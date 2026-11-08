@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useDashboard } from '../features/context/dashboard-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import { OPEN_SEARCH_EVENT, visibleNavGroups } from '@/lib/navigation';
+import { useProjectFeatures } from '@/hooks/use-project-features';
 
 interface FoundUser {
   id: string;
@@ -31,6 +32,7 @@ export function CommandPalette() {
   const [users, setUsers] = useState<FoundUser[]>([]);
   const [highlighted, setHighlighted] = useState(0);
   const { isAdminOrOwner, isPlatformAdmin } = usePermissions();
+  const { isOn } = useProjectFeatures(selectedProject?.id);
 
   useEffect(() => {
     const show = () => setOpen(true);
@@ -69,7 +71,7 @@ export function CommandPalette() {
 
   const results = useMemo(() => {
     const search = query.trim().toLowerCase();
-    const pages: Result[] = visibleNavGroups(isAdminOrOwner)
+    const pages: Result[] = visibleNavGroups(isAdminOrOwner, isOn)
       .flatMap((group) => group.items)
       .filter((item) => `${item.name} ${item.keywords ?? ''}`.toLowerCase().includes(search))
       .map((item) => ({ id: item.href, name: item.name, href: item.href }));

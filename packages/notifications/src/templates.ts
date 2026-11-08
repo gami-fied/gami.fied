@@ -39,6 +39,13 @@ export function generateNotificationText<T extends NotificationType>(
         message: `Challenge completed: ${payload.challengeName}`,
       };
     }
+    case 'points_expiring': {
+      const payload = data as NotificationPayloadMap['points_expiring'];
+      return {
+        title: 'Points expiring soon',
+        message: `${payload.amount} ${payload.currencyName} expire on ${payload.expiresAt.slice(0, 10)}. Spend them before then!`,
+      };
+    }
     default: {
       return {
         title: 'Notification',

@@ -9,6 +9,7 @@ import {
   requireOrgRole,
   requireProjectAccess,
 } from '../authorization/index.js';
+import { checkProjectQuota } from '../organizations/policy-checks.js';
 
 type SessionUserFlags = { role?: string; isPlatformAdmin?: boolean };
 
@@ -43,6 +44,9 @@ export async function projectRoutes(fastify: FastifyInstance) {
 
     const authResult = await requireOrgRole(request, reply, organizationId, ['owner', 'admin']);
     if (!authResult) return;
+
+    const quota = await checkProjectQuota(organizationId);
+    if (quota) return reply.status(quota.status).send({ error: quota.code, code: quota.code, message: quota.message });
 
     const prjId = `prj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 

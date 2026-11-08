@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
 import { requireProjectAccess } from '../authorization/index.js';
+import { apiKeyExpiry } from '../organizations/policy-checks.js';
 import { DEFAULT_API_KEY_SCOPES, isValidScope } from '../authorization/permissions.js';
 import { createApiKey } from '../services/api-key.service.js';
 
@@ -54,11 +55,13 @@ export async function apiKeyManagementRoutes(fastify: FastifyInstance) {
       }
 
       const { name, scopes, expiresAt } = parsed.data;
+      const expiry = await apiKeyExpiry(authResult.project.organizationId, expiresAt ? new Date(expiresAt) : null);
+      if ('code' in expiry) return reply.status(expiry.status).send({ error: expiry.code, code: expiry.code, message: expiry.message });
       const generatedKey = await createApiKey(
         projectId,
         name,
         scopes ?? DEFAULT_API_KEY_SCOPES,
-        expiresAt ? new Date(expiresAt) : null
+        expiry.expiresAt
       );
 
       await createAuditLog(db, {

@@ -10,6 +10,7 @@ import {
   type WebhookEndpoint,
   type WebhookOutboxRecord,
 } from '@gami/database';
+import { isFeatureEnabledForProject } from '@gami/database';
 import {
   calculateHmacSignature,
   calculateTimestampedSignature,
@@ -170,6 +171,9 @@ async function attemptDelivery(
 ): Promise<DeliveryOutcome> {
   if (!endpoint || endpoint.projectId !== record.projectId || !endpoint.active) {
     return { kind: 'failed', error: 'Webhook endpoint deactivated or deleted' };
+  }
+  if (!(await isFeatureEnabledForProject(record.projectId, 'webhooks'))) {
+    return { kind: 'failed', error: 'Webhooks are turned off for this organization by the platform administrator' };
   }
 
   try {

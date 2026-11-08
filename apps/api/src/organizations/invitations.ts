@@ -8,6 +8,7 @@ import {
   projectMembers,
   users,
 } from '@gami/database';
+import { checkMemberPolicy } from './policy-checks.js';
 import { renderInvitationEmailTemplate } from '@gami/notifications';
 import { createHash, randomBytes, randomUUID } from 'crypto';
 import { and, eq, gte } from 'drizzle-orm';
@@ -41,6 +42,10 @@ export async function organizationInvitationsRoutes(fastify: FastifyInstance) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // Limits the platform administrator set for this organization.
+    const denied = await checkMemberPolicy(organizationId, cleanEmail);
+    if (denied) return reply.status(denied.status).send({ error: denied.code, code: denied.code, message: denied.message });
 
     // Check if user with this email is already a member of the organization
     const [existingMember] = await db

@@ -26,6 +26,9 @@ import { referralRoutes } from './engagement/referrals.js';
 import { connectorRoutes } from './connectors/index.js';
 import { environmentRoutes } from './environments/index.js';
 import { pluginRoutes } from './plugins/index.js';
+import { adminControlRoutes } from './admin/controls/index.js';
+import { abuseRoutes } from './xp-policy/abuse.js';
+import { projectFeatureRoutes } from './projects/features.js';
 import { endUserSocialRoutes } from './public/end-user-social.js';
 import { registerPushProviders } from '@gami/integrations';
 import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
@@ -255,6 +258,7 @@ export async function buildServer() {
   await fastify.register(lifecycleRoutes);
   await fastify.register(ruleVersionRoutes);
   await fastify.register(xpPolicyRoutes);
+  await fastify.register(abuseRoutes);
   await fastify.register(storeRoutes);
   await fastify.register(segmentRoutes);
   await fastify.register(leagueRoutes);
@@ -263,6 +267,7 @@ export async function buildServer() {
   await fastify.register(connectorRoutes);
   await fastify.register(environmentRoutes);
   await fastify.register(pluginRoutes);
+  await fastify.register(projectFeatureRoutes);
   registerPushProviders();
 
   // Register Level & Progression System endpoints
@@ -295,6 +300,7 @@ export async function buildServer() {
   await fastify.register(adminStorageRoutes);
   await fastify.register(adminDiagnosticsRoutes);
   await fastify.register(adminBackupRoutes);
+  await fastify.register(adminControlRoutes);
 
   // Register Webhooks & External Event Delivery endpoints
   await fastify.register(webhookRoutes);

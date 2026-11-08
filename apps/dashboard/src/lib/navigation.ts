@@ -35,6 +35,8 @@ export interface NavItem {
   icon: ComponentType<{ className?: string }>;
   /** Hidden from plain members, and the shell refuses the route. */
   adminOnly?: boolean;
+  /** The platform feature this page belongs to. When the administrator turns it off, the page is hidden. */
+  feature?: string;
   /** Also active under this path, for items with tabs. */
   section?: string;
   exact?: boolean;
@@ -58,15 +60,15 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Build',
     items: [
       { name: 'Rules', href: '/dashboard/rules', icon: Zap },
-      { name: 'Achievements', href: '/dashboard/achievements', icon: Trophy, keywords: 'badges' },
-      { name: 'Streaks', href: '/dashboard/streaks', icon: Flame, keywords: 'daily habit consecutive' },
-      { name: 'Boosts & limits', href: '/dashboard/boosts', icon: Gauge, keywords: 'multiplier double xp cap cooldown abuse' },
-      { name: 'Store', href: '/dashboard/store', icon: ShoppingBag, keywords: 'rewards currency coins wallet redeem coupons purchases' },
-      { name: 'Levels', href: '/dashboard/levels', icon: TrendingUp, keywords: 'progression' },
-      { name: 'Leagues', href: '/dashboard/leagues', icon: Shield, keywords: 'tiers promotion relegation divisions bronze silver gold weekly' },
-      { name: 'Invites', href: '/dashboard/invites', icon: UserPlus, keywords: 'referral refer a friend invite code friends kudos social' },
-      { name: 'Challenges', href: '/dashboard/challenges', icon: Target, keywords: 'quests' },
-      { name: 'Campaigns', href: '/dashboard/campaigns', icon: Mail, adminOnly: true, keywords: 'email reminders recap winback' },
+      { name: 'Achievements', href: '/dashboard/achievements', feature: 'achievements', icon: Trophy, keywords: 'badges' },
+      { name: 'Streaks', href: '/dashboard/streaks', feature: 'streaks', icon: Flame, keywords: 'daily habit consecutive' },
+      { name: 'Boosts & limits', href: '/dashboard/boosts', feature: 'boosts_limits', icon: Gauge, keywords: 'multiplier double xp cap cooldown abuse' },
+      { name: 'Store', href: '/dashboard/store', feature: 'wallets', icon: ShoppingBag, keywords: 'rewards currency coins wallet redeem coupons purchases' },
+      { name: 'Levels', href: '/dashboard/levels', feature: 'levels', icon: TrendingUp, keywords: 'progression' },
+      { name: 'Leagues', href: '/dashboard/leagues', feature: 'leagues', icon: Shield, keywords: 'tiers promotion relegation divisions bronze silver gold weekly' },
+      { name: 'Invites', href: '/dashboard/invites', feature: 'referrals', icon: UserPlus, keywords: 'referral refer a friend invite code friends kudos social' },
+      { name: 'Challenges', href: '/dashboard/challenges', feature: 'challenges', icon: Target, keywords: 'quests' },
+      { name: 'Campaigns', href: '/dashboard/campaigns', feature: 'campaigns', icon: Mail, adminOnly: true, keywords: 'email reminders recap winback' },
     ],
   },
   {
@@ -75,20 +77,20 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: 'Users', href: '/dashboard/users', icon: Users, keywords: 'players' },
       { name: 'Events', href: '/dashboard/events', icon: Activity, keywords: 'logs' },
       { name: 'XP History', href: '/dashboard/xp', icon: Coins, keywords: 'points ledger' },
-      { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Medal, keywords: 'rankings team country groups' },
-      { name: 'Segments', href: '/dashboard/segments', icon: UsersRound, keywords: 'cohort audience group filter country plan' },
-      { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, keywords: 'reports' },
+      { name: 'Leaderboard', href: '/dashboard/leaderboard', feature: 'leaderboards', icon: Medal, keywords: 'rankings team country groups' },
+      { name: 'Segments', href: '/dashboard/segments', feature: 'segments', icon: UsersRound, keywords: 'cohort audience group filter country plan' },
+      { name: 'Analytics', href: '/dashboard/analytics', feature: 'analytics', icon: BarChart3, keywords: 'reports' },
     ],
   },
   {
     label: 'Connect',
     items: [
       { name: 'API Keys', href: '/dashboard/api-keys', icon: KeyRound, adminOnly: true },
-      { name: 'Webhooks', href: '/dashboard/webhooks', icon: Webhook, adminOnly: true },
-      { name: 'Connectors', href: '/dashboard/connectors', icon: Plug, adminOnly: true, keywords: 'segment rudderstack stripe github inbound import' },
+      { name: 'Webhooks', href: '/dashboard/webhooks', feature: 'webhooks', icon: Webhook, adminOnly: true },
+      { name: 'Connectors', href: '/dashboard/connectors', feature: 'connectors', icon: Plug, adminOnly: true, keywords: 'segment rudderstack stripe github inbound import' },
       {
         name: 'Integrations',
-        href: '/dashboard/integrations',
+        href: '/dashboard/integrations', feature: 'integrations',
         icon: Blocks,
         adminOnly: true,
         keywords: 'discord',
@@ -129,7 +131,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { name: 'Audit Logs', href: '/dashboard/audit-logs', icon: History, adminOnly: true },
       { name: 'Settings', href: '/dashboard/settings', icon: Settings, adminOnly: true },
-      { name: 'Promote changes', href: '/dashboard/promotion', icon: GitCompareArrows, adminOnly: true, keywords: 'staging production environment copy deploy' },
+      { name: 'Promote changes', href: '/dashboard/promotion', feature: 'environments', icon: GitCompareArrows, adminOnly: true, keywords: 'staging production environment copy deploy' },
     ],
   },
 ];
@@ -150,11 +152,16 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
   return isUnder(pathname, item.section ?? item.href);
 }
 
-export function visibleNavGroups(isAdminOrOwner: boolean): NavGroup[] {
+export function visibleNavGroups(isAdminOrOwner: boolean, isFeatureOn: (feature?: string) => boolean = () => true): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => isAdminOrOwner || !item.adminOnly),
+    items: group.items.filter((item) => (isAdminOrOwner || !item.adminOnly) && isFeatureOn(item.feature)),
   })).filter((group) => group.items.length > 0);
+}
+
+/** The page at this address, with the feature it belongs to, if any. */
+export function findFeatureRoute(pathname: string): NavItem | undefined {
+  return NAV_GROUPS.flatMap((group) => group.items).find((item) => item.feature && isUnder(pathname, item.href));
 }
 
 /** The admin-only page at this address, if there is one. */

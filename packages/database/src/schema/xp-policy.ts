@@ -88,3 +88,46 @@ export const xpLimitHits = pgTable(
 
 export type XpBoost = typeof xpBoosts.$inferSelect;
 export type XpLimit = typeof xpLimits.$inferSelect;
+
+/** When to flag someone for earning unusually fast. Flags never block XP; they ask a person to look. */
+export const abuseSettings = pgTable('abuse_settings', {
+  projectId: text('project_id')
+    .primaryKey()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  enabled: boolean('enabled').default(false).notNull(),
+  /** Flag when one person earns more than this much XP in an hour. */
+  xpPerHour: integer('xp_per_hour'),
+  /** Flag when one person sends more than this many events in an hour. */
+  eventsPerHour: integer('events_per_hour'),
+  /** Also hide a flagged person from rankings until someone reviews it. */
+  autoHide: boolean('auto_hide').default(false).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+});
+
+export const abuseFlags = pgTable(
+  'abuse_flags',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => endUsers.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'xp_velocity' | 'event_velocity'>().notNull(),
+    /** What was measured in the hour, and the threshold it passed. */
+    observed: integer('observed').notNull(),
+    threshold: integer('threshold').notNull(),
+    status: text('status').$type<'open' | 'dismissed' | 'confirmed'>().default('open').notNull(),
+    autoHidden: boolean('auto_hidden').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true, mode: 'date' }),
+  },
+  (table) => [
+    index('abuse_flags_project_idx').on(table.projectId, table.status, table.createdAt),
+    index('abuse_flags_user_idx').on(table.userId, table.kind, table.createdAt),
+  ]
+);
+
+export type AbuseSettings = typeof abuseSettings.$inferSelect;
+export type AbuseFlag = typeof abuseFlags.$inferSelect;

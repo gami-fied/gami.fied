@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
-import { currencies, walletEntries, walletLots, type Currency } from '@gami/database';
-import { and, asc, eq, gt, isNull, lte, or, sql } from 'drizzle-orm';
+import { currencies, db, walletEntries, walletLots, type Currency } from '@gami/database';
+import { createNotificationIntent } from '@gami/notifications';
+import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { RewardTransaction } from './award-xp.js';
 
 export class InsufficientBalanceError extends Error {
@@ -160,6 +161,44 @@ export async function walletBalance(
 }
 
 /** Writes off points whose time is up, and records each write-off. Returns how many lots were closed. */
+/**
+ * Tells people about points that expire within `days`, once per lot, so nobody loses points
+ * without warning. Lots of one person and currency are summed into one notification.
+ */
+export async function warnExpiringLots(days = 3): Promise<number> {
+  const cutoff = new Date(Date.now() + days * 86_400_000);
+  return db.transaction(async (tx) => {
+    const due = await tx
+      .select({ lot: walletLots, currencyKey: currencies.key, currencyName: currencies.name })
+      .from(walletLots)
+      .innerJoin(currencies, eq(currencies.id, walletLots.currencyId))
+      .where(and(isNull(walletLots.expiryWarnedAt), gt(walletLots.remaining, 0), gt(walletLots.expiresAt, new Date()), lte(walletLots.expiresAt, cutoff)))
+      .limit(1000)
+      .for('update', { of: walletLots, skipLocked: true });
+    const groups = new Map<string, { projectId: string; userId: string; currencyKey: string; currencyName: string; amount: number; first: Date; ids: string[] }>();
+    for (const { lot, currencyKey, currencyName } of due) {
+      const key = `${lot.userId}:${lot.currencyId}`;
+      const group = groups.get(key) ?? { projectId: lot.projectId, userId: lot.userId, currencyKey, currencyName, amount: 0, first: lot.expiresAt!, ids: [] };
+      group.amount += lot.remaining;
+      if (lot.expiresAt! < group.first) group.first = lot.expiresAt!;
+      group.ids.push(lot.id);
+      groups.set(key, group);
+    }
+    for (const group of groups.values()) {
+      await createNotificationIntent(tx, {
+        projectId: group.projectId,
+        userId: group.userId,
+        type: 'points_expiring',
+        data: { currency: group.currencyKey, currencyName: group.currencyName, amount: group.amount, expiresAt: group.first.toISOString() },
+        sourceType: 'points_expiring',
+        sourceId: group.ids.sort()[0]!,
+      });
+      await tx.update(walletLots).set({ expiryWarnedAt: new Date() }).where(inArray(walletLots.id, group.ids));
+    }
+    return groups.size;
+  });
+}
+
 export async function expireLots(tx: RewardTransaction, now: Date = new Date(), batch = 500): Promise<number> {
   const stale = await tx
     .select()

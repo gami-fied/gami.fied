@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { db, xpBoosts, xpLimitHits, xpLimits } from '@gami/database';
+import { isFeatureEnabledForProject } from '@gami/database';
 import {
   applyLimits,
   boostedAmount,
@@ -42,6 +43,11 @@ const asList = <T>(value: unknown): T[] | null => (Array.isArray(value) && value
  */
 export async function applyXpPolicy(tx: Tx, input: XpPolicyInput): Promise<XpPolicyResult> {
   const { projectId, userId, eventType, ruleId } = input;
+
+  // With boosts and limits turned off by the administrator, rules give exactly what they say.
+  if (!(await isFeatureEnabledForProject(projectId, 'boosts_limits'))) {
+    return { amount: input.amount, wanted: input.amount, boost: null, hits: [] };
+  }
 
   const [boostRows, limitRows] = await Promise.all([
     tx.select().from(xpBoosts).where(and(eq(xpBoosts.projectId, projectId), eq(xpBoosts.enabled, true))),

@@ -105,7 +105,11 @@ export async function redeemReward(input: RedeemInput): Promise<{ redemption: Re
       });
 
       let code: string | null = null;
-      if (reward.kind === 'code') {
+      if (reward.kind === 'generated') {
+        // A fresh code for each purchase, with no ambiguous characters, made here so it cannot run out.
+        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        code = `${reward.codePrefix ?? ''}${Array.from(crypto.randomBytes(10), (byte) => alphabet[byte % alphabet.length]).join('')}`;
+      } else if (reward.kind === 'code') {
         const [available] = await tx
           .select()
           .from(rewardCodes)
@@ -130,7 +134,7 @@ export async function redeemReward(input: RedeemInput): Promise<{ redemption: Re
           currencyId: currency.id,
           cost: reward.cost,
           // A code is delivered in the response, so there is nothing left to do. Anything else waits for you.
-          status: reward.kind === 'code' ? 'fulfilled' : 'pending',
+          status: reward.kind === 'code' || reward.kind === 'generated' ? 'fulfilled' : 'pending',
           code,
           idempotencyKey: input.idempotencyKey ?? null,
         })

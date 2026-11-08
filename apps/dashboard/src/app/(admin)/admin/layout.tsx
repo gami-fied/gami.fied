@@ -4,11 +4,13 @@ import { apiFetch } from '@/lib/api-client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Shield, Server, Building2, Lock, Settings, History, KeyRound, Key, AlertTriangle, CheckCircle, Database, HardDrive, LayoutDashboard } from 'lucide-react';
+import { Shield, Server, Building2, Lock, Settings, History, KeyRound, Key, AlertTriangle, CheckCircle, Database, HardDrive, LayoutDashboard, ShieldCheck, ToggleRight } from 'lucide-react';
 
 const NAV_ITEMS = [
   { name: 'Overview', href: '/admin', icon: LayoutDashboard },
   { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
+  { name: 'Features', href: '/admin/features', icon: ToggleRight },
+  { name: 'Org Defaults', href: '/admin/policies', icon: ShieldCheck },
   { name: 'Platform Health', href: '/admin/system', icon: Server },
   { name: 'Backups', href: '/admin/backups', icon: Database },
   { name: 'Storage', href: '/admin/storage', icon: HardDrive },
