@@ -1049,7 +1049,7 @@
           "Current user"
         ],
         "summary": "List the current user's challenges",
-        "description": "Lists challenges the token holder has started.",
+        "description": "Lists the challenges open right now, started or not, with the token holder's progress. Daily and weekly challenges show the current period.",
         "security": [
           {
             "endUserToken": []
@@ -1074,9 +1074,15 @@
                         "required": [
                           "key",
                           "name",
+                          "description",
+                          "iconUrl",
+                          "type",
+                          "recurrence",
                           "target",
                           "progress",
-                          "completed"
+                          "completed",
+                          "periodEndsAt",
+                          "steps"
                         ],
                         "properties": {
                           "key": {
@@ -1089,20 +1095,85 @@
                             "description": "Display name.",
                             "example": "Ten orders"
                           },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "What to do.",
+                            "example": "Place ten orders"
+                          },
+                          "iconUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Link to an image.",
+                            "example": null
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "counter",
+                              "steps"
+                            ],
+                            "description": "`counter` counts events. `steps` needs each step in order.",
+                            "example": "counter"
+                          },
+                          "recurrence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "daily",
+                              "weekly",
+                              null
+                            ],
+                            "description": "Starts over each day or week, or null if it runs once.",
+                            "example": null
+                          },
                           "target": {
                             "type": "integer",
-                            "description": "How many events finish it.",
+                            "description": "How many events, or steps, finish it.",
                             "example": 10
                           },
                           "progress": {
                             "type": "integer",
-                            "description": "Events counted so far.",
+                            "description": "Counted so far.",
                             "example": 4
                           },
                           "completed": {
                             "type": "boolean",
-                            "description": "Whether the user finished.",
+                            "description": "Whether the user finished it this period.",
                             "example": false
+                          },
+                          "periodEndsAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "When a repeating challenge starts over, or when a one-off one ends.",
+                            "example": null
+                          },
+                          "steps": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "description": "For a steps challenge, each step and whether it is done.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "done": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -2986,7 +3057,12 @@
                           "progress",
                           "completed",
                           "completedAt",
-                          "percent"
+                          "percent",
+                          "type",
+                          "recurrence",
+                          "periodEndsAt",
+                          "completions",
+                          "steps"
                         ],
                         "properties": {
                           "challengeId": {
@@ -3058,6 +3134,63 @@
                             "type": "integer",
                             "description": "Percent complete, from 0 to 100.",
                             "example": 40
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "counter",
+                              "steps"
+                            ],
+                            "description": "`counter` counts events. `steps` needs each step in order.",
+                            "example": "counter"
+                          },
+                          "recurrence": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "daily",
+                              "weekly",
+                              null
+                            ],
+                            "description": "Starts over each UTC day or week, or null if it runs once.",
+                            "example": null
+                          },
+                          "periodEndsAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "When a repeating challenge starts over. Null for a one-off challenge.",
+                            "example": null
+                          },
+                          "completions": {
+                            "type": "integer",
+                            "description": "Times the user has finished it, across all periods.",
+                            "example": 1
+                          },
+                          "steps": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "description": "For a steps challenge, each step in order and whether it is done.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "done": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -3155,7 +3288,15 @@
                     "progress",
                     "completed",
                     "completedAt",
-                    "percent"
+                    "percent",
+                    "type",
+                    "recurrence",
+                    "periodEndsAt",
+                    "completions",
+                    "steps",
+                    "iconUrl",
+                    "enabled",
+                    "trigger"
                   ],
                   "properties": {
                     "challengeId": {
@@ -3209,6 +3350,81 @@
                       "type": "integer",
                       "description": "Percent complete, from 0 to 100.",
                       "example": 40
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "counter",
+                        "steps"
+                      ],
+                      "description": "`counter` counts events. `steps` needs each step in order.",
+                      "example": "counter"
+                    },
+                    "recurrence": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "daily",
+                        "weekly",
+                        null
+                      ],
+                      "description": "Starts over each UTC day or week, or null if it runs once.",
+                      "example": null
+                    },
+                    "periodEndsAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time",
+                      "description": "When a repeating challenge starts over. Null for a one-off challenge.",
+                      "example": null
+                    },
+                    "completions": {
+                      "type": "integer",
+                      "description": "Times the user has finished it, across all periods.",
+                      "example": 1
+                    },
+                    "steps": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "description": "For a steps challenge, each step in order and whether it is done.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "done": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "iconUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Link to an icon.",
+                      "example": null
+                    },
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Whether it is running.",
+                      "example": true
+                    },
+                    "trigger": {
+                      "type": "string",
+                      "description": "The event type that counts.",
+                      "example": "order_completed"
                     }
                   }
                 }
@@ -5708,6 +5924,9 @@
           "enabled",
           "trigger",
           "type",
+          "filters",
+          "steps",
+          "recurrence",
           "target",
           "startAt",
           "endAt",
@@ -5765,10 +5984,48 @@
           "type": {
             "type": "string",
             "enum": [
-              "counter"
+              "counter",
+              "steps"
             ],
-            "description": "How progress is measured.",
+            "description": "`counter` counts matching events. `steps` needs each step's event in order.",
             "example": "counter"
+          },
+          "filters": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Conditions an event's payload must meet to count, each `{ field, operator, value }`, for example `payload.score` greater than 80.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "example": null
+          },
+          "steps": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "For a steps challenge: the events to complete in order, each `{ name, event, filters? }`.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "example": null
+          },
+          "recurrence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "daily",
+              "weekly",
+              null
+            ],
+            "description": "Starts over each UTC day or week, so it can be done again. Null means it runs once.",
+            "example": null
           },
           "target": {
             "type": "integer",

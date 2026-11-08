@@ -25,7 +25,14 @@ export const challenges = pgTable(
     iconUrl: text('icon_url'),
     enabled: boolean('enabled').default(true).notNull(),
     trigger: text('trigger').notNull(),
+    /** `counter` counts matching events. `steps` needs each step's event in order. */
     type: text('type').default('counter').notNull(),
+    /** Payload conditions an event must meet to count, for example `[{ field, operator, value }]`. */
+    filters: jsonb('filters'),
+    /** For `steps`: `[{ name, event, filters? }]`, done in order. */
+    steps: jsonb('steps'),
+    /** `daily` or `weekly` starts the challenge over each UTC period. Null means it runs once. */
+    recurrence: text('recurrence'),
     target: integer('target').notNull(),
     startAt: timestamp('start_at', { withTimezone: true, mode: 'date' }),
     endAt: timestamp('end_at', { withTimezone: true, mode: 'date' }),
@@ -53,6 +60,8 @@ export const userChallengeProgress = pgTable(
       .notNull()
       .references(() => challenges.id, { onDelete: 'cascade' }),
     progress: integer('progress').default(0).notNull(),
+    /** Which day or week this row is for, as `2026-11-08` or `2026-W45`. Empty for one-off challenges. */
+    periodKey: text('period_key').default('').notNull(),
     completed: boolean('completed').default(false).notNull(),
     completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
@@ -64,10 +73,11 @@ export const userChallengeProgress = pgTable(
       columns: [table.projectId, table.userId],
       foreignColumns: [endUsers.projectId, endUsers.id],
     }).onDelete('cascade'),
-    uniqueIndex('user_challenge_progress_proj_user_challenge_unique').on(
+    uniqueIndex('user_challenge_progress_proj_user_challenge_period_unique').on(
       table.projectId,
       table.userId,
-      table.challengeId
+      table.challengeId,
+      table.periodKey
     ),
     index('idx_user_challenge_progress_proj_challenge').on(table.projectId, table.challengeId),
     index('idx_user_challenge_progress_proj_user').on(table.projectId, table.userId),

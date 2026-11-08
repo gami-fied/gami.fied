@@ -225,6 +225,13 @@
       "when": 1794133606288,
       "tag": "0031_achievement_criteria",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794134319793,
+      "tag": "0032_multi_step_challenges",
+      "breakpoints": true
     }
   ]
 }

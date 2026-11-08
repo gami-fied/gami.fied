@@ -6,14 +6,22 @@ import {
   db,
   userChallengeProgress,
 } from '@gami/database';
-import { ChallengeReward } from '@gami/challenges';
+import {
+  challengeEvents,
+  eventAdvances,
+  periodKey,
+  type ChallengeFilter,
+  type ChallengeRecurrence,
+  type ChallengeReward,
+  type ChallengeStep,
+} from '@gami/challenges';
 import {
   createNotificationIntent,
   generateChallengeCompletionSourceId,
 } from '@gami/notifications';
 import { awardXp, grantAchievement, type RewardTransaction } from '@gami/rewards';
 import { createWebhookDelivery } from '@gami/webhooks';
-import { EventData } from '@gami/rules';
+import { evaluateConditionTree, type Condition, type EventData } from '@gami/rules';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import { exponentialBackoffMs } from './outbox.js';
 import { createLogger } from '@gami/config';
@@ -139,6 +147,9 @@ export async function dispatchPendingChallengeRewards(
  * Main worker entrypoint for processing challenges on incoming events.
  * Performs idempotent event progress evaluation, updates progress records,
  * and enqueues challenge completion rewards into challenge_reward_outbox.
+ *
+ * A counter takes any matching event. A steps challenge takes only the event for its next step,
+ * so steps must happen in order. Daily and weekly challenges keep one progress row per period.
  */
 export async function processChallengesForEvent(
   eventData: EventData,
@@ -150,22 +161,29 @@ export async function processChallengesForEvent(
 
   const { projectId, userId, type: eventType } = eventData;
   const now = new Date();
+  const occurredAt = new Date(eventData.occurredAt);
 
-  // 1. Query all active challenges in project matching eventType
-  const matchingChallenges = await db
+  // 1. Active challenges in the project that this event type could move. A project has few, so
+  // they are filtered here, because a steps challenge listens for several events.
+  const activeChallenges = await db
     .select()
     .from(challenges)
-    .where(
-      and(
-        eq(challenges.projectId, projectId),
-        eq(challenges.trigger, eventType),
-        eq(challenges.enabled, true)
-      )
-    );
+    .where(and(eq(challenges.projectId, projectId), eq(challenges.enabled, true)));
+
+  const matchingChallenges = activeChallenges.filter((challenge) =>
+    challengeEvents({
+      trigger: challenge.trigger,
+      type: challenge.type,
+      steps: challenge.steps as ChallengeStep[] | null,
+    }).includes(eventType)
+  );
 
   if (matchingChallenges.length === 0) {
     return { processedChallengesCount: 0, completedChallengesCount: 0 };
   }
+
+  const passes = (filters: ChallengeFilter[]) =>
+    evaluateConditionTree({ all: filters as Condition[] }, eventData);
 
   let processedCount = 0;
   let newlyCompletedCount = 0;
@@ -175,11 +193,53 @@ export async function processChallengesForEvent(
     if (challenge.startAt && challenge.startAt > now) continue;
     if (challenge.endAt && challenge.endAt < now) continue;
 
+    const period = periodKey(challenge.recurrence as ChallengeRecurrence | null, occurredAt);
+    const progressRow = and(
+      eq(userChallengeProgress.projectId, projectId),
+      eq(userChallengeProgress.userId, userId),
+      eq(userChallengeProgress.challengeId, challenge.id),
+      eq(userChallengeProgress.periodKey, period)
+    );
+    const definition = {
+      trigger: challenge.trigger,
+      type: challenge.type,
+      filters: challenge.filters as ChallengeFilter[] | null,
+      steps: challenge.steps as ChallengeStep[] | null,
+    };
+
     try {
+      // A cheap look first, so events that cannot move this challenge write nothing.
+      const [seen] = await db.select().from(userChallengeProgress).where(progressRow);
+      if (seen?.completed) continue;
+      if (!eventAdvances(definition, seen?.progress ?? 0, eventType, passes)) continue;
+
       let newlyCompleted = false;
 
       await db.transaction(async (tx) => {
-        // Step a: Idempotent event deduplication via challenge_event_progress
+        // Step a: make sure the progress row exists, then lock it
+        await tx
+          .insert(userChallengeProgress)
+          .values({
+            id: `ucp_${randomUUID()}`,
+            projectId,
+            userId,
+            challengeId: challenge.id,
+            periodKey: period,
+            progress: 0,
+          })
+          .onConflictDoNothing();
+
+        const [existingProgress] = await tx
+          .select()
+          .from(userChallengeProgress)
+          .where(progressRow)
+          .for('update');
+        if (!existingProgress || existingProgress.completed) return;
+
+        // Step b: look again now that the row is locked, since another event may have moved it
+        if (!eventAdvances(definition, existingProgress.progress, eventType, passes)) return;
+
+        // Step c: Idempotent event deduplication via challenge_event_progress
         const [dedupRecord] = await tx
           .insert(challengeEventProgress)
           .values({
@@ -198,68 +258,32 @@ export async function processChallengesForEvent(
           })
           .returning({ id: challengeEventProgress.id });
 
-        // If row was NOT inserted (returned undefined), this event was already counted for this challenge!
-        if (!dedupRecord) {
-          return;
-        }
+        // If the row was NOT inserted, this event was already counted for this challenge
+        if (!dedupRecord) return;
 
-        // Step b: Lock user_challenge_progress row with FOR UPDATE
-        const [existingProgress] = await tx
-          .select()
-          .from(userChallengeProgress)
-          .where(
-            and(
-              eq(userChallengeProgress.projectId, projectId),
-              eq(userChallengeProgress.userId, userId),
-              eq(userChallengeProgress.challengeId, challenge.id)
-            )
-          )
-          .for('update');
-
-        const currentProgress = existingProgress ? existingProgress.progress : 0;
-        const isAlreadyCompleted = existingProgress ? existingProgress.completed : false;
-
-        if (isAlreadyCompleted) {
-          // Challenge already completed previously -> skip further increments
-          return;
-        }
-
-        const newProgress = currentProgress + 1;
+        const newProgress = existingProgress.progress + 1;
         const isNowCompleted = newProgress >= challenge.target;
-        const progressRecordId = existingProgress ? existingProgress.id : `ucp_${randomUUID()}`;
 
         await tx
-          .insert(userChallengeProgress)
-          .values({
-            id: progressRecordId,
-            projectId,
-            userId,
-            challengeId: challenge.id,
+          .update(userChallengeProgress)
+          .set({
             progress: newProgress,
             completed: isNowCompleted,
             completedAt: isNowCompleted ? now : null,
             updatedAt: now,
           })
-          .onConflictDoUpdate({
-            target: [
-              userChallengeProgress.projectId,
-              userChallengeProgress.userId,
-              userChallengeProgress.challengeId,
-            ],
-            set: {
-              progress: newProgress,
-              completed: isNowCompleted,
-              completedAt: isNowCompleted ? now : null,
-              updatedAt: now,
-            },
-          });
+          .where(eq(userChallengeProgress.id, existingProgress.id));
 
-        // Step c: If newly completed, enqueue reward outbox & notification intent
-        if (isNowCompleted && !isAlreadyCompleted) {
+        // Step d: If newly completed, enqueue reward outbox & notification intent
+        if (isNowCompleted) {
           newlyCompleted = true;
 
-          // Deterministic source ID for challenge completion notification
-          const sourceId = generateChallengeCompletionSourceId(projectId, userId, challenge.id);
+          // Deterministic source ID for the notification. A repeating challenge completes once per period.
+          const sourceId = generateChallengeCompletionSourceId(
+            projectId,
+            userId,
+            period ? `${challenge.id}:${period}` : challenge.id
+          );
 
           await createNotificationIntent(tx, {
             projectId,
@@ -287,13 +311,11 @@ export async function processChallengesForEvent(
           });
 
           const rewards = (challenge.rewards || []) as ChallengeReward[];
-          for (let idx = 0; idx < rewards.length; idx++) {
-            const reward = rewards[idx];
+          for (const reward of rewards) {
             if (!reward) continue;
 
-            const outboxId = `cro_${randomUUID()}`;
             await tx.insert(challengeRewardOutbox).values({
-              id: outboxId,
+              id: `cro_${randomUUID()}`,
               projectId: eventData.projectId,
               challengeId: challenge.id,
               userId,
@@ -312,14 +334,12 @@ export async function processChallengesForEvent(
         newlyCompletedCount++;
       }
 
-      // Step d: Immediate post-commit dispatching unless skipped (e.g. for crash simulation tests)
+      // Step e: Immediate post-commit dispatching unless skipped (e.g. for crash simulation tests)
       if (!options?.skipImmediateRewardDispatch) {
         await dispatchPendingChallengeRewards(50);
       }
     } catch (chErr) {
-      log.error(`Error evaluating challenge ${challenge.id} for event ${eventData.id}:`,
-        chErr
-      );
+      log.error(`Error evaluating challenge ${challenge.id} for event ${eventData.id}:`, chErr);
     }
   }
 

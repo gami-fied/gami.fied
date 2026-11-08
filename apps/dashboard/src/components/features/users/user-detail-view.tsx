@@ -27,13 +27,14 @@ import {
 } from '@/components/ui/table';
 import { ArrowLeft, Coins, Flame, Gift, Medal, Trophy } from 'lucide-react';
 
-type Tab = 'overview' | 'ledger' | 'streaks' | 'achievements';
+type Tab = 'overview' | 'ledger' | 'streaks' | 'achievements' | 'challenges';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'ledger', label: 'XP ledger' },
   { id: 'streaks', label: 'Streaks' },
   { id: 'achievements', label: 'Achievements' },
+  { id: 'challenges', label: 'Challenges' },
 ];
 
 const LEDGER_PAGE_SIZE = 25;
@@ -78,6 +79,22 @@ interface StreakChange {
   freezesUsed: number;
   brokenStreak: number;
   createdAt: string;
+}
+
+interface ChallengeProgress {
+  challengeId: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  type?: 'counter' | 'steps';
+  recurrence?: 'daily' | 'weekly' | null;
+  periodEndsAt?: string | null;
+  completions?: number;
+  steps?: Array<{ name: string; done: boolean }> | null;
+  target: number;
+  progress: number;
+  completed: boolean;
+  percent: number;
 }
 
 interface AchievementProgress {
@@ -194,6 +211,11 @@ export function UserDetailView({ userId }: { userId: string }) {
   const history = useEndpoint<StreakChange[]>(
     base && tab === 'streaks' ? `${base}/streaks/history?limit=30` : null,
     (body: { data: StreakChange[] }) => body.data,
+    []
+  );
+  const challenges = useEndpoint<ChallengeProgress[]>(
+    base && tab === 'challenges' ? `${base}/challenges` : null,
+    (body: { challenges: ChallengeProgress[] }) => body.challenges.filter((item) => item.enabled),
     []
   );
   const progress = useEndpoint<AchievementProgress[]>(
@@ -407,6 +429,51 @@ export function UserDetailView({ userId }: { userId: string }) {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {tab === 'challenges' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-bold">Challenges</CardTitle>
+            <CardDescription>Where this user is on each running challenge. Repeating ones show the current run.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {challenges.loading && <Skeleton className="h-20 w-full" />}
+            {!challenges.loading && challenges.data.length === 0 && <p className="text-sm text-zinc-400">No challenges are running.</p>}
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {challenges.data.map((item) => (
+                <li key={item.challengeId} className="space-y-2 border border-zinc-800 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-semibold text-zinc-100">{item.name}</span>
+                    <span className="flex shrink-0 gap-1">
+                      {item.recurrence && <Badge variant="cyan">{item.recurrence === 'daily' ? 'Daily' : 'Weekly'}</Badge>}
+                      {item.completed && <Badge variant="emerald">Done</Badge>}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-zinc-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={item.percent} aria-label={`${item.name} progress`}>
+                    <div className="h-full bg-brand-500" style={{ width: `${item.percent}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-zinc-400">
+                    <span>
+                      {item.progress} / {item.target}
+                    </span>
+                    {item.recurrence && item.periodEndsAt && <span>Resets {formatRelativeTime(item.periodEndsAt)}</span>}
+                    {(item.completions ?? 0) > 0 && <span>Finished {item.completions}×</span>}
+                  </div>
+                  {item.steps && (
+                    <ol className="space-y-1 text-xs">
+                      {item.steps.map((step, index) => (
+                        <li key={`${step.name}-${index}`} className={step.done ? 'text-success-400' : 'text-zinc-400'}>
+                          {step.done ? '✓' : '○'} {step.name}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
       {tab === 'achievements' && progress.data.length > 0 && (

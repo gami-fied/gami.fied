@@ -1,4 +1,55 @@
-import { ChallengeInput, ChallengeReward } from './types.js';
+import { MAX_FILTERS, MAX_STEPS } from './steps.js';
+import { ChallengeFilter, ChallengeInput, ChallengeReward, ChallengeStep } from './types.js';
+
+const FILTER_OPERATORS = new Set([
+  'equals',
+  'not_equals',
+  'exists',
+  'not_exists',
+  'greater_than',
+  'greater_than_or_equal',
+  'less_than',
+  'less_than_or_equal',
+  'contains',
+  'starts_with',
+  'ends_with',
+  'in',
+  'not_in',
+]);
+
+function checkFilters(value: unknown, label: string, errors: string[]): ChallengeFilter[] | null {
+  if (value === undefined || value === null) return null;
+  if (!Array.isArray(value)) {
+    errors.push(`${label} must be a list`);
+    return null;
+  }
+  if (value.length > MAX_FILTERS) {
+    errors.push(`${label} can have at most ${MAX_FILTERS} conditions`);
+    return null;
+  }
+  const clean: ChallengeFilter[] = [];
+  value.forEach((item, index) => {
+    const filter = item as Record<string, unknown>;
+    if (!filter || typeof filter !== 'object' || typeof filter.field !== 'string' || !/^(payload|userId|type)(\.[A-Za-z0-9_-]+)*$/.test(filter.field)) {
+      errors.push(`${label} condition ${index + 1} needs a field such as "payload.score"`);
+      return;
+    }
+    if (typeof filter.operator !== 'string' || !FILTER_OPERATORS.has(filter.operator)) {
+      errors.push(`${label} condition ${index + 1} has an unsupported operator`);
+      return;
+    }
+    if ((filter.operator === 'in' || filter.operator === 'not_in') && !Array.isArray(filter.value)) {
+      errors.push(`${label} condition ${index + 1} needs a list of values`);
+      return;
+    }
+    clean.push({
+      field: filter.field,
+      operator: filter.operator,
+      ...(filter.operator !== 'exists' && filter.operator !== 'not_exists' ? { value: filter.value } : {}),
+    });
+  });
+  return clean.length > 0 ? clean : null;
+}
 
 export function validateChallengeInput(input: unknown): {
   valid: boolean;
@@ -38,20 +89,59 @@ export function validateChallengeInput(input: unknown): {
     errors.push('Name must be a non-empty string between 1 and 256 characters');
   }
 
-  // Trigger validation
-  const trigger = raw.trigger;
+  // Type validation
+  const type = raw.type ?? 'counter';
+  if (type !== 'counter' && type !== 'steps') {
+    errors.push(`Unsupported challenge type '${type}'. Use 'counter' or 'steps'`);
+  }
+
+  // Steps: ordered events, each with its own conditions
+  let steps: ChallengeStep[] | null = null;
+  if (type === 'steps') {
+    const stepsRaw = raw.steps;
+    if (!Array.isArray(stepsRaw) || stepsRaw.length < 2 || stepsRaw.length > MAX_STEPS) {
+      errors.push(`A steps challenge needs between 2 and ${MAX_STEPS} steps`);
+    } else {
+      steps = [];
+      stepsRaw.forEach((item, index) => {
+        const step = item as Record<string, unknown>;
+        if (!step || typeof step !== 'object') {
+          errors.push(`Step ${index + 1} must be an object`);
+          return;
+        }
+        if (typeof step.name !== 'string' || step.name.trim().length === 0 || step.name.length > 64) {
+          errors.push(`Step ${index + 1} needs a name of up to 64 characters`);
+        }
+        if (typeof step.event !== 'string' || step.event.trim().length === 0 || step.event.length > 128) {
+          errors.push(`Step ${index + 1} needs an event of up to 128 characters`);
+        }
+        const stepFilters = checkFilters(step.filters, `Step ${index + 1}`, errors);
+        if (typeof step.name === 'string' && typeof step.event === 'string') {
+          steps!.push({
+            name: step.name.trim(),
+            event: step.event.trim(),
+            ...(stepFilters ? { filters: stepFilters } : {}),
+          });
+        }
+      });
+    }
+  }
+  const filters = checkFilters(raw.filters, 'Conditions', errors);
+
+  // Trigger validation: a steps challenge starts with its first step's event
+  const trigger = type === 'steps' ? steps?.[0]?.event : raw.trigger;
   if (typeof trigger !== 'string' || trigger.trim().length === 0 || trigger.length > 128) {
     errors.push('Trigger must be a non-empty string between 1 and 128 characters');
   }
 
-  // Type validation
-  const type = raw.type ?? 'counter';
-  if (type !== 'counter') {
-    errors.push(`Unsupported challenge type '${type}'. Only 'counter' is supported`);
+  // Recurrence validation
+  const recurrence = raw.recurrence ?? null;
+  if (recurrence !== null && recurrence !== 'daily' && recurrence !== 'weekly') {
+    errors.push("Recurrence must be 'daily', 'weekly' or empty");
   }
 
-  // Target validation
-  const target = raw.target;
+  // Target validation: a steps challenge is done after its last step
+  const target = type === 'steps' ? steps?.length : raw.target;
   if (typeof target !== 'number' || !Number.isInteger(target) || target <= 0) {
     errors.push('Target must be a positive integer greater than 0');
   }
@@ -134,8 +224,11 @@ export function validateChallengeInput(input: unknown): {
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl.trim() : null,
     enabled: raw.enabled !== undefined ? Boolean(raw.enabled) : true,
     trigger: (trigger as string).trim(),
-    type: 'counter',
+    type: type as 'counter' | 'steps',
     target: target as number,
+    filters,
+    steps,
+    recurrence: recurrence as 'daily' | 'weekly' | null,
     startAt: startAtDate,
     endAt: endAtDate,
     rewards: validatedRewards,

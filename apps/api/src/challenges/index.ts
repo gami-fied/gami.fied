@@ -1,9 +1,50 @@
 import { randomUUID } from 'crypto';
 import { challenges, db, endUsers, userChallengeProgress } from '@gami/database';
-import { validateChallengeInput } from '@gami/challenges';
+import {
+  periodEnd,
+  periodKey,
+  validateChallengeInput,
+  type ChallengeRecurrence,
+  type ChallengeStep,
+} from '@gami/challenges';
+import type { UserChallengeProgress } from '@gami/database';
 import { and, eq, sql } from 'drizzle-orm';
 import { FastifyInstance } from 'fastify';
 import { requireProjectAccess } from '../authorization/index.js';
+
+type ChallengeRow = typeof challenges.$inferSelect;
+
+/**
+ * One challenge as a user sees it. A repeating challenge reads the row for the current period,
+ * so yesterday's finished quest shows as not started today, and `completions` keeps the history.
+ */
+function describeProgress(challenge: ChallengeRow, rows: UserChallengeProgress[], now: Date) {
+  const recurrence = challenge.recurrence as ChallengeRecurrence | null;
+  const period = periodKey(recurrence, now);
+  const current = rows.find((row) => row.challengeId === challenge.id && row.periodKey === period);
+  const progress = current?.progress ?? 0;
+  const steps = (challenge.steps as ChallengeStep[] | null) ?? null;
+
+  return {
+    challengeId: challenge.id,
+    key: challenge.key,
+    name: challenge.name,
+    description: challenge.description,
+    iconUrl: challenge.iconUrl,
+    enabled: challenge.enabled,
+    trigger: challenge.trigger,
+    type: challenge.type,
+    recurrence,
+    target: challenge.target,
+    progress,
+    completed: current?.completed ?? false,
+    completedAt: current?.completedAt ?? null,
+    percent: Math.min(100, Math.round((progress / challenge.target) * 100)),
+    periodEndsAt: periodEnd(recurrence, now),
+    completions: rows.filter((row) => row.challengeId === challenge.id && row.completed).length,
+    steps: steps?.map((step, index) => ({ name: step.name, event: step.event, done: index < progress })) ?? null,
+  };
+}
 
 export async function challengeRoutes(fastify: FastifyInstance) {
   // 1. POST /api/projects/:projectId/challenges (Create challenge)
@@ -51,7 +92,10 @@ export async function challengeRoutes(fastify: FastifyInstance) {
       iconUrl: input.iconUrl || null,
       enabled: input.enabled !== undefined ? input.enabled : true,
       trigger: input.trigger,
-      type: 'counter',
+      type: input.type ?? 'counter',
+      filters: input.filters ?? null,
+      steps: input.steps ?? null,
+      recurrence: input.recurrence ?? null,
       target: input.target,
       startAt: input.startAt ? new Date(input.startAt) : null,
       endAt: input.endAt ? new Date(input.endAt) : null,
@@ -210,6 +254,54 @@ export async function challengeRoutes(fastify: FastifyInstance) {
     if (typeof body.enabled === 'boolean') updateData.enabled = body.enabled;
     if (typeof body.trigger === 'string') updateData.trigger = body.trigger.trim();
     if (typeof body.target === 'number' && body.target > 0) updateData.target = body.target;
+
+    // The shape of a challenge (steps, conditions, how often it repeats) is checked as a whole.
+    const shapeChanged = ['type', 'steps', 'filters', 'recurrence'].some((key) => body[key] !== undefined);
+    if (shapeChanged || updateData.trigger !== undefined || updateData.target !== undefined) {
+      const merged = validateChallengeInput({
+        key: existing.key,
+        name: existing.name,
+        trigger: existing.trigger,
+        type: existing.type,
+        target: existing.target,
+        filters: existing.filters,
+        steps: existing.steps,
+        recurrence: existing.recurrence,
+        rewards: existing.rewards,
+        ...body,
+      });
+      if (!merged.valid || !merged.sanitized) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Invalid challenge definition',
+          errors: merged.errors,
+          statusCode: 400,
+        });
+      }
+
+      const structural = ['type', 'steps', 'recurrence'].some((key) => body[key] !== undefined);
+      if (structural) {
+        const [started] = await db
+          .select({ total: sql<number>`COUNT(*)::int` })
+          .from(userChallengeProgress)
+          .where(eq(userChallengeProgress.challengeId, challengeId));
+        const stepsChanged = JSON.stringify(merged.sanitized.steps) !== JSON.stringify(existing.steps);
+        if ((started?.total ?? 0) > 0 && (stepsChanged || merged.sanitized.type !== existing.type)) {
+          return reply.status(409).send({
+            error: 'Conflict',
+            message: 'Users have already made progress, so the steps cannot change. Create a new challenge instead.',
+            statusCode: 409,
+          });
+        }
+      }
+
+      updateData.type = merged.sanitized.type;
+      updateData.filters = merged.sanitized.filters ?? null;
+      updateData.steps = merged.sanitized.steps ?? null;
+      updateData.recurrence = merged.sanitized.recurrence ?? null;
+      updateData.trigger = merged.sanitized.trigger;
+      updateData.target = merged.sanitized.target;
+    }
     if (body.startAt !== undefined)
       updateData.startAt = body.startAt ? new Date(body.startAt as string) : null;
     if (body.endAt !== undefined)
@@ -300,25 +392,8 @@ export async function challengeRoutes(fastify: FastifyInstance) {
         )
       );
 
-    const progressMap = new Map(progressList.map((p) => [p.challengeId, p]));
-
-    const result = projectChallenges.map((ch) => {
-      const prog = progressMap.get(ch.id);
-      return {
-        challengeId: ch.id,
-        key: ch.key,
-        name: ch.name,
-        description: ch.description,
-        iconUrl: ch.iconUrl,
-        enabled: ch.enabled,
-        trigger: ch.trigger,
-        target: ch.target,
-        progress: prog ? prog.progress : 0,
-        completed: prog ? prog.completed : false,
-        completedAt: prog ? prog.completedAt : null,
-        percent: prog ? Math.min(100, Math.round((prog.progress / ch.target) * 100)) : 0,
-      };
-    });
+    const now = new Date();
+    const result = projectChallenges.map((ch) => describeProgress(ch, progressList, now));
 
     return reply.status(200).send({
       userId: targetUser.id,
@@ -367,7 +442,7 @@ export async function challengeRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const [prog] = await db
+    const rows = await db
       .select()
       .from(userChallengeProgress)
       .where(
@@ -378,16 +453,6 @@ export async function challengeRoutes(fastify: FastifyInstance) {
         )
       );
 
-    return reply.status(200).send({
-      challengeId: ch.id,
-      key: ch.key,
-      name: ch.name,
-      description: ch.description,
-      target: ch.target,
-      progress: prog ? prog.progress : 0,
-      completed: prog ? prog.completed : false,
-      completedAt: prog ? prog.completedAt : null,
-      percent: prog ? Math.min(100, Math.round((prog.progress / ch.target) * 100)) : 0,
-    });
+    return reply.status(200).send(describeProgress(ch, rows, new Date()));
   });
 }

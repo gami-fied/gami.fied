@@ -14,6 +14,7 @@ import {
   userChallengeProgress,
   userXpBalances,
 } from '@gami/database';
+import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
 import { getUserRank } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
 import { and, desc, eq, or } from 'drizzle-orm';
@@ -271,22 +272,47 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
 
-    const data = await db
-      .select({
-        key: challenges.key,
-        name: challenges.name,
-        target: challenges.target,
-        progress: userChallengeProgress.progress,
-        completed: userChallengeProgress.completed,
-      })
-      .from(userChallengeProgress)
-      .innerJoin(challenges, eq(userChallengeProgress.challengeId, challenges.id))
-      .where(
-        and(
-          eq(userChallengeProgress.projectId, context.projectId),
-          eq(userChallengeProgress.userId, context.userId)
-        )
-      );
+    // Open challenges, started or not, so a daily quest shows up before the player begins it.
+    const now = new Date();
+    const [open, rows] = await Promise.all([
+      db
+        .select()
+        .from(challenges)
+        .where(and(eq(challenges.projectId, context.projectId), eq(challenges.enabled, true)))
+        .orderBy(challenges.createdAt, challenges.id),
+      db
+        .select()
+        .from(userChallengeProgress)
+        .where(
+          and(
+            eq(userChallengeProgress.projectId, context.projectId),
+            eq(userChallengeProgress.userId, context.userId)
+          )
+        ),
+    ]);
+
+    const data = open
+      .filter((challenge) => !(challenge.startAt && challenge.startAt > now) && !(challenge.endAt && challenge.endAt <= now))
+      .map((challenge) => {
+        const recurrence = challenge.recurrence as ChallengeRecurrence | null;
+        const period = periodKey(recurrence, now);
+        const current = rows.find((row) => row.challengeId === challenge.id && row.periodKey === period);
+        const progress = current?.progress ?? 0;
+        const steps = (challenge.steps as ChallengeStep[] | null) ?? null;
+        return {
+          key: challenge.key,
+          name: challenge.name,
+          description: challenge.description,
+          iconUrl: challenge.iconUrl,
+          type: challenge.type,
+          recurrence,
+          target: challenge.target,
+          progress,
+          completed: current?.completed ?? false,
+          periodEndsAt: recurrence ? periodEnd(recurrence, now) : challenge.endAt,
+          steps: steps?.map((step, index) => ({ name: step.name, done: index < progress })) ?? null,
+        };
+      });
     return reply.send({ data });
   });
 

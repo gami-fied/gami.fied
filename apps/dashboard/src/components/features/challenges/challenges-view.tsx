@@ -38,6 +38,19 @@ import {
 } from 'lucide-react';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
+import { Dropdown } from '@/components/ui/dropdown';
+import { Repeat } from 'lucide-react';
+import {
+  apiToSteps,
+  ConditionRows,
+  conditionsToFilters,
+  emptyStep,
+  filtersToConditions,
+  StepRows,
+  stepsToApi,
+  type ConditionDraft,
+  type StepDraft,
+} from './challenge-form-parts';
 
 export function ChallengesView() {
   const { selectedProject } = useDashboard();
@@ -77,6 +90,10 @@ export function ChallengesView() {
     endAt: string;
     xpRewardAmount: number;
     achievementKey: string;
+    type: 'counter' | 'steps';
+    recurrence: '' | 'daily' | 'weekly';
+    conditions: ConditionDraft[];
+    steps: StepDraft[];
   }>({
     key: '',
     name: '',
@@ -87,6 +104,10 @@ export function ChallengesView() {
     endAt: '',
     xpRewardAmount: 0,
     achievementKey: '',
+    type: 'counter',
+    recurrence: '',
+    conditions: [],
+    steps: [emptyStep(), emptyStep()],
   });
 
   const openCreateModal = () => {
@@ -101,6 +122,10 @@ export function ChallengesView() {
       endAt: '',
       xpRewardAmount: 0,
       achievementKey: '',
+      type: 'counter',
+      recurrence: '',
+      conditions: [],
+      steps: [emptyStep(), emptyStep()],
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -122,6 +147,10 @@ export function ChallengesView() {
       endAt: ch.endAt ? new Date(ch.endAt).toISOString().slice(0, 16) : '',
       xpRewardAmount: xpRew ? xpRew.amount : 0,
       achievementKey: achRew ? achRew.achievementKey : '',
+      type: ch.type === 'steps' ? 'steps' : 'counter',
+      recurrence: (ch.recurrence as '' | 'daily' | 'weekly' | null) ?? '',
+      conditions: filtersToConditions(ch.filters),
+      steps: ch.type === 'steps' ? apiToSteps(ch.steps) : [emptyStep(), emptyStep()],
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -150,26 +179,22 @@ export function ChallengesView() {
 
       const method = isEdit ? 'PATCH' : 'POST';
 
-      const payload = isEdit
-        ? {
-            name: formData.name,
-            description: formData.description || null,
-            trigger: formData.trigger,
-            target: Number(formData.target),
-            startAt: formData.startAt ? new Date(formData.startAt).toISOString() : null,
-            endAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
-            rewards,
-          }
-        : {
-            key: formData.key,
-            name: formData.name,
-            description: formData.description || null,
-            trigger: formData.trigger,
-            target: Number(formData.target),
-            startAt: formData.startAt ? new Date(formData.startAt).toISOString() : null,
-            endAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
-            rewards,
-          };
+      const isSteps = formData.type === 'steps';
+      const shared = {
+        name: formData.name,
+        description: formData.description || null,
+        startAt: formData.startAt ? new Date(formData.startAt).toISOString() : null,
+        endAt: formData.endAt ? new Date(formData.endAt).toISOString() : null,
+        recurrence: formData.recurrence || null,
+        filters: conditionsToFilters(formData.conditions),
+        rewards,
+        // A steps challenge takes its trigger and target from its steps.
+        ...(isSteps
+          ? { type: 'steps', steps: stepsToApi(formData.steps) }
+          : { type: 'counter', trigger: formData.trigger, target: Number(formData.target) }),
+      };
+
+      const payload = isEdit ? shared : { key: formData.key, ...shared };
 
       const res = await apiFetch(url, {
         method,
@@ -390,7 +415,29 @@ export function ChallengesView() {
                             <div className="text-[11px] text-zinc-400 font-mono">{ch.key}</div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-brand-400">{ch.trigger}</TableCell>
+                        <TableCell className="text-xs text-brand-400">
+                          {ch.type === 'steps' ? (
+                            <div className="space-y-0.5">
+                              {(ch.steps ?? []).map((step, i) => (
+                                <div key={`${step.event}-${i}`}>
+                                  {i + 1}. {step.event}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            ch.trigger
+                          )}
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {ch.type === 'steps' && <Badge variant="blue">Steps</Badge>}
+                            {ch.recurrence && (
+                              <Badge variant="cyan">
+                                <Repeat className="mr-1 h-3 w-3" />
+                                {ch.recurrence === 'daily' ? 'Daily' : 'Weekly'}
+                              </Badge>
+                            )}
+                            {ch.filters && ch.filters.length > 0 && <Badge variant="zinc">{ch.filters.length} condition{ch.filters.length === 1 ? '' : 's'}</Badge>}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-bold text-xs text-zinc-200">
                           {ch.target}
                         </TableCell>
@@ -555,8 +602,8 @@ export function ChallengesView() {
       <Dialog
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingChallenge ? 'Edit Challenge' : 'Create Counter Challenge'}
-        description="Configure a new event-driven counter challenge for your project."
+        title={editingChallenge ? 'Edit Challenge' : 'Create Challenge'}
+        description="Count events up to a target, or give people a list of steps to finish in order. Either can repeat every day or week."
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
@@ -590,24 +637,74 @@ export function ChallengesView() {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Trigger Event Name"
-              placeholder="e.g. game.completed"
-              value={formData.trigger}
-              onChange={(e) => setFormData({ ...formData, trigger: e.target.value })}
-              required
-            />
-
-            <Input
-              label="Target Counter Threshold"
-              type="number"
-              min="1"
-              value={formData.target}
-              onChange={(e) => setFormData({ ...formData, target: Number(e.target.value) })}
-              required
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <span className="mb-1 block text-xs font-semibold text-zinc-300">Kind</span>
+              <Dropdown
+                options={[
+                  { value: 'counter', label: 'Count events', sublabel: 'For example, play 10 games' },
+                  { value: 'steps', label: 'Steps in order', sublabel: 'For example, sign up, then add a photo, then post' },
+                ]}
+                value={formData.type}
+                onChange={(val) => setFormData({ ...formData, type: val as 'counter' | 'steps' })}
+                disabled={Boolean(editingChallenge)}
+              />
+            </div>
+            <div>
+              <span className="mb-1 block text-xs font-semibold text-zinc-300">Repeats</span>
+              <Dropdown
+                options={[
+                  { value: '', label: 'Never', sublabel: 'Finished once' },
+                  { value: 'daily', label: 'Every day', sublabel: 'A new run each UTC day' },
+                  { value: 'weekly', label: 'Every week', sublabel: 'A new run each Monday, UTC' },
+                ]}
+                value={formData.recurrence}
+                onChange={(val) => setFormData({ ...formData, recurrence: val as '' | 'daily' | 'weekly' })}
+              />
+            </div>
           </div>
+
+          {formData.type === 'counter' ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Counts this event"
+                placeholder="e.g. game.completed"
+                value={formData.trigger}
+                onChange={(e) => setFormData({ ...formData, trigger: e.target.value })}
+                required
+              />
+
+              <Input
+                label="How many to finish"
+                type="number"
+                min="1"
+                value={formData.target}
+                onChange={(e) => setFormData({ ...formData, target: Number(e.target.value) })}
+                required
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <span className="block text-xs font-semibold text-zinc-300">Steps, in order</span>
+              <p className="text-xs text-zinc-500">
+                A step only counts once the ones before it are done. Add a condition to a step to look at the event&apos;s
+                details.
+              </p>
+              <StepRows steps={formData.steps} onChange={(steps) => setFormData({ ...formData, steps })} />
+            </div>
+          )}
+
+          {formData.type === 'counter' && (
+            <div className="space-y-2">
+              <span className="block text-xs font-semibold text-zinc-300">Only count events where (optional)</span>
+              <ConditionRows
+                conditions={formData.conditions}
+                onChange={(conditions) => setFormData({ ...formData, conditions })}
+                addLabel="Add a condition"
+                emptyHint="Every matching event counts."
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Input

@@ -28,6 +28,11 @@ export interface UserChallengeProgressItem {
   iconUrl: string | null;
   enabled: boolean;
   trigger: string;
+  type?: 'counter' | 'steps';
+  recurrence?: 'daily' | 'weekly' | null;
+  periodEndsAt?: string | null;
+  completions?: number;
+  steps?: Array<{ name: string; event: string; done: boolean }> | null;
   target: number;
   progress: number;
   completed: boolean;
