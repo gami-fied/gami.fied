@@ -61,7 +61,7 @@ describe('Milestone 5 - Core Event Infrastructure & E2E Integration Suite', () =
   });
 
   afterAll(async () => {
-    stopOutboxPoller();
+    await stopOutboxPoller();
     if (app) {
       await app.close();
     }
@@ -247,7 +247,7 @@ describe('Milestone 5 - Core Event Infrastructure & E2E Integration Suite', () =
         publishedOutbox?.status === 'published' || publishedOutbox?.status === 'pending'
       ).toBe(true);
 
-      stopOutboxPoller();
+      await stopOutboxPoller();
     });
   });
 });

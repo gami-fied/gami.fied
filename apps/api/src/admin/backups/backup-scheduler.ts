@@ -2,6 +2,9 @@ import { db, getPlatformSettings, platformBackups } from '@gami/database';
 import { getRedisConnection } from '@gami/queue';
 import { and, desc, eq } from 'drizzle-orm';
 import { createPlatformBackup, deletePlatformBackup } from './backup-service.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Backups');
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
 const SCHEDULER_ACTOR = 'backup-scheduler';
@@ -43,7 +46,7 @@ export function startBackupScheduler(): void {
   if (timer) return;
   timer = setInterval(() => {
     runScheduledBackup().catch((err: unknown) => {
-      console.error('[Backups] Scheduled backup failed:', (err as Error).message || err);
+      log.error('Scheduled backup failed:', (err as Error).message || err);
     });
   }, CHECK_INTERVAL_MS);
   timer.unref();

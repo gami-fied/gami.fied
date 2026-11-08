@@ -104,35 +104,42 @@ export async function challengeRoutes(fastify: FastifyInstance) {
       return true;
     }).length;
 
-    // Aggregate user progress stats
-    const progressRows = await db
-      .select()
+    // Progress totals and the most completed challenges, counted in the database so this stays
+    // cheap however many users have progress.
+    const [totals] = await db
+      .select({
+        started: sql<number>`COUNT(*)::int`,
+        finished: sql<number>`COUNT(*) FILTER (WHERE ${userChallengeProgress.completed})::int`,
+        users: sql<number>`COUNT(DISTINCT ${userChallengeProgress.userId})::int`,
+      })
       .from(userChallengeProgress)
       .where(eq(userChallengeProgress.projectId, projectId));
 
-    const totalCompletedInstances = progressRows.filter((p) => p.completed).length;
-    const uniqueUsersSet = new Set(progressRows.map((p) => p.userId));
-    const uniqueParticipatingUsers = uniqueUsersSet.size;
+    const totalCompletedInstances = totals?.finished ?? 0;
+    const uniqueParticipatingUsers = totals?.users ?? 0;
+    const startedCount = totals?.started ?? 0;
 
     const completionRate =
-      progressRows.length > 0
-        ? Math.round((totalCompletedInstances / progressRows.length) * 100)
-        : 0;
+      startedCount > 0 ? Math.round((totalCompletedInstances / startedCount) * 100) : 0;
 
-    // Top completed challenges
-    const completionCounts: Record<string, number> = {};
-    progressRows.forEach((p) => {
-      if (p.completed) {
-        completionCounts[p.challengeId] = (completionCounts[p.challengeId] || 0) + 1;
-      }
-    });
+    const completedRows = await db
+      .select({
+        challengeId: userChallengeProgress.challengeId,
+        completed: sql<number>`COUNT(*)::int`,
+      })
+      .from(userChallengeProgress)
+      .where(
+        and(eq(userChallengeProgress.projectId, projectId), eq(userChallengeProgress.completed, true))
+      )
+      .groupBy(userChallengeProgress.challengeId);
+    const completionCounts = new Map(completedRows.map((row) => [row.challengeId, row.completed]));
 
     const mostCompletedChallenges = allChallenges
       .map((c) => ({
         id: c.id,
         key: c.key,
         name: c.name,
-        completedCount: completionCounts[c.id] || 0,
+        completedCount: completionCounts.get(c.id) ?? 0,
       }))
       .sort((a, b) => b.completedCount - a.completedCount)
       .slice(0, 5);

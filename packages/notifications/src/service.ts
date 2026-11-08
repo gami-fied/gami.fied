@@ -15,6 +15,9 @@ import { and, eq } from 'drizzle-orm';
 import { renderEmailTemplate } from './email/templates.js';
 import { generateNotificationText } from './templates.js';
 import { CreateNotificationIntentParams, NotificationType } from './types.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Notifications');
 
 export type DBTransactionClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -192,7 +195,7 @@ export async function createNotificationIntent<T extends NotificationType>(
         }
       });
     } catch (err) {
-      console.error('[Notifications] Failed to queue integration deliveries:', err);
+      log.error('Failed to queue integration deliveries:', err);
     }
 
     return { status: 'created', notification: inserted };

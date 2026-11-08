@@ -2,6 +2,9 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from './client.js';
 import { serverConfigs } from './schema/index.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Settings');
 
 export const securitySettingsSchema = z.object({
   requireEmailOtpVerification: z.boolean().default(false),
@@ -114,7 +117,7 @@ export async function getPlatformSettings<K extends SettingsCategory>(
       .where(eq(serverConfigs.key, `${category}_config`));
     stored = row?.value ?? {};
   } catch (err) {
-    console.warn(`[Settings] Using defaults for ${category}:`, (err as Error).message);
+    log.warn(`Using defaults for ${category}:`, (err as Error).message);
   }
 
   const parsed = schema.safeParse(stored);

@@ -4,6 +4,24 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 [Semantic Versioning](https://semver.org), and the public API is the `/v1` routes described in
 [`docs/openapi.json`](docs/openapi.json).
 
+## [Unreleased]
+
+### Added
+
+- `GET /metrics` serves Prometheus metrics for the database, Redis, worker, delivery queues and HTTP traffic. Set `METRICS_BEARER_TOKEN`, or sign in as a platform admin. Sample alert rules are in `deploy/prometheus`.
+- Structured JSON logging with `LOG_LEVEL` and `LOG_FORMAT`, and event, project and rule IDs on worker log lines.
+- `WORKER_CONCURRENCY`, `DATABASE_POOL_MAX`, `OUTBOX_STEP_TIMEOUT_MS` and `SMTP_TIMEOUT_MS` settings.
+- `docs/operations.md` with monitoring, tuning and a runbook, and `docs/performance.md` with measurements.
+- `docs/permissions.md`, generated from the registered routes, with a test that fails when it drifts.
+- `scripts/load-test.mjs` and `scripts/benchmark-leaderboards.mjs`.
+
+### Changed
+
+- The all-time leaderboard reads from an index, so a page of 20 takes about 1.5 ms instead of about 185 ms at 100,000 users.
+- API key checks use one query, and `last_used_at` is written at most once a minute.
+- Level distribution and challenge summaries are counted in SQL.
+- The worker handles several events at once, and on shutdown waits for running jobs and the current poll.
+
 ## [1.0.0] - 2026-11-06
 
 The first public release of Gami.Fied Community Edition: a self-hosted engine that turns events from your app into XP, levels, achievements, challenges and leaderboards.

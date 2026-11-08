@@ -204,6 +204,13 @@
       "when": 1794100000000,
       "tag": "0028_project_allowed_origins",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794118779729,
+      "tag": "0029_leaderboard_inactive_users_index",
+      "breakpoints": true
     }
   ]
 }

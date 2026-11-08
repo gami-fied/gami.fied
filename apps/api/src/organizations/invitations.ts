@@ -13,6 +13,9 @@ import { createHash, randomBytes, randomUUID } from 'crypto';
 import { and, eq, gte } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { requireAuth, requireOrgRole, checkOrgSuspension } from '../authorization/index.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Invitations');
 
 export function hashInvitationToken(token: string): string {
   return createHash('sha256').update(token.trim()).digest('hex');
@@ -122,7 +125,7 @@ export async function organizationInvitationsRoutes(fastify: FastifyInstance) {
         availableAt: new Date(),
       });
     } catch (err) {
-      console.error('[Invitations] Error inserting email outbox intent:', (err as Error).message);
+      log.error('Error inserting email outbox intent:', (err as Error).message);
     }
 
     // Audit log
@@ -248,7 +251,7 @@ export async function organizationInvitationsRoutes(fastify: FastifyInstance) {
         availableAt: new Date(),
       });
     } catch (err) {
-      console.error('[Invitations] Error inserting email outbox intent on resend:', (err as Error).message);
+      log.error('Error inserting email outbox intent on resend:', (err as Error).message);
     }
 
     // Audit log

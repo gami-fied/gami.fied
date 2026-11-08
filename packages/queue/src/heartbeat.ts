@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 import { getRedisConnection } from './client.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('WorkerHeartbeat');
 
 export interface WorkerHeartbeatPayload {
   workerId: string;
@@ -36,7 +39,7 @@ export async function sendWorkerHeartbeat(status: 'alive' | 'stopping' = 'alive'
     await redis.set('gami:worker:latest_heartbeat', JSON.stringify(payload), 'EX', HEARTBEAT_TTL_SECONDS);
   } catch (err) {
     // Fail-safe: Heartbeat error should not crash worker
-    console.error('[WorkerHeartbeat] Failed to record heartbeat:', (err as Error).message);
+    log.error('Failed to record heartbeat:', (err as Error).message);
   }
 }
 

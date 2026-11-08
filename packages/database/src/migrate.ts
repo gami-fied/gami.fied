@@ -4,15 +4,18 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { closeDatabaseConnection, db } from './client.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('database');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function runMigrations() {
-  console.log('[database] Running migrations...');
+  log.info('Running migrations...');
   const migrationsFolder = path.resolve(__dirname, '../drizzle/migrations');
   await migrate(db, { migrationsFolder });
-  console.log('[database] Migrations applied successfully.');
+  log.info('Migrations applied successfully.');
 }
 
 export interface MigrationStatus {
@@ -42,7 +45,7 @@ if (process.argv[1]?.includes('migrate')) {
   runMigrations()
     .then(() => closeDatabaseConnection())
     .catch((err) => {
-      console.error('[database] Migration failed:', err);
+      log.error('Migration failed:', err);
       process.exit(1);
     });
 }

@@ -1,0 +1,70 @@
+# Sample Prometheus alert rules for Gami.Fied. Load them with `rule_files:` in prometheus.yml and
+# adjust the thresholds to your traffic. The metrics come from `GET /metrics` on the API.
+groups:
+  - name: gami
+    rules:
+      - alert: GamiApiDown
+        expr: up{job="gami-api"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: Prometheus cannot scrape the Gami.Fied API
+          runbook: docs/operations.md#the-api-is-down
+
+      - alert: GamiDatabaseDown
+        expr: gami_database_up == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: The API cannot reach PostgreSQL
+          runbook: docs/operations.md#the-database-or-redis-is-down
+
+      - alert: GamiRedisDown
+        expr: gami_redis_up == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: The API cannot reach Redis
+          runbook: docs/operations.md#the-database-or-redis-is-down
+
+      - alert: GamiWorkerStale
+        expr: gami_worker_up == 0
+        for: 3m
+        labels: { severity: critical }
+        annotations:
+          summary: No worker heartbeat, so events are not being processed
+          runbook: docs/operations.md#the-worker-is-stale
+
+      - alert: GamiOutboxLagging
+        expr: gami_outbox_oldest_pending_seconds > 300
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "The oldest {{ $labels.queue }} row has waited over 5 minutes"
+          runbook: docs/operations.md#work-is-piling-up
+
+      - alert: GamiOutboxFailures
+        expr: gami_outbox_rows{status="failed"} > 0
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value }} {{ $labels.queue }} deliveries have used all their retries"
+          runbook: docs/operations.md#failed-deliveries
+
+      - alert: GamiHighErrorRate
+        expr: |
+          sum(rate(gami_http_request_errors_total[5m])) / clamp_min(sum(rate(gami_http_requests_total[5m])), 1) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: More than 5% of API responses are errors
+          runbook: docs/operations.md#the-api-is-down
+
+      - alert: GamiSlowRequests
+        expr: |
+          sum(rate(gami_http_request_duration_seconds_sum[5m])) / clamp_min(sum(rate(gami_http_request_duration_seconds_count[5m])), 1) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Average API response time is over 1 second
+          runbook: docs/operations.md#the-api-is-slow

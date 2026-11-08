@@ -76,7 +76,7 @@ Checks live connectivity to PostgreSQL database and Redis cache. Returns `200 OK
 
 ## 4. Monitoring
 
-There's no Prometheus endpoint yet. Use these instead:
+The API serves Prometheus metrics at `GET /metrics`, with sample alert rules in `deploy/prometheus`. Setup, logging, tuning and a runbook are in [Operations](./operations.md). Built-in views:
 
 - **Platform Health** (`/admin/system`) shows the database, Redis, queues, workers and API traffic. `GET /api/admin/system` returns the same data for platform admins.
 - **Delivery Health** (`/dashboard/system`) shows each project's queues and failures.

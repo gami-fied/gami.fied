@@ -60,6 +60,9 @@ export async function createApiKey(
   };
 }
 
+/** How stale `last_used_at` may get. Writing it on every request costs more than it tells anyone. */
+const LAST_USED_REFRESH_MS = 60_000;
+
 export async function authenticateApiKey(rawSecret: string) {
   if (!rawSecret || !rawSecret.startsWith('gami_live_')) {
     return null;
@@ -67,39 +70,33 @@ export async function authenticateApiKey(rawSecret: string) {
 
   const keyHash = hashApiKey(rawSecret);
 
-  const [keyRecord] = await db
-    .select()
+  // One query for the key, its project and the organization's status. Every API call starts here.
+  const [row] = await db
+    .select({ key: apiKeys, project: projects, organizationStatus: organizations.status })
     .from(apiKeys)
+    .innerJoin(projects, eq(projects.id, apiKeys.projectId))
+    .innerJoin(organizations, eq(organizations.id, projects.organizationId))
     .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)));
 
-  if (!keyRecord) {
+  if (!row) {
     return null;
   }
 
-  // Check expiration
-  if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
+  const { key, project, organizationStatus } = row;
+
+  if (key.expiresAt && new Date(key.expiresAt) < new Date()) {
     return null;
   }
 
-  // Asynchronously update last_used_at
-  db.update(apiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiKeys.id, keyRecord.id))
-    .catch(() => {
-      // Ignore background update errors
-    });
-
-  const [project] = await db.select().from(projects).where(eq(projects.id, keyRecord.projectId));
-
-  if (!project) {
-    return null;
+  const lastUsed = key.lastUsedAt ? new Date(key.lastUsedAt).getTime() : 0;
+  if (Date.now() - lastUsed > LAST_USED_REFRESH_MS) {
+    db.update(apiKeys)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(apiKeys.id, key.id))
+      .catch(() => {
+        // A failed update only makes "last used" a little stale.
+      });
   }
 
-  // Verify Organization status
-  const [org] = await db.select().from(organizations).where(eq(organizations.id, project.organizationId));
-  if (!org || org.status === 'suspended') {
-    return { key: keyRecord, project, isSuspended: true };
-  }
-
-  return { key: keyRecord, project, isSuspended: false };
+  return { key, project, isSuspended: organizationStatus === 'suspended' };
 }

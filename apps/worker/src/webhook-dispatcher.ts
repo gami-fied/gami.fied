@@ -21,6 +21,9 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { getActiveSmtpProvider } from './email-notification-dispatcher.js';
 import { claimDueRows, reclaimStaleRows } from './outbox.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('WebhookDispatcher');
 
 export const STALE_WEBHOOK_PROCESSING_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 export const MAX_CONCURRENT_WEBHOOK_ENDPOINTS = 10;
@@ -154,8 +157,7 @@ async function sendToEndpoint(
     }
   } catch (err: unknown) {
     // Claimed rows left behind here go back to pending through the stale reclaim.
-    console.error(
-      `[WebhookDispatcher] Failed to save results for endpoint ${records[0]?.endpointId}:`,
+    log.error(`Failed to save results for endpoint ${records[0]?.endpointId}:`,
       (err as Error).message || err
     );
   }
@@ -344,8 +346,7 @@ async function notifyOwnersOfDisabledEndpoint(endpoint: WebhookEndpoint): Promis
       });
     }
   } catch (err: unknown) {
-    console.error(
-      `[WebhookDispatcher] Could not notify owners about endpoint ${endpoint.id}:`,
+    log.error(`Could not notify owners about endpoint ${endpoint.id}:`,
       (err as Error).message || err
     );
   }

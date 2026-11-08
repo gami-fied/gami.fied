@@ -1,4 +1,4 @@
-import { validateProductionConfig } from '@gami/config';
+import { validateProductionConfig, createLogger } from '@gami/config';
 import {
   getQueueConfig,
   getRedisConnection,
@@ -11,6 +11,8 @@ import { startMaintenance, stopMaintenance } from './maintenance.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
 
+const log = createLogger('Worker');
+
 validateProductionConfig(process.env, { service: 'worker' });
 
 const cfg = getQueueConfig();
@@ -21,34 +23,58 @@ startOutboxPoller();
 startWorkerHeartbeat();
 startMaintenance();
 
+/** Jobs processed at once. Each holds a database connection while it works. */
+const concurrency = Math.min(50, Math.max(1, Number(process.env['WORKER_CONCURRENCY']) || 4));
+
 export const worker = new Worker<{ eventId: string; replay?: boolean }>(
   cfg.queueName,
   async (job) => {
     const { eventId, replay } = job.data;
-    console.log(`[Worker] Processing BullMQ job ${job.id} for event ${eventId}`);
+    const jobLog = log.child({ jobId: job.id, eventId });
+    jobLog.info('Job started', { replay: Boolean(replay), attempt: job.attemptsMade + 1 });
+    const started = Date.now();
     const result = await processEventJob(eventId, { replay });
     recordWorkerActivity();
-    console.log(`[Worker] Finished processing event ${eventId}:`, result);
+    jobLog.info('Job finished', { ...result, ms: Date.now() - started });
     return result;
   },
-  { connection }
+  { connection, concurrency }
 );
 
 worker.on('failed', (job, err) => {
-  console.error(`[Worker] Job ${job?.id} failed with error:`, err);
+  log.error('Job failed', { jobId: job?.id, eventId: job?.data?.eventId, attempt: job?.attemptsMade }, err);
 });
 
-console.log(`🚀 [Worker] Event Worker listening on queue: ${cfg.queueName}`);
+log.info('Worker listening', { queue: cfg.queueName, concurrency });
+
+/** Longest a shutdown waits for running work before giving up, so a stuck job can't block it. */
+const SHUTDOWN_GRACE_MS = 30_000;
+
+let shuttingDown = false;
 
 const handleShutdown = async (signal: string) => {
-  console.log(`[Worker] Gracefully closing worker on ${signal}...`);
-  stopOutboxPoller();
-  stopWorkerHeartbeat();
-  stopMaintenance();
-  await worker.close();
-  await connection.quit();
-  process.exit(0);
+  if (shuttingDown) return;
+  shuttingDown = true;
+  log.info('Shutting down', { signal });
+
+  const finish = (async () => {
+    // Stop taking new work first, then let what is running finish.
+    stopWorkerHeartbeat();
+    await Promise.all([worker.close(), stopOutboxPoller(), stopMaintenance()]);
+    await connection.quit();
+  })();
+  const timeout = new Promise<'timeout'>((resolve) =>
+    setTimeout(() => resolve('timeout'), SHUTDOWN_GRACE_MS).unref()
+  );
+
+  const outcome = await Promise.race([finish.then(() => 'done' as const), timeout]);
+  if (outcome === 'timeout') {
+    log.error('Work still running after the grace period, exiting anyway', {
+      graceSeconds: SHUTDOWN_GRACE_MS / 1000,
+    });
+  }
+  process.exit(outcome === 'done' ? 0 : 1);
 };
 
-process.on('SIGTERM', () => handleShutdown('SIGTERM'));
-process.on('SIGINT', () => handleShutdown('SIGINT'));
+process.on('SIGTERM', () => void handleShutdown('SIGTERM'));
+process.on('SIGINT', () => void handleShutdown('SIGINT'));

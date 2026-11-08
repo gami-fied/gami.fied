@@ -1,0 +1,15 @@
+# A minimal scrape config. Keep the token in a file that is not under version control.
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  - job_name: gami-api
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/gami-metrics-token
+    static_configs:
+      - targets: ['api.example.com:3001']

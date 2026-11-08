@@ -16,6 +16,9 @@ import { createWebhookDelivery } from '@gami/webhooks';
 import { EventData } from '@gami/rules';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import { exponentialBackoffMs } from './outbox.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('ChallengeProcessor');
 
 type ChallengeRewardOutbox = typeof challengeRewardOutbox.$inferSelect;
 
@@ -314,8 +317,7 @@ export async function processChallengesForEvent(
         await dispatchPendingChallengeRewards(50);
       }
     } catch (chErr) {
-      console.error(
-        `[ChallengeProcessor] Error evaluating challenge ${challenge.id} for event ${eventData.id}:`,
+      log.error(`Error evaluating challenge ${challenge.id} for event ${eventData.id}:`,
         chErr
       );
     }

@@ -14,6 +14,9 @@ import {
 import { getRedisConnection } from '@gami/queue';
 import { and, inArray, lt, notInArray, type SQL } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Maintenance');
 
 const MAINTENANCE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const MAINTENANCE_LOCK_KEY = 'maintenance:retention:lock';
@@ -22,6 +25,7 @@ const OPEN_STATUSES = ['pending', 'processing'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 let timer: NodeJS.Timeout | null = null;
+let running: Promise<void> | null = null;
 
 /** Deletes in small batches, so a large backlog never holds long locks. */
 async function deleteInBatches(
@@ -103,19 +107,28 @@ async function runMaintenance(): Promise<void> {
     if (!acquired) return;
 
     const deleted = await pruneExpiredData();
-    console.log('[Maintenance] Retention pass complete:', deleted);
+    log.info('Retention pass complete:', deleted);
   } catch (err: unknown) {
-    console.error('[Maintenance] Retention pass failed:', (err as Error).message || err);
+    log.error('Retention pass failed:', (err as Error).message || err);
   }
+}
+
+function runTracked(): void {
+  const current = runMaintenance().finally(() => {
+    if (running === current) running = null;
+  });
+  running = current;
 }
 
 export function startMaintenance(): void {
   if (timer) return;
-  void runMaintenance();
-  timer = setInterval(() => void runMaintenance(), MAINTENANCE_INTERVAL_MS);
+  runTracked();
+  timer = setInterval(runTracked, MAINTENANCE_INTERVAL_MS);
 }
 
-export function stopMaintenance(): void {
+/** Stops the schedule, and waits for a pass that is already running. */
+export async function stopMaintenance(): Promise<void> {
   if (timer) clearInterval(timer);
   timer = null;
+  await running;
 }

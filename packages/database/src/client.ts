@@ -13,7 +13,8 @@ const connectionString = isTestEnv
   : process.env['DATABASE_URL'] || defaultDevUrl;
 
 export const queryClient = postgres(connectionString, {
-  max: isTestEnv ? 5 : 10,
+  // Raise this for a worker with high concurrency, and keep it under what PostgreSQL allows.
+  max: Number(process.env['DATABASE_POOL_MAX']) || (isTestEnv ? 5 : 10),
   idle_timeout: 20,
   connect_timeout: 10,
 });

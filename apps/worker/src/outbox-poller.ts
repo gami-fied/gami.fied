@@ -14,9 +14,34 @@ import { dispatchPendingEmailNotifications } from './email-notification-dispatch
 import { dispatchPendingIntegrations } from './integration-dispatcher.js';
 import { dispatchPendingNotifications } from './notification-dispatcher.js';
 import { dispatchPendingWebhooks } from './webhook-dispatcher.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('OutboxPoller');
+
+/** Longest one delivery step may take, so a hung channel can't hold up the rest or shutdown. */
+const stepTimeoutMs = () => Number(process.env['OUTBOX_STEP_TIMEOUT_MS']) || 60_000;
+
+async function withStepTimeout<T>(name: string, run: () => Promise<T>): Promise<T> {
+  const limit = stepTimeoutMs();
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${name} took longer than ${limit}ms`)), limit);
+  });
+  try {
+    return await Promise.race([run(), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 let pollerTimer: NodeJS.Timeout | null = null;
 let isPolling = false;
+let inFlight: Promise<unknown> | null = null;
+
+/** Whether an iteration is running right now. */
+export function isOutboxPolling(): boolean {
+  return isPolling;
+}
 
 /**
  * Reclaims records stuck in 'processing' status > 5 minutes back to 'pending'
@@ -82,7 +107,7 @@ export async function reclaimStaleOutboxRecords(staleThresholdMs = 5 * 60 * 1000
       .returning({ id: integrationDeliveries.id });
     staleIntegrationsCount = resIntg.length;
   } catch (err: unknown) {
-    console.error('[OutboxPoller] Error reclaiming stale outbox records:', (err as Error).message || err);
+    log.error('Error reclaiming stale outbox records:', (err as Error).message || err);
   }
 
   return {
@@ -130,95 +155,95 @@ export async function pollOutboxIteration(batchLimit = 50): Promise<{
     await reclaimStaleOutboxRecords();
 
     // 1. Dispatch pending outbox events to BullMQ
-    publishedEventsCount = await dispatchPendingOutboxEvents(batchLimit);
+    publishedEventsCount = await withStepTimeout('event publishing', () =>
+      dispatchPendingOutboxEvents(batchLimit)
+    );
     if (publishedEventsCount > 0) {
-      console.log(
-        `[OutboxPoller] Successfully dispatched ${publishedEventsCount} pending outbox event(s) to BullMQ.`
+      log.info(`Successfully dispatched ${publishedEventsCount} pending outbox event(s) to BullMQ.`
       );
     }
   } catch (err: unknown) {
-    console.error(
-      '[OutboxPoller] Error during event outbox dispatch iteration:',
+    log.error('Error during event outbox dispatch iteration:',
       (err as Error).message || err
     );
   }
 
   try {
     // 2. Dispatch pending challenge rewards
-    const croStats = await dispatchPendingChallengeRewards(batchLimit);
+    const croStats = await withStepTimeout('challenge rewards', () =>
+      dispatchPendingChallengeRewards(batchLimit)
+    );
     completedChallengeRewardsCount = croStats.completedCount;
     if (croStats.completedCount > 0) {
-      console.log(
-        `[OutboxPoller] Successfully completed ${croStats.completedCount} challenge reward outbox record(s).`
+      log.info(`Successfully completed ${croStats.completedCount} challenge reward outbox record(s).`
       );
     }
   } catch (err: unknown) {
-    console.error(
-      '[OutboxPoller] Error during challenge reward outbox dispatch iteration:',
+    log.error('Error during challenge reward outbox dispatch iteration:',
       (err as Error).message || err
     );
   }
 
   try {
     // 3. Dispatch pending in-app notifications
-    const stats = await dispatchPendingNotifications(batchLimit);
+    const stats = await withStepTimeout('notifications', () =>
+      dispatchPendingNotifications(batchLimit)
+    );
     completedNotificationsCount = stats.completedCount;
     if (stats.completedCount > 0) {
-      console.log(
-        `[OutboxPoller] Successfully dispatched ${stats.completedCount} in-app notification(s).`
+      log.info(`Successfully dispatched ${stats.completedCount} in-app notification(s).`
       );
     }
   } catch (err: unknown) {
-    console.error(
-      '[OutboxPoller] Error during notification outbox dispatch iteration:',
+    log.error('Error during notification outbox dispatch iteration:',
       (err as Error).message || err
     );
   }
 
   try {
     // 4. Dispatch pending email notifications
-    const emailStats = await dispatchPendingEmailNotifications(batchLimit);
+    const emailStats = await withStepTimeout('email', () =>
+      dispatchPendingEmailNotifications(batchLimit)
+    );
     completedEmailNotificationsCount = emailStats.completedCount;
     if (emailStats.completedCount > 0) {
-      console.log(
-        `[OutboxPoller] Successfully dispatched ${emailStats.completedCount} email notification(s).`
+      log.info(`Successfully dispatched ${emailStats.completedCount} email notification(s).`
       );
     }
   } catch (err: unknown) {
-    console.error(
-      '[OutboxPoller] Error during email notification outbox dispatch iteration:',
+    log.error('Error during email notification outbox dispatch iteration:',
       (err as Error).message || err
     );
   }
 
   try {
     // 5. Dispatch pending external webhooks
-    const whStats = await dispatchPendingWebhooks(batchLimit);
+    const whStats = await withStepTimeout('webhooks', () =>
+      dispatchPendingWebhooks(batchLimit)
+    );
     deliveredWebhooksCount = whStats.deliveredCount;
     if (whStats.deliveredCount > 0) {
-      console.log(
-        `[OutboxPoller] Successfully delivered ${whStats.deliveredCount} webhook(s).`
+      log.info(`Successfully delivered ${whStats.deliveredCount} webhook(s).`
       );
     }
   } catch (err: unknown) {
-    console.error(
-      '[OutboxPoller] Error during webhook outbox dispatch iteration:',
+    log.error('Error during webhook outbox dispatch iteration:',
       (err as Error).message || err
     );
   }
 
   try {
     // 6. Dispatch pending external integration deliveries (e.g. Discord)
-    const intgStats = await dispatchPendingIntegrations(batchLimit);
+    const intgStats = await withStepTimeout('integrations', () =>
+      dispatchPendingIntegrations(batchLimit)
+    );
     completedIntegrationsCount = intgStats.completed;
     if (intgStats.completed > 0) {
-      console.log(
-        `[OutboxPoller] Successfully completed ${intgStats.completed} integration delivery(ies).`
+      log.info(`Successfully completed ${intgStats.completed} integration delivery(ies).`
       );
     }
   } catch (err: unknown) {
-    console.error(
-      '[OutboxPoller] Error during integration delivery dispatch iteration:',
+    log.error('Error during integration delivery dispatch iteration:',
       (err as Error).message || err
     );
   } finally {
@@ -246,20 +271,27 @@ export function startOutboxPoller(intervalMs?: number, batchLimit = 50): void {
   const queueConfig = getQueueConfig() as unknown as Record<string, unknown>;
   const effectiveInterval = intervalMs || (queueConfig.pollIntervalMs as number) || 2000;
 
-  pollerTimer = setInterval(async () => {
-    await pollOutboxIteration(batchLimit);
+  pollerTimer = setInterval(() => {
+    // A tick that finds a poll still running must not replace the one shutdown has to wait for.
+    if (isPolling) return;
+    const run = pollOutboxIteration(batchLimit).finally(() => {
+      if (inFlight === run) inFlight = null;
+    });
+    inFlight = run;
   }, effectiveInterval);
 
-  console.log(`[OutboxPoller] Outbox polling started (interval: ${effectiveInterval}ms).`);
+  log.info(`Outbox polling started (interval: ${effectiveInterval}ms).`);
 }
 
 /**
- * Stops the background outbox polling loop gracefully.
+ * Stops the polling loop, then waits for an iteration that is already running, so shutdown
+ * doesn't cut a batch of deliveries in half.
  */
-export function stopOutboxPoller(): void {
+export async function stopOutboxPoller(): Promise<void> {
   if (pollerTimer) {
     clearInterval(pollerTimer);
     pollerTimer = null;
-    console.log('[OutboxPoller] Outbox polling stopped.');
+    log.info('Outbox polling stopped.');
   }
+  await inFlight?.catch(() => undefined);
 }

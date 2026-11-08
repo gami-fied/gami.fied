@@ -7,7 +7,7 @@ import { startBackupScheduler } from './admin/backups/backup-scheduler.js';
 import { unsubscribeRoutes } from './notifications/unsubscribe.js';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import { defaultConfig, product, validateProductionConfig } from '@gami/config';
+import { defaultConfig, product, validateProductionConfig, createLogger } from '@gami/config';
 import { checkDatabaseHealth, runMigrations } from '@gami/database';
 import { checkRedisHealth } from '@gami/queue';
 import Fastify from 'fastify';
@@ -44,10 +44,13 @@ import { projectRoutes } from './projects/index.js';
 import { ruleRoutes } from './rules/index.js';
 import { systemObservabilityRoutes } from './system/index.js';
 import { processMetrics } from './system/metrics-collector.js';
+import { metricsRoutes } from './system/prometheus.js';
 import { integrationRoutes } from './integrations/index.js';
 import { userRoutes } from './users/index.js';
 import { webhookRoutes } from './webhooks/index.js';
 import { xpRoutes } from './xp/index.js';
+
+const log = createLogger('API');
 
 import fs from 'fs';
 import path from 'path';
@@ -57,6 +60,9 @@ import { globalErrorHandler } from './middleware/error-handler.js';
 import { ipRateLimitHook } from './middleware/rate-limiter.js';
 import { requestTracingHook } from './middleware/request-tracing.js';
 
+/** Routes registered by the most recent `buildServer` calls, used to generate documentation. */
+export const registeredRoutes: { method: string; url: string }[] = [];
+
 export async function buildServer() {
   const fastify = Fastify({
     logger: {
@@ -65,6 +71,11 @@ export async function buildServer() {
     bodyLimit: 65536, // Enforce 64KB max request body limit across API
     // Only honour X-Forwarded-* when a trusted reverse proxy sets them.
     trustProxy: process.env.TRUST_PROXY === 'true',
+  });
+
+  // Remember every route so documentation can be generated from what is actually registered
+  fastify.addHook('onRoute', (route) => {
+    for (const method of [route.method].flat()) registeredRoutes.push({ method, url: route.url });
   });
 
   // Request tracing & correlation ID propagation
@@ -264,6 +275,7 @@ export async function buildServer() {
 
   // Register System Observability & Metrics endpoints
   await fastify.register(systemObservabilityRoutes);
+  await fastify.register(metricsRoutes);
 
   // Register Project Onboarding Checklist backend endpoint
   await fastify.register(projectOnboardingRoutes);
@@ -309,7 +321,7 @@ async function start() {
   try {
     await runMigrations();
   } catch (err) {
-    console.error('[API] Migration failed, refusing to start:', err);
+    log.error('Migration failed, refusing to start:', err);
     process.exit(1);
   }
   const app = await buildServer();

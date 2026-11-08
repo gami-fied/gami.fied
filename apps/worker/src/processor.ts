@@ -7,6 +7,9 @@ import {
   dispatchPendingChallengeRewards,
   processChallengesForEvent,
 } from './challenge-processor.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Processor');
 
 export async function processEventJob(
   eventId: string,
@@ -20,7 +23,7 @@ export async function processEventJob(
   const [evt] = await db.select().from(events).where(eq(events.id, eventId));
 
   if (!evt) {
-    console.warn(`[Processor] Warning: Event ${eventId} not found in database. Skipping job.`);
+    log.warn('Event not found, skipping job', { eventId });
     return {
       eventId,
       processedRulesCount: 0,
@@ -50,9 +53,8 @@ export async function processEventJob(
     )
     .orderBy(asc(rules.createdAt), asc(rules.id));
 
-  console.log(
-    `[Processor] Processing event ${evt.id} (${evt.type}) for project ${evt.projectId}. Evaluating ${projectRules.length} enabled rules...`
-  );
+  const eventLog = log.child({ eventId: evt.id, projectId: evt.projectId });
+  eventLog.info('Processing event', { type: evt.type, rules: projectRules.length });
 
   let completedCount = 0;
 
@@ -69,14 +71,14 @@ export async function processEventJob(
     await processChallengesForEvent(eventData);
     await dispatchPendingChallengeRewards(50);
   } catch (chErr) {
-    console.error(`[Processor] Error processing challenges for event ${evt.id}:`, chErr);
+    eventLog.error('Challenge processing failed', chErr);
   }
 
   // 5. Dispatch pending notifications with Failure Isolation
   try {
     await dispatchPendingNotifications(50);
   } catch (notifErr) {
-    console.error(`[Processor] Error dispatching notifications for event ${evt.id}:`, notifErr);
+    eventLog.error('Notification dispatch failed', notifErr);
   }
 
   return {

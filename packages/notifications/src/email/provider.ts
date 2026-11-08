@@ -1,5 +1,10 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { EmailMessage, EmailProvider, SmtpConfig } from './types.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('SmtpEmailProvider');
+
+const smtpTimeoutMs = () => Number(process.env.SMTP_TIMEOUT_MS) || 10_000;
 
 export class SmtpEmailProvider implements EmailProvider {
   private transporter: Transporter;
@@ -20,6 +25,10 @@ export class SmtpEmailProvider implements EmailProvider {
             pass: config.password || '',
           }
         : undefined,
+      // Without these, a mail server that stops answering holds the worker for minutes.
+      connectionTimeout: smtpTimeoutMs(),
+      greetingTimeout: smtpTimeoutMs(),
+      socketTimeout: smtpTimeoutMs() * 3,
       tls: {
         // Certificates are verified unless an operator opts out for a self-signed server.
         rejectUnauthorized: process.env.SMTP_ALLOW_SELF_SIGNED !== 'true',
@@ -44,7 +53,7 @@ export class SmtpEmailProvider implements EmailProvider {
       await this.transporter.verify();
       return true;
     } catch (err) {
-      console.error('[SmtpEmailProvider] SMTP Connection verification failed:', (err as Error).message);
+      log.error('SMTP Connection verification failed:', (err as Error).message);
       return false;
     }
   }

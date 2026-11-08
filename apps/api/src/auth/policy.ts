@@ -3,6 +3,9 @@ import { auth, db, getPlatformSettings, invitation, users } from '@gami/database
 import { getRedisConnection } from '@gami/queue';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { consumeRateLimit } from '../middleware/rate-limiter.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Auth');
 
 export interface AuthPolicyDenial {
   status: number;
@@ -138,6 +141,6 @@ export async function recordSignInResult(email: string, succeeded: boolean): Pro
     await redis.incr(key);
     await redis.expire(key, lockoutDurationMinutes * 60);
   } catch (err) {
-    console.warn('[Auth] Could not record sign-in result:', (err as Error).message);
+    log.warn('Could not record sign-in result:', (err as Error).message);
   }
 }

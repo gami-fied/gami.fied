@@ -27,7 +27,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 3 | Make every promise true | 24 / 27 | In progress, 3 partly done |
 | 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
-| 6 | Scale and operations | 6 / 21 | In progress, 3 partly done |
+| 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 0 / 26 | Not started |
 | 8 | Launch and community | 0 / 11 | Not started |
 
@@ -160,7 +160,7 @@ This table is the state at audit time. The Phase 0 items above show what has cha
 - [x] **SEC-08** `P0` Project API keys get `owner` over the whole organization at [authorization/index.ts:102](apps/api/src/authorization/index.ts:102). One leaked key can delete the organization, export every project, or manage members. Block API keys from all organization routes. `[code]` Done. This is a breaking change: `gami.organizations` in the SDK now needs a signed-in session.
 - [x] **SEC-09** `P0` API keys get `admin` on project routes at [authorization/index.ts:239](apps/api/src/authorization/index.ts:239), so a key can mint more keys, delete the project, and create webhooks that exfiltrate data. Key management must require a user session. `[code]`
 - [x] **SEC-10** `P1` Any project `member` can create, edit or delete rules, which award XP. [rules/index.ts](apps/api/src/rules/index.ts) has no role check, unlike levels and challenges. `[ran]`
-- [~] **SEC-11** `P1` Replace scattered role checks with one declarative permission map, so a missing check is impossible. Generate the docs matrix from it. `[code]` Done: `apps/api/src/authorization/permissions.ts` protects new routes by default. Left: remove the older checks that now duplicate it, and generate the docs matrix (TRUTH-08).
+- [~] **SEC-11** `P1` Replace scattered role checks with one declarative permission map, so a missing check is impossible. Generate the docs matrix from it. `[code]` Done: `apps/api/src/authorization/permissions.ts` protects new routes by default. The docs matrix is now generated from the registered routes (`docs/permissions.md`), and a test fails when it drifts. Left: remove the older checks that now duplicate the map.
 - [x] **SEC-12** `P1` Cross-tenant write. [xp/index.ts:161](apps/api/src/xp/index.ts:161) inserts the path `userId` with `onConflictDoNothing`, and the ledger foreign key has no project check. A user ID from another project passes. Verify the user belongs to the project, and add composite foreign keys. `[code]` Done. An adjustment for an unknown user now returns 404 instead of creating one, and four tables have composite foreign keys.
 - [x] **SEC-13** `P1` Add key expiry and scopes to the create route and dashboard, plus rotation with an overlap window. List responses should include scopes and expiry. `[code]`
 - [-] **SEC-14** `P2` Separate test and live keys by environment. `[code]` Dropped here: it depends on project environments, so it moves to FEAT-17.
@@ -429,10 +429,10 @@ From the audit of 6 November 2026. `[ran]` was measured on a production build, a
 
 ### 6.1 Performance
 
-- [ ] **OPS-01** `P1` Run a load test and publish results for ingestion, worker throughput and leaderboards.
-- [ ] **OPS-02** `P1` Back leaderboards with Redis sorted sets, and rebuild them from the ledger. Every read currently scans and ranks all project users.
-- [ ] **OPS-03** `P1` Replace in-memory aggregation with SQL. Progression and challenge summaries load every row into Node.
-- [ ] **OPS-04** `P2` Set worker concurrency and per-project fairness. The worker runs one job at a time, and one noisy project can starve others.
+- [~] **OPS-01** `P1` Run a load test and publish results for ingestion, worker throughput and leaderboards. `[ran]` Done: `scripts/load-test.mjs`, `scripts/benchmark-leaderboards.mjs` and `docs/performance.md`, with leaderboard query timings at 100,000 users. Left: end-to-end throughput on reference hardware, because the development database is 170 to 300 ms away and any figure from it would measure the network.
+- [~] **OPS-02** `P1` Back leaderboards with Redis sorted sets, and rebuild them from the ledger. Every read currently scans and ranks all project users. `[ran]` Done with an index instead of Redis: the all-time top 20 went from about 185 ms to 1.5 ms at 100,000 users, with no second source of truth. Left: search and daily, weekly or monthly boards still rank every user, and rank and total cost about 30 ms per 100,000 users.
+- [x] **OPS-03** `P1` Replace in-memory aggregation with SQL. Progression and challenge summaries load every row into Node. `[ran]` Done: level distribution and challenge summaries are counted in SQL, with tests.
+- [~] **OPS-04** `P2` Set worker concurrency and per-project fairness. The worker runs one job at a time, and one noisy project can starve others. `[ran]` Done: `WORKER_CONCURRENCY` (default 4) and `DATABASE_POOL_MAX`. Left: per-project fairness.
 - [ ] **OPS-05** `P2` Use one `processEvent` flow. Processors and the poller both dispatch notifications and rewards, which adds redundant work.
 - [ ] **OPS-06** `P2` Partition `events` and `xp_ledger` by month, and add rollup tables for analytics.
 - [~] **OPS-07** `P1` Reduce queries per request. Dashboard API calls took about 3 seconds against a database 170 to 300 ms away, which suggests a dozen or so sequential round trips each. Measure this, resolve auth and project access in one query, and cache API key lookups, which make three queries and write `last_used_at` per request. Measured again: real requests take 1 to 5 seconds where `/ready`, with one query, takes 0.2 seconds, so each request makes many round trips. The project access check is now one query. Left: session lookups still add a round trip per request, and the Better Auth cookie cache stays off so revoked sessions end at once.
@@ -440,10 +440,10 @@ From the audit of 6 November 2026. `[ran]` was measured on a production build, a
 
 ### 6.2 Observability
 
-- [ ] **OPS-09** `P1` Replace `console.log` in the worker and packages with structured logging. Add request and event correlation IDs.
-- [ ] **OPS-10** `P2` Expose Prometheus metrics, OpenTelemetry traces, and a sample Grafana dashboard.
-- [ ] **OPS-11** `P2` Add alerts for outbox lag, dead letters and a stale worker.
-- [ ] **OPS-12** `P2` Drain work on shutdown. The worker stops the timer without awaiting an in-flight poll.
+- [x] **OPS-09** `P1` Replace `console.log` in the worker and packages with structured logging. Add request and event correlation IDs. `[ran]` Done: a JSON logger in `@gami/config` with redaction and levels, used in the worker, packages and API startup code, and worker lines carry `eventId`, `projectId` and `ruleId`. API requests already return `X-Request-Id`.
+- [~] **OPS-10** `P2` Expose Prometheus metrics, OpenTelemetry traces, and a sample Grafana dashboard. `[ran]` Done: `GET /metrics`, with a bearer token or admin session. Left: OpenTelemetry traces and a Grafana dashboard.
+- [x] **OPS-11** `P2` Add alerts for outbox lag, dead letters and a stale worker. `[code]` Done: `deploy/prometheus/alerts.yml`, with a runbook in `docs/operations.md`. The rules are not run against a live Prometheus.
+- [x] **OPS-12** `P2` Drain work on shutdown. The worker stops the timer without awaiting an in-flight poll. `[ran]` Done: the worker waits up to 30 seconds for jobs and the current poll, each outbox step has a timeout, and SMTP has timeouts. Tests cover it.
 - [ ] **OPS-13** `P2` Provide Helm charts, and one-click deployment templates such as Railway, Render or Coolify.
 
 ### 6.3 Dashboard performance

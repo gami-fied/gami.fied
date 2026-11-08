@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { projects } from './projects.js';
 
@@ -24,6 +25,10 @@ export const endUsers = pgTable(
     index('end_users_project_created_idx').on(table.projectId, table.createdAt),
     index('end_users_project_name_idx').on(table.projectId, table.name),
     index('end_users_project_email_idx').on(table.projectId, table.email),
+    // Deactivated users are rare, so this small index lets leaderboards subtract them cheaply.
+    index('end_users_project_inactive_idx')
+      .on(table.projectId, table.id)
+      .where(sql`${table.active} = false`),
   ]
 );
 

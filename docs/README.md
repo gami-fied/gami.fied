@@ -12,10 +12,12 @@ Documentation for **Gami.Fied Community Edition**, a self-hosted gamification en
 | 🛠️ [**Developer API Platform**](./api-reference.md) | Complete REST API Reference, [Authentication](./api-authentication.md), [Errors](./api-errors.md), [Request Tracing](./request-ids.md), [Idempotency](./idempotency.md), [API Versioning](./api-versioning.md), and [`@gami.fied/sdk`](./sdk.md). |
 | ⚡ [**Quick Start Guides**](./quickstarts/rest.md) | Step-by-step integration guides for [REST / cURL](./quickstarts/rest.md), [Node.js](./quickstarts/node.md), [Python](./quickstarts/python.md), [Next.js](./quickstarts/nextjs.md), and [React](./quickstarts/react.md). |
 | 🔒 [**Authentication & Security**](./authentication-and-security.md) | Sessions, roles, API keys, email verification and secret encryption. |
+| 🔐 [**Route permissions**](./permissions.md) | Generated table of the role and API key scope each project route needs. |
 | 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Events, rules, XP, levels, achievements, challenges and leaderboards. |
 | 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-app notifications, email, signed webhooks and Discord. |
 | ⚙️ [**Platform Administration**](./platform-administration.md) | Becoming an admin, the admin pages, audit logs and storage cleanup. |
 | 🐳 [**Deployment & Production**](./deployment-and-production.md) | Docker Compose setup, environment variables, health checks, settings and troubleshooting. |
+| 🩺 [**Operations**](./operations.md) | Prometheus metrics, alerts, logging, tuning and a runbook. See [Performance](./performance.md) for measured capacity. |
 | 📊 [**Project Analytics & Insights**](./analytics.md) | The analytics API, how figures are calculated, and CSV exports. |
 | 📦 [**Data Management & Backups**](./backups.md) | Platform Backups, [Restoration Procedures](./backups.md), [Data Export](./data-export.md), [Data Import](./data-import.md), [Disaster Recovery Playbook](./disaster-recovery.md), and [Retention Policy](./data-retention.md). |
 | 🧭 [**Architecture & Security Model**](./architecture.md) | How the processes fit together, and how tenants and secrets are protected. [Security status](./security-audit.md) covers what has been tested. |

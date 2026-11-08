@@ -4,6 +4,9 @@ import { OtpCooldownError, sendOtpEmailToUser } from './otp.js';
 import { checkAuthPolicy, recordSignInResult } from './policy.js';
 import { sendPlatformEmail } from '../services/platform-email.js';
 import { ServerConfigService } from '../services/server-config.service.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('Auth');
 
 export async function authRoutes(fastify: FastifyInstance) {
   setPasswordResetSender(async ({ email, url }) => {
@@ -86,7 +89,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         }
       } catch (err) {
         if (!(err instanceof OtpCooldownError)) {
-          console.error('[Auth] Error triggering auto OTP dispatch on sign-up:', err);
+          log.error('Error triggering auto OTP dispatch on sign-up:', err);
         }
       }
     }

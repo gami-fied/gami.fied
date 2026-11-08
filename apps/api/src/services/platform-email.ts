@@ -1,6 +1,9 @@
 import { getSmtpProviderFromConfig } from '@gami/notifications';
 import { decryptSecret } from '@gami/webhooks';
 import { ServerConfigService } from './server-config.service.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('PlatformEmail');
 
 export interface PlatformEmail {
   to: string;
@@ -33,13 +36,13 @@ export async function sendPlatformEmail(email: PlatformEmail): Promise<boolean> 
   try {
     const provider = await resolveProvider();
     if (!provider) {
-      console.warn(`[PlatformEmail] SMTP is not configured, so "${email.subject}" was not sent`);
+      log.warn(`SMTP is not configured, so "${email.subject}" was not sent`);
       return false;
     }
     await provider.sendEmail(email);
     return true;
   } catch (err) {
-    console.error('[PlatformEmail] Failed to send email:', err);
+    log.error('Failed to send email:', err);
     return false;
   }
 }

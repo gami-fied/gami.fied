@@ -1,0 +1,1 @@
+CREATE INDEX "end_users_project_inactive_idx" ON "end_users" USING btree ("project_id","id") WHERE "end_users"."active" = false;

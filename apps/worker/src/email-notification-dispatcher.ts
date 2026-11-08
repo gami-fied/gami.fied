@@ -8,6 +8,9 @@ import {
 import { decryptSecret } from '@gami/webhooks';
 import { and, count, eq, gte } from 'drizzle-orm';
 import { claimDueRows } from './outbox.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('EmailDispatcher');
 
 let cachedSmtpProvider: SmtpEmailProvider | null = null;
 let lastSmtpFetchTime = 0;
@@ -69,7 +72,7 @@ export async function getActiveSmtpProvider(): Promise<SmtpEmailProvider | null>
       }
     }
   } catch (err) {
-    console.error('[EmailDispatcher] Error loading SMTP config from database:', (err as Error).message);
+    log.error('Error loading SMTP config from database:', (err as Error).message);
   }
 
   // Fallback to environment configuration

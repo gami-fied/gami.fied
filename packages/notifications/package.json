@@ -21,6 +21,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "nodemailer": "^10.3.1"

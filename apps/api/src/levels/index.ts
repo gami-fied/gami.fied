@@ -368,43 +368,47 @@ export async function levelRoutes(fastify: FastifyInstance) {
       const totalProjectXp = Number(sumRes?.total || 0);
       const usersWithXp = Number(sumRes?.usersWithXp || 0);
 
-      // Fetch all end-users in project and their balances
-      const allProjectUsers = await db
-        .select({
-          userId: endUsers.id,
-          totalXp: userXpBalances.totalXp,
-        })
-        .from(endUsers)
-        .leftJoin(
-          userXpBalances,
-          and(eq(userXpBalances.userId, endUsers.id), eq(userXpBalances.projectId, projectId))
+      // How many users sit on each level, worked out in the database so the cost doesn't depend on
+      // how many users there are. A user's level is the highest enabled level they have reached,
+      // and anyone below the first requirement counts as the first level, as in `calculateLevel`.
+      const bucketRows =
+        activeLevels.length === 0
+          ? []
+          : await db.execute<{ level: number; userCount: number }>(sql`
+              WITH ladder AS (
+                SELECT
+                  level,
+                  required_xp,
+                  LEAD(required_xp) OVER (ORDER BY level) AS next_xp,
+                  ROW_NUMBER() OVER (ORDER BY level) AS position
+                FROM ${levels}
+                WHERE project_id = ${projectId} AND enabled = true
+              ),
+              holders AS (
+                SELECT GREATEST(COALESCE(b.total_xp, 0), 0) AS xp
+                FROM ${endUsers} eu
+                LEFT JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
+                WHERE eu.project_id = ${projectId}
+              )
+              SELECT ladder.level AS "level", COUNT(holders.xp)::int AS "userCount"
+              FROM ladder
+              LEFT JOIN holders
+                ON (holders.xp >= ladder.required_xp OR ladder.position = 1)
+               AND (ladder.next_xp IS NULL OR holders.xp < ladder.next_xp)
+              GROUP BY ladder.level
+              ORDER BY ladder.level
+            `);
+      const counts = new Map(
+        (Array.isArray(bucketRows) ? bucketRows : ((bucketRows as unknown as { rows: { level: number; userCount: number }[] }).rows ?? [])).map(
+          (row) => [Number(row.level), Number(row.userCount)] as const
         )
-        .where(eq(endUsers.projectId, projectId));
-
-      // Calculate level distribution for all end-users
-      const distributionMap = new Map<number, number>();
-      for (const lvl of activeLevels) {
-        distributionMap.set(lvl.level, 0);
-      }
-
-      let usersAtMaxLevel = 0;
-
-      for (const u of allProjectUsers) {
-        const userXp = u.totalXp ? u.totalXp : 0;
-        if (activeLevels.length > 0) {
-          const calc = calculateLevel(userXp, activeLevels);
-          const currentCount = distributionMap.get(calc.level) || 0;
-          distributionMap.set(calc.level, currentCount + 1);
-          if (calc.isMaxLevel) {
-            usersAtMaxLevel++;
-          }
-        }
-      }
+      );
+      const usersAtMaxLevel = lastLevel ? (counts.get(lastLevel.level) ?? 0) : 0;
 
       const distribution = activeLevels.map((lvl) => ({
         level: lvl.level,
         name: lvl.name,
-        userCount: distributionMap.get(lvl.level) || 0,
+        userCount: counts.get(lvl.level) ?? 0,
       }));
 
       return reply.send({

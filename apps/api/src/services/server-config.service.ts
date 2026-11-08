@@ -15,6 +15,9 @@ import { encryptSecret } from '@gami/webhooks';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('ServerConfig');
 
 export const smtpConfigSchema = z.object({
   host: z.string().min(1, 'Host is required'),
@@ -152,7 +155,7 @@ export class ServerConfigService {
         metadata: { category },
       });
     } catch (err) {
-      console.warn('[ServerConfig] Failed to write audit log:', err);
+      log.warn('Failed to write audit log:', err);
     }
 
     return this.getConfigStatus(category);

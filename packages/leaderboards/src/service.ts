@@ -22,6 +22,86 @@ interface RawRow {
   [key: string]: unknown;
 }
 
+function rowsOf(res: unknown): RawRow[] {
+  return (Array.isArray(res) ? res : (res as { rows?: RawRow[] }).rows || []) as RawRow[];
+}
+
+/**
+ * All-time ranking reads the balance index directly, so a page costs the same however many users
+ * a project has. Deactivated users are rare, so they are subtracted from counts instead of every
+ * row being joined and ranked.
+ */
+async function countRankedUsers(projectId: string): Promise<number> {
+  const rows = rowsOf(
+    await db.execute<RawRow>(sql`
+      SELECT (
+        (SELECT COUNT(*) FROM ${userXpBalances} WHERE project_id = ${projectId} AND total_xp > 0)
+        - (SELECT COUNT(*) FROM ${endUsers} eu
+             JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
+            WHERE eu.project_id = ${projectId} AND eu.active = false AND b.total_xp > 0)
+      )::int AS "total"
+    `)
+  );
+  return Number((rows[0] as { total?: number } | undefined)?.total ?? 0);
+}
+
+async function allTimePage(projectId: string, limit: number, offset: number): Promise<RawRow[]> {
+  const rows = rowsOf(
+    await db.execute<RawRow>(sql`
+      SELECT
+        b.user_id AS "userId",
+        eu.external_id AS "externalId",
+        eu.name AS "name",
+        eu.avatar_url AS "avatarUrl",
+        b.total_xp::bigint AS "xp",
+        b.total_xp::bigint AS "totalXp"
+      FROM ${userXpBalances} b
+      JOIN ${endUsers} eu ON eu.project_id = b.project_id AND eu.id = b.user_id
+      WHERE b.project_id = ${projectId} AND eu.active = true AND b.total_xp > 0
+      ORDER BY b.total_xp DESC, b.user_id ASC
+      LIMIT ${limit} OFFSET ${offset}
+    `)
+  );
+  // Rank follows from the position, because inactive users never reach this list.
+  return rows.map((row, index) => ({ ...row, rank: offset + index + 1 }));
+}
+
+async function allTimeUser(projectId: string, userId: string): Promise<RawRow | null> {
+  const [me] = rowsOf(
+    await db.execute<RawRow>(sql`
+      SELECT
+        eu.id AS "userId",
+        eu.external_id AS "externalId",
+        eu.name AS "name",
+        eu.avatar_url AS "avatarUrl",
+        b.total_xp::bigint AS "xp",
+        b.total_xp::bigint AS "totalXp"
+      FROM ${endUsers} eu
+      JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
+      WHERE eu.project_id = ${projectId} AND eu.active = true AND b.total_xp > 0
+        AND (eu.id = ${userId} OR eu.external_id = ${userId})
+      LIMIT 1
+    `)
+  );
+  if (!me) return null;
+
+  const [counts] = rowsOf(
+    await db.execute<RawRow>(sql`
+      SELECT (
+        (SELECT COUNT(*) FROM ${userXpBalances}
+          WHERE project_id = ${projectId} AND total_xp > 0
+            AND (total_xp > ${me.totalXp} OR (total_xp = ${me.totalXp} AND user_id < ${me.userId})))
+        - (SELECT COUNT(*) FROM ${endUsers} eu
+             JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
+            WHERE eu.project_id = ${projectId} AND eu.active = false AND b.total_xp > 0
+              AND (b.total_xp > ${me.totalXp} OR (b.total_xp = ${me.totalXp} AND b.user_id < ${me.userId})))
+      )::int AS "ahead"
+    `)
+  );
+  const ahead = Number((counts as { ahead?: number } | undefined)?.ahead ?? 0);
+  return { ...me, rank: ahead + 1 };
+}
+
 export function getUtcPeriodBoundaries(
   period: LeaderboardPeriod,
   now: Date = new Date()
@@ -74,8 +154,14 @@ export async function getLeaderboard(
   const now = options.now || new Date();
 
   let rawEntries: RawRow[];
+  let fastTotal: number | null = null;
 
-  if (period === 'all_time') {
+  if (period === 'all_time' && !search) {
+    [rawEntries, fastTotal] = await Promise.all([
+      allTimePage(projectId, limit, offset),
+      countRankedUsers(projectId),
+    ]);
+  } else if (period === 'all_time') {
     const query = sql`
       WITH global_ranks AS (
         SELECT 
@@ -160,7 +246,8 @@ export async function getLeaderboard(
   }
 
   const firstRow = rawEntries[0];
-  const total = firstRow && firstRow.totalCount !== undefined ? Number(firstRow.totalCount) : 0;
+  const total =
+    fastTotal ?? (firstRow && firstRow.totalCount !== undefined ? Number(firstRow.totalCount) : 0);
 
   // Page-scoped Level Calculation using @gami/progression
   const projectLevels = await db
@@ -208,31 +295,11 @@ export async function getUserRank(
   let rawRow: RawRow | null = null;
 
   if (period === 'all_time') {
-    const query = sql`
-      WITH global_ranks AS (
-        SELECT 
-          eu.id AS "userId",
-          eu.external_id AS "externalId",
-          eu.name AS "name",
-          eu.avatar_url AS "avatarUrl",
-          COALESCE(uxb.total_xp, 0)::bigint AS "xp",
-          COALESCE(uxb.total_xp, 0)::bigint AS "totalXp",
-          ROW_NUMBER() OVER (ORDER BY COALESCE(uxb.total_xp, 0) DESC, eu.id ASC)::int AS "rank",
-          COUNT(*) OVER()::int AS "totalUsers"
-        FROM ${endUsers} eu
-        LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
-        WHERE eu.project_id = ${projectId}
-          AND eu.active = true
-          AND COALESCE(uxb.total_xp, 0) > 0
-      )
-      SELECT * FROM global_ranks WHERE "userId" = ${userId} OR "externalId" = ${userId}
-    `;
-
-    const res = await db.execute<RawRow>(query);
-    const rows = (
-      Array.isArray(res) ? res : (res as unknown as { rows: RawRow[] }).rows || []
-    ) as RawRow[];
-    if (rows.length > 0) rawRow = rows[0] || null;
+    const [found, totalUsers] = await Promise.all([
+      allTimeUser(projectId, userId),
+      countRankedUsers(projectId),
+    ]);
+    if (found) rawRow = { ...found, totalUsers };
   } else {
     const { periodStart, nextPeriodStart } = getUtcPeriodBoundaries(period, now);
     const startStr = periodStart.toISOString();

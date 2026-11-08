@@ -4,6 +4,17 @@ import { ActionDefinition, evaluateRule, EventData } from '@gami/rules';
 import { eq, and } from 'drizzle-orm';
 import { executeAwardAchievementAction } from './actions/award-achievement.js';
 import { executeAwardXpAction } from './actions/award-xp.js';
+import { createLogger } from '@gami/config';
+
+const log = createLogger('RuleExecutor');
+
+/** The fields that tie a log line to one event, rule and project. */
+const ids = (rule: { id: string; name: string }, event: { id: string; projectId: string }) => ({
+  eventId: event.id,
+  projectId: event.projectId,
+  ruleId: rule.id,
+  ruleName: rule.name,
+});
 
 export interface DBConfiguredRule {
   id: string;
@@ -86,9 +97,7 @@ export async function executeRuleForEvent(
     (existingExecution?.status === 'skipped' && !options.replay);
 
   if (finished) {
-    console.log(
-      `[RuleExecutor] Idempotency skip: Rule ${rule.id} already finished for event ${eventData.id}`
-    );
+    log.info('Rule already finished for this event, skipping', ids(rule, eventData));
     return { status: 'skipped' };
   }
 
@@ -117,9 +126,10 @@ export async function executeRuleForEvent(
       return { status: 'skipped' };
     }
 
-    console.log(
-      `[RuleExecutor] Rule ${rule.id} (${rule.name}) MATCHED event ${eventData.id}. Executing ${evalResult.actions.length} action(s)...`
-    );
+    log.info('Rule matched, running its actions', {
+      ...ids(rule, eventData),
+      actions: evalResult.actions.length,
+    });
 
     // 3. Each action fails on its own, and a retry only re-runs what did not finish
     let lastActionError: string | undefined;
@@ -128,9 +138,12 @@ export async function executeRuleForEvent(
         await runAction(action, actionIndex, rule, eventData, executionId);
       } catch (actionErr: unknown) {
         lastActionError = (actionErr as Error).message || `Action ${action.type} failed`;
-        console.error(
-          `[RuleExecutor] Action ${action.type} failed in rule ${rule.id}: ${lastActionError}`
-        );
+        log.error('Action failed', {
+          ...ids(rule, eventData),
+          action: action.type,
+          actionIndex,
+          error: lastActionError,
+        });
       }
     }
 
@@ -141,13 +154,11 @@ export async function executeRuleForEvent(
     }
 
     await finishExecution(executionId, 'completed');
-    console.log(`[RuleExecutor] Rule ${rule.id} successfully executed for event ${eventData.id}`);
+    log.info('Rule completed', ids(rule, eventData));
     return { status: 'completed' };
   } catch (err: unknown) {
     const errorMsg = (err as Error).message || 'Rule execution failed';
-    console.error(
-      `[RuleExecutor] Error executing rule ${rule.id} on event ${eventData.id}: ${errorMsg}`
-    );
+    log.error('Rule failed', { ...ids(rule, eventData), error: errorMsg });
     await finishExecution(executionId, 'failed', errorMsg);
     return { status: 'failed', error: errorMsg };
   }
