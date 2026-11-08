@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dropdown } from '@/components/ui/dropdown';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Layers } from 'lucide-react';
 import {
   buildTotalCondition,
@@ -255,18 +256,12 @@ export function VisualConditionBuilder({
                     aria-label="Number to compare with"
                   />
                 </div>
-                <label className="flex cursor-pointer items-start gap-2 text-xs text-zinc-400">
-                  <input
-                    type="checkbox"
-                    checked={cond.crossing !== false}
-                    onChange={(e) => handleUpdateCondition(cond.id, { crossing: e.target.checked })}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    Only on the event that gets there. Turn this off to match on every event while it is true, which
-                    would give the reward again each time.
-                  </span>
-                </label>
+                <Checkbox
+                  checked={cond.crossing !== false}
+                  onChange={(e) => handleUpdateCondition(cond.id, { crossing: e.target.checked })}
+                  label="Only on the event that gets there"
+                  description="Turn this off to match on every event while it is true, which would give the reward again each time."
+                />
               </div>
             );
           }

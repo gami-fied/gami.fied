@@ -15,6 +15,8 @@ export const endUsers = pgTable(
     avatarUrl: text('avatar_url'),
     metadata: jsonb('metadata'),
     active: boolean('active').default(true).notNull(),
+    /** Shadow ban: the user keeps playing and earning, but is left out of every leaderboard. */
+    rankingHidden: boolean('ranking_hidden').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },
@@ -28,7 +30,7 @@ export const endUsers = pgTable(
     // Deactivated users are rare, so this small index lets leaderboards subtract them cheaply.
     index('end_users_project_inactive_idx')
       .on(table.projectId, table.id)
-      .where(sql`${table.active} = false`),
+      .where(sql`${table.active} = false OR ${table.rankingHidden} = true`),
   ]
 );
 

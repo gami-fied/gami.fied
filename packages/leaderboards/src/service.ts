@@ -38,7 +38,7 @@ async function countRankedUsers(projectId: string): Promise<number> {
         (SELECT COUNT(*) FROM ${userXpBalances} WHERE project_id = ${projectId} AND total_xp > 0)
         - (SELECT COUNT(*) FROM ${endUsers} eu
              JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
-            WHERE eu.project_id = ${projectId} AND eu.active = false AND b.total_xp > 0)
+            WHERE eu.project_id = ${projectId} AND (eu.active = false OR eu.ranking_hidden = true) AND b.total_xp > 0)
       )::int AS "total"
     `)
   );
@@ -57,7 +57,7 @@ async function allTimePage(projectId: string, limit: number, offset: number): Pr
         b.total_xp::bigint AS "totalXp"
       FROM ${userXpBalances} b
       JOIN ${endUsers} eu ON eu.project_id = b.project_id AND eu.id = b.user_id
-      WHERE b.project_id = ${projectId} AND eu.active = true AND b.total_xp > 0
+      WHERE b.project_id = ${projectId} AND eu.active = true AND eu.ranking_hidden = false AND b.total_xp > 0
       ORDER BY b.total_xp DESC, b.user_id ASC
       LIMIT ${limit} OFFSET ${offset}
     `)
@@ -78,7 +78,7 @@ async function allTimeUser(projectId: string, userId: string): Promise<RawRow | 
         b.total_xp::bigint AS "totalXp"
       FROM ${endUsers} eu
       JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
-      WHERE eu.project_id = ${projectId} AND eu.active = true AND b.total_xp > 0
+      WHERE eu.project_id = ${projectId} AND eu.active = true AND eu.ranking_hidden = false AND b.total_xp > 0
         AND (eu.id = ${userId} OR eu.external_id = ${userId})
       LIMIT 1
     `)
@@ -93,7 +93,7 @@ async function allTimeUser(projectId: string, userId: string): Promise<RawRow | 
             AND (total_xp > ${me.totalXp} OR (total_xp = ${me.totalXp} AND user_id < ${me.userId})))
         - (SELECT COUNT(*) FROM ${endUsers} eu
              JOIN ${userXpBalances} b ON b.project_id = eu.project_id AND b.user_id = eu.id
-            WHERE eu.project_id = ${projectId} AND eu.active = false AND b.total_xp > 0
+            WHERE eu.project_id = ${projectId} AND (eu.active = false OR eu.ranking_hidden = true) AND b.total_xp > 0
               AND (b.total_xp > ${me.totalXp} OR (b.total_xp = ${me.totalXp} AND b.user_id < ${me.userId})))
       )::int AS "ahead"
     `)
@@ -175,7 +175,7 @@ export async function getLeaderboard(
         FROM ${endUsers} eu
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
-          AND eu.active = true
+          AND eu.active = true AND eu.ranking_hidden = false
           AND COALESCE(uxb.total_xp, 0) > 0
       )
       SELECT 
@@ -216,7 +216,7 @@ export async function getLeaderboard(
           AND xl.created_at < ${endStr}::timestamptz
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
-          AND eu.active = true
+          AND eu.active = true AND eu.ranking_hidden = false
         GROUP BY eu.id, eu.external_id, eu.name, eu.avatar_url, uxb.total_xp
         HAVING COALESCE(SUM(xl.amount), 0) > 0
       ),
@@ -321,7 +321,7 @@ export async function getUserRank(
           AND xl.created_at < ${endStr}::timestamptz
         LEFT JOIN ${userXpBalances} uxb ON eu.id = uxb.user_id AND uxb.project_id = ${projectId}
         WHERE eu.project_id = ${projectId}
-          AND eu.active = true
+          AND eu.active = true AND eu.ranking_hidden = false
         GROUP BY eu.id, eu.external_id, eu.name, eu.avatar_url, uxb.total_xp
         HAVING COALESCE(SUM(xl.amount), 0) > 0
       ),

@@ -26,6 +26,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/api-keys/:keyId` | Admin | Signed-in user only |
 | `POST` | `/api-keys/:keyId/rotate` | Admin | Signed-in user only |
 | `GET` | `/audit-logs` | Admin | API key with `audit-logs:read` |
+| `GET` | `/boosts` | Member | Signed-in user only |
+| `POST` | `/boosts` | Admin | Signed-in user only |
+| `DELETE` | `/boosts/:boostId` | Admin | Signed-in user only |
+| `PATCH` | `/boosts/:boostId` | Admin | Signed-in user only |
 | `GET` | `/campaigns` | Admin | Signed-in user only |
 | `POST` | `/campaigns` | Admin | Signed-in user only |
 | `DELETE` | `/campaigns/:campaignId` | Admin | Signed-in user only |
@@ -67,6 +71,11 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/levels/:levelId` | Admin | API key with `levels:write` |
 | `GET` | `/levels/:levelId` | Member | API key with `levels:read` |
 | `PATCH` | `/levels/:levelId` | Admin | API key with `levels:write` |
+| `GET` | `/limits` | Member | Signed-in user only |
+| `POST` | `/limits` | Admin | Signed-in user only |
+| `DELETE` | `/limits/:limitId` | Admin | Signed-in user only |
+| `PATCH` | `/limits/:limitId` | Admin | Signed-in user only |
+| `GET` | `/limits/hits` | Member | Signed-in user only |
 | `GET` | `/members` | Admin | Signed-in user only |
 | `POST` | `/members` | Admin | Signed-in user only |
 | `DELETE` | `/members/:userId` | Admin | Signed-in user only |
@@ -106,6 +115,7 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/users/:userId/notifications/read-all` | Member | API key with `notifications:write` |
 | `GET` | `/users/:userId/notifications/unread-count` | Member | API key with `notifications:read` |
 | `GET` | `/users/:userId/progress` | Member | API key with `levels:read` |
+| `POST` | `/users/:userId/ranking` | Admin | API key with `users:write` |
 | `GET` | `/users/:userId/streaks` | Member | API key with `streaks:read` |
 | `GET` | `/users/:userId/streaks/history` | Member | API key with `streaks:read` |
 | `GET` | `/users/:userId/timeline` | Member | API key with `users:read` |

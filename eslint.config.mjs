@@ -19,6 +19,24 @@ export default tseslint.config(
     },
   },
   {
+    // Pages use the app's own Dropdown and Checkbox so every control looks and behaves the same.
+    files: ['apps/dashboard/src/**/*.tsx'],
+    ignores: ['apps/dashboard/src/components/ui/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message: 'Use the Dropdown from components/ui/dropdown instead of a native select.',
+        },
+        {
+          selector: "JSXOpeningElement[name.name='input'] > JSXAttribute[name.name='type'][value.value=/^(checkbox|radio)$/]",
+          message: 'Use Checkbox, Radio or Switch from components/ui/checkbox instead of a native input.',
+        },
+      ],
+    },
+  },
+  {
     // Tests build partial mocks and read untyped JSON responses.
     files: ['**/__tests__/**'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },

@@ -58,6 +58,7 @@ const SCHEMAS: Record<string, Schema> = {
     name: optionalText('Display name.', 'Ada Lovelace'),
     email: optionalText('Email address.', 'ada@example.com'),
     avatarUrl: optionalText('Link to a profile picture.', 'https://example.com/ada.png'),
+    rankingHidden: flag('Left out of every leaderboard (a shadow ban). The user is not told.', false),
     metadata: metadata('Anything you stored on the user.'),
     active: flag('False once the user is deactivated. Their events are then refused.', true),
     createdAt: date('When the user was created.'),

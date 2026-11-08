@@ -5550,6 +5550,7 @@
           "name",
           "email",
           "avatarUrl",
+          "rankingHidden",
           "metadata",
           "active",
           "createdAt",
@@ -5594,6 +5595,11 @@
             ],
             "description": "Link to a profile picture.",
             "example": "https://example.com/ada.png"
+          },
+          "rankingHidden": {
+            "type": "boolean",
+            "description": "Left out of every leaderboard (a shadow ban). The user is not told.",
+            "example": false
           },
           "metadata": {
             "type": [

@@ -2,7 +2,7 @@
 
 import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
-import { formatRelativeTime } from '@/hooks/use-relative-time';
+import { formatRelativeTime, formatTimeUntil } from '@/hooks/use-relative-time';
 import { usePermissions } from '@/hooks/use-permissions';
 import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/checkbox';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
@@ -47,6 +48,7 @@ interface UserRecord {
   name: string | null;
   email: string | null;
   active: boolean;
+  rankingHidden?: boolean;
   createdAt: string;
 }
 
@@ -267,6 +269,17 @@ export function UserDetailView({ userId }: { userId: string }) {
   });
 
   const person = user.data;
+
+  const setRankingHidden = async (hidden: boolean) => {
+    if (!base) return;
+    const res = await apiFetch(`${base}/ranking`, { method: 'POST', body: JSON.stringify({ hidden }) });
+    if (res.ok) {
+      toast.success(hidden ? 'Hidden from every leaderboard. They can still play and earn.' : 'Back on the leaderboards.');
+      user.reload();
+    } else {
+      toast.error('The change could not be saved.');
+    }
+  };
   const title = person?.name || person?.externalId || 'User';
 
   if (!projectId) {
@@ -295,6 +308,13 @@ export function UserDetailView({ userId }: { userId: string }) {
           person ? (
             <>
               <LiveBadge live={live} />
+              {isAdminOrOwner && (
+                <Switch
+                  checked={Boolean(person.rankingHidden)}
+                  onChange={(e) => void setRankingHidden(e.target.checked)}
+                  label="Hide from rankings"
+                />
+              )}
               {isAdminOrOwner && (
                 <Button variant="primary" size="sm" onClick={() => setGrantOpen(true)}>
                   <Gift className="h-3.5 w-3.5" />
@@ -472,7 +492,7 @@ export function UserDetailView({ userId }: { userId: string }) {
                     <span>
                       {item.progress} / {item.target}
                     </span>
-                    {item.recurrence && item.periodEndsAt && <span>Resets {formatRelativeTime(item.periodEndsAt)}</span>}
+                    {item.recurrence && item.periodEndsAt && <span>Resets {formatTimeUntil(item.periodEndsAt)}</span>}
                     {(item.completions ?? 0) > 0 && <span>Finished {item.completions}×</span>}
                   </div>
                   {item.steps && (

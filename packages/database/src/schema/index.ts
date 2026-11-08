@@ -25,3 +25,4 @@ export * from './platform-backups.js';
 export * from './streaks.js';
 export * from './lifecycle.js';
 export * from './push-devices.js';
+export * from './xp-policy.js';
