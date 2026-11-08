@@ -12,7 +12,7 @@ import {
   webhookOutbox,
   xpLedger,
 } from './schema/index.js';
-import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lt, lte, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 export type DateRangePreset = '24h' | '7d' | '30d' | '90d' | 'custom';
@@ -375,6 +375,147 @@ export async function getIntegrationAnalytics(db: NodePgDatabase<Record<string, 
   };
 }
 
+const TABULAR_EXPORTS = ['users', 'events', 'xp', 'achievements'] as const;
+type TabularExport = (typeof TABULAR_EXPORTS)[number];
+
+export function isTabularExport(type: string): type is TabularExport {
+  return (TABULAR_EXPORTS as readonly string[]).includes(type);
+}
+
+const EXPORT_BATCH_SIZE = 2000;
+/** A hard stop so one request cannot read an unbounded table. */
+export const EXPORT_STREAM_MAX_ROWS = 1_000_000;
+
+const csvCell = (val: unknown) => `"${neutraliseFormula(val).replace(/"/g, '""')}"`;
+const csvLine = (cells: unknown[]) => cells.map(csvCell).join(',');
+
+type ExportCursor = { at: Date; id: string } | null;
+
+/**
+ * Yields a tabular export one batch at a time, so memory stays flat however many rows match.
+ * Batches follow a keyset on (timestamp, id), which stays fast on deep pages where OFFSET would not.
+ */
+export async function* streamTabularCsv(
+  db: NodePgDatabase<Record<string, unknown>>,
+  projectId: string,
+  type: TabularExport,
+  options?: DateRangeOptions & { hideEmail?: boolean },
+  maxRows: number = EXPORT_STREAM_MAX_ROWS
+): AsyncGenerator<string> {
+  const { start, end } = resolveDateRange(options);
+
+  const headers: Record<TabularExport, string[]> = {
+    users: ['User ID', 'External ID', 'Name', 'Email', 'Active', 'Created At'],
+    events: ['Event ID', 'Event Type', 'User ID', 'Occurred At', 'Idempotency Key'],
+    xp: ['Ledger ID', 'User ID', 'Amount', 'Reason', 'Created At'],
+    achievements: ['Achievement ID', 'Achievement Name', 'User ID', 'Awarded At'],
+  };
+  yield `${csvLine(headers[type])}\n`;
+
+  const before = (at: unknown, id: unknown, cursor: ExportCursor) =>
+    cursor
+      ? or(lt(at as never, cursor.at), and(eq(at as never, cursor.at), lt(id as never, cursor.id)))
+      : undefined;
+
+  let cursor: ExportCursor = null;
+  let sent = 0;
+
+  while (sent < maxRows) {
+    const limit = Math.min(EXPORT_BATCH_SIZE, maxRows - sent);
+    let rows: unknown[][] = [];
+    let last: ExportCursor = null;
+
+    if (type === 'users') {
+      const page = await db
+        .select()
+        .from(endUsers)
+        .where(
+          and(
+            eq(endUsers.projectId, projectId),
+            gte(endUsers.createdAt, start),
+            lte(endUsers.createdAt, end),
+            before(endUsers.createdAt, endUsers.id, cursor)
+          )
+        )
+        .orderBy(desc(endUsers.createdAt), desc(endUsers.id))
+        .limit(limit);
+      rows = page.map((u) => [
+        u.id,
+        u.externalId,
+        u.name || '',
+        options?.hideEmail ? '' : u.email || '',
+        u.active ? 'true' : 'false',
+        u.createdAt.toISOString(),
+      ]);
+      const tail = page.at(-1);
+      last = tail ? { at: tail.createdAt, id: tail.id } : null;
+    } else if (type === 'events') {
+      const page = await db
+        .select()
+        .from(events)
+        .where(
+          and(
+            eq(events.projectId, projectId),
+            gte(events.occurredAt, start),
+            lte(events.occurredAt, end),
+            before(events.occurredAt, events.id, cursor)
+          )
+        )
+        .orderBy(desc(events.occurredAt), desc(events.id))
+        .limit(limit);
+      rows = page.map((e) => [e.id, e.type, e.userId || '', e.occurredAt.toISOString(), e.idempotencyKey || '']);
+      const tail = page.at(-1);
+      last = tail ? { at: tail.occurredAt, id: tail.id } : null;
+    } else if (type === 'xp') {
+      const page = await db
+        .select()
+        .from(xpLedger)
+        .where(
+          and(
+            eq(xpLedger.projectId, projectId),
+            gte(xpLedger.createdAt, start),
+            lte(xpLedger.createdAt, end),
+            before(xpLedger.createdAt, xpLedger.id, cursor)
+          )
+        )
+        .orderBy(desc(xpLedger.createdAt), desc(xpLedger.id))
+        .limit(limit);
+      rows = page.map((x) => [x.id, x.userId, x.amount, x.reason, x.createdAt.toISOString()]);
+      const tail = page.at(-1);
+      last = tail ? { at: tail.createdAt, id: tail.id } : null;
+    } else {
+      const page = await db
+        .select({
+          id: userAchievements.id,
+          name: achievements.name,
+          userId: userAchievements.userId,
+          awardedAt: userAchievements.awardedAt,
+        })
+        .from(userAchievements)
+        .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
+        .where(
+          and(
+            eq(userAchievements.projectId, projectId),
+            gte(userAchievements.awardedAt, start),
+            lte(userAchievements.awardedAt, end),
+            before(userAchievements.awardedAt, userAchievements.id, cursor)
+          )
+        )
+        .orderBy(desc(userAchievements.awardedAt), desc(userAchievements.id))
+        .limit(limit);
+      rows = page.map((a) => [a.id, a.name, a.userId, a.awardedAt.toISOString()]);
+      const tail = page.at(-1);
+      last = tail ? { at: tail.awardedAt, id: tail.id } : null;
+    }
+
+    if (rows.length === 0) return;
+    yield `${rows.map(csvLine).join('\n')}\n`;
+    sent += rows.length;
+    if (rows.length < limit || !last) return;
+    cursor = last;
+  }
+}
+
 export async function getExportCsvData(
   db: NodePgDatabase<Record<string, unknown>>,
   projectId: string,
@@ -389,76 +530,13 @@ export async function getExportCsvData(
 
   const typeLower = (exportType || 'all').toLowerCase();
 
-  // Tabular entity exports
-  if (typeLower === 'users') {
-    const headers = ['User ID', 'External ID', 'Name', 'Email', 'Active', 'Created At'];
-    const userList = await db
-      .select()
-      .from(endUsers)
-      .where(and(eq(endUsers.projectId, projectId), gte(endUsers.createdAt, start), lte(endUsers.createdAt, end)))
-      .orderBy(desc(endUsers.createdAt))
-      .limit(maxCap);
-
-    const rows = userList.map((u) => [
-      u.id,
-      u.externalId,
-      u.name || '',
-      options?.hideEmail ? '' : u.email || '',
-      u.active ? 'true' : 'false',
-      u.createdAt.toISOString(),
-    ]);
-    return [formatLine(headers), ...rows.map(formatLine)].join('\n');
-  }
-
-  if (typeLower === 'events') {
-    const headers = ['Event ID', 'Event Type', 'User ID', 'Occurred At', 'Idempotency Key'];
-    const eventList = await db
-      .select()
-      .from(events)
-      .where(and(eq(events.projectId, projectId), gte(events.occurredAt, start), lte(events.occurredAt, end)))
-      .orderBy(desc(events.occurredAt))
-      .limit(maxCap);
-
-    const rows = eventList.map((e) => [
-      e.id,
-      e.type,
-      e.userId || '',
-      e.occurredAt.toISOString(),
-      e.idempotencyKey || '',
-    ]);
-    return [formatLine(headers), ...rows.map(formatLine)].join('\n');
-  }
-
-  if (typeLower === 'xp') {
-    const headers = ['Ledger ID', 'User ID', 'Amount', 'Reason', 'Created At'];
-    const xpList = await db
-      .select()
-      .from(xpLedger)
-      .where(and(eq(xpLedger.projectId, projectId), gte(xpLedger.createdAt, start), lte(xpLedger.createdAt, end)))
-      .orderBy(desc(xpLedger.createdAt))
-      .limit(maxCap);
-
-    const rows = xpList.map((x) => [x.id, x.userId, x.amount, x.reason, x.createdAt.toISOString()]);
-    return [formatLine(headers), ...rows.map(formatLine)].join('\n');
-  }
-
-  if (typeLower === 'achievements') {
-    const headers = ['Achievement ID', 'Achievement Name', 'User ID', 'Awarded At'];
-    const achList = await db
-      .select({
-        id: userAchievements.id,
-        name: achievements.name,
-        userId: userAchievements.userId,
-        awardedAt: userAchievements.awardedAt,
-      })
-      .from(userAchievements)
-      .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
-      .where(and(eq(userAchievements.projectId, projectId), gte(userAchievements.awardedAt, start), lte(userAchievements.awardedAt, end)))
-      .orderBy(desc(userAchievements.awardedAt))
-      .limit(maxCap);
-
-    const rows = achList.map((a) => [a.id, a.name, a.userId, a.awardedAt.toISOString()]);
-    return [formatLine(headers), ...rows.map(formatLine)].join('\n');
+  // Tabular entity exports are streamed in batches. This path caps them for callers that want a string.
+  if (isTabularExport(typeLower)) {
+    const lines: string[] = [];
+    for await (const chunk of streamTabularCsv(db, projectId, typeLower, options, maxCap)) {
+      lines.push(chunk.replace(/\n$/, ''));
+    }
+    return lines.join('\n');
   }
 
   // Comprehensive Structured Report Export (All Analytics Details)

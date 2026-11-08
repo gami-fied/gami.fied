@@ -20,6 +20,7 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - The all-time leaderboard reads from an index, so a page of 20 takes about 1.5 ms instead of about 185 ms at 100,000 users.
 - API key checks use one query, and `last_used_at` is written at most once a minute.
 - Level distribution and challenge summaries are counted in SQL.
+- Analytics CSV exports of users, events, XP and achievements are streamed in batches instead of being limited to 5,000 rows in memory.
 - The worker handles several events at once, and on shutdown waits for running jobs and the current poll.
 
 ## [1.0.0] - 2026-11-06

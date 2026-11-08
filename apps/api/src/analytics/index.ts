@@ -7,8 +7,11 @@ import {
   getNotificationAnalytics,
   getOverviewAnalytics,
   getUserAnalytics,
+  isTabularExport,
+  streamTabularCsv,
   type DateRangePreset,
 } from '@gami/database';
+import { Readable } from 'stream';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { canViewPersonalData, requireProjectAccess } from '../authorization/index.js';
 
@@ -107,12 +110,19 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       if (!authResult) return;
 
       const exportType = request.query.type || 'overview';
-      const csvContent = await getExportCsvData(db, projectId, exportType, {
-        ...request.query,
-        hideEmail: !canViewPersonalData(authResult.membership),
-      });
-
+      const options = { ...request.query, hideEmail: !canViewPersonalData(authResult.membership) };
       const filename = `gami-analytics-${projectId}-${exportType}-${Date.now()}.csv`;
+
+      // Row exports are streamed in batches, so a large project does not load into memory.
+      const kind = exportType.toLowerCase();
+      if (isTabularExport(kind)) {
+        return reply
+          .header('Content-Type', 'text/csv; charset=utf-8')
+          .header('Content-Disposition', `attachment; filename="${filename}"`)
+          .send(Readable.from(streamTabularCsv(db, projectId, kind, options)));
+      }
+
+      const csvContent = await getExportCsvData(db, projectId, exportType, options);
 
       return reply
         .header('Content-Type', 'text/csv; charset=utf-8')

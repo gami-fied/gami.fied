@@ -32,7 +32,7 @@ An **Active User** is defined as a distinct `endUser` ID (`COUNT(DISTINCT userId
 
 1. **Near-Real-Time**: Analytics reflect all committed database transactions as of query execution time.
 2. **PostgreSQL Aggregation**: Queries leverage compound indexes (`events_project_occurred_at_idx`, `xp_ledger_proj_user_created_idx`, `user_achievements_awarded_idx`, etc.).
-3. **Bounded Exports**: CSV exports are hard-capped at 5,000 records and a maximum 90-day window to prevent database memory spikes.
+3. **Bounded Exports**: Row exports (users, events, XP and achievements) are streamed in batches of 2,000, so memory stays flat, and stop at 1,000,000 rows within a maximum 90-day window. The summary report is built in memory from aggregate figures.
 
 ## API
 
@@ -157,6 +157,6 @@ Project analytics can be downloaded as CSV.
 ### Safety Limits & Boundaries
 
 To ensure safe memory consumption and prevent database starvation on large datasets:
-1. **Row Count Cap**: CSV export responses are hard-capped at a maximum of **5,000 rows**.
+1. **Row Count Cap**: Row exports are streamed and stop at **1,000,000 rows**.
 2. **Date Window Cap**: Custom date ranges for exports are hard-capped at a maximum window of **90 days**.
 3. **Field Sanitization**: Quotes and double quotes in user strings are automatically escaped (`""`).
