@@ -1551,7 +1551,7 @@ export function buildOpenApiDocument() {
     openapi: '3.1.0',
     info: {
       title: 'Gami.Fied API',
-      version: '1.0.0',
+      version: '1.1.0',
       description: 'The stable public API. The API key identifies the project, so paths never include a project ID.',
     },
     tags: ['Events', 'Users', 'XP', 'Levels', 'Achievements', 'Streaks', 'Store', 'Challenges', 'Leaderboard', 'Segments', 'Leagues', 'Social', 'Current user'].map(

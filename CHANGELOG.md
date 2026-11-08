@@ -6,42 +6,65 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-08
+
+A large feature release: streaks, a points economy and reward store, leagues and social play, inbound connectors, staging environments, plugins, and controls for platform administrators. Everything is additive: `/v1` keeps working as it did, and nothing has to change in your app.
+
+### Run it
+
+```bash
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.1.0/docker-compose.yml
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.1.0/env.example
+cp env.example .env
+```
+
+Fill in `.env`, then run `docker compose up -d`. Images are published for `linux/amd64` and `linux/arm64`.
+
 ### Added
 
-- Platform administrators can turn features on and off for the whole instance or one organization. Base features stay on, dependencies are followed both ways with a confirmation that lists what else changes, and the API, player routes, worker and dashboard all respect it. See `docs/platform-administration-features.md`.
-- Organization rules with instance defaults: project and member limits, allowed email domains, API key lifetimes, API address allowlists, event rate limits and required player-token sites. Administrators can also change member roles, remove members, revoke every API key and sign everyone out.
-- Velocity flags that mark people earning or sending events unusually fast, with optional automatic hiding and a review queue.
-- Store rewards that generate a unique coupon code per purchase, and notifications three days before points expire.
+**Progression**
 
-- Segments, and leaderboards narrowed to a segment, to a player's friends, or to people who share the player's country or any other attribute, plus team and country boards ranked by total or average XP.
-- Leagues: tiers of small groups that compete each week or day, with promotion and relegation, a Leagues page, and `gami.me.leagues()`.
-- Friends, kudos, an activity feed, signed share-card images for achievements, and invite codes with rewards for both sides and a `referral.completed` webhook.
-- Connectors for Segment, RudderStack, Stripe and GitHub, with signature checks and idempotent delivery.
-- Staging and development projects with `gami_test_` keys, and promotion of a project's design to production with references fixed and rule history kept.
-- Expression conditions in rules, using a safe subset of JSONLogic.
-- Plugins: rule actions of your own, loaded from `GAMI_PLUGINS`. See `docs/connectors-environments-and-plugins.md`.
-
-- Currencies, wallets and a reward store: points that can expire and be spent, rewards with stock, limits and code pools, purchases that cannot oversell, fulfilment and refunds, and `reward.redeemed` and `reward.cancelled` webhooks. Use `gami.store`, `gami.me.store()` and `gami.me.redeem()`, the `award_currency` rule action, and the Store page. See `docs/economy-and-store.md`.
-- Boosts, XP limits and cooldowns, a blocked-XP log, and hiding people from rankings.
-- Rule backtests over past events, drafts, publishing, history and rollback.
-
-- `GET /metrics` serves Prometheus metrics for the database, Redis, worker, delivery queues and HTTP traffic. Set `METRICS_BEARER_TOKEN`, or sign in as a platform admin. Sample alert rules are in `deploy/prometheus`.
-- Structured JSON logging with `LOG_LEVEL` and `LOG_FORMAT`, and event, project and rule IDs on worker log lines.
-- `WORKER_CONCURRENCY`, `DATABASE_POOL_MAX`, `OUTBOX_STEP_TIMEOUT_MS` and `SMTP_TIMEOUT_MS` settings.
-- `docs/operations.md` with monitoring, tuning and a runbook, and `docs/performance.md` with measurements.
-- `docs/permissions.md`, generated from the registered routes, with a test that fails when it drifts.
-- `scripts/load-test.mjs` and `scripts/benchmark-leaderboards.mjs`.
-
-- Streaks: daily or weekly, counted in each user's own time zone, with automatic freezes, live reads, and a history. Read them with `gami.streaks`, `GET /v1/streaks` and `GET /v1/users/:userId/streaks`. See `docs/gamification-mechanics.md`.
-
+- Streaks: daily or weekly, counted in each user's own time zone, with automatic freezes, live reads and a history. Read them with `gami.streaks`, `GET /v1/streaks` and `GET /v1/users/:userId/streaks`.
+- Achievements can earn themselves from a count, total, unique values or a streak, with tiers, bonus XP and secret badges.
 - Challenges can be steps done in order, can count only events that meet conditions, and can repeat every day or week.
 - Rules can compare a total over past events, such as spending this month, and fire once when it is reached.
-- Achievements can earn themselves from a count, total, unique values or a streak, with tiers, bonus XP and secret badges.
+- Expression conditions in rules, using a safe subset of JSONLogic.
+- Rule drafts, publishing, history and rollback, and backtests that replay a rule over past events and estimate XP inflation before it goes live.
+- Boosts such as double XP weekends, XP caps and cooldowns, a blocked-XP log, velocity flags with a review queue, and hiding people from rankings.
+
+**Economy**
+
+- Currencies and wallets: points that can expire, spent soonest-to-expire first, with a warning three days before they do.
+- A reward store with stock, per-person limits, code pools and generated coupon codes. Purchases cannot oversell, and can be fulfilled or cancelled with a refund. New `reward.redeemed` and `reward.cancelled` webhooks, the `award_currency` rule action, `gami.store`, `gami.me.store()` and `gami.me.redeem()`.
+
+**Competition and community**
+
+- Segments, and leaderboards narrowed to a segment, to a player's friends, or to people who share the player's country or another attribute, plus team and country boards by total or average XP.
+- Leagues: tiers of small groups that compete each week or day, with promotion and relegation.
+- Friends, kudos, an activity feed, signed share-card images, and invite codes that reward both sides, with a `referral.completed` webhook.
 - Live updates: `GET /v1/me/stream` pushes notifications and XP to players, and the dashboard refreshes as things happen.
 - `@gami.fied/react`: a provider, hooks and components for levels, badges, streaks, leaderboards, challenges, notifications and toasts, and `GET /v1/me/leaderboard`.
+
+**Messaging and integrations**
+
 - Campaigns: streak reminders, weekly recaps and win-back emails with editable templates and timing.
 - Integrations for Slack, Microsoft Teams and any HTTPS webhook, and push notifications through Firebase and Apple, with `POST /v1/me/devices`.
-- A profile page for each user with their XP ledger, streaks, achievements and challenges.
+- Connectors that receive events from Segment, RudderStack, Stripe and GitHub, with signature checks and idempotent delivery.
+- Plugins: rule actions of your own, loaded from `GAMI_PLUGINS`.
+
+**Platform**
+
+- Staging and development projects with `gami_test_` keys, and promotion of a project's design to production with references fixed and rule history kept.
+- Platform administrators can turn features on and off for the whole instance or one organization. Base features stay on, and dependencies are followed both ways with a confirmation that lists what else changes.
+- Organization rules with instance defaults: project and member limits, allowed email domains, API key lifetimes, API address allowlists, event rate limits and required player-token sites. Administrators can also change member roles, remove members, revoke every API key and sign everyone out.
+- A profile page for each user with their XP ledger, wallet, streaks, achievements, challenges, leagues and friends.
+- `GET /metrics` serves Prometheus metrics. Set `METRICS_BEARER_TOKEN`, or sign in as a platform admin. Sample alert rules are in `deploy/prometheus`.
+- Structured JSON logging with `LOG_LEVEL` and `LOG_FORMAT`.
+
+**Documentation**
+
+- New guides: `docs/economy-and-store.md`, `docs/social-and-competition.md`, `docs/connectors-environments-and-plugins.md`, `docs/platform-administration-features.md`, `docs/operations.md` and `docs/performance.md`.
+- `docs/permissions.md`, generated from the registered routes, with a test that fails when it drifts. The OpenAPI document covers every new `/v1` route.
 
 ### Changed
 
@@ -50,6 +73,29 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - Level distribution and challenge summaries are counted in SQL.
 - Analytics CSV exports of users, events, XP and achievements are streamed in batches instead of being limited to 5,000 rows in memory.
 - The worker handles several events at once, and on shutdown waits for running jobs and the current poll.
+
+### Upgrading from 1.0.0
+
+Set `GAMI_VERSION=1.1.0` and run `docker compose up -d`. The `migration` container applies the new database migrations before the API starts; they only add tables and columns, so no data changes.
+
+New optional settings, all with safe defaults:
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `METRICS_BEARER_TOKEN` | unset | Lets a scraper read `GET /metrics` |
+| `LOG_LEVEL`, `LOG_FORMAT` | `info`, `json` in production | Log detail, and `json` or `text` lines |
+| `WORKER_CONCURRENCY` | `4` | Events the worker handles at once |
+| `DATABASE_POOL_MAX` | `10` | Database connections per process |
+| `OUTBOX_STEP_TIMEOUT_MS`, `SMTP_TIMEOUT_MS` | built in | Time limits for delivery steps and email |
+| `GAMI_PLUGINS` | unset | Plugin modules to load, for both the API and the worker |
+
+Every feature is on after the upgrade. Turn any of them off in **Admin → Features**.
+
+### Known limits
+
+- Push notifications are tested against stand-ins for Apple and Google, not real accounts.
+- `@gami.fied/react` is tested by rendering on the server, not yet in real browsers, and is not published to npm yet.
+- Routes under `/api/projects` serve the dashboard and can change without notice. Build on `/v1`.
 
 ## [1.0.0] - 2026-11-06
 

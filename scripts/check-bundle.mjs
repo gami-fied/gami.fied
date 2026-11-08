@@ -6,7 +6,11 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const CHUNKS_DIR = 'apps/dashboard/.next/static/chunks';
-const TOTAL_LIMIT_KB = 450;
+// The total covers every route's chunks, so it grows with the number of pages; a visitor only loads
+// the chunks for the page they open. Raised from 450 in 1.1.0, which added about twenty pages
+// (store, leagues, segments, invites, connectors, admin features and more) and Motion and GSAP for
+// the admin screens. The per-chunk limit below is what keeps any single page light.
+const TOTAL_LIMIT_KB = 700;
 const SINGLE_CHUNK_LIMIT_KB = 120;
 
 const files = readdirSync(CHUNKS_DIR, { recursive: true })
