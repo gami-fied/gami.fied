@@ -15,6 +15,8 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - `docs/permissions.md`, generated from the registered routes, with a test that fails when it drifts.
 - `scripts/load-test.mjs` and `scripts/benchmark-leaderboards.mjs`.
 
+- Streaks: daily or weekly, counted in each user's own time zone, with automatic freezes, live reads, and a history. Read them with `gami.streaks`, `GET /v1/streaks` and `GET /v1/users/:userId/streaks`. See `docs/gamification-mechanics.md`.
+
 ### Changed
 
 - The all-time leaderboard reads from an index, so a page of 20 takes about 1.5 ms instead of about 185 ms at 100,000 users.

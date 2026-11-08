@@ -65,4 +65,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   get('/challenges', 'challenges:read', 'List challenges'),
   get('/challenges/summary', 'challenges:read', 'Get challenge totals'),
   get('/challenges/:challengeId', 'challenges:read', 'Get a challenge'),
+  get('/streaks', 'streaks:read', 'List streaks'),
+  get('/users/:userId/streaks', 'streaks:read', "List a user's streaks"),
+  get('/users/:userId/streaks/history', 'streaks:read', "List a user's streak history"),
 ];

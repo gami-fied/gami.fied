@@ -422,8 +422,8 @@ export async function* streamTabularCsv(
 
   while (sent < maxRows) {
     const limit = Math.min(EXPORT_BATCH_SIZE, maxRows - sent);
-    let rows: unknown[][] = [];
-    let last: ExportCursor = null;
+    let rows: unknown[][];
+    let last: ExportCursor;
 
     if (type === 'users') {
       const page = await db

@@ -74,6 +74,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `PATCH` | `/rules/:ruleId` | Admin | API key with `rules:write` |
 | `GET` | `/rules/:ruleId/trace` | Member | API key with `rules:read` |
 | `POST` | `/rules/preview` | Member | API key with `rules:read` |
+| `GET` | `/streaks` | Member | API key with `streaks:read` |
+| `POST` | `/streaks` | Admin | API key with `streaks:write` |
+| `DELETE` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
+| `PATCH` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
 | `GET` | `/system/metrics` | Member | API key with `system:read` |
 | `GET` | `/users` | Member | API key with `users:read` |
 | `POST` | `/users` | Admin | API key with `users:write` |
@@ -92,6 +96,8 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/users/:userId/notifications/read-all` | Member | API key with `notifications:write` |
 | `GET` | `/users/:userId/notifications/unread-count` | Member | API key with `notifications:read` |
 | `GET` | `/users/:userId/progress` | Member | API key with `levels:read` |
+| `GET` | `/users/:userId/streaks` | Member | API key with `streaks:read` |
+| `GET` | `/users/:userId/streaks/history` | Member | API key with `streaks:read` |
 | `GET` | `/users/:userId/timeline` | Member | API key with `users:read` |
 | `GET` | `/users/:userId/xp` | Member | API key with `xp:read` |
 | `POST` | `/users/:userId/xp/adjust` | Admin | API key with `xp:write` |

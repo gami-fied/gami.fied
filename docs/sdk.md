@@ -36,6 +36,7 @@ Your API key identifies the project, so you can leave out `projectId`, which als
 | `gami.levels` | `list`, `get`, `create`, `update`, `summary`, `getUserProgress` |
 | `gami.achievements` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
 | `gami.challenges` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
+| `gami.streaks` | `list`, `forUser`, `history` |
 | `gami.leaderboards` | `list`, `getUserRank` |
 | `gami.endUserTokens` | `create` |
 | `gami.me` | `get`, `achievements`, `challenges`, `notifications`, `rank` |

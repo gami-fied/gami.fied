@@ -22,6 +22,9 @@
       "name": "Achievements"
     },
     {
+      "name": "Streaks"
+    },
+    {
       "name": "Challenges"
     },
     {
@@ -4270,6 +4273,262 @@
           }
         }
       }
+    },
+    "/v1/streaks": {
+      "get": {
+        "operationId": "getStreaks",
+        "tags": [
+          "Streaks"
+        ],
+        "summary": "List streaks",
+        "description": "Lists the streaks defined in the project, newest first.",
+        "x-required-scope": "streaks:read",
+        "responses": {
+          "200": {
+            "description": "The streaks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The streaks.",
+                      "items": {
+                        "$ref": "#/components/schemas/StreakDefinition"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{userId}/streaks": {
+      "get": {
+        "operationId": "getUsersUserIdStreaks",
+        "tags": [
+          "Streaks"
+        ],
+        "summary": "List a user's streaks",
+        "description": "Gets a user's progress on each enabled streak, read as of now, so a streak that has ended shows 0 before the user's next action. Use `atRisk` to remind users before they lose it.",
+        "x-required-scope": "streaks:read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user's streaks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "One entry per enabled streak.",
+                      "items": {
+                        "$ref": "#/components/schemas/UserStreak"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{userId}/streaks/history": {
+      "get": {
+        "operationId": "getUsersUserIdStreaksHistory",
+        "tags": [
+          "Streaks"
+        ],
+        "summary": "List a user's streak history",
+        "description": "Lists when a user's streaks started, grew, were saved by a freeze, or ended. Newest first. Extra activity in a period that already counted is not recorded.",
+        "x-required-scope": "streaks:read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "streak",
+            "in": "query",
+            "description": "Only this streak, by key.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Results per page.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The history.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The changes.",
+                      "items": {
+                        "$ref": "#/components/schemas/StreakChange"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4610,6 +4869,246 @@
             ],
             "description": "Link to a badge image.",
             "example": null
+          }
+        }
+      },
+      "StreakDefinition": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "key",
+          "name",
+          "description",
+          "triggerEvent",
+          "cadence",
+          "timeZone",
+          "freezeEvery",
+          "maxFreezes",
+          "enabled",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of the streak.",
+            "example": "sdf_1762421400000_a1b2c3d4"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project this belongs to.",
+            "example": "prj_8f3k2"
+          },
+          "key": {
+            "type": "string",
+            "description": "Your key for the streak. Unique in the project.",
+            "example": "daily_lesson"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Daily lesson"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What counts.",
+            "example": "Finish one lesson a day"
+          },
+          "triggerEvent": {
+            "type": "string",
+            "description": "The event type that counts as activity.",
+            "example": "lesson_completed"
+          },
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly"
+            ],
+            "description": "How often a user has to be active.",
+            "example": "daily"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA time zone for users who have none of their own.",
+            "example": "UTC"
+          },
+          "freezeEvery": {
+            "type": "integer",
+            "description": "A freeze is earned each time the streak reaches a multiple of this. 0 means never.",
+            "example": 7
+          },
+          "maxFreezes": {
+            "type": "integer",
+            "description": "Most freezes a user can hold.",
+            "example": 2
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether activity is counted.",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was created.",
+            "example": "2026-11-06T09:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it last changed.",
+            "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "UserStreak": {
+        "type": "object",
+        "required": [
+          "streakId",
+          "key",
+          "name",
+          "cadence",
+          "current",
+          "longest",
+          "freezes",
+          "atRisk",
+          "timeZone",
+          "lastActivityAt"
+        ],
+        "properties": {
+          "streakId": {
+            "type": "string",
+            "description": "ID of the streak.",
+            "example": "sdf_1762421400000_a1b2c3d4"
+          },
+          "key": {
+            "type": "string",
+            "description": "The streak's key.",
+            "example": "daily_lesson"
+          },
+          "name": {
+            "type": "string",
+            "description": "The streak's display name.",
+            "example": "Daily lesson"
+          },
+          "cadence": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly"
+            ],
+            "description": "How often the user has to be active.",
+            "example": "daily"
+          },
+          "current": {
+            "type": "integer",
+            "description": "Days or weeks in a row right now. 0 once it has ended, even before their next action.",
+            "example": 12
+          },
+          "longest": {
+            "type": "integer",
+            "description": "The best the user has reached.",
+            "example": 30
+          },
+          "freezes": {
+            "type": "integer",
+            "description": "Freezes the user holds. One is spent automatically to cover a missed period.",
+            "example": 1
+          },
+          "atRisk": {
+            "type": "boolean",
+            "description": "True when the user has not yet been active in the current period.",
+            "example": false
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone used to decide where a day starts for this user.",
+            "example": "Europe/London"
+          },
+          "lastActivityAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the user last counted toward the streak.",
+            "example": null
+          }
+        }
+      },
+      "StreakChange": {
+        "type": "object",
+        "required": [
+          "id",
+          "streakKey",
+          "change",
+          "current",
+          "freezesUsed",
+          "freezesEarned",
+          "brokenStreak",
+          "eventId",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of this entry.",
+            "example": "skh_1762421400000_a1b2c3d4"
+          },
+          "streakKey": {
+            "type": "string",
+            "description": "The streak's key.",
+            "example": "daily_lesson"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "started",
+              "extended",
+              "frozen",
+              "reset"
+            ],
+            "description": "What happened.",
+            "example": "extended"
+          },
+          "current": {
+            "type": "integer",
+            "description": "The streak after the change.",
+            "example": 12
+          },
+          "freezesUsed": {
+            "type": "integer",
+            "description": "Freezes spent to cover missed periods.",
+            "example": 0
+          },
+          "freezesEarned": {
+            "type": "integer",
+            "description": "Freezes earned by this activity.",
+            "example": 1
+          },
+          "brokenStreak": {
+            "type": "integer",
+            "description": "The streak that ended, for a `reset`.",
+            "example": 0
+          },
+          "eventId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The event that caused it.",
+            "example": "evt_1762421400000_u7i8o"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened.",
+            "example": "2026-11-06T09:30:00.000Z"
           }
         }
       },

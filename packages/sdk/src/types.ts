@@ -193,6 +193,71 @@ export interface XpSummaryResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Streaks API Types
+// ---------------------------------------------------------------------------
+
+export interface ListStreaksParams {
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
+}
+
+export interface ListUserStreaksParams {
+  /** Optional. Without it, the API key decides the project. */
+  projectId?: string;
+  userId: string;
+}
+
+export interface StreakHistoryParams extends ListUserStreaksParams {
+  /** Only this streak, by key. */
+  streak?: string;
+  /** Up to 200. Defaults to 50. */
+  limit?: number;
+}
+
+export interface StreakDefinitionRecord {
+  id: string;
+  projectId: string;
+  key: string;
+  name: string;
+  description: string | null;
+  triggerEvent: string;
+  cadence: 'daily' | 'weekly';
+  timeZone: string;
+  freezeEvery: number;
+  maxFreezes: number;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserStreakRecord {
+  streakId: string;
+  key: string;
+  name: string;
+  cadence: 'daily' | 'weekly';
+  /** Zero once the streak has ended, even before the user's next action. */
+  current: number;
+  longest: number;
+  freezes: number;
+  /** True when the user has not yet been active in the current period. */
+  atRisk: boolean;
+  timeZone: string;
+  lastActivityAt: string | null;
+}
+
+export interface StreakChangeRecord {
+  id: string;
+  streakKey: string;
+  change: 'started' | 'extended' | 'frozen' | 'reset';
+  current: number;
+  freezesUsed: number;
+  freezesEarned: number;
+  brokenStreak: number;
+  eventId: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Achievements API Types
 // ---------------------------------------------------------------------------
 

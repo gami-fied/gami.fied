@@ -28,7 +28,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
-| 7 | New product features | 0 / 26 | Not started |
+| 7 | New product features | 0 / 26 | In progress, 1 partly done |
 | 8 | Launch and community | 0 / 11 | Not started |
 
 ## Decisions needed from the maintainer
@@ -467,7 +467,7 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 
 ### 7.1 Parity (needed to compete)
 
-- [ ] **FEAT-01** `P1` Streaks: daily or weekly, by user time zone, with freezes, repair, risk alerts and history. Build it as a first-class engine, not a rule preset.
+- [~] **FEAT-01** `P1` Streaks: daily or weekly, by user time zone, with freezes, repair, risk alerts and history. Build it as a first-class engine, not a rule preset. `[ran]` Done: an engine with time zones, weeks, daylight saving and automatic freezes (`packages/progression/src/streaks.ts`), tables, worker step, admin API, `/v1` reads with an `atRisk` flag, history, SDK and docs. Left: repair, reminder notifications, a dashboard view, and rules that react to milestones.
 - [ ] **FEAT-02** `P1` React components: progress bar, badge grid, leaderboard, streak calendar, toast, and notification feed. MIT licensed.
 - [ ] **FEAT-03** `P1` Real-time updates through SSE or WebSockets, for instant toasts and live leaderboards.
 - [ ] **FEAT-04** `P1` Achievement criteria built into the achievement itself, such as "100 lessons", with progress, tiers, and hidden or secret badges.

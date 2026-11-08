@@ -12,6 +12,7 @@ import { checkDatabaseHealth, runMigrations } from '@gami/database';
 import { checkRedisHealth } from '@gami/queue';
 import Fastify from 'fastify';
 import { achievementRoutes } from './achievements/index.js';
+import { streakRoutes } from './streaks/index.js';
 import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
 import { adminBackupRoutes } from './admin/backups/index.js';
 import { adminBootstrapRoutes } from './admin/bootstrap/index.js';
@@ -232,6 +233,7 @@ export async function buildServer() {
 
   // Register Achievement System endpoints
   await fastify.register(achievementRoutes);
+  await fastify.register(streakRoutes);
 
   // Register Level & Progression System endpoints
   await fastify.register(levelRoutes);

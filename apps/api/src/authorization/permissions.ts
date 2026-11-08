@@ -24,6 +24,7 @@ export const SCOPE_RESOURCES = [
   'users',
   'xp',
   'achievements',
+  'streaks',
   'levels',
   'leaderboard',
   'challenges',
@@ -46,6 +47,7 @@ const SCOPE_PATTERN = new RegExp(`^(${SCOPE_RESOURCES.join('|')}):(read|write)$`
 const USER_SUB_RESOURCES: Record<string, ScopeResource> = {
   xp: 'xp',
   achievements: 'achievements',
+  streaks: 'streaks',
   challenges: 'challenges',
   notifications: 'notifications',
   'notification-preferences': 'notifications',

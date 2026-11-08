@@ -121,3 +121,40 @@ A challenge counts events with a given name until it reaches a target, within op
 - Rankings are calculated from PostgreSQL on each request, so they're always current. Large projects should test this, as no load test has been published yet.
 - Periods are `all_time`, `daily`, `weekly` and `monthly`, using UTC.
 - Only users with XP in the period are ranked, and deactivated users are hidden.
+
+---
+
+## 8. Streaks
+
+A streak counts how many days (or weeks) in a row a user did something. You define it once, and the worker updates it every time a matching event arrives.
+
+| Setting | Meaning |
+| :--- | :--- |
+| `key`, `name` | Your key for the streak, and what to call it. The key can't change. |
+| `triggerEvent` | The event type that counts, such as `lesson_completed`. It can't change. |
+| `cadence` | `daily` or `weekly`. Weeks run Monday to Sunday. It can't change. |
+| `timeZone` | IANA zone for users who have none of their own. Defaults to `UTC`. |
+| `freezeEvery` | A user earns a freeze each time their streak reaches a multiple of this, so `7` gives one a week. `0` turns freezes off. |
+| `maxFreezes` | Most freezes a user can hold. |
+
+How it behaves:
+
+- **Days follow the user's own calendar.** The zone comes from the event's `payload.timezone`, then the user's `metadata.timezone`, then the streak's `timeZone`. Activity at 23:30 and 00:30 in Tokyo are two days, whatever the time is in UTC.
+- **Several actions in one day count once.** Sending the same event again changes nothing, so replays and retries are safe.
+- **A freeze covers a missed period automatically.** If a user misses two days and holds two freezes, the streak carries on and both are spent. If they hold fewer than they missed, the streak restarts at 1 and their freezes are kept. The best run is always remembered as `longest`.
+- **Reads are live.** `GET /v1/users/:userId/streaks` works out the streak as of now, so one that has ended shows `current: 0` straight away, and `atRisk` is true while the user hasn't yet been active in the current period. Poll it, or call it when the user opens your app, to show "keep your streak" prompts.
+- **Every change is recorded.** `GET /v1/users/:userId/streaks/history` lists when a streak started, grew, was saved by a freeze, or ended, and what the ended streak was worth.
+- Events older than a user's latest counted day are ignored, so importing history out of order can't lower a streak. Import oldest first for an accurate count.
+
+```bash
+# Create a streak (needs an admin session; API keys can read streaks but not define them)
+curl -X POST https://api.example.com/api/projects/prj_REPLACE_ME/streaks \
+  -H "Cookie: <session>" -H "Content-Type: application/json" \
+  -d '{ "key": "daily_lesson", "name": "Daily lesson", "triggerEvent": "lesson_completed",
+        "cadence": "daily", "timeZone": "Europe/London", "freezeEvery": 7, "maxFreezes": 2 }'
+
+# Read a user's streaks with an API key that has the streaks:read scope
+curl https://api.example.com/v1/users/user_123/streaks -H "x-api-key: gami_live_REPLACE_ME"
+```
+
+Not built yet: reminder notifications when a streak is at risk, paying to repair a broken streak, a calendar view in the dashboard, and rules that react to a streak reaching a milestone.
