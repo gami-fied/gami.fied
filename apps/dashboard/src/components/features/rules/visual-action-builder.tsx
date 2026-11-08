@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import { useAchievements } from '@/hooks/use-achievements';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dropdown } from '@/components/ui/dropdown';
-import { Plus, Trash2, ArrowUp, ArrowDown, Zap, Award } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Zap, Award, Coins } from 'lucide-react';
 
 export interface ActionDefinition {
   type: string;
@@ -19,6 +20,8 @@ export interface VisualAction {
   reason: string;
   achievementId: string;
   achievementKey: string;
+  /** Key of the currency, for `award_currency`. */
+  currency?: string;
 }
 
 const ACTION_TYPE_OPTIONS = [
@@ -28,6 +31,7 @@ const ACTION_TYPE_OPTIONS = [
     label: 'Award Achievement / Badge',
     icon: <Award className="w-3.5 h-3.5 text-info-400" />,
   },
+  { value: 'award_currency', label: 'Give currency (store points)', icon: <Coins className="w-3.5 h-3.5 text-success-400" /> },
 ];
 
 export interface VisualActionBuilderProps {
@@ -38,6 +42,23 @@ export interface VisualActionBuilderProps {
 
 export function VisualActionBuilder({ projectId, actions, onChange }: VisualActionBuilderProps) {
   const { achievements } = useAchievements(projectId);
+  const [currencies, setCurrencies] = useState<{ key: string; name: string; symbol: string | null }[]>([]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    apiFetch(`/api/projects/${projectId}/currencies`)
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((body: { data: { key: string; name: string; symbol: string | null; enabled: boolean }[] }) => {
+        if (!cancelled) setCurrencies(body.data.filter((item) => item.enabled));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  const currencyOptions = currencies.map((item) => ({ value: item.key, label: `${item.symbol ? `${item.symbol} ` : ''}${item.name}`, sublabel: item.key }));
 
   const handleAddAction = () => {
     const firstAch = achievements[0];
@@ -105,7 +126,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                   <Dropdown
                     options={ACTION_TYPE_OPTIONS}
                     value={act.type}
-                    onChange={(val) => handleUpdateAction(act.id, { type: val })}
+                    onChange={(val) => handleUpdateAction(act.id, { type: val, ...(val === 'award_currency' && !act.currency ? { currency: currencies[0]?.key ?? '' } : {}) })}
                   />
                 </div>
               </div>
@@ -157,6 +178,29 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
                   placeholder="e.g. Completed daily quest"
                   value={act.reason}
                   onChange={(e) => handleUpdateAction(act.id, { reason: e.target.value })}
+                  required
+                />
+              </div>
+            )}
+
+            {act.type === 'award_currency' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-zinc-800/60">
+                {currencyOptions.length > 0 ? (
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1.5">Currency</label>
+                    <Dropdown options={currencyOptions} value={act.currency || null} onChange={(val) => handleUpdateAction(act.id, { currency: val })} placeholder="Choose a currency" />
+                  </div>
+                ) : (
+                  <div className="p-3 bg-warning-950/30 border border-warning-800/40 text-warning-300 text-xs rounded-none">
+                    No currencies yet. Create one on the Store page first.
+                  </div>
+                )}
+                <Input
+                  label="Amount"
+                  type="number"
+                  min={1}
+                  value={act.amount}
+                  onChange={(e) => handleUpdateAction(act.id, { amount: Number(e.target.value) })}
                   required
                 />
               </div>
@@ -224,6 +268,8 @@ export function buildRulesEngineActions(actions: VisualAction[]): ActionDefiniti
           reason: act.reason || 'Rule reward',
         },
       };
+    } else if (act.type === 'award_currency') {
+      return { type: 'award_currency', params: { currency: act.currency || '', amount: Number(act.amount) || 0 } };
     } else if (act.type === 'award_achievement') {
       return {
         type: 'award_achievement',
@@ -260,6 +306,8 @@ export function parseRulesEngineActions(
         achievementId: '',
         achievementKey: '',
       };
+    } else if (act.type === 'award_currency') {
+      return { id, type: 'award_currency', amount: Number(params['amount']) || 100, reason: '', achievementId: '', achievementKey: '', currency: String(params['currency'] || '') };
     } else if (act.type === 'award_achievement') {
       return {
         id,

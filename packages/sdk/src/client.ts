@@ -1,4 +1,5 @@
 import { AchievementsResource } from './achievements.js';
+import { StoreResource } from './store.js';
 import { StreaksResource } from './streaks.js';
 import { AnalyticsResource } from './analytics.js';
 import { AuditLogsResource } from './audit-logs.js';
@@ -27,6 +28,7 @@ export class Gami {
   public readonly xp: XpResource;
   public readonly achievements: AchievementsResource;
   public readonly streaks: StreaksResource;
+  public readonly store: StoreResource;
   public readonly levels: LevelsResource;
   public readonly leaderboards: LeaderboardsResource;
   public readonly challenges: ChallengesResource;
@@ -47,6 +49,7 @@ export class Gami {
     this.xp = new XpResource(this.http);
     this.achievements = new AchievementsResource(this.http);
     this.streaks = new StreaksResource(this.http);
+    this.store = new StoreResource(this.http);
     this.levels = new LevelsResource(this.http);
     this.leaderboards = new LeaderboardsResource(this.http);
     this.challenges = new ChallengesResource(this.http);

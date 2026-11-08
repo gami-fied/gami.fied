@@ -15,6 +15,7 @@ import {
   Mail,
   Medal,
   Settings,
+  ShoppingBag,
   Target,
   Trophy,
   TrendingUp,
@@ -42,7 +43,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** The one list of dashboard pages. The sidebar, route guard and search all read from it. */
+/** The one list of dashboard pages (store included). The sidebar, route guard and search all read from it. */
 export const NAV_GROUPS: NavGroup[] = [
   {
     items: [
@@ -56,6 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: 'Achievements', href: '/dashboard/achievements', icon: Trophy, keywords: 'badges' },
       { name: 'Streaks', href: '/dashboard/streaks', icon: Flame, keywords: 'daily habit consecutive' },
       { name: 'Boosts & limits', href: '/dashboard/boosts', icon: Gauge, keywords: 'multiplier double xp cap cooldown abuse' },
+      { name: 'Store', href: '/dashboard/store', icon: ShoppingBag, keywords: 'rewards currency coins wallet redeem coupons purchases' },
       { name: 'Levels', href: '/dashboard/levels', icon: TrendingUp, keywords: 'progression' },
       { name: 'Challenges', href: '/dashboard/challenges', icon: Target, keywords: 'quests' },
       { name: 'Campaigns', href: '/dashboard/campaigns', icon: Mail, adminOnly: true, keywords: 'email reminders recap winback' },

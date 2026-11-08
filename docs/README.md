@@ -14,6 +14,7 @@ Documentation for **Gami.Fied Community Edition**, a self-hosted gamification en
 | 🔒 [**Authentication & Security**](./authentication-and-security.md) | Sessions, roles, API keys, email verification and secret encryption. |
 | 🔐 [**Route permissions**](./permissions.md) | Generated table of the role and API key scope each project route needs. |
 | 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Events, rules, XP, levels, achievements, challenges and leaderboards. |
+| 🛒 [**Economy and Store**](./economy-and-store.md) | Boosts, limits, backtests, rule drafts, currencies, wallets and the reward store. |
 | ⚛️ [**React & Live Updates**](./react.md) | Ready-made components, hooks, toasts and the live stream for your own app. |
 | 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-app notifications, email, signed webhooks and Discord. |
 | ⚙️ [**Platform Administration**](./platform-administration.md) | Becoming an admin, the admin pages, audit logs and storage cleanup. |

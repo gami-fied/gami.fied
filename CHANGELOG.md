@@ -8,6 +8,10 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ### Added
 
+- Currencies, wallets and a reward store: points that can expire and be spent, rewards with stock, limits and code pools, purchases that cannot oversell, fulfilment and refunds, and `reward.redeemed` and `reward.cancelled` webhooks. Use `gami.store`, `gami.me.store()` and `gami.me.redeem()`, the `award_currency` rule action, and the Store page. See `docs/economy-and-store.md`.
+- Boosts, XP limits and cooldowns, a blocked-XP log, and hiding people from rankings.
+- Rule backtests over past events, drafts, publishing, history and rollback.
+
 - `GET /metrics` serves Prometheus metrics for the database, Redis, worker, delivery queues and HTTP traffic. Set `METRICS_BEARER_TOKEN`, or sign in as a platform admin. Sample alert rules are in `deploy/prometheus`.
 - Structured JSON logging with `LOG_LEVEL` and `LOG_FORMAT`, and event, project and rule IDs on worker log lines.
 - `WORKER_CONCURRENCY`, `DATABASE_POOL_MAX`, `OUTBOX_STEP_TIMEOUT_MS` and `SMTP_TIMEOUT_MS` settings.

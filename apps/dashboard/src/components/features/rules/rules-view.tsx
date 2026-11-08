@@ -66,7 +66,7 @@ interface StoredAction {
   amount?: number;
   achievementId?: string;
   achievementKey?: string;
-  params?: { amount?: number; achievementId?: string; achievementKey?: string };
+  params?: { amount?: number; achievementId?: string; achievementKey?: string; currency?: string };
 }
 
 interface RuleTestResult {
@@ -116,7 +116,8 @@ export function RulesView() {
     amount = 100,
     achievementId = '',
     achievementKey = '',
-    reason = ''
+    reason = '',
+    currency = ''
   ): VisualAction => ({
     id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     type,
@@ -124,6 +125,7 @@ export function RulesView() {
     reason,
     achievementId,
     achievementKey,
+    currency,
   });
 
   // Rule Definition state
@@ -221,6 +223,9 @@ export function RulesView() {
           a.params?.achievementKey || a.achievementKey || ''
         );
       }
+      if (a.type === 'award_currency') {
+        return createActionObj('award_currency', Number(a.params?.amount) || 100, '', '', '', String(a.params?.currency ?? ''));
+      }
       return createActionObj('award_xp', 100);
     });
     setVisualActions(mapped);
@@ -252,6 +257,9 @@ export function RulesView() {
       }
       if (a.type === 'award_achievement') {
         return { type: 'award_achievement', params: { achievementId: a.achievementId || '' } };
+      }
+      if (a.type === 'award_currency') {
+        return { type: 'award_currency', params: { currency: a.currency || '', amount: a.amount || 100 } };
       }
       return a;
     });
@@ -604,7 +612,9 @@ export function RulesView() {
                               <Badge key={idx} variant="emerald" className="text-xs">
                                 {act.type === 'award_xp'
                                   ? `+${act.params?.amount || act.amount} XP`
-                                  : act.type}
+                                  : act.type === 'award_currency'
+                                    ? `+${act.params?.amount} ${act.params?.currency}`
+                                    : act.type}
                               </Badge>
                             ))
                           ) : (
@@ -771,7 +781,9 @@ export function RulesView() {
                                     <Badge key={i} variant="emerald" className="text-xs">
                                       {act.type === 'award_xp'
                                         ? `+${act.params?.amount || act.amount} XP`
-                                        : act.type}
+                                        : act.type === 'award_currency'
+                                          ? `+${act.params?.amount} ${act.params?.currency}`
+                                          : act.type}
                                     </Badge>
                                   ))}
                               </div>

@@ -122,6 +122,49 @@ export class MeResource {
     return this.http.request<{ removed: boolean }>({ method: 'DELETE', path: `/v1/me/devices/${encodeURIComponent(token)}` });
   }
 
+  /** What the player can spend, one balance per currency. Expired points are not counted. */
+  public wallets() {
+    return this.http.request<{ data: { currency: string; name: string; symbol: string | null; balance: number }[] }>({ method: 'GET', path: '/v1/me/wallets' });
+  }
+
+  /** The store, cheapest first, with whether this player can afford each reward and whether it is in stock. */
+  public store() {
+    return this.http.request<{
+      data: {
+        key: string;
+        name: string;
+        description: string | null;
+        imageUrl: string | null;
+        currency: string;
+        currencyName: string;
+        currencySymbol: string | null;
+        cost: number;
+        inStock: boolean;
+        affordable: boolean;
+      }[];
+    }>({ method: 'GET', path: '/v1/me/rewards' });
+  }
+
+  /**
+   * Buys a reward with the player's points. Rejects with a 409 and a `code` of `INSUFFICIENT_POINTS`,
+   * `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED` when it cannot be bought. Pass an
+   * `idempotencyKey` so that a retry after a network error does not buy twice.
+   */
+  public redeem(rewardKey: string, options: { idempotencyKey?: string } = {}) {
+    return this.http.request<{ id: string; reward: string; cost: number; status: 'pending' | 'fulfilled' | 'cancelled'; code: string | null; duplicate: boolean }>({
+      method: 'POST',
+      path: `/v1/me/rewards/${encodeURIComponent(rewardKey)}/redeem`,
+      body: options,
+    });
+  }
+
+  /** The player's 50 most recent purchases, with any code they were given. */
+  public redemptions() {
+    return this.http.request<{
+      data: { id: string; reward: string; cost: number; status: 'pending' | 'fulfilled' | 'cancelled'; code: string | null; createdAt: string }[];
+    }>({ method: 'GET', path: '/v1/me/redemptions' });
+  }
+
   public rank() {
     return this.http.request<{ rank: number | null; totalUsers: number }>({
       method: 'GET',

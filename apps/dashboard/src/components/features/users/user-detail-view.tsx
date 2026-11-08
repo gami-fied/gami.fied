@@ -8,6 +8,7 @@ import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDashboard } from '../context/dashboard-context';
 import { UserTimeline } from './user-timeline';
+import { UserWallet } from './user-wallet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,11 +31,12 @@ import { ArrowLeft, Coins, Flame, Gift, Medal, Trophy } from 'lucide-react';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
 
-type Tab = 'overview' | 'ledger' | 'streaks' | 'achievements' | 'challenges';
+type Tab = 'overview' | 'ledger' | 'wallet' | 'streaks' | 'achievements' | 'challenges';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'ledger', label: 'XP ledger' },
+  { id: 'wallet', label: 'Wallet' },
   { id: 'streaks', label: 'Streaks' },
   { id: 'achievements', label: 'Achievements' },
   { id: 'challenges', label: 'Challenges' },
@@ -408,6 +410,8 @@ export function UserDetailView({ userId }: { userId: string }) {
           </CardContent>
         </Card>
       )}
+
+      {tab === 'wallet' && base && <UserWallet base={base} />}
 
       {tab === 'streaks' && (
         <div className="space-y-6">

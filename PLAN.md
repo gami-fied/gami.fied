@@ -28,7 +28,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 4 | Developer experience | 11 / 16 | In progress, 1 partly done |
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
-| 7 | New product features | 5 / 26 | In progress, 3 partly done |
+| 7 | New product features | 7 / 26 | In progress, 7 partly done |
 | 8 | Launch and community | 0 / 11 | Not started |
 
 ## Decisions needed from the maintainer
@@ -478,14 +478,14 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 
 ### 7.2 Differentiators
 
-- [ ] **FEAT-09** `P2` Points currencies and wallets: multiple currencies, spending, expiry and balances.
-- [ ] **FEAT-10** `P2` Reward store: catalogue, redemption, stock, coupons, and fulfilment webhooks.
+- [~] **FEAT-09** `P2` Points currencies and wallets: multiple currencies, spending, expiry and balances. `[ran]` Done: currencies with optional expiry, wallets with a history, spending the soonest-to-expire points first, a rule action, manual adjustments, SDK and API reads, and a Wallet tab on each user. Left: an expiry notification.
+- [~] **FEAT-10** `P2` Reward store: catalogue, redemption, stock, coupons, and fulfilment webhooks. `[ran]` Done: the catalogue, stock, a limit per person, code pools, one-step purchases that cannot oversell, fulfil and cancel with refunds, `reward.redeemed` and `reward.cancelled` webhooks, and a Store page. Left: coupons that the store generates itself.
 - [ ] **FEAT-11** `P2` Segments, and leaderboards by cohort, team, country or custom attribute.
 - [ ] **FEAT-12** `P2` League systems with promotion and relegation, plus team and friend leaderboards.
-- [ ] **FEAT-13** `P2` XP multipliers, boosts, and double-XP weekends, with scheduling.
-- [ ] **FEAT-14** `P2` Anti-abuse: per-user caps, cooldowns, velocity checks, anomaly flags, and shadow-banning from rankings.
-- [ ] **FEAT-15** `P2` Rule versioning, draft and publish, rollback, and environment promotion.
-- [ ] **FEAT-16** `P2` Rule simulation: backtest a rule against past events, and show XP inflation before launch.
+- [x] **FEAT-13** `P2` XP multipliers, boosts, and double-XP weekends, with scheduling. `[ran]` Done: boosts by time, day, hour and event, strongest wins, evaluated at event time, with a Boosts page.
+- [~] **FEAT-14** `P2` Anti-abuse: per-user caps, cooldowns, velocity checks, anomaly flags, and shadow-banning from rankings. `[ran]` Done: XP caps, award caps and cooldowns, a log of blocked XP, and hiding someone from every leaderboard. Left: automatic anomaly flags.
+- [~] **FEAT-15** `P2` Rule versioning, draft and publish, rollback, and environment promotion. `[ran]` Done: drafts, publish, history and rollback. Left: promotion between environments, which needs FEAT-17.
+- [x] **FEAT-16** `P2` Rule simulation: backtest a rule against past events, and show XP inflation before launch. `[ran]` Done: a dry-run backtest over stored events with an estimate of XP inflation, in the rule editor.
 - [ ] **FEAT-17** `P2` Project environments (staging and production) with config promotion, including separate test and live API keys (from SEC-14).
 - [ ] **FEAT-18** `P2` Inbound connectors for Segment, RudderStack, Stripe and GitHub.
 - [ ] **FEAT-19** `P3` Referral and invite rewards.

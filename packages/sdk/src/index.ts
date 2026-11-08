@@ -3,6 +3,7 @@ export { connectLive, createEventParser } from './stream.js';
 export type { LiveConnection, LiveHandlers, LiveNotification } from './stream.js';
 export { DEFAULT_WEBHOOK_TOLERANCE_SECONDS, verifyWebhook } from './webhook-verification.js';
 export type { VerifyWebhookOptions } from './webhook-verification.js';
+export type { RedeemParams, RedemptionRecord, StoreRewardRecord, WalletRecord } from './store.js';
 export {
   GamiAuthenticationError,
   GamiAuthorizationError,
