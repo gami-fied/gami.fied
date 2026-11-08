@@ -88,7 +88,12 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/rules/:ruleId` | Admin | API key with `rules:write` |
 | `GET` | `/rules/:ruleId` | Member | API key with `rules:read` |
 | `PATCH` | `/rules/:ruleId` | Admin | API key with `rules:write` |
+| `DELETE` | `/rules/:ruleId/draft` | Admin | API key with `rules:write` |
+| `PUT` | `/rules/:ruleId/draft` | Admin | API key with `rules:write` |
+| `POST` | `/rules/:ruleId/publish` | Admin | API key with `rules:write` |
+| `POST` | `/rules/:ruleId/rollback` | Admin | API key with `rules:write` |
 | `GET` | `/rules/:ruleId/trace` | Member | API key with `rules:read` |
+| `GET` | `/rules/:ruleId/versions` | Member | API key with `rules:read` |
 | `POST` | `/rules/preview` | Member | API key with `rules:read` |
 | `POST` | `/rules/simulate` | Member | API key with `rules:read` |
 | `GET` | `/streaks` | Member | API key with `streaks:read` |

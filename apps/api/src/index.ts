@@ -15,6 +15,7 @@ import { achievementRoutes } from './achievements/index.js';
 import { streakRoutes } from './streaks/index.js';
 import { realtimeRoutes } from './realtime/index.js';
 import { lifecycleRoutes } from './lifecycle/index.js';
+import { ruleVersionRoutes } from './rules/versions.js';
 import { xpPolicyRoutes } from './xp-policy/index.js';
 import { registerPushProviders } from '@gami/integrations';
 import { adminAuditLogRoutes } from './admin/audit-logs/index.js';
@@ -240,6 +241,7 @@ export async function buildServer() {
   await fastify.register(streakRoutes);
   await fastify.register(realtimeRoutes);
   await fastify.register(lifecycleRoutes);
+  await fastify.register(ruleVersionRoutes);
   await fastify.register(xpPolicyRoutes);
   registerPushProviders();
 

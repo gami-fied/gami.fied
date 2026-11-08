@@ -13,6 +13,7 @@ import { eq, and, asc, desc, gte, inArray, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
+import { actorOf, recordVersion } from './versions.js';
 
 const createRuleSchema = z.object({
   name: z.string().min(1).max(128),
@@ -123,6 +124,8 @@ export async function ruleRoutes(fastify: FastifyInstance) {
         })
         .returning();
 
+      await recordVersion(db, newRule!, 'Created', actorOf(authResult));
+
       return reply
         .status(201)
         .send(references.warnings.length > 0 ? { ...newRule, warnings: references.warnings } : newRule);
@@ -228,10 +231,19 @@ export async function ruleRoutes(fastify: FastifyInstance) {
           conditions: patch.conditions !== undefined ? patch.conditions : existingRule.conditions,
           actions: patch.actions ?? existingRule.actions,
           enabled: patch.enabled ?? existingRule.enabled,
+          // Editing the live rule replaces any waiting draft. Switching it on or off leaves the draft alone.
+          draft: ['name', 'description', 'trigger', 'conditions', 'actions'].some((key) => key in patch) ? null : existingRule.draft,
           updatedAt: new Date(),
         })
         .where(eq(rules.id, ruleId))
         .returning();
+
+      await recordVersion(
+        db,
+        updatedRule!,
+        patch.enabled !== undefined && Object.keys(patch).length === 1 ? (patch.enabled ? 'Turned on' : 'Turned off') : 'Edited',
+        actorOf(authResult)
+      );
 
       return reply.send(
         references.warnings.length > 0

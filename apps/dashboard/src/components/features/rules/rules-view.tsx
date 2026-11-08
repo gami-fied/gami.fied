@@ -31,6 +31,7 @@ import {
   Search,
   Trash2,
   Edit2,
+  History,
   CheckCircle2,
   XCircle,
   Sparkles,
@@ -42,7 +43,9 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { apiFetch } from '@/lib/api-client';
 import { BacktestPanel } from './backtest-panel';
+import { RuleHistoryDialog } from './rule-history-dialog';
 
 interface StoredCondition {
   aggregate?: AggregateCondition['aggregate'];
@@ -100,6 +103,8 @@ export function RulesView() {
   // Modal / Form state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RuleRecord | null>(null);
+  const [historyRule, setHistoryRule] = useState<RuleRecord | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [tracingRule, setTracingRule] = useState<RuleRecord | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<'visual' | 'json'>('visual');
@@ -164,13 +169,15 @@ export function RulesView() {
   // Helper to sync editing rule into form state
   useEffect(() => {
     if (editingRule) {
-      setName(editingRule.name);
-      setDescription(editingRule.description || '');
-      setTrigger(editingRule.trigger);
-      parseConditionsToVisual(editingRule.conditions);
-      parseActionsToVisual(editingRule.actions);
-      setRawConditionsJson(JSON.stringify(editingRule.conditions, null, 2));
-      setRawActionsJson(JSON.stringify(editingRule.actions, null, 2));
+      // Pick up where an unpublished draft left off.
+      const source = editingRule.draft ?? editingRule;
+      setName(source.name);
+      setDescription(source.description || '');
+      setTrigger(source.trigger);
+      parseConditionsToVisual(source.conditions);
+      parseActionsToVisual(source.actions);
+      setRawConditionsJson(JSON.stringify(source.conditions, null, 2));
+      setRawActionsJson(JSON.stringify(source.actions, null, 2));
     }
   }, [editingRule]);
 
@@ -372,6 +379,47 @@ export function RulesView() {
     }
   };
 
+  /** Keeps the edits without changing what runs. */
+  const handleSaveDraft = async () => {
+    if (!editingRule || !selectedProject) return;
+    if (!name.trim() || !trigger.trim()) {
+      setFormError('A name and a trigger are needed, even for a draft.');
+      return;
+    }
+    setSavingDraft(true);
+    setFormError(null);
+    try {
+      const conditionsObj = editorMode === 'visual' ? buildRulesEngineConditions(matchMode, visualConditions) : JSON.parse(rawConditionsJson || 'null');
+      const actionsObj = editorMode === 'visual' ? buildRulesEngineActions(visualActions) : JSON.parse(rawActionsJson || '[]');
+      const res = await apiFetch(`/api/projects/${selectedProject.id}/rules/${editingRule.id}/draft`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, description, trigger, conditions: conditionsObj, actions: actionsObj }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.message ?? 'The draft could not be saved.');
+      toast.success('Draft saved', 'It is not live yet. Publish it when you are ready.');
+      setEditingRule(null);
+      setIsCreateOpen(false);
+      await fetchRules();
+    } catch (err) {
+      setFormError(err instanceof SyntaxError ? 'The JSON is not valid yet.' : (err as Error).message);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleDiscardDraft = async () => {
+    if (!editingRule || !selectedProject) return;
+    const res = await apiFetch(`/api/projects/${selectedProject.id}/rules/${editingRule.id}/draft`, { method: 'DELETE' });
+    if (res.ok) {
+      toast.success('Draft discarded.');
+      setEditingRule(null);
+      setIsCreateOpen(false);
+      await fetchRules();
+    } else {
+      toast.error('The draft could not be discarded.');
+    }
+  };
+
   const handleDeleteRule = async () => {
     if (!deletingRuleId) return;
     try {
@@ -524,7 +572,10 @@ export function RulesView() {
                     <TableRow key={rule.id}>
                       <TableCell>
                         <div>
-                          <div className="text-xs font-semibold text-zinc-200">{rule.name}</div>
+                          <div className="text-xs font-semibold text-zinc-200">
+                            {rule.name}
+                            {rule.draft && <Badge variant="amber" className="ml-2">Draft waiting</Badge>}
+                          </div>
                           {rule.description && (
                             <div className="text-[11px] text-zinc-400">{rule.description}</div>
                           )}
@@ -589,6 +640,15 @@ export function RulesView() {
                             aria-label="Why did this fire?"
                           >
                             <Search className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHistoryRule(rule)}
+                            className="p-2 text-zinc-400 hover:text-white transition"
+                            title="History"
+                            aria-label="History"
+                          >
+                            <History className="w-4 h-4" />
                           </button>
                           <AdminOnly>
                             <button
@@ -747,6 +807,14 @@ export function RulesView() {
         description="Configure IF event conditions match, THEN execute actions."
       >
         <form onSubmit={handleSaveRule} className="space-y-5 overflow-y-auto pr-1">
+          {editingRule?.draft && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-warning-800/60 bg-warning-950/30 p-3 text-xs text-warning-300">
+              <span>You are editing an unpublished draft. The live rule hasn’t changed.</span>
+              <button type="button" className="underline" onClick={() => void handleDiscardDraft()}>
+                Discard draft
+              </button>
+            </div>
+          )}
           {formError && (
             <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none font-medium">
               {formError}
@@ -954,12 +1022,27 @@ export function RulesView() {
             >
               Cancel
             </Button>
+            {editingRule && (
+              <Button type="button" variant="outline" isLoading={savingDraft} onClick={() => void handleSaveDraft()}>
+                Save draft
+              </Button>
+            )}
             <Button type="submit" isLoading={submitting} variant="primary">
-              {editingRule ? 'Update Rule' : 'Create Rule'}
+              {editingRule ? (editingRule.draft ? 'Publish changes' : 'Update Rule') : 'Create Rule'}
             </Button>
           </div>
         </form>
       </Dialog>
+
+      {selectedProject && (
+        <RuleHistoryDialog
+          projectId={selectedProject.id}
+          rule={historyRule}
+          canRestore={isAdminOrOwner}
+          onClose={() => setHistoryRule(null)}
+          onRestored={() => void fetchRules()}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <ConfirmDialog

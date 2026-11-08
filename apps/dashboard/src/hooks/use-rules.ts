@@ -11,6 +11,8 @@ export interface RuleRecord {
   conditions: Record<string, unknown> | null;
   actions: Array<Record<string, unknown>>;
   enabled: boolean;
+  /** Edits saved but not live yet. */
+  draft?: { name: string; description: string | null; trigger: string; conditions: Record<string, unknown> | null; actions: Array<Record<string, unknown>>; enabled: boolean } | null;
   createdAt: string;
   updatedAt: string;
 }
