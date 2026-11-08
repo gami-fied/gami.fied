@@ -33,6 +33,8 @@ Webhooks tell your own systems when something happens. The events are:
 | `achievement.unlocked` | A user earns an achievement |
 | `level.up` | A user reaches a new level |
 | `challenge.completed` | A user finishes a challenge |
+| `reward.redeemed` | A user buys a reward in the store. Use it to ship the item or send the code |
+| `reward.cancelled` | A purchase is cancelled and the points are refunded |
 | `user.created` | A user is created |
 | `user.deactivated` | A user is deactivated |
 

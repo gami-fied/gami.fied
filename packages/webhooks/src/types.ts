@@ -5,6 +5,8 @@ export type WebhookEventType =
   | 'challenge.completed'
   | 'user.created'
   | 'user.deactivated'
+  | 'reward.redeemed'
+  | 'reward.cancelled'
   | 'webhook.test';
 
 export const SUPPORTED_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
@@ -14,6 +16,8 @@ export const SUPPORTED_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'challenge.completed',
   'user.created',
   'user.deactivated',
+  'reward.redeemed',
+  'reward.cancelled',
 ];
 
 export interface WebhookPayload {

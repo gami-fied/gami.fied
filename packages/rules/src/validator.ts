@@ -15,7 +15,7 @@ import {
 } from './types.js';
 
 /** Action types the worker can run. Anything else would never have an effect. */
-export const SUPPORTED_ACTION_TYPES = ['award_xp', 'award_achievement'] as const;
+export const SUPPORTED_ACTION_TYPES = ['award_xp', 'award_achievement', 'award_currency'] as const;
 export const MAX_XP_PER_ACTION = 1_000_000;
 
 const ALLOWED_OPERATORS: Set<Operator> = new Set([
@@ -174,6 +174,15 @@ function checkSavedAction(action: ActionDefinition): void {
   } else if (action.type === 'award_achievement') {
     if (typeof action.params?.['achievementKey'] !== 'string' || !action.params['achievementKey']) {
       throw new Error('award_achievement requires an achievementKey');
+    }
+  } else if (action.type === 'award_currency') {
+    const currency = action.params?.['currency'];
+    const amount = action.params?.['amount'];
+    if (typeof currency !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(currency)) {
+      throw new Error('award_currency needs the key of a currency');
+    }
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount <= 0 || amount > MAX_XP_PER_ACTION) {
+      throw new Error(`award_currency amount must be an integer between 1 and ${MAX_XP_PER_ACTION}`);
     }
   } else {
     throw new Error(`Unsupported action type: ${action.type}`);

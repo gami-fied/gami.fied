@@ -553,6 +553,8 @@ export type SdkWebhookEventType =
   | 'challenge.completed'
   | 'user.created'
   | 'user.deactivated'
+  | 'reward.redeemed'
+  | 'reward.cancelled'
   | 'webhook.test';
 
 export interface WebhookEndpointRecord {

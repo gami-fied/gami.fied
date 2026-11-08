@@ -3,6 +3,7 @@ import { db, ruleExecutions } from '@gami/database';
 import { ActionDefinition, evaluateRule, EventData } from '@gami/rules';
 import { eq, and } from 'drizzle-orm';
 import { executeAwardAchievementAction } from './actions/award-achievement.js';
+import { executeAwardCurrencyAction } from './actions/award-currency.js';
 import { executeAwardXpAction } from './actions/award-xp.js';
 import { computeAggregates } from './aggregates.js';
 import { createLogger } from '@gami/config';
@@ -76,6 +77,8 @@ async function runAction(
     await executeAwardXpAction(action, eventData, { ...context, actionIndex });
   } else if (action.type === 'award_achievement') {
     await executeAwardAchievementAction(action, eventData, context);
+  } else if (action.type === 'award_currency') {
+    await executeAwardCurrencyAction(action, eventData, { ...context, actionIndex });
   } else {
     throw new Error(`Unsupported action type: ${action.type}`);
   }

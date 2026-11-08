@@ -42,6 +42,18 @@ const WEBHOOK_EVENT_ITEMS: ChecklistItem<SdkWebhookEventType>[] = [
     badge: 'Challenge',
   },
   {
+    value: 'reward.redeemed',
+    label: 'reward.redeemed',
+    description: 'When someone buys a reward. Use it to ship the item or send the code.',
+    badge: 'Store',
+  },
+  {
+    value: 'reward.cancelled',
+    label: 'reward.cancelled',
+    description: 'When a purchase is cancelled and the points are refunded.',
+    badge: 'Store',
+  },
+  {
     value: 'user.created',
     label: 'user.created',
     description: 'When a new user is created.',
@@ -61,6 +73,8 @@ const EVENT_COLOR: Record<string, string> = {
   'achievement.unlocked': 'bg-info-950/60 text-info-300 border-info-800/60',
   'level.up': 'bg-warning-950/60 text-warning-300 border-warning-800/60',
   'challenge.completed': 'bg-info-950/60 text-info-300 border-info-800/60',
+  'reward.redeemed': 'bg-brand-950/60 text-brand-300 border-brand-800/60',
+  'reward.cancelled': 'bg-zinc-800 text-zinc-400 border-zinc-700',
   'user.created': 'bg-success-950/60 text-success-300 border-success-800/60',
   'user.deactivated': 'bg-zinc-800 text-zinc-400 border-zinc-700',
 };

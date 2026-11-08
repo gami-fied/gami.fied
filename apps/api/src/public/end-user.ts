@@ -7,8 +7,11 @@ import {
   getAuthSecret,
   levels,
   notifications,
+  currencies,
   projects,
   pushDevices,
+  redemptions,
+  rewards,
   streakDefinitions,
   userAchievements,
   userStreaks,
@@ -16,6 +19,7 @@ import {
   userXpBalances,
 } from '@gami/database';
 import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
+import { walletBalance } from '@gami/rewards';
 import { getLeaderboard, getUserRank, type LeaderboardPeriod } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
 import { and, desc, eq, or } from 'drizzle-orm';
@@ -24,6 +28,7 @@ import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { loadAchievementProgress } from '../achievements/progress.js';
+import { redeemReward, StoreError } from '../store/redeem.js';
 import { MAX_STREAMS_PER_PROCESS, MAX_STREAMS_PER_USER, realtimeHub, startPlayerStream } from '../realtime/index.js';
 
 const TOKEN_PREFIX = 'geu_';
@@ -210,6 +215,79 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       return reply.status(429).send({ code: 'TOO_MANY_STREAMS', message: 'Too many live connections for this user' });
     }
     startPlayerStream(request, reply, context);
+  });
+
+  fastify.get('/v1/me/wallets', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const list = await db.select().from(currencies).where(and(eq(currencies.projectId, context.projectId), eq(currencies.enabled, true))).orderBy(currencies.createdAt);
+    const data = await Promise.all(
+      list.map(async (currency) => ({
+        currency: currency.key,
+        name: currency.name,
+        symbol: currency.symbol,
+        balance: await walletBalance(db, context.projectId, context.userId, currency.id),
+      }))
+    );
+    return reply.send({ data });
+  });
+
+  // The catalogue, with what this player can afford, so a store screen needs one call.
+  fastify.get('/v1/me/rewards', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const list = await db
+      .select({ reward: rewards, currencyKey: currencies.key, currencyName: currencies.name, symbol: currencies.symbol })
+      .from(rewards)
+      .innerJoin(currencies, eq(currencies.id, rewards.currencyId))
+      .where(and(eq(rewards.projectId, context.projectId), eq(rewards.enabled, true), eq(currencies.enabled, true)))
+      .orderBy(rewards.cost, rewards.id);
+    const balances = new Map<string, number>();
+    for (const row of list) {
+      if (!balances.has(row.reward.currencyId)) balances.set(row.reward.currencyId, await walletBalance(db, context.projectId, context.userId, row.reward.currencyId));
+    }
+    const data = list.map(({ reward, currencyKey, currencyName, symbol }) => ({
+      key: reward.key,
+      name: reward.name,
+      description: reward.description,
+      imageUrl: reward.imageUrl,
+      currency: currencyKey,
+      currencyName,
+      currencySymbol: symbol,
+      cost: reward.cost,
+      inStock: reward.stock === null || reward.stock > 0,
+      affordable: (balances.get(reward.currencyId) ?? 0) >= reward.cost,
+    }));
+    return reply.send({ data });
+  });
+
+  fastify.post<{ Params: { rewardKey: string }; Body: { idempotencyKey?: string } }>('/v1/me/rewards/:rewardKey/redeem', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    try {
+      const { redemption, duplicate } = await redeemReward({
+        projectId: context.projectId,
+        user: context.userId,
+        rewardKey: request.params.rewardKey,
+        idempotencyKey: typeof request.body?.idempotencyKey === 'string' ? request.body.idempotencyKey.slice(0, 128) : undefined,
+      });
+      return reply.status(duplicate ? 200 : 201).send({ id: redemption.id, reward: redemption.rewardName, cost: redemption.cost, status: redemption.status, code: redemption.code, duplicate });
+    } catch (err) {
+      if (err instanceof StoreError) return reply.status(err.status).send({ code: err.code, message: err.message });
+      throw err;
+    }
+  });
+
+  fastify.get('/v1/me/redemptions', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const data = await db
+      .select({ id: redemptions.id, reward: redemptions.rewardName, cost: redemptions.cost, status: redemptions.status, code: redemptions.code, createdAt: redemptions.createdAt })
+      .from(redemptions)
+      .where(and(eq(redemptions.projectId, context.projectId), eq(redemptions.userId, context.userId)))
+      .orderBy(desc(redemptions.createdAt))
+      .limit(50);
+    return reply.send({ data });
   });
 
   // Phones register themselves here so the server can send them push notifications.

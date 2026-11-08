@@ -170,6 +170,34 @@ const SCHEMAS: Record<string, Schema> = {
     eventId: optionalText('The event that caused it.', 'evt_1762421400000_u7i8o'),
     createdAt: date('When it happened.'),
   }),
+  StoreReward: object({
+    id: id('ID of the reward.', 'rwd_1762421400000_a1b2c3d4'),
+    key: text('Your key for the reward. Unique in the project.', 'free_coffee'),
+    name: text('Display name.', 'Free coffee'),
+    description: optionalText('What it is.', 'One coffee, any size'),
+    imageUrl: optionalText('Link to a picture.', null),
+    currency: text('Key of the currency it costs.', 'coins'),
+    cost: count('How much it costs.', 500),
+    stock: { ...nullable('integer'), description: 'Units left. Null means unlimited.', example: 40 },
+    perUserLimit: { ...nullable('integer'), description: 'Most one person can redeem. Null means no limit.', example: 1 },
+    kind: { type: 'string', enum: ['fulfilled_by_you', 'code'], description: '`code` hands out a code from a pool, and `fulfilled_by_you` leaves delivery to you, after a `reward.redeemed` webhook.', example: 'code' },
+    enabled: flag('Whether it can be bought.', true),
+  }),
+  Wallet: object({
+    currency: text('Key of the currency.', 'coins'),
+    name: text('Display name.', 'Coins'),
+    symbol: optionalText('A short symbol.', '🪙'),
+    balance: count('What the user can spend now. Expired points are not counted.', 1200),
+    expiringSoon: count('Points that expire in the next 7 days.', 100),
+  }),
+  Redemption: object({
+    id: id('ID of the purchase.', 'rdm_1762421400000_a1b2c3d4'),
+    reward: text('The reward name at the time.', 'Free coffee'),
+    cost: count('What it cost.', 500),
+    status: { type: 'string', enum: ['pending', 'fulfilled', 'cancelled'], description: '`pending` until delivered, `fulfilled` once delivered (a code is delivered at once), `cancelled` with the points refunded.', example: 'fulfilled' },
+    code: optionalText('The code handed out, for a reward that uses codes.', 'COFFEE-7H2K'),
+    duplicate: flag('True if this idempotency key was already used, so nothing was bought again.', false),
+  }),
   ChallengeReward: {
     type: 'object',
     description: 'Either `{ "type": "xp", "amount": 100 }` or `{ "type": "achievement", "achievementKey": "first_order" }`.',
@@ -335,6 +363,7 @@ const pathParams = {
   achievementId: 'The achievement\'s ID, from List achievements.',
   challengeId: 'The challenge\'s ID, from List challenges.',
   levelId: 'The level\'s ID, from List levels.',
+  rewardKey: 'The reward\'s key, from List store rewards.',
 };
 
 const query = (name: string, description: string, schema: Schema): Param => ({
@@ -558,6 +587,36 @@ const DOCS: Record<string, Doc> = {
       },
     },
     example: { amount: 50, reason: 'Support credit', idempotencyKey: 'adjust-4821' },
+  },
+  'GET /rewards': {
+    tag: 'Store',
+    description: 'Lists the rewards people can buy, enabled or not, with stock and cost.',
+    status: 200,
+    responseDescription: 'The rewards.',
+    response: listOf('StoreReward', 'The rewards.'),
+  },
+  'GET /users/:userId/wallets': {
+    tag: 'Store',
+    description: 'Gets a user\'s balance in each currency. Expired points are not counted.',
+    status: 200,
+    responseDescription: 'One balance per currency.',
+    response: listOf('Wallet', 'The balances.'),
+    errors: [404],
+  },
+  'POST /users/:userId/rewards/:rewardKey/redeem': {
+    tag: 'Store',
+    description: 'Buys a reward for a user. The points, the stock, the user\'s limit and any code change together, so two people cannot take the last one. Fails with 409 and a `code` of `INSUFFICIENT_POINTS`, `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED`. A `reward.redeemed` webhook is sent so you can ship it. Send an idempotency key so a retry does not buy twice.',
+    status: 201,
+    responseDescription: 'The purchase. Returns 200 instead of 201 when the key was used before.',
+    errors: [404, 409],
+    response: ref('Redemption'),
+    body: {
+      type: 'object',
+      properties: {
+        idempotencyKey: { type: 'string', maxLength: 128, description: 'Makes a retry safe.', example: 'order-4821-reward' },
+      },
+    },
+    example: { idempotencyKey: 'order-4821-reward' },
   },
   'GET /users/:userId/achievements': {
     tag: 'Achievements',
@@ -1074,6 +1133,57 @@ export function buildOpenApiDocument() {
         responses: responses(200, 'The phone is removed, or was not registered.', object({ removed: flag('Always true.', true) }), [401]),
       },
     },
+    '/v1/me/wallets': {
+      get: meOperation('/v1/me/wallets', "List the current user's point balances", 'Shows what the token holder can spend in each currency.', meItems({
+        currency: text('Key of the currency.', 'coins'),
+        name: text('Display name.', 'Coins'),
+        symbol: optionalText('A short symbol.', '🪙'),
+        balance: count('What they can spend now.', 1200),
+      })),
+    },
+    '/v1/me/rewards': {
+      get: meOperation('/v1/me/rewards', 'List the store for the current user', 'Lists rewards that can be bought, cheapest first, with whether this player can afford each and whether it is in stock, so a store screen needs one call.', meItems({
+        key: text('The reward\'s key.', 'free_coffee'),
+        name: text('Display name.', 'Free coffee'),
+        description: optionalText('What it is.', null),
+        imageUrl: optionalText('Link to a picture.', null),
+        currency: text('Key of the currency it costs.', 'coins'),
+        currencyName: text('Name of the currency.', 'Coins'),
+        currencySymbol: optionalText('Its symbol.', null),
+        cost: count('The price.', 500),
+        inStock: flag('Whether any are left.', true),
+        affordable: flag('Whether this player has enough.', true),
+      })),
+    },
+    '/v1/me/rewards/{rewardKey}/redeem': {
+      post: {
+        operationId: 'postMeRewardsRewardKeyRedeem',
+        tags: ['Current user'],
+        summary: 'Buy a reward as the current user',
+        description: 'Spends the token holder\'s points on a reward. Returns 409 with a `code` of `INSUFFICIENT_POINTS`, `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED` when it cannot be bought. Send `idempotencyKey` so a retry does not buy twice.',
+        security: [{ endUserToken: [] }],
+        parameters: [{ name: 'rewardKey', in: 'path', required: true, description: 'The reward\'s key.', schema: { type: 'string' } }],
+        requestBody: jsonBody({ type: 'object', properties: { idempotencyKey: { type: 'string', maxLength: 128, description: 'Makes a retry safe.', example: 'buy-1' } } }, { idempotencyKey: 'buy-1' }, false),
+        responses: responses(201, 'The purchase.', object({
+          id: id('ID of the purchase.', 'rdm_1762421400000_a1b2c3d4'),
+          reward: text('The reward name.', 'Free coffee'),
+          cost: count('What it cost.', 500),
+          status: { type: 'string', enum: ['pending', 'fulfilled', 'cancelled'], description: 'Where it stands.', example: 'fulfilled' },
+          code: optionalText('The code handed out, if the reward uses codes.', 'COFFEE-7H2K'),
+          duplicate: flag('True if this key was used before.', false),
+        }), [401, 404, 409]),
+      },
+    },
+    '/v1/me/redemptions': {
+      get: meOperation('/v1/me/redemptions', "List the current user's purchases", 'Lists the token holder\'s 50 most recent purchases, with any code they were given.', meItems({
+        id: id('ID of the purchase.', 'rdm_1762421400000_a1b2c3d4'),
+        reward: text('The reward name.', 'Free coffee'),
+        cost: count('What it cost.', 500),
+        status: { type: 'string', enum: ['pending', 'fulfilled', 'cancelled'], description: 'Where it stands.', example: 'fulfilled' },
+        code: optionalText('The code, if any.', 'COFFEE-7H2K'),
+        createdAt: date('When it was bought.'),
+      })),
+    },
     '/v1/me/stream': {
       get: {
         operationId: 'getMeStream',
@@ -1195,7 +1305,7 @@ export function buildOpenApiDocument() {
       version: '1.0.0',
       description: 'The stable public API. The API key identifies the project, so paths never include a project ID.',
     },
-    tags: ['Events', 'Users', 'XP', 'Levels', 'Achievements', 'Streaks', 'Challenges', 'Leaderboard', 'Current user'].map(
+    tags: ['Events', 'Users', 'XP', 'Levels', 'Achievements', 'Streaks', 'Store', 'Challenges', 'Leaderboard', 'Current user'].map(
       (name) => ({ name })
     ),
     security: [{ apiKey: [] }],

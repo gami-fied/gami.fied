@@ -16,6 +16,7 @@ import {
   xpLedger,
   type LifecycleCampaign,
 } from '@gami/database';
+import { expireLots } from '@gami/rewards';
 import { renderLifecycleEmail, type LifecycleKind } from '@gami/notifications';
 import { periodIndex, streakStatus, type StreakCadence } from '@gami/progression';
 import { getRedisConnection } from '@gami/queue';
@@ -375,6 +376,9 @@ async function tick(): Promise<void> {
     const acquired = await getRedisConnection().set(LOCK_KEY, '1', 'EX', Math.floor(RUN_INTERVAL_MS / 1000) - 30, 'NX');
     if (!acquired) return;
     await runLifecycleCampaigns();
+    // Points whose time is up are written off, so wallet history shows what happened to them.
+    const closed = await db.transaction((tx) => expireLots(tx));
+    if (closed > 0) log.info('Expired wallet points', { lots: closed });
   } catch (err) {
     log.error('Lifecycle pass failed', { error: (err as Error).message });
   }

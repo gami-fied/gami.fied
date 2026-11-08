@@ -25,6 +25,9 @@
       "name": "Streaks"
     },
     {
+      "name": "Store"
+    },
+    {
       "name": "Challenges"
     },
     {
@@ -770,6 +773,533 @@
           },
           "401": {
             "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/wallets": {
+      "get": {
+        "operationId": "getV1MeWallets",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "List the current user's point balances",
+        "description": "Shows what the token holder can spend in each currency.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List the current user's point balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "currency",
+                          "name",
+                          "symbol",
+                          "balance"
+                        ],
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "description": "Key of the currency.",
+                            "example": "coins"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Coins"
+                          },
+                          "symbol": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "A short symbol.",
+                            "example": "🪙"
+                          },
+                          "balance": {
+                            "type": "integer",
+                            "description": "What they can spend now.",
+                            "example": 1200
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/rewards": {
+      "get": {
+        "operationId": "getV1MeRewards",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "List the store for the current user",
+        "description": "Lists rewards that can be bought, cheapest first, with whether this player can afford each and whether it is in stock, so a store screen needs one call.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List the store for the current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "name",
+                          "description",
+                          "imageUrl",
+                          "currency",
+                          "currencyName",
+                          "currencySymbol",
+                          "cost",
+                          "inStock",
+                          "affordable"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "The reward's key.",
+                            "example": "free_coffee"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name.",
+                            "example": "Free coffee"
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "What it is.",
+                            "example": null
+                          },
+                          "imageUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Link to a picture.",
+                            "example": null
+                          },
+                          "currency": {
+                            "type": "string",
+                            "description": "Key of the currency it costs.",
+                            "example": "coins"
+                          },
+                          "currencyName": {
+                            "type": "string",
+                            "description": "Name of the currency.",
+                            "example": "Coins"
+                          },
+                          "currencySymbol": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Its symbol.",
+                            "example": null
+                          },
+                          "cost": {
+                            "type": "integer",
+                            "description": "The price.",
+                            "example": 500
+                          },
+                          "inStock": {
+                            "type": "boolean",
+                            "description": "Whether any are left.",
+                            "example": true
+                          },
+                          "affordable": {
+                            "type": "boolean",
+                            "description": "Whether this player has enough.",
+                            "example": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/rewards/{rewardKey}/redeem": {
+      "post": {
+        "operationId": "postMeRewardsRewardKeyRedeem",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Buy a reward as the current user",
+        "description": "Spends the token holder's points on a reward. Returns 409 with a `code` of `INSUFFICIENT_POINTS`, `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED` when it cannot be bought. Send `idempotencyKey` so a retry does not buy twice.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rewardKey",
+            "in": "path",
+            "required": true,
+            "description": "The reward's key.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "description": "Makes a retry safe.",
+                    "example": "buy-1"
+                  }
+                }
+              },
+              "example": {
+                "idempotencyKey": "buy-1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The purchase.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "reward",
+                    "cost",
+                    "status",
+                    "code",
+                    "duplicate"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "ID of the purchase.",
+                      "example": "rdm_1762421400000_a1b2c3d4"
+                    },
+                    "reward": {
+                      "type": "string",
+                      "description": "The reward name.",
+                      "example": "Free coffee"
+                    },
+                    "cost": {
+                      "type": "integer",
+                      "description": "What it cost.",
+                      "example": 500
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "fulfilled",
+                        "cancelled"
+                      ],
+                      "description": "Where it stands.",
+                      "example": "fulfilled"
+                    },
+                    "code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The code handed out, if the reward uses codes.",
+                      "example": "COFFEE-7H2K"
+                    },
+                    "duplicate": {
+                      "type": "boolean",
+                      "description": "True if this key was used before.",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with something that already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/redemptions": {
+      "get": {
+        "operationId": "getV1MeRedemptions",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "List the current user's purchases",
+        "description": "Lists the token holder's 50 most recent purchases, with any code they were given.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List the current user's purchases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The results.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "reward",
+                          "cost",
+                          "status",
+                          "code",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "ID of the purchase.",
+                            "example": "rdm_1762421400000_a1b2c3d4"
+                          },
+                          "reward": {
+                            "type": "string",
+                            "description": "The reward name.",
+                            "example": "Free coffee"
+                          },
+                          "cost": {
+                            "type": "integer",
+                            "description": "What it cost.",
+                            "example": 500
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "fulfilled",
+                              "cancelled"
+                            ],
+                            "description": "Where it stands.",
+                            "example": "fulfilled"
+                          },
+                          "code": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "The code, if any.",
+                            "example": "COFFEE-7H2K"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When it was bought.",
+                            "example": "2026-11-06T09:30:00.000Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5269,6 +5799,271 @@
         }
       }
     },
+    "/v1/rewards": {
+      "get": {
+        "operationId": "getRewards",
+        "tags": [
+          "Store"
+        ],
+        "summary": "List store rewards",
+        "description": "Lists the rewards people can buy, enabled or not, with stock and cost.",
+        "x-required-scope": "rewards:read",
+        "responses": {
+          "200": {
+            "description": "The rewards.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The rewards.",
+                      "items": {
+                        "$ref": "#/components/schemas/StoreReward"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{userId}/wallets": {
+      "get": {
+        "operationId": "getUsersUserIdWallets",
+        "tags": [
+          "Store"
+        ],
+        "summary": "Get a user's point balances",
+        "description": "Gets a user's balance in each currency. Expired points are not counted.",
+        "x-required-scope": "wallets:read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One balance per currency.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "description": "The balances.",
+                      "items": {
+                        "$ref": "#/components/schemas/Wallet"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{userId}/rewards/{rewardKey}/redeem": {
+      "post": {
+        "operationId": "postUsersUserIdRewardsRewardKeyRedeem",
+        "tags": [
+          "Store"
+        ],
+        "summary": "Buy a reward for a user",
+        "description": "Buys a reward for a user. The points, the stock, the user's limit and any code change together, so two people cannot take the last one. Fails with 409 and a `code` of `INSUFFICIENT_POINTS`, `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED`. A `reward.redeemed` webhook is sent so you can ship it. Send an idempotency key so a retry does not buy twice.",
+        "x-required-scope": "rewards:write",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "description": "Your own ID for the user, or their Gami.Fied ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rewardKey",
+            "required": true,
+            "description": "The reward's key, from List store rewards.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "description": "Makes a retry safe.",
+                    "example": "order-4821-reward"
+                  }
+                }
+              },
+              "example": {
+                "idempotencyKey": "order-4821-reward"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The purchase. Returns 200 instead of 201 when the key was used before.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redemption"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with something that already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/streaks": {
       "get": {
         "operationId": "getStreaks",
@@ -6269,6 +7064,186 @@
             "format": "date-time",
             "description": "When it happened.",
             "example": "2026-11-06T09:30:00.000Z"
+          }
+        }
+      },
+      "StoreReward": {
+        "type": "object",
+        "required": [
+          "id",
+          "key",
+          "name",
+          "description",
+          "imageUrl",
+          "currency",
+          "cost",
+          "stock",
+          "perUserLimit",
+          "kind",
+          "enabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of the reward.",
+            "example": "rwd_1762421400000_a1b2c3d4"
+          },
+          "key": {
+            "type": "string",
+            "description": "Your key for the reward. Unique in the project.",
+            "example": "free_coffee"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Free coffee"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it is.",
+            "example": "One coffee, any size"
+          },
+          "imageUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Link to a picture.",
+            "example": null
+          },
+          "currency": {
+            "type": "string",
+            "description": "Key of the currency it costs.",
+            "example": "coins"
+          },
+          "cost": {
+            "type": "integer",
+            "description": "How much it costs.",
+            "example": 500
+          },
+          "stock": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Units left. Null means unlimited.",
+            "example": 40
+          },
+          "perUserLimit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Most one person can redeem. Null means no limit.",
+            "example": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fulfilled_by_you",
+              "code"
+            ],
+            "description": "`code` hands out a code from a pool, and `fulfilled_by_you` leaves delivery to you, after a `reward.redeemed` webhook.",
+            "example": "code"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it can be bought.",
+            "example": true
+          }
+        }
+      },
+      "Wallet": {
+        "type": "object",
+        "required": [
+          "currency",
+          "name",
+          "symbol",
+          "balance",
+          "expiringSoon"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "Key of the currency.",
+            "example": "coins"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Coins"
+          },
+          "symbol": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A short symbol.",
+            "example": "🪙"
+          },
+          "balance": {
+            "type": "integer",
+            "description": "What the user can spend now. Expired points are not counted.",
+            "example": 1200
+          },
+          "expiringSoon": {
+            "type": "integer",
+            "description": "Points that expire in the next 7 days.",
+            "example": 100
+          }
+        }
+      },
+      "Redemption": {
+        "type": "object",
+        "required": [
+          "id",
+          "reward",
+          "cost",
+          "status",
+          "code",
+          "duplicate"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of the purchase.",
+            "example": "rdm_1762421400000_a1b2c3d4"
+          },
+          "reward": {
+            "type": "string",
+            "description": "The reward name at the time.",
+            "example": "Free coffee"
+          },
+          "cost": {
+            "type": "integer",
+            "description": "What it cost.",
+            "example": 500
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "fulfilled",
+              "cancelled"
+            ],
+            "description": "`pending` until delivered, `fulfilled` once delivered (a code is delivered at once), `cancelled` with the points refunded.",
+            "example": "fulfilled"
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The code handed out, for a reward that uses codes.",
+            "example": "COFFEE-7H2K"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "True if this idempotency key was already used, so nothing was bought again.",
+            "example": false
           }
         }
       },

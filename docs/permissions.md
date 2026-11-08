@@ -43,6 +43,9 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/challenges/:challengeId` | Member | API key with `challenges:read` |
 | `PATCH` | `/challenges/:challengeId` | Admin | API key with `challenges:write` |
 | `GET` | `/challenges/summary` | Member | API key with `challenges:read` |
+| `GET` | `/currencies` | Member | Signed-in user only |
+| `POST` | `/currencies` | Admin | Signed-in user only |
+| `PATCH` | `/currencies/:currencyId` | Admin | Signed-in user only |
 | `GET` | `/email-deliveries` | Admin | API key with `notifications:read` |
 | `GET` | `/events` | Member | API key with `events:read` |
 | `GET` | `/events/:eventId` | Member | API key with `events:read` |
@@ -83,6 +86,14 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/onboarding` | Member | API key with `system:read` |
 | `GET` | `/overview` | Member | Signed-in user only |
 | `GET` | `/progression/summary` | Member | API key with `levels:read` |
+| `GET` | `/redemptions` | Member | Signed-in user only |
+| `POST` | `/redemptions/:redemptionId/cancel` | Admin | Signed-in user only |
+| `POST` | `/redemptions/:redemptionId/fulfill` | Admin | Signed-in user only |
+| `GET` | `/rewards` | Member | API key with `rewards:read` |
+| `POST` | `/rewards` | Admin | API key with `rewards:write` |
+| `DELETE` | `/rewards/:rewardId` | Admin | API key with `rewards:write` |
+| `PATCH` | `/rewards/:rewardId` | Admin | API key with `rewards:write` |
+| `POST` | `/rewards/:rewardId/codes` | Admin | API key with `rewards:write` |
 | `GET` | `/rules` | Member | API key with `rules:read` |
 | `POST` | `/rules` | Admin | API key with `rules:write` |
 | `DELETE` | `/rules/:ruleId` | Admin | API key with `rules:write` |
@@ -122,9 +133,14 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/users/:userId/notifications/unread-count` | Member | API key with `notifications:read` |
 | `GET` | `/users/:userId/progress` | Member | API key with `levels:read` |
 | `POST` | `/users/:userId/ranking` | Admin | API key with `users:write` |
+| `GET` | `/users/:userId/redemptions` | Member | API key with `rewards:read` |
+| `POST` | `/users/:userId/rewards/:rewardKey/redeem` | Admin | API key with `rewards:write` |
 | `GET` | `/users/:userId/streaks` | Member | API key with `streaks:read` |
 | `GET` | `/users/:userId/streaks/history` | Member | API key with `streaks:read` |
 | `GET` | `/users/:userId/timeline` | Member | API key with `users:read` |
+| `GET` | `/users/:userId/wallets` | Member | API key with `wallets:read` |
+| `POST` | `/users/:userId/wallets/:currencyKey/adjust` | Admin | API key with `wallets:write` |
+| `GET` | `/users/:userId/wallets/:currencyKey/ledger` | Member | API key with `wallets:read` |
 | `GET` | `/users/:userId/xp` | Member | API key with `xp:read` |
 | `POST` | `/users/:userId/xp/adjust` | Admin | API key with `xp:write` |
 | `GET` | `/users/:userId/xp/ledger` | Member | API key with `xp:read` |

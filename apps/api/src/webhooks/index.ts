@@ -19,6 +19,8 @@ const webhookEventTypeEnum = z.enum([
   'challenge.completed',
   'user.created',
   'user.deactivated',
+  'reward.redeemed',
+  'reward.cancelled',
   'webhook.test',
 ]);
 

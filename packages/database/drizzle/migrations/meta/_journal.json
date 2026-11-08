@@ -260,6 +260,13 @@
       "when": 1794143617983,
       "tag": "0036_rule_versions",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794143914494,
+      "tag": "0037_wallets_and_store",
+      "breakpoints": true
     }
   ]
 }
