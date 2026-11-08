@@ -26,6 +26,8 @@ import {
   TablePagination,
 } from '@/components/ui/table';
 import { ArrowLeft, Coins, Flame, Gift, Medal, Trophy } from 'lucide-react';
+import { LiveBadge } from '@/components/ui/live-badge';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 
 type Tab = 'overview' | 'ledger' | 'streaks' | 'achievements' | 'challenges';
 
@@ -256,6 +258,13 @@ export function UserDetailView({ userId }: { userId: string }) {
     }
   }, [amount, base, balance, ledger, reason, toast]);
 
+  // Refresh this user's numbers whenever the project moves, so the profile stays current.
+  const live = useLiveUpdates(projectId, () => {
+    balance.reload();
+    ledger.reload();
+    streaks.reload();
+  });
+
   const person = user.data;
   const title = person?.name || person?.externalId || 'User';
 
@@ -282,11 +291,16 @@ export function UserDetailView({ userId }: { userId: string }) {
           ) : undefined
         }
         actions={
-          isAdminOrOwner && person ? (
-            <Button variant="primary" size="sm" onClick={() => setGrantOpen(true)}>
-              <Gift className="h-3.5 w-3.5" />
-              Give or remove XP
-            </Button>
+          person ? (
+            <>
+              <LiveBadge live={live} />
+              {isAdminOrOwner && (
+                <Button variant="primary" size="sm" onClick={() => setGrantOpen(true)}>
+                  <Gift className="h-3.5 w-3.5" />
+                  Give or remove XP
+                </Button>
+              )}
+            </>
           ) : undefined
         }
         toolbar={

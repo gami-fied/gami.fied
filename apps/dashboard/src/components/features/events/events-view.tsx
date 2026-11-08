@@ -39,6 +39,8 @@ import {
 import { formatRelativeTime } from '@/hooks/use-relative-time';
 import { setVisibleInterval } from '@/lib/visible-interval';
 import { PageHeader } from '@/components/ui/page-header';
+import { LiveBadge } from '@/components/ui/live-badge';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 
 const AUTO_REFRESH_INTERVAL = 30_000; // 30 seconds
 
@@ -47,6 +49,7 @@ export function EventsView() {
   const projectId = selectedProject?.id || null;
 
   const { events, loading, error, page, hasMore, fetchEvents } = useEvents(projectId);
+  const live = useLiveUpdates(projectId, () => fetchEvents(page, typeFilter, userIdFilter));
   const toast = useToast();
 
   const [typeFilter, setTypeFilter] = useState('');
@@ -205,6 +208,7 @@ export function EventsView() {
         }
         actions={
           <>
+            <LiveBadge live={live} />
             {/* Send Test Event Playground Button */}
             <Button variant="primary" size="sm" onClick={() => setIsEmitOpen(true)}>
               <Send className="w-3.5 h-3.5" />

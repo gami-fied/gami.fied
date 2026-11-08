@@ -219,6 +219,8 @@ describe('API docs contract', () => {
     sorted.unshift(...sorted.splice(tokenRoute, 1));
 
     for (const { path, method, operation } of sorted) {
+      // A stream never finishes, so it has its own tests (realtime.test.ts).
+      if (path === '/v1/me/stream') continue;
       const url = path.replace(/\{(\w+)\}/g, (_, name: keyof typeof pathValues) => pathValues[name]);
       const example = operation.requestBody?.content['application/json']?.example;
       const res = await app.inject({

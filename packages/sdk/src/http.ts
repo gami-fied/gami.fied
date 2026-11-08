@@ -82,6 +82,18 @@ export class HttpClient {
   }
 
   /**
+   * Opens a long-lived response, such as a server-sent events stream. Unlike `request`, it does not
+   * time out or retry, because the caller decides when to stop. Pass `signal` to cancel it.
+   */
+  public async openStream(path: string, init: { signal?: AbortSignal; headers?: Record<string, string> } = {}): Promise<Response> {
+    return fetch(this.buildUrl(path), {
+      method: 'GET',
+      signal: init.signal,
+      headers: { Accept: 'text/event-stream', ...this.credentials, ...this.customHeaders, ...init.headers },
+    });
+  }
+
+  /**
    * Safe sleep function for exponential backoff retries
    */
   private async delay(ms: number): Promise<void> {

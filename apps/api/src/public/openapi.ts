@@ -1041,6 +1041,23 @@ export function buildOpenApiDocument() {
         progressPercent: { ...nullable('integer'), description: 'Percent of the way to the next level.', example: 50 },
       })),
     },
+    '/v1/me/stream': {
+      get: {
+        operationId: 'getMeStream',
+        tags: ['Current user'],
+        summary: "Stream the current user's updates",
+        description: "Opens a server-sent events stream that pushes this player's new notifications and XP balance as they happen, for instant toasts. Events: `ready`, `notification` (with an `id` to send back as `Last-Event-ID` after a reconnect, so nothing is missed), `xp` (`{ totalXp }`). A comment line is sent every 25 seconds to keep the connection open. A browser's `EventSource` cannot send headers, so the token may be passed as `?access_token=`. Each player can hold up to 5 streams.",
+        security: [{ endUserToken: [] }],
+        responses: {
+          '200': {
+            description: 'A stream of events.',
+            content: { 'text/event-stream': { schema: { type: 'string' } } },
+          },
+          '401': { description: 'The token is missing or has expired.' },
+          '429': { description: 'This player already has the most streams allowed open.' },
+        },
+      },
+    },
     '/v1/me/achievements': {
       get: meOperation('/v1/me/achievements', "List the current user's achievements", 'Lists what the token holder has earned, newest first.', meItems({
         key: text('The achievement\'s key.', 'first_order'),

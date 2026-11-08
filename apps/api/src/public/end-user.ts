@@ -23,6 +23,7 @@ import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { loadAchievementProgress } from '../achievements/progress.js';
+import { MAX_STREAMS_PER_PROCESS, MAX_STREAMS_PER_USER, realtimeHub, startPlayerStream } from '../realtime/index.js';
 
 const TOKEN_PREFIX = 'geu_';
 const DEFAULT_TOKEN_SECONDS = 900;
@@ -192,6 +193,22 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       )
       .orderBy(desc(userAchievements.awardedAt));
     return reply.send({ data });
+  });
+
+  // A live stream of this player's notifications and XP. Browsers' EventSource cannot send an
+  // Authorization header, so the short-lived token may also come as ?access_token=.
+  fastify.get<{ Querystring: { access_token?: string } }>('/v1/me/stream', async (request, reply) => {
+    const queryToken = request.query.access_token;
+    if (queryToken && !request.headers.authorization) {
+      request.headers.authorization = `Bearer ${queryToken}`;
+    }
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+
+    if (realtimeHub.count() >= MAX_STREAMS_PER_PROCESS || realtimeHub.count(context.userId) >= MAX_STREAMS_PER_USER) {
+      return reply.status(429).send({ code: 'TOO_MANY_STREAMS', message: 'Too many live connections for this user' });
+    }
+    startPlayerStream(request, reply, context);
   });
 
   fastify.get('/v1/me/achievements/progress', async (request, reply) => {

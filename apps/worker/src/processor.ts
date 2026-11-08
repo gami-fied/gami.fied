@@ -8,6 +8,7 @@ import {
   processChallengesForEvent,
 } from './challenge-processor.js';
 import { createLogger } from '@gami/config';
+import { publishRealtime } from '@gami/queue';
 import { processStreaksForEvent } from './streak-processor.js';
 import { processAchievementCriteriaForEvent } from './achievement-progress.js';
 
@@ -96,6 +97,9 @@ export async function processEventJob(
   } catch (notifErr) {
     eventLog.error('Notification dispatch failed', notifErr);
   }
+
+  // Let open streams know there is something new to read. It never blocks or fails the event.
+  void publishRealtime({ projectId: evt.projectId, userId: evt.userId });
 
   return {
     eventId: evt.id,

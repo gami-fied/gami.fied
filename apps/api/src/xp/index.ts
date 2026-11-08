@@ -1,3 +1,4 @@
+import { publishRealtime } from '@gami/queue';
 import { awardXp, InsufficientXpError } from '@gami/rewards';
 import { db, endUsers, userXpBalances, xpLedger } from '@gami/database';
 import { eq, and, desc, or, sql, count } from 'drizzle-orm';
@@ -211,6 +212,7 @@ export async function xpRoutes(fastify: FastifyInstance) {
         });
 
         if (!createdEntry.duplicate) {
+          void publishRealtime({ projectId, userId: targetUser.id });
           const { createAuditLog } = await import('../audit-logs/index.js');
           await createAuditLog(db, {
             projectId,

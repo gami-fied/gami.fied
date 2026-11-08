@@ -79,6 +79,7 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
 | `PATCH` | `/streaks/:streakId` | Admin | API key with `streaks:write` |
 | `GET` | `/streaks/:streakId/leaders` | Member | API key with `streaks:read` |
+| `GET` | `/stream` | Member | Signed-in user only |
 | `GET` | `/system/metrics` | Member | API key with `system:read` |
 | `GET` | `/users` | Member | API key with `users:read` |
 | `POST` | `/users` | Admin | API key with `users:write` |

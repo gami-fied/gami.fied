@@ -21,6 +21,8 @@ import { TableSkeleton } from '@/components/ui/skeleton';
 import { Dialog } from '@/components/ui/dialog';
 import { Trophy, Medal, Crown, Search, UserCheck, ShieldAlert, Sparkles, User } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { LiveBadge } from '@/components/ui/live-badge';
+import { useLiveUpdates } from '@/hooks/use-live-updates';
 
 export function LeaderboardView() {
   const { selectedProject } = useDashboard();
@@ -35,7 +37,8 @@ export function LeaderboardView() {
   const [lookupInput, setLookupInput] = useState('');
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
-  const { leaderboard, loading, error } = useLeaderboard(projectId, period, page, 20, search);
+  const { leaderboard, loading, error, refresh } = useLeaderboard(projectId, period, page, 20, search);
+  const live = useLiveUpdates(projectId, refresh);
   const {
     userRank,
     loading: lookupLoading,
@@ -67,6 +70,7 @@ export function LeaderboardView() {
         description="See who is ahead, all time or for a chosen period."
         actions={
           <>
+            <LiveBadge live={live} />
             <Button variant="secondary" size="sm" onClick={() => setIsLookupOpen(true)}>
               <UserCheck className="w-4 h-4 text-brand-400" />
               Lookup User Rank
