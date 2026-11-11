@@ -1,0 +1,99 @@
+name: Website
+
+# Builds the website for every change that touches it, and deploys it to Cloudflare Pages once the
+# repository has the secrets: production from master, and a preview for every pull request.
+#
+# To turn deployment on, add these in Settings → Secrets and variables → Actions:
+#   secrets.CLOUDFLARE_API_TOKEN   an API token with "Cloudflare Pages: Edit"
+#   secrets.CLOUDFLARE_ACCOUNT_ID  the Cloudflare account ID
+#   vars.CLOUDFLARE_PAGES_PROJECT  the Pages project name (defaults to gami-fied-website)
+#   vars.WEBSITE_URL               the production address (defaults to https://gami.fied.cc)
+# Without them, the workflow only builds, so forks and outside pull requests still get checked.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/website/**'
+      - 'packages/ui/**'
+      - 'docs/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/website.yml'
+  pull_request:
+    paths:
+      - 'apps/website/**'
+      - 'packages/ui/**'
+      - 'docs/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+jobs:
+  build:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    env:
+      IS_PRODUCTION: ${{ github.event_name != 'pull_request' && (github.ref_name == 'master' || github.ref_name == 'main') }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @gami/website... build
+        env:
+          PUBLIC_SITE_URL: ${{ vars.WEBSITE_URL || 'https://gami.fied.cc' }}
+          # Previews stay out of search results and send no analytics.
+          PUBLIC_NOINDEX: ${{ env.IS_PRODUCTION == 'true' && 'false' || 'true' }}
+          PUBLIC_ANALYTICS_PROVIDER: ${{ vars.ANALYTICS_PROVIDER }}
+          PUBLIC_ANALYTICS_SCRIPT: ${{ vars.ANALYTICS_SCRIPT }}
+          PUBLIC_ANALYTICS_SITE: ${{ vars.ANALYTICS_SITE }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: website
+          path: apps/website/dist
+          retention-days: 7
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy apps/website/dist
+            --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'gami-fied-website' }}
+            --branch=${{ env.IS_PRODUCTION == 'true' && 'main' || github.head_ref || github.ref_name }}
+
+      - name: Show the address
+        if: steps.deploy.outcome == 'success'
+        run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Link the preview on the pull request
+        if: steps.deploy.outcome == 'success' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.deployment-url }}';
+            const marker = '<!-- website-preview -->';
+            const body = `${marker}\nWebsite preview: ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });

@@ -30,7 +30,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
 | 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
-| 9 | Website, docs and sandbox | 0 / 44 | Not started |
+| 9 | Website, docs and sandbox | 3 / 44 | In progress, 2 partly done |
 | 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
@@ -572,11 +572,11 @@ The docs live at `/docs` through Starlight, reading the repository's own `docs/`
 
 ### 9.1 Foundation
 
-- [ ] **WEB-01** `P1` Create `apps/website` with Astro, the Starlight, React, Tailwind and sitemap integrations, and View Transitions, wired into Turbo, lint, typecheck and CI. The build is a static export; only the demo start uses a server endpoint, or calls the demo instance directly.
-- [ ] **WEB-02** `P1` Share the brand between the dashboard and the website: move colours, type and spacing into design tokens in `packages/ui` that both Tailwind setups read, so the two look like one product. Components shared with the dashboard are used as React islands.
-- [ ] **WEB-03** `P1` Set up hosting and domains: `gami.fied.cc` for the site, `demo.gami.fied.cc` for the live demo, HTTPS, and a preview deployment for every pull request.
-- [ ] **WEB-04** `P2` SEO basics: titles and descriptions per page, Open Graph images generated at build time, `sitemap.xml`, `robots.txt`, and canonical links for versioned docs.
-- [ ] **WEB-05** `P2` Privacy-friendly analytics without cookies (for example Plausible or Umami, self-hosted), so the site needs no consent banner. Track installs started, playground runs and demo starts.
+- [x] **WEB-01** `P1` Create `apps/website` with Astro, the Starlight, React, Tailwind and sitemap integrations, and View Transitions, wired into Turbo, lint, typecheck and CI. The build is a static export; only the demo start uses a server endpoint, or calls the demo instance directly. `[ran]` Done: Astro 7 with Starlight, React, Tailwind 4 and View Transitions, installed through the CLI at their latest versions, building statically and covered by the root lint, typecheck and build. The sitemap comes from Starlight.
+- [x] **WEB-02** `P1` Share the brand between the dashboard and the website: move colours, type and spacing into design tokens in `packages/ui` that both Tailwind setups read, so the two look like one product. Components shared with the dashboard are used as React islands. `[ran]` Done: `@gami/ui/tokens.css` holds the colours and fonts, and both the dashboard and the website import it. Starlight's accent and greys are mapped onto the same tokens.
+- [~] **WEB-03** `P1` Set up hosting and domains: `gami.fied.cc` for the site, `demo.gami.fied.cc` for the live demo, HTTPS, and a preview deployment for every pull request. `[code]` Done: `.github/workflows/website.yml` builds every change, deploys to Cloudflare Pages once the secrets are set, keeps previews out of search, and links each pull request's preview. Left: create the Cloudflare Pages project, add the secrets, and point `gami.fied.cc` at it.
+- [x] **WEB-04** `P2` SEO basics: titles and descriptions per page, Open Graph images generated at build time, `sitemap.xml`, `robots.txt`, and canonical links for versioned docs. `[ran]` Done: titles, descriptions, canonical links and social cards on every page, Open Graph images drawn at build time in the brand font, `sitemap-index.xml` and `robots.txt`, with previews set to noindex.
+- [~] **WEB-05** `P2` Privacy-friendly analytics without cookies (for example Plausible or Umami, self-hosted), so the site needs no consent banner. Track installs started, playground runs and demo starts. `[code]` Done: Plausible or Umami, loaded only when configured and never on previews, with `data-track` click counting and the event names in one place. Left: run the analytics instance and set its variables. Playground and demo events are wired up when those pages exist.
 
 ### 9.2 Marketing pages
 

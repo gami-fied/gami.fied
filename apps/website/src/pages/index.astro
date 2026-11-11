@@ -1,0 +1,65 @@
+---
+/**
+ * A first, simple home page for the site's foundation. WEB-06 replaces it with the full home page:
+ * the engine animation, "how it works" and the code sample.
+ */
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { EVENTS } from '../lib/analytics';
+import { SITE } from '../lib/site';
+
+const points = [
+  { title: 'Events in', text: 'Send what people do in your app: a lesson finished, an order paid, a workout logged.' },
+  { title: 'Rules decide', text: 'Rules, streaks, challenges and limits turn those events into progress, without code changes.' },
+  { title: 'Rewards out', text: 'XP, levels, badges, leaderboards, leagues and a reward store, on servers you run.' },
+];
+---
+
+<SiteLayout og="index">
+  <section class="relative overflow-hidden">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(60%_60%_at_50%_0%,color-mix(in_oklab,var(--color-brand-500)_18%,transparent),transparent)]" aria-hidden="true"></div>
+    <div class="relative mx-auto max-w-4xl px-6 pb-20 pt-24 text-center sm:pt-32">
+      <p class="mb-5 inline-flex items-center gap-2 border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-medium text-zinc-400">
+        <span class="h-1.5 w-1.5 bg-brand-500" aria-hidden="true"></span>
+        Open source and self-hosted
+      </p>
+      <h1 class="text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-6xl">
+        Gamification you run on your own servers
+      </h1>
+      <p class="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
+        {SITE.description}
+      </p>
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          href="/docs/"
+          class="inline-flex items-center justify-center bg-brand-500 px-5 py-3 text-sm font-semibold text-on-accent transition duration-150 hover:-translate-y-px hover:bg-brand-400 active:scale-[0.98]"
+        >
+          Read the docs
+        </a>
+        <a
+          href={SITE.releases}
+          target="_blank"
+          rel="noopener"
+          data-track={EVENTS.installStarted}
+          data-track-source="home-hero"
+          class="inline-flex items-center justify-center border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition duration-150 hover:-translate-y-px hover:border-zinc-500 active:scale-[0.98]"
+        >
+          Install the latest release
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-6 pb-24" aria-label="How it works">
+    <ol class="grid gap-4 md:grid-cols-3">
+      {
+        points.map((point, index) => (
+          <li class="border border-zinc-800 bg-zinc-900/40 p-6">
+            <span class="font-mono text-xs text-brand-400">0{index + 1}</span>
+            <h2 class="mt-2 text-base font-semibold text-zinc-100">{point.title}</h2>
+            <p class="mt-2 text-sm leading-relaxed text-zinc-400">{point.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+</SiteLayout>

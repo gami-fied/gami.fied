@@ -1,78 +1,13 @@
 @import 'tailwindcss';
 
-/* Register next/font CSS vars as Tailwind v4 theme tokens */
-@theme {
-  /* Colours are used by role, so a palette change only happens here. */
-  --color-on-accent: #ffffff;
-  --color-brand-50: oklch(98% 0.016 73.684);
-  --color-brand-100: oklch(95.4% 0.038 75.164);
-  --color-brand-200: oklch(90.1% 0.076 70.697);
-  --color-brand-300: oklch(83.7% 0.128 66.29);
-  --color-brand-400: oklch(75% 0.183 55.934);
-  --color-brand-500: oklch(70.5% 0.213 47.604);
-  --color-brand-600: oklch(64.6% 0.222 41.116);
-  --color-brand-700: oklch(55.3% 0.195 38.402);
-  --color-brand-800: oklch(47% 0.157 37.304);
-  --color-brand-900: oklch(40.8% 0.123 38.172);
-  --color-brand-950: oklch(26.6% 0.079 36.259);
-  --color-success-50: oklch(97.9% 0.021 166.113);
-  --color-success-100: oklch(95% 0.052 163.051);
-  --color-success-200: oklch(90.5% 0.093 164.15);
-  --color-success-300: oklch(84.5% 0.143 164.978);
-  --color-success-400: oklch(76.5% 0.177 163.223);
-  --color-success-500: oklch(69.6% 0.17 162.48);
-  --color-success-600: oklch(59.6% 0.145 163.225);
-  --color-success-700: oklch(50.8% 0.118 165.612);
-  --color-success-800: oklch(43.2% 0.095 166.913);
-  --color-success-900: oklch(37.8% 0.077 168.94);
-  --color-success-950: oklch(26.2% 0.051 172.552);
-  --color-danger-50: oklch(96.9% 0.015 12.422);
-  --color-danger-100: oklch(94.1% 0.03 12.58);
-  --color-danger-200: oklch(89.2% 0.058 10.001);
-  --color-danger-300: oklch(81% 0.117 11.638);
-  --color-danger-400: oklch(71.2% 0.194 13.428);
-  --color-danger-500: oklch(64.5% 0.246 16.439);
-  --color-danger-600: oklch(58.6% 0.253 17.585);
-  --color-danger-700: oklch(51.4% 0.222 16.935);
-  --color-danger-800: oklch(45.5% 0.188 13.697);
-  --color-danger-900: oklch(41% 0.159 10.272);
-  --color-danger-950: oklch(27.1% 0.105 12.094);
-  --color-warning-50: oklch(98.7% 0.022 95.277);
-  --color-warning-100: oklch(96.2% 0.059 95.617);
-  --color-warning-200: oklch(92.4% 0.12 95.746);
-  --color-warning-300: oklch(87.9% 0.169 91.605);
-  --color-warning-400: oklch(82.8% 0.189 84.429);
-  --color-warning-500: oklch(76.9% 0.188 70.08);
-  --color-warning-600: oklch(66.6% 0.179 58.318);
-  --color-warning-700: oklch(55.5% 0.163 48.998);
-  --color-warning-800: oklch(47.3% 0.137 46.201);
-  --color-warning-900: oklch(41.4% 0.112 45.904);
-  --color-warning-950: oklch(27.9% 0.077 45.635);
-  --color-info-50: oklch(98.4% 0.019 200.873);
-  --color-info-100: oklch(95.6% 0.045 203.388);
-  --color-info-200: oklch(91.7% 0.08 205.041);
-  --color-info-300: oklch(86.5% 0.127 207.078);
-  --color-info-400: oklch(78.9% 0.154 211.53);
-  --color-info-500: oklch(71.5% 0.143 215.221);
-  --color-info-600: oklch(60.9% 0.126 221.723);
-  --color-info-700: oklch(52% 0.105 223.128);
-  --color-info-800: oklch(45% 0.085 224.283);
-  --color-info-900: oklch(39.8% 0.07 227.392);
-  --color-info-950: oklch(30.2% 0.056 229.695);
-
-  --font-sans: var(--font-space-grotesk), system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-space-mono), 'Courier New', monospace;
-}
+/* Colours and fonts come from the shared design tokens, also used by the website. */
+@import '@gami/ui/tokens.css';
 
 @layer base {
   :root {
     --motion-exit: 120ms;
     --motion-fast: 150ms;
     --motion-medium: 250ms;
-    --color-bg: #09090b;
-    --color-card: #18181b;
-    --color-border: #27272a;
-    --color-primary: #f97316;
   }
 
   html,

@@ -1,0 +1,14 @@
+{
+  "name": "@gami/ui",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Design tokens shared by the Gami.Fied dashboard and website.",
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  },
+  "files": [
+    "tokens.css"
+  ]
+}
