@@ -9,7 +9,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 ## How to use this file
 
 - `[ ]` not started, `[~]` in progress, `[x]` done, `[-]` dropped (add a one-line reason).
-- Work the phases in order. Phases 0 to 2 block any public 1.0. Phases 3 to 5 can overlap. Phases 6 to 8 follow.
+- Work the phases in order. Phases 0 to 2 block any public 1.0. Phases 3 to 5 can overlap. Phases 6 to 8 follow. Phase 9 can start now; Phase 10 waits for DEC-5 and DEC-6.
 - Add the PR link after an item when it is done, for example `[x] **SEC-01** ... (#123)`.
 - New bugs go in the matching sub-phase with the next free ID.
 
@@ -29,7 +29,9 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
-| 8 | Launch and community | 0 / 11 | Not started |
+| 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
+| 9 | Website, docs and sandbox | 0 / 32 | Not started |
+| 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
 
@@ -39,7 +41,11 @@ These change the work in later phases, so settle them early.
 - [x] **DEC-2: Product name.** The repo mixes "Gami", "Gami.Fied", "Gami Engine" and "gami.fied". Pick one and do a trademark check. Decided: **Gami.Fied**, on `gami.fied.cc`. Left: replace the other spellings.
 - [ ] **DEC-3: Default branch.** Local work is on `master`, the main branch is `main`, and both exist on `origin`. Keep one.
 - [ ] **DEC-4: Target customer.** Recommendation: developers of consumer, edtech, fitness and community apps who want to own their data. This decides whether streaks, rewards and React components come before enterprise work such as SSO.
-- [ ] **DEC-5: Business model.** Community only, open core, or a hosted cloud. The `edition: 'community'` field implies more editions are planned.
+- [ ] **DEC-5: Business model.** Community only, open core, or a hosted cloud. The `edition: 'community'` field implies more editions are planned. Recommendation: **open core**. A paid Cloud and Enterprise edition sells running it, scale and enterprise features, while the Community engine stays complete (Phase 10).
+- [ ] **DEC-6: Contributor licence agreement.** Without one, outside contributions are AGPL-only, which blocks using them in Cloud or `ee/` code. Recommendation: adopt a CLA (for example through CLA Assistant) before accepting outside pull requests.
+- [ ] **DEC-7: Enterprise licence.** How `ee/` is licensed: a commercial licence with source available, or the Business Source License, which turns into open source after a few years. Recommendation: a commercial source-available licence, as GitLab and PostHog use.
+- [ ] **DEC-8: Website stack and docs tool.** Recommendation: Next.js for `apps/website`, so it shares components with the dashboard, with Pagefind for search and Scalar for the API reference. Decide before WEB-01.
+- [ ] **DEC-9: Cloud tenancy and pricing unit.** Recommendation: shared multi-tenant hosting with dedicated instances for Enterprise, priced by events per month with a free tier. This maps onto the existing per-organization event limit.
 
 ---
 
@@ -515,13 +521,152 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 
 ### 8.2 Go to market
 
-- [ ] **LAUNCH-05** `P1` Build a docs site with search and a live API reference.
-- [ ] **LAUNCH-06** `P1` Publish a hosted demo with sample data, and record a 2-minute video.
-- [ ] **LAUNCH-07** `P1` Write a landing page positioned as a self-hosted alternative to hosted gamification APIs, with an honest comparison table.
+- [-] **LAUNCH-05** `P1` Build a docs site with search and a live API reference. Moved to WEB-12 to WEB-19.
+- [-] **LAUNCH-06** `P1` Publish a hosted demo with sample data, and record a 2-minute video. Moved to WEB-25 to WEB-31.
+- [-] **LAUNCH-07** `P1` Write a landing page positioned as a self-hosted alternative to hosted gamification APIs, with an honest comparison table. Moved to WEB-06 to WEB-08.
 - [ ] **LAUNCH-08** `P2` Build one real example app in `examples/`, such as a learning app with streaks.
 - [ ] **LAUNCH-09** `P2` Publish guides on gamification design, including when not to use it.
 - [ ] **LAUNCH-10** `P2` Launch on GitHub, Hacker News, Product Hunt, and self-hosting communities once the demo is solid.
-- [ ] **LAUNCH-11** `P3` Validate a hosted cloud offering if DEC-5 points that way.
+- [-] **LAUNCH-11** `P3` Validate a hosted cloud offering if DEC-5 points that way. Moved to Phase 10.
+
+---
+
+## Phase 9: Website, docs and sandbox
+
+**Goal:** Anyone can understand Gami.Fied, try it without an account, and install it, from one site at `gami.fied.cc`.
+
+**Shape:** a new `apps/website` in this repository, so docs, the OpenAPI document and the rules engine stay in one place and ship with each release.
+
+```text
+apps/website/
+├─ app/
+│  ├─ (marketing)/          # home, features, compare, pricing, blog, legal
+│  ├─ docs/[...slug]/       # renders the repository's docs/ folder
+│  ├─ reference/            # the API reference, from docs/openapi.json
+│  ├─ playground/           # the in-browser rules sandbox
+│  └─ demo/                 # starts a temporary live demo
+├─ content/blog/            # posts in MDX
+├─ components/
+└─ lib/                     # docs loader, search index, shared metadata
+```
+
+**Hosting:** marketing, docs and the playground are static and can sit on any CDN. The live demo is a separate, isolated Gami.Fied instance at `demo.gami.fied.cc` that never holds customer data.
+
+### 9.1 Foundation
+
+- [ ] **WEB-01** `P1` Create `apps/website` with Next.js and the dashboard's design tokens, wired into Turbo, lint, typecheck and CI. It must build as a static export, apart from the demo routes.
+- [ ] **WEB-02** `P1` Share brand, colours and type between the dashboard and the website through `packages/ui`, so the two look like one product.
+- [ ] **WEB-03** `P1` Set up hosting and domains: `gami.fied.cc` for the site, `demo.gami.fied.cc` for the live demo, HTTPS, and a preview deployment for every pull request.
+- [ ] **WEB-04** `P2` SEO basics: titles and descriptions per page, Open Graph images, `sitemap.xml`, `robots.txt`, and canonical links for versioned docs.
+- [ ] **WEB-05** `P2` Privacy-friendly analytics without cookies (for example Plausible or Umami, self-hosted), so the site needs no consent banner. Track installs started, playground runs and demo starts.
+
+### 9.2 Marketing pages
+
+- [ ] **WEB-06** `P1` Home page: the one-line pitch ("the self-hosted, open-source gamification engine"), a short demo video or animation, a five-line code sample, and calls to action for the playground, the demo and installing.
+- [ ] **WEB-07** `P1` Feature pages for each area (progression, economy, competition, community, integrations, administration), each with a screenshot and a link to its guide.
+- [ ] **WEB-08** `P1` An honest comparison page against hosted APIs and other open-source engines, built from the table in this plan's assessment. Include where Gami.Fied is weaker.
+- [ ] **WEB-09** `P2` Pricing page: Community is free forever; Cloud and Enterprise show "coming soon" with a waitlist until Phase 10 ships. State plainly that the engine is never cut down in Community (see CLOUD-01).
+- [ ] **WEB-10** `P2` Blog, plus a changelog page built from `CHANGELOG.md`, so each release is announced without copying text.
+- [ ] **WEB-11** `P2` Legal pages: privacy policy, terms for the demo and the site, and a plain explanation of the AGPL server and MIT SDK licences.
+
+### 9.3 Docs
+
+- [ ] **WEB-12** `P1` Render the repository's `docs/` folder as the docs site, with a sidebar, previous and next links, "edit this page" links, and headings that can be linked to. `docs/` stays the only source, so `pnpm docs:check` keeps covering it.
+- [ ] **WEB-13** `P1` Full-text search across the docs, built at compile time (for example Pagefind), so it works without a search service.
+- [ ] **WEB-14** `P1` API reference rendered from `docs/openapi.json` (for example Scalar), with a "try it" panel that calls the demo instance with a demo key.
+- [ ] **WEB-15** `P1` Installation guides as their own section: Docker Compose (the release files), upgrading, reverse proxies, backups, and a one-page "production checklist". Link each to the matching GitHub release.
+- [ ] **WEB-16** `P2` One-click deploy guides for common self-hosting platforms (for example Coolify, Railway, Render, DigitalOcean), each tested on a real account before it is published.
+- [ ] **WEB-17** `P2` SDK and React component docs with live examples, generated where possible from the SDK's types.
+- [ ] **WEB-18** `P2` Versioned docs: the latest release by default, with older versions kept at `/docs/v1.0/...`, built from each release tag.
+- [ ] **WEB-19** `P2` A link checker in CI for the built site, covering internal links and anchors.
+
+### 9.4 In-browser playground
+
+Runs the real rules engine in the browser. It needs no server, holds no data, and cannot be abused.
+
+- [ ] **WEB-20** `P1` Make `packages/rules` run in a browser. `validator.ts` uses `Buffer.byteLength` (use `TextEncoder` instead), and `plugins.ts` imports Node's `path` and `url` for `loadPlugins` (move the loader to a Node-only entry such as `@gami/rules/node`). Add a test that bundles the package for the browser.
+- [ ] **WEB-21** `P1` Playground page: a rule editor (the dashboard's visual builder and a JSON view), an event composer with presets, and a results panel showing whether the rule matched, which actions ran, and the XP, badges and currency a user would get.
+- [ ] **WEB-22** `P2` Simulate a user over time in the browser: streaks, levels and totals over past events, using `packages/progression` and the aggregate logic, with a timeline of what happened.
+- [ ] **WEB-23** `P2` Ready-made scenarios to load with one click, such as a learning app with daily streaks, a shop with a points store, or a fitness app with weekly leagues.
+- [ ] **WEB-24** `P2` Share a playground setup as a link, with the state kept in the URL, and export it as rule JSON ready to paste into a real install.
+
+### 9.5 Live demo without an account
+
+A real dashboard to click around, created on demand and thrown away.
+
+- [ ] **WEB-25** `P1` "Try the dashboard" creates a temporary organization and project on the demo instance and signs the visitor in to it without an account. It expires after 24 hours, and the worker deletes it and everything in it.
+- [ ] **WEB-26** `P1` Seed every demo with a realistic dataset: users, events over the last month, rules, achievements, streaks, a store and a league. Add a "send traffic" button that generates events live, so boards and toasts move.
+- [ ] **WEB-27** `P1` Lock demos down with the admin controls from 1.1.0. Turn off webhooks, integrations, connectors, campaigns and push for demo organizations, and set policies of one project, one member and a low events-per-minute limit. Send no email at all from the demo instance.
+- [ ] **WEB-28** `P1` Abuse protection for starting demos: a rate limit per address and a privacy-friendly challenge (for example Cloudflare Turnstile), a cap on live demos, and alerts when it is reached.
+- [ ] **WEB-29** `P2` Run the demo instance apart from everything else: its own servers, database and Redis, no customer data, a daily reset of anything left over, and its version updated with each release.
+- [ ] **WEB-30** `P3` "Keep this setup": export a demo's design (rules, achievements, store and so on) as a file that a self-hosted install can import, and later into a Cloud account.
+
+### 9.6 Launch the site
+
+- [ ] **WEB-31** `P2` Record a two-minute product video and take screenshots for every feature page, with the demo instance as the source.
+- [ ] **WEB-32** `P2` A status page for the site, the demo and later the cloud.
+
+---
+
+## Phase 10: Cloud edition (open core)
+
+**Goal:** A paid, hosted Gami.Fied that funds the project, while the self-hosted Community edition stays complete and free.
+
+**Principle:** Cloud sells running it, scale and enterprise needs. It never wins by removing engine features from Community. Everything released under AGPL stays available, and new engine features ship to Community at the same time.
+
+**Shape:** the cloud runs the same API, worker and dashboard as Community, configured per customer. Cloud-only code lives in a separate private repository:
+
+```text
+gami-cloud/                 # private
+├─ apps/
+│  ├─ control-plane/        # sign-up, plans, customer admin for the team
+│  └─ billing/              # Stripe checkout, customer portal and webhooks
+├─ packages/
+│  ├─ entitlements/         # plan -> feature switches and organization policies
+│  └─ metering/             # events and active users per organization
+└─ infra/                   # Terraform and deployment for production
+```
+
+Enterprise features that self-hosting companies can also buy (SSO, SCIM) live in this repository under `ee/` with a commercial licence, and are left out of Community builds.
+
+### 10.1 Editions and licensing
+
+- [ ] **CLOUD-01** `P1` Write `docs/editions.md`: what Community, Cloud and Enterprise each include, the rule that the engine is never cut down in Community, and a table of features by edition. Publish it on the website (WEB-09).
+- [ ] **CLOUD-02** `P1` Add a contributor licence agreement bot before taking outside contributions, so contributed code can be used in every edition (see DEC-6).
+- [ ] **CLOUD-03** `P2` Create `ee/` with its own `LICENSE`, and make Community builds and images leave it out. CI checks that nothing outside `ee/` imports from it.
+- [ ] **CLOUD-04** `P2` Edition detection: `product.edition` becomes `community`, `cloud` or `enterprise`. Self-hosted Enterprise uses a signed licence key checked offline, so it never has to call home.
+
+### 10.2 Plans, billing and usage
+
+- [ ] **CLOUD-05** `P1` Set up the private `gami-cloud` repository. It consumes this repository's packages and images by version, never by copying code, so a Community release can be deployed to Cloud unchanged.
+- [ ] **CLOUD-06** `P1` Sign-up and onboarding for the cloud: create an account, an organization and a first project, verify email, and land in the existing onboarding checklist.
+- [ ] **CLOUD-07** `P1` Plans and entitlements: each plan is a set of feature switches and organization policies (projects, members, events per minute and so on), applied through the admin controls added in 1.1.0. Changing plan rewrites those settings in one step and records it in the audit log.
+- [ ] **CLOUD-08** `P1` Usage metering: count events and monthly active users per organization, store daily totals, and show usage against the plan in the dashboard.
+- [ ] **CLOUD-09** `P1` Billing with Stripe: checkout, the customer portal, invoices, failed-payment retries, upgrades and downgrades with proration, and tax collection.
+- [ ] **CLOUD-10** `P1` Limits when a plan runs out: warnings at 80% and 100%, a grace period, then events beyond the plan answer `429` with a clear code. Data is never deleted for being over the limit.
+- [ ] **CLOUD-11** `P2` Free trials and a free tier, with the trial length and limits set in one place.
+
+### 10.3 Running the cloud
+
+- [ ] **CLOUD-12** `P1` Infrastructure as code (for example Terraform): managed PostgreSQL with point-in-time recovery, Redis, object storage for backups and exports, and separate staging and production.
+- [ ] **CLOUD-13** `P1` Shared multi-tenant hosting by default, on the existing organization isolation. Before launch, run a focused review of cross-tenant access and per-tenant rate limits, and add a test suite that tries to reach another tenant's data.
+- [ ] **CLOUD-14** `P1` Backups, restore drills and disaster recovery, building on `docs/disaster-recovery.md`, with a target recovery time and data loss stated on the pricing page.
+- [ ] **CLOUD-15** `P1` Monitoring, alerting and on-call with the Prometheus metrics added in 1.1.0, plus the status page (WEB-32).
+- [ ] **CLOUD-16** `P2` Dedicated instances for Enterprise customers who need them, deployed from the same images.
+- [ ] **CLOUD-17** `P2` Regions for data residency, starting with the EU and the US.
+- [ ] **CLOUD-18** `P2` Compliance groundwork: a data processing agreement, a list of sub-processors, GDPR export and deletion (the erase routes exist), a penetration test, and SOC 2 readiness.
+
+### 10.4 What paid plans add
+
+- [ ] **CLOUD-19** `P2` SSO with SAML and OIDC, and SCIM provisioning (FEAT-25), as Enterprise features in `ee/`.
+- [ ] **CLOUD-20** `P2` Impact analytics and A/B tests of mechanics (FEAT-24) and the balance dashboard (FEAT-23), offered in Cloud and Enterprise.
+- [ ] **CLOUD-21** `P2` Longer data and audit-log retention, and audit-log export, set per plan.
+- [ ] **CLOUD-22** `P2` Support tiers and uptime commitments, with response times per plan.
+
+### 10.5 Keep Community healthy
+
+- [ ] **CLOUD-23** `P1` Moving both ways: import a self-hosted install into Cloud, and export a Cloud organization to run it yourself, using the existing data export and import. Nobody is locked in.
+- [ ] **CLOUD-24** `P2` A release check that every engine feature in Cloud is also in the Community build, with any exception listed in `docs/editions.md`.
 
 ---
 
@@ -533,3 +678,7 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 4. **M4, Honest RC2:** Phase 3.
 5. **M5, Integrable:** DX-01 to DX-04, DX-07, DX-10, FEAT-01 and FEAT-02, then UX-01 to UX-04.
 6. **M6, Public 1.0:** Remaining `P1` items, LAUNCH-01 to LAUNCH-07.
+7. **M7, Website and playground:** WEB-01 to WEB-15 and WEB-20 to WEB-21. Static, cheap and safe, and it gives people a reason to try Gami.Fied before Cloud exists.
+8. **M8, Live demo:** WEB-25 to WEB-29, then the rest of Phase 9.
+9. **M9, Cloud beta:** Settle DEC-5, DEC-6, DEC-7 and DEC-9, then CLOUD-01, CLOUD-02, CLOUD-05 to CLOUD-10 and CLOUD-12 to CLOUD-15, with a waitlist of design partners.
+10. **M10, Cloud launch:** The rest of Phase 10, starting with CLOUD-23 so moving both ways works on day one.
