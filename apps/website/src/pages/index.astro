@@ -1,4 +1,6 @@
 ---
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { Code } from 'astro:components';
 import { codeTheme } from '../lib/code-theme';
 import { Database, Scale, Server } from '@lucide/astro';
@@ -19,6 +21,9 @@ const install = `curl -LO ${SITE.github}/releases/latest/download/docker-compose
 curl -LO ${SITE.github}/releases/latest/download/env.example
 cp env.example .env   # then fill in the secrets
 docker compose up -d`;
+
+// The product tour, recorded from the live demo by `pnpm capture`. The section is left out without it.
+const hasTour = existsSync(join(process.cwd(), 'public/video/tour.mp4'));
 
 const reasons = [
   { icon: Database, title: 'Your data stays yours', text: 'Player data, events and rewards live in your own PostgreSQL. Nothing is sent anywhere else.' },
@@ -65,6 +70,35 @@ const reasons = [
   >
     <HowItWorks />
   </Section>
+
+  <!-- Product tour -->
+  {
+    hasTour && (
+      <Section
+        id="tour"
+        eyebrow="See it"
+        title="The dashboard in two and a half minutes"
+        intro="Rules, badges, streaks, leaderboards, leagues and the store, recorded from the live demo. No sound, with captions."
+      >
+        <figure class="overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.8)]">
+          <video
+            class="block h-auto w-full"
+            controls
+            playsinline
+            muted
+            preload="none"
+            poster="/video/tour-poster.jpg"
+            width="1440"
+            height="900"
+            aria-label="A tour of the Gami.Fied dashboard with demo data: the overview, sending traffic, rules, achievements, streaks, the leaderboard, leagues, the store and players."
+          >
+            <source src="/video/tour.mp4" type="video/mp4" />
+            Your browser cannot play this video. <a href="/video/tour.mp4">Download it</a> instead.
+          </video>
+        </figure>
+      </Section>
+    )
+  }
 
   <!-- Features -->
   <Section

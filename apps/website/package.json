@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "astro": "astro",
     "check:links": "node scripts/check-links.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "capture": "node scripts/capture.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.9",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@tailwindcss/typography": "^0.5.20",
+    "playwright-core": "^1.65.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12"
   }

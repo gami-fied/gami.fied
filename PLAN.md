@@ -30,7 +30,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
 | 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
-| 9 | Website, docs and sandbox | 20 / 44 | In progress, 7 partly done |
+| 9 | Website, docs and sandbox | 21 / 44 | In progress, 8 partly done |
 | 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
@@ -581,7 +581,7 @@ The docs live at `/docs` through Starlight, reading the repository's own `docs/`
 ### 9.2 Marketing pages
 
 - [~] **WEB-06** `P1` Home page: the one-line pitch ("the self-hosted, open-source gamification engine"), the animated engine diagram (WEB-37), "how it works" (WEB-38), a five-line code sample, and calls to action for the playground, the demo and installing. `[ran]` Done: the pitch, a static engine diagram and three-step "how it works" (each with hooks for their animations), Node.js, cURL and React code tabs, why self-hosted, the install commands from the latest release, and calls to action for the playground, the docs, installing and GitHub. A "Try the dashboard" button appears when `PUBLIC_DEMO_URL` is set. Left: the animations (WEB-37, WEB-38).
-- [~] **WEB-07** `P1` Feature pages for each area (progression, economy, competition, community, integrations, administration), each with its own small live animation (WEB-40), a screenshot and a link to its guide. `[ran]` Done: an overview and one page per area from `src/lib/features.ts`, each with its capabilities, links to its guides, a static preview of the feature, a link to the next area, and its own social card. Left: the live animations (WEB-40) and real dashboard screenshots.
+- [~] **WEB-07** `P1` Feature pages for each area (progression, economy, competition, community, integrations, administration), each with its own small live animation (WEB-40), a screenshot and a link to its guide. `[ran]` Done: an overview and one page per area from `src/lib/features.ts`, each with its capabilities, links to its guides, a static preview of the feature, a dashboard screenshot from the live demo (WEB-31), a link to the next area, and its own social card. Left: the live animations (WEB-40).
 - [x] **WEB-08** `P1` An honest comparison page against hosted APIs and other open-source engines, built from the table in this plan's assessment. Include where Gami.Fied is weaker. `[ran]` Done: a table against hosted APIs, loyalty engines, open-source libraries and building it yourself, plus a list of where Gami.Fied is weaker today.
 - [x] **WEB-09** `P2` Pricing page: Community is free forever; Cloud and Enterprise show "coming soon" with a waitlist until Phase 10 ships. State plainly that the engine is never cut down in Community (see CLOUD-01). `[ran]` Done: three plans and a FAQ. The waitlist button appears once `PUBLIC_WAITLIST_URL` is set, and links to GitHub until then.
 - [x] **WEB-10** `P2` Blog, plus a changelog page built from `CHANGELOG.md`, so each release is announced without copying text. `[ran]` Done: a Markdown or MDX blog with drafts, an RSS feed and a social card per post, the 1.1 release post, and a changelog page that reads `CHANGELOG.md` at build time.
@@ -621,8 +621,8 @@ A real dashboard to click around, created on demand and thrown away.
 
 ### 9.6 Launch the site
 
-- [ ] **WEB-31** `P2` Record a two-minute product video and take screenshots for every feature page, with the demo instance as the source.
-- [ ] **WEB-32** `P2` A status page for the site, the demo and later the cloud.
+- [x] **WEB-31** `P2` Record a two-minute product video and take screenshots for every feature page, with the demo instance as the source. `[ran]` Done: `pnpm --filter @gami/website capture` starts a demo, takes a dark-theme screenshot for each feature page, and records a captioned 2½-minute tour (MP4 with a poster when ffmpeg is there), driving an installed Chrome with `playwright-core`. Feature pages show their screenshot, and the home page shows the tour. These were made from a local demo instance; run it against `demo.gami.fied.cc` for each release.
+- [~] **WEB-32** `P2` A status page for the site, the demo and later the cloud. `[code]` Done: an Upptime setup in `deploy/status` checking the site, docs, search, the demo page and the demo API (down when demos are off), with Cloud checks ready to turn on, and a footer link once `PUBLIC_STATUS_URL` is set. Left: create the `gami-fied/status` repository from the Upptime template, add its token, and point `status.gami.fied.cc` at it (steps in `deploy/status/README.md`).
 
 ### 9.7 Motion design
 

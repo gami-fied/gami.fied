@@ -28,8 +28,18 @@ const contactLabel = SITE.contactEmail || 'an issue on GitHub';
   <h2>The live demo</h2>
   <p>
     When it is available, the demo creates a temporary project for you without an account. Whatever you enter there is deleted, with the
-    project, after 24 hours. The demo sends no email and does not connect to other services. Please do not enter real personal data.
+    project and the account made for you, after 24 hours. The demo sends no email and does not connect to other services. Please do not
+    enter real personal data.
   </p>
+  <ul>
+    <li>
+      Starting a demo shows a check from <a href="https://www.cloudflare.com/products/turnstile/">Cloudflare Turnstile</a>, which keeps
+      automated sign-ups out. Cloudflare sees your address and some details of your browser to do this, under its
+      <a href="https://www.cloudflare.com/turnstile-privacy-policy/">Turnstile privacy policy</a>.
+    </li>
+    <li>To limit how many demos one address can start, a hashed form of your address is kept for an hour, then deleted. It is not stored anywhere else.</li>
+    <li>The demo dashboard uses one cookie to keep you signed in to your demo. It ends when the demo is deleted.</li>
+  </ul>
 
   <h2>The open-source software</h2>
   <p>

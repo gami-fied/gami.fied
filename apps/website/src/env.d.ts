@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly PUBLIC_CONTACT_EMAIL?: string;
   /** The demo instance the API explorer sends requests to. Without it the explorer only documents. */
   readonly PUBLIC_DEMO_URL?: string;
+  /** The status page. The footer links to it only when this is set. */
+  readonly PUBLIC_STATUS_URL?: string;
   readonly PUBLIC_DEMO_API_URL?: string;
   /** A demo project API key, filled in for "try it". Public by design, so use a demo project only. */
   readonly PUBLIC_DEMO_API_KEY?: string;

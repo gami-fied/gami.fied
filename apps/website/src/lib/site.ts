@@ -18,6 +18,8 @@ export const SITE = {
   /** The demo dashboard. "Try the dashboard" buttons appear only when it is set. */
   demoUrl: (import.meta.env.PUBLIC_DEMO_URL || '').replace(/\/$/, ''),
   demoApiUrl: import.meta.env.PUBLIC_DEMO_API_URL || '',
+  /** The status page (deploy/status). The footer links to it only when it is set. */
+  statusUrl: import.meta.env.PUBLIC_STATUS_URL || '',
   demoApiKey: import.meta.env.PUBLIC_DEMO_API_KEY || '',
   /** Previews and forks set this so search engines never index them. */
   noindex: import.meta.env.PUBLIC_NOINDEX === 'true',
@@ -60,6 +62,7 @@ export const FOOTER: { title: string; links: NavLink[] }[] = [
       { label: 'Blog', href: '/blog/' },
       { label: 'Releases', href: SITE.releases, external: true },
       { label: 'GitHub', href: SITE.github, external: true },
+      ...(SITE.statusUrl ? [{ label: 'Status', href: SITE.statusUrl, external: true }] : []),
     ],
   },
   {
