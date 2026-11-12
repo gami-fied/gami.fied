@@ -17,7 +17,10 @@
     "astro": "astro",
     "check:links": "node scripts/check-links.mjs",
     "test": "vitest run",
-    "capture": "node scripts/capture.mjs"
+    "capture": "node scripts/capture.mjs",
+    "check:motion": "node scripts/check-motion-budget.mjs",
+    "check:lighthouse": "node scripts/check-lighthouse.mjs",
+    "record:scenes": "node scripts/record-scenes.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.9",
@@ -52,6 +55,8 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@tailwindcss/typography": "^0.5.20",
+    "chrome-launcher": "^1.2.3",
+    "lighthouse": "^13.6.0",
     "playwright-core": "^1.65.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12"

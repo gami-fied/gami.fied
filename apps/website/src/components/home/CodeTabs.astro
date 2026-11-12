@@ -59,7 +59,7 @@ export function Rewards({ token }: { token: string }) {
 ---
 
 <div class="min-w-0 border border-zinc-800 bg-zinc-950" data-code-tabs>
-  <div class="flex border-b border-zinc-800" role="tablist" aria-label="Code samples">
+  <div class="relative flex border-b border-zinc-800" role="tablist" aria-label="Code samples">
     {
       tabs.map((tab, index) => (
         <button
@@ -75,6 +75,8 @@ export function Rewards({ token }: { token: string }) {
         </button>
       ))
     }
+    <!-- Slides between tabs once the script runs; until then each tab draws its own underline. -->
+    <span class="tab-indicator pointer-events-none absolute -bottom-px left-0 hidden h-0.5 w-full origin-left bg-brand-500" aria-hidden="true" data-tab-indicator></span>
   </div>
   {
     tabs.map((tab, index) => (
@@ -85,13 +87,36 @@ export function Rewards({ token }: { token: string }) {
   }
 </div>
 
+<style>
+  [data-code-tabs][data-indicator] [role='tab']::after {
+    display: none;
+  }
+  [data-code-tabs][data-indicator] [data-tab-indicator] {
+    display: block;
+  }
+</style>
+
 <script>
+  import { animate } from 'motion/mini';
+  import { prefersReducedMotion } from '../../motion/lifecycle';
+  import { MOTION } from '../../motion/tokens';
+
   // Works for every tab set on the page, and again after page transitions.
   const setup = () => {
     document.querySelectorAll<HTMLElement>('[data-code-tabs]').forEach((root) => {
       if (root.dataset.ready) return;
       root.dataset.ready = 'true';
       const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+      const indicator = root.querySelector<HTMLElement>('[data-tab-indicator]');
+      // The underline slides with transforms only, sized against the whole tab bar.
+      const moveIndicator = (tab: HTMLButtonElement, instant: boolean) => {
+        if (!indicator) return;
+        const bar = indicator.parentElement!.getBoundingClientRect();
+        const box = tab.getBoundingClientRect();
+        // A CSS transition moves it, so this needs no animation library.
+        indicator.style.transition = instant || prefersReducedMotion() ? 'none' : `transform ${MOTION.quick}s cubic-bezier(${MOTION.easeInOut.join(',')})`;
+        indicator.style.transform = `translateX(${box.left - bar.left}px) scaleX(${box.width / bar.width})`;
+      };
       const select = (next: HTMLButtonElement) => {
         for (const tab of tabs) {
           const on = tab === next;
@@ -99,9 +124,17 @@ export function Rewards({ token }: { token: string }) {
           tab.tabIndex = on ? 0 : -1;
           const panel = root.querySelector<HTMLElement>(`#${tab.getAttribute('aria-controls')}`);
           if (panel) panel.hidden = !on;
+          if (panel && on && !prefersReducedMotion()) animate(panel, { opacity: [0, 1] }, { duration: MOTION.quick, ease: MOTION.easeOut });
         }
+        moveIndicator(next, false);
         next.focus();
       };
+      root.dataset.indicator = '';
+      moveIndicator(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true') ?? tabs[0]!, true);
+      // Removed when the page is swapped, so listeners never pile up across visits.
+      const page = new AbortController();
+      document.addEventListener('astro:before-swap', () => page.abort(), { once: true });
+      window.addEventListener('resize', () => moveIndicator(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true') ?? tabs[0]!, true), { signal: page.signal });
       tabs.forEach((tab, index) => {
         tab.addEventListener('click', () => select(tab));
         tab.addEventListener('keydown', (event) => {

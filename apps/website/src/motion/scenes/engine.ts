@@ -17,7 +17,7 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
     return;
   }
 
-  const gsap = await loadGsap('MotionPathPlugin');
+  const gsap = await loadGsap();
   if (signal.aborted) return;
   const svg = figure.querySelector('svg')!;
   const part = <T extends SVGElement = SVGElement>(name: string) => svg.querySelector<T>(`[data-part="${name}"]`)!;
@@ -50,7 +50,23 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
 
     const travel = (dot: SVGCircleElement, path: SVGPathElement, at: number, duration = 0.9) => {
       timeline.set(dot, { opacity: 1 }, at);
-      timeline.to(dot, { duration, ease: 'power1.inOut', motionPath: { path, autoRotate: false } }, at);
+      // Follows the path with the browser's own geometry, which saves loading MotionPathPlugin.
+      const length = path.getTotalLength();
+      const progress = { p: 0 };
+      timeline.fromTo(
+        progress,
+        { p: 0 },
+        {
+          p: 1,
+          duration,
+          ease: 'power1.inOut',
+          onUpdate: () => {
+            const point = path.getPointAtLength(progress.p * length);
+            gsap.set(dot, { x: point.x, y: point.y });
+          },
+        },
+        at
+      );
       timeline.to(dot, { opacity: 0, duration: 0.15 }, at + duration - 0.1);
     };
     const pulse = (ruleIndex: number, at: number) => {

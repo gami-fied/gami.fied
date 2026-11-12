@@ -30,7 +30,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
 | 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
-| 9 | Website, docs and sandbox | 21 / 44 | In progress, 8 partly done |
+| 9 | Website, docs and sandbox | 29 / 44 | In progress, 11 partly done |
 | 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
@@ -663,53 +663,53 @@ Animation should explain the product, not decorate it. The site's story is "even
 
 **Items**
 
-- [ ] **WEB-33** `P1` Motion foundation in `src/motion/`: the tokens above; `lifecycle.ts`, which starts each page's animations on `astro:page-load` and kills GSAP timelines, ScrollTriggers and Motion animations on `astro:before-swap`, so nothing runs twice or leaks after a page transition; GSAP and its plugins registered once and loaded only on pages that use them; and a single reduced-motion switch (GSAP `matchMedia` plus Motion's reduced-motion setting).
-- [ ] **WEB-34** `P1` Site-wide motion:
+- [x] **WEB-33** `P1` Motion foundation in `src/motion/`: the tokens above; `lifecycle.ts`, which starts each page's animations on `astro:page-load` and kills GSAP timelines, ScrollTriggers and Motion animations on `astro:before-swap`, so nothing runs twice or leaks after a page transition; GSAP and its plugins registered once and loaded only on pages that use them; and a single reduced-motion switch (GSAP `matchMedia` plus Motion's reduced-motion setting). `[ran]` Done in `apps/website/src/motion`: `tokens.ts` (also CSS variables), `lifecycle.ts` (scenes start on `astro:page-load`, are cleaned up on `astro:before-swap`, and restart when reduced motion changes), `gsap.ts` (plugins registered once and loaded only by the scenes that use them), and one reduced-motion switch.
+- [x] **WEB-34** `P1` Site-wide motion: `[ran]` Done: a 200 ms cross-fade between marketing pages (docs load normally), the feature card morphing into its page, a header that firms up on scroll with CSS only, one reveal style for the site (hidden only while its script runs, never on page-top headings), and 120 ms buttons.
   - **Page transitions:** a 200 ms cross-fade between marketing pages with View Transitions. Docs pages swap instantly, with no fade, because readers jump around.
   - **Feature card to feature page:** the card's icon and title morph into the page header (`transition:name`), so moving between pages feels like zooming in.
   - **Header:** after 80 px of scrolling it shrinks a little and gains a blurred background, with a CSS scroll-driven animation (static where unsupported).
   - **Scroll reveal:** sections and cards fade in while rising 16 px, over 450 ms, with a 60 ms stagger in groups, once only, with Motion's `inView`. This is the only reveal style on the site, used everywhere for consistency.
   - **Buttons and links:** primary buttons lift 1 px and brighten on hover, and press down to 98% on click, over 120 ms in CSS. No magnetic or wobbly buttons; they feel slow and cheap.
-- [ ] **WEB-35** `P1` Performance budget for animation, checked in CI: no more than 60 KB compressed of animation code on the home page and 0 KB on docs pages; Lighthouse performance of at least 95 on mobile for the home page; no layout shift caused by animation; and the largest content visible within 2 seconds on a mid-range phone.
-- [ ] **WEB-36** `P1` Hero headline: the headline is in the page from the first paint and readable straight away. Once fonts load, SplitText lifts each word from behind a mask, 40 ms apart, over 700 ms with expo out. The subheading and buttons fade in 150 ms later. With reduced motion, everything simply appears.
-- [ ] **WEB-37** `P1` Hero "live engine" diagram, the home page's one big moment, built in SVG with a looping GSAP timeline:
+- [x] **WEB-35** `P1` Performance budget for animation, checked in CI: no more than 60 KB compressed of animation code on the home page and 0 KB on docs pages; Lighthouse performance of at least 95 on mobile for the home page; no layout shift caused by animation; and the largest content visible within 2 seconds on a mid-range phone. `[ran]` Done: `check:motion` follows every script a page can load and allows 60 KB of animation code on the home page (54 KB now, with Motion's mini build, no MotionPath or SplitText, and DrawSVG loaded on hover) and 0 KB on docs; `check:lighthouse` needs performance 95+, the largest content within 2 s and layout shift under 0.01 on a simulated mid-range phone (100, 0.91 s and 0 now). Both run in the website workflow.
+- [x] **WEB-36** `P1` Hero headline: the headline is in the page from the first paint and readable straight away. Once fonts load, SplitText lifts each word from behind a mask, 40 ms apart, over 700 ms with expo out. The subheading and buttons fade in 150 ms later. With reduced motion, everything simply appears. `[ran]` Done: the headline is readable on first paint; when the fonts arrive within 0.7 s, its words lift from masks 40 ms apart and the text under it fades in, with the full text kept as its accessible name.
+- [x] **WEB-37** `P1` Hero "live engine" diagram, the home page's one big moment, built in SVG with a looping GSAP timeline: `[ran]` Done: events follow the curved paths into the engine, a rule lights up, and the XP bar fills, the badge pops in and the player climbs, on a 6-second loop that pauses off screen, in a background tab and with its pause button.
   - Small event dots (`lesson_completed`, `order_paid`) leave an app icon on the left and travel along curved paths (MotionPath) into the Gami.Fied engine in the middle.
   - The engine pulses as each one passes through a rule.
   - On the right, rewards come out: an XP bar fills, a badge pops in with a spring, and a leaderboard row slides up a place (Flip).
   - It loops every 6 seconds with varied events, pauses when off screen or in a background tab, and has a pause button, since it runs longer than 5 seconds (WCAG 2.2.2).
   - With reduced motion it is a still diagram with labels.
-- [ ] **WEB-38** `P1` "How it works" as a scroll story, with GSAP ScrollTrigger:
+- [x] **WEB-38** `P1` "How it works" as a scroll story, with GSAP ScrollTrigger: `[ran]` Done: on wide screens with motion the section pins and the scroll scrubs through the steps, with the key code line highlighted and a phone showing each result; stacked with the standard reveal otherwise.
   - On wide screens the section pins while you scroll through three steps: **Send an event**, **A rule matches**, **The player is rewarded**.
   - On the left, a code sample highlights the line for each step.
   - On the right, a phone mock-up shows the result as it happens: the event arriving, the rule card lighting up, then a reward toast and the XP bar filling.
   - The scroll scrubs the timeline, so readers control the pace.
   - On phones and with reduced motion there is no pinning: the steps stack, each with the standard reveal.
-- [ ] **WEB-39** `P2` Smaller home page touches:
+- [~] **WEB-39** `P2` Smaller home page touches: `[ran]` Done: the staggered feature grid with a 3-degree tilt and an icon that draws itself on hover (pointer devices only), sliding code-tab underline and cross-fade, the tour tilting flat as it scrolls in, a numbers strip counted from the source at build time, and the pointer glow on the final call to action. Left: the logo or quote marquee, once there are real logos or quotes to show.
   - **Feature grid:** the standard staggered reveal. On hover (pointer devices only), a card tilts up to 3 degrees towards the cursor on a spring, and its icon plays a one-second line animation (DrawSVG).
   - **Code tabs** (SDK, cURL, React): the underline slides between tabs, and the code cross-fades over 200 ms (Motion).
   - **Dashboard screenshot:** tilted back 12 degrees, it flattens to face the reader as it scrolls into view (GSAP scrub). The screenshot is still with reduced motion.
   - **Numbers strip** ("events a second", "features"): each number counts up once when it comes into view, over 1.2 seconds (Motion).
   - **Logos or quotes:** a slow CSS marquee that pauses on hover, and stops with reduced motion.
   - **Final call to action:** a soft glow follows the pointer, using CSS variables set on pointer move, with no library.
-- [ ] **WEB-40** `P2` One small live demo per feature page, each a GSAP timeline that plays when in view and pauses when not:
+- [x] **WEB-40** `P2` One small live demo per feature page, each a GSAP timeline that plays when in view and pauses when not: `[ran]` Done for all six areas: a week filling with a freeze (progression), coins in and a purchase out (economy), you overtaking Maya (competition), the feed taking new activity (community), pulses through the engine (integrations), and a switch turning off what depends on it (administration). Each plays only on screen.
   - **Streaks:** a week of calendar days fills in one by one, and the flame grows with the count; a missed day is saved by a freeze, which glows blue.
   - **Leaderboards and leagues:** rows reorder smoothly as scores change (Flip), and the top player moves up into the next tier.
   - **Store and wallets:** a coin drops into a wallet, the balance ticks up, then a reward is bought and the balance ticks down.
   - **Achievements:** a locked badge fills with progress, then unlocks with a spring and a short burst of particles.
   - **Connectors:** Segment, Stripe and GitHub logos connect to the engine with lines that draw themselves (DrawSVG), then send a pulse along each line.
   - **Administration:** a feature switch is turned off, and the features that depend on it switch off in sequence, as in the real admin screen.
-- [ ] **WEB-41** `P2` Playground motion, with Motion for React inside the island:
+- [x] **WEB-41** `P2` Playground motion, with Motion for React inside the island: `[ran]` Done with Motion for React: the results panel animates its height, rules and rewards appear 60 ms apart, the XP bar fills on a spring, a badge unlock shows a toast, the open rule flashes when it matches or not, and new timeline entries slide in. `MotionConfig` makes all of it instant with reduced motion.
   - **Results:** the results panel animates its height changes with layout animation; matched actions appear one by one, 60 ms apart; the XP bar fills on a spring; a badge unlock uses the same toast as the product.
   - **Rule editor:** the rule being tested shows a short highlight when it matches or does not.
   - **Simulation:** each new day on the timeline slides in, and streak and level changes are marked as they happen.
   - With reduced motion, results appear at once.
 - [x] **WEB-42** `P2` Live demo start: while the demo is being set up, a checklist ("Creating your project", "Adding players", "Sending events") ticks off step by step with Motion, and finishes by turning into an "Open the dashboard" button. If setup takes longer than expected, a calm message appears instead of a spinner running forever. `[ran]` Done on the `/demo` page: the checklist ticks off with Motion, finishes as "Open the dashboard", and shows a calm note if setup takes longer than 12 seconds. Reduced motion skips the springs.
-- [ ] **WEB-43** `P2` Quiet pages:
+- [~] **WEB-43** `P2` Quiet pages: `[ran]` Done: docs keep Starlight's own quiet touches with no entrance animations, the recommended plan has a slow gradient border, blog posts have a CSS reading progress bar, and post images fade in as they load. Left: the price morph, once Cloud has prices to switch between, and the optional 404 character.
   - **Docs:** no entrance animations; Starlight's own search dialog fade, copy buttons that turn into a tick, and a theme switch.
   - **Pricing:** switching monthly to yearly morphs the prices (Motion number animation), and the recommended plan has a slow gradient border.
   - **Blog:** a reading progress bar along the top (CSS scroll-driven), and images that fade in as they load.
   - **404:** a small animated character "looking for" the page, as a Lottie or Rive file under 30 KB, shown still with reduced motion. Optional.
-- [ ] **WEB-44** `P2` Motion quality checks before launch: every animated page tested in Chrome, Safari and Firefox, on a mid-range Android phone and an iPhone, with reduced motion on and off, and with keyboard-only navigation. Keep short screen recordings of each scene in the pull request, so changes to them can be reviewed.
+- [~] **WEB-44** `P2` Motion quality checks before launch: every animated page tested in Chrome, Safari and Firefox, on a mid-range Android phone and an iPhone, with reduced motion on and off, and with keyboard-only navigation. Keep short screen recordings of each scene in the pull request, so changes to them can be reviewed. `[ran]` Done: every scene checked in Chrome and Edge at desktop and phone sizes, with reduced motion on and off; keyboard-only use (the engine pause button, arrow keys in the code tabs, focus moving past the pinned story) passes; and `record:scenes` records a clip of each scene, with and without motion, for pull requests. Left: Safari, Firefox and real Android and iOS phones.
 
 ---
 

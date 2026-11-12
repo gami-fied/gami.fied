@@ -8,6 +8,9 @@ import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/700.css';
 import '@fontsource/space-mono/400.css';
 import '../styles/site.css';
+// The fonts most pages use first, preloaded so text does not move when they arrive.
+import groteskRegular from '@fontsource/space-grotesk/files/space-grotesk-latin-400-normal.woff2?url';
+import groteskBold from '@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2?url';
 import { ClientRouter, fade } from 'astro:transitions';
 import Analytics from '../components/Analytics.astro';
 import Seo from '../components/Seo.astro';
@@ -34,6 +37,8 @@ const { footer = true, ...props } = Astro.props;
     <meta name="theme-color" content="#09090b" />
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="font" type="font/woff2" href={groteskRegular} crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href={groteskBold} crossorigin />
     <Seo {...props} />
     <ClientRouter fallback="swap" />
     <Analytics />

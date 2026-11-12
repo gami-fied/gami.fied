@@ -1,4 +1,5 @@
 /** What the last event did, where the player stands, and everything that happened so far. */
+import { AnimatePresence, motion } from 'motion/react';
 import { Check, Minus, Trash2, X } from 'lucide-react';
 import type { PlaygroundSetup, Simulation, Step } from '../../lib/playground/simulate';
 import { effectLabel, relativeTime, TONES } from './labels';
@@ -9,9 +10,16 @@ function EffectChips({ step, setup }: { step: Step; setup: PlaygroundSetup }) {
   return (
     <ul className="flex flex-wrap gap-1.5">
       {chips.map((chip, index) => (
-        <li key={index} className={`border px-2 py-0.5 text-xs ${TONES[chip.tone]}`}>
+        // What a rule gave appears one by one, 60 ms apart.
+        <motion.li
+          key={`${step.event.id}-${index}`}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+          className={`border px-2 py-0.5 text-xs ${TONES[chip.tone]}`}
+        >
           {chip.text}
-        </li>
+        </motion.li>
       ))}
     </ul>
   );
@@ -25,7 +33,7 @@ export function LastResult({ steps, setup }: { steps: Step[]; setup: PlaygroundS
   if (!group.length) return <p className="text-sm text-zinc-500">Send an event to see what the rules do with it.</p>;
 
   return (
-    <div className="space-y-4" aria-live="polite">
+    <motion.div layout className="space-y-4" aria-live="polite" transition={{ layout: { duration: 0.25, ease: [0.65, 0, 0.35, 1] } }}>
       {group.map((step) => (
         <div key={step.event.id} className="space-y-2.5">
           <p className="font-mono text-xs text-zinc-400">
@@ -37,8 +45,14 @@ export function LastResult({ steps, setup }: { steps: Step[]; setup: PlaygroundS
             <p className="text-xs text-zinc-500">No rules listen for this event.</p>
           ) : (
             <ul className="space-y-1.5">
-              {step.rules.map((rule) => (
-                <li key={rule.ruleId} className="border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-xs">
+              {step.rules.map((rule, index) => (
+                <motion.li
+                  key={`${step.event.id}-${rule.ruleId}`}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  className="border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-xs"
+                >
                   <div className="flex items-center gap-2">
                     {rule.error ? (
                       <X className="h-3.5 w-3.5 shrink-0 text-danger-400" aria-hidden="true" />
@@ -56,14 +70,14 @@ export function LastResult({ steps, setup }: { steps: Step[]; setup: PlaygroundS
                       {total.label}: {total.previous} → <span className="text-zinc-200">{total.value}</span>
                     </p>
                   ))}
-                </li>
+                </motion.li>
               ))}
             </ul>
           )}
           <EffectChips step={step} setup={setup} />
         </div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
@@ -80,7 +94,13 @@ export function PlayerCard({ simulation, setup }: { simulation: Simulation; setu
           <span className="font-mono text-xs text-zinc-400">{totals.xp} XP</span>
         </div>
         <div className="mt-2 h-2 bg-zinc-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(totals.progressPercent)} aria-label="Progress to the next level">
-          <div className="h-full bg-brand-500 transition-[width] duration-500" style={{ width: `${Math.min(100, totals.progressPercent)}%` }} />
+          {/* Fills on a spring, with transforms only. */}
+          <motion.div
+            className="h-full origin-left bg-brand-500"
+            initial={false}
+            animate={{ scaleX: Math.min(100, totals.progressPercent) / 100 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          />
         </div>
         <p className="mt-1.5 text-xs text-zinc-500">{totals.xpToNextLevel > 0 ? `${totals.xpToNextLevel} XP to the next level` : 'Top level reached'}</p>
       </div>
@@ -127,8 +147,17 @@ export function Timeline({ simulation, setup, onRemove }: { simulation: Simulati
   if (!steps.length) return <p className="text-sm text-zinc-500">No events yet.</p>;
   return (
     <ol className="divide-y divide-zinc-800/80 border-y border-zinc-800/80">
+      <AnimatePresence initial={false}>
       {steps.map((step) => (
-        <li key={step.event.id} className={`flex gap-3 py-2.5 text-xs ${step.emitted ? 'pl-5' : ''}`}>
+        <motion.li
+          key={step.event.id}
+          layout="position"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className={`flex gap-3 py-2.5 text-xs ${step.emitted ? 'pl-5' : ''}`}
+        >
           <div className="min-w-0 flex-1 space-y-1.5">
             <p className="flex flex-wrap items-baseline gap-x-2">
               <span className={`font-mono ${step.emitted ? 'text-zinc-400' : 'text-zinc-100'}`}>{step.event.type}</span>
@@ -146,8 +175,9 @@ export function Timeline({ simulation, setup, onRemove }: { simulation: Simulati
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
-        </li>
+        </motion.li>
       ))}
+      </AnimatePresence>
     </ol>
   );
 }

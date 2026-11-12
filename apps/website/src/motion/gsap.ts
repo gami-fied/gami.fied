@@ -11,9 +11,6 @@ const registered = new Set<string>();
 
 const PLUGINS = {
   ScrollTrigger: () => import('gsap/ScrollTrigger').then((m) => m.ScrollTrigger),
-  SplitText: () => import('gsap/SplitText').then((m) => m.SplitText),
-  Flip: () => import('gsap/Flip').then((m) => m.Flip),
-  MotionPathPlugin: () => import('gsap/MotionPathPlugin').then((m) => m.MotionPathPlugin),
   DrawSVGPlugin: () => import('gsap/DrawSVGPlugin').then((m) => m.DrawSVGPlugin),
 } as const;
 

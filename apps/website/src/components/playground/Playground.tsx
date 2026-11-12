@@ -3,7 +3,8 @@
  * the real rules engine. Nothing leaves the page; a shared link carries the whole setup in its hash.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Download, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion, MotionConfig } from 'motion/react';
+import { Award, Copy, Download, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@gami/ui';
 import { EVENTS, track } from '../../lib/analytics';
 import { eventId, SCENARIOS, scenarioById, type Scenario } from '../../lib/playground/scenarios';
@@ -50,6 +51,10 @@ export default function Playground() {
   const [notice, setNotice] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
   const noticeTimer = useRef<number | undefined>(undefined);
+  // Set by sending an event, so the toast and the rule highlight answer that event, not a reload.
+  const justSent = useRef(false);
+  const [toast, setToast] = useState<{ id: number; names: string[] } | null>(null);
+  const [ruleFlash, setRuleFlash] = useState<{ id: number; matched: boolean } | null>(null);
 
   const flash = (text: string) => {
     setNotice(text);
@@ -84,6 +89,23 @@ export default function Playground() {
     };
   }, [state]);
 
+  // After a sent event: a toast for new badges, and a short highlight on the open rule.
+  useEffect(() => {
+    if (!justSent.current || simulation.steps.length === 0) return;
+    justSent.current = false;
+    let start = simulation.steps.length - 1;
+    while (start > 0 && simulation.steps[start]?.emitted) start--;
+    const group = simulation.steps.slice(start);
+    const names = group.flatMap((step) => step.effects).flatMap((effect) => (effect.kind === 'badge' ? [effect.name] : []));
+    if (names.length) {
+      const id = Date.now();
+      setToast({ id, names });
+      window.setTimeout(() => setToast((current) => (current?.id === id ? null : current)), 2800);
+    }
+    const outcome = group.flatMap((step) => step.rules).find((rule) => rule.ruleId === openRule);
+    if (outcome) setRuleFlash({ id: Date.now(), matched: outcome.matched });
+  }, [simulation, openRule]);
+
   const setSetup = (setup: PlaygroundSetup) => setState((s) => ({ ...s, setup }));
   const updateRule = (rule: PlaygroundRule) => setSetup({ ...state.setup, rules: state.setup.rules.map((r) => (r.id === rule.id ? rule : r)) });
 
@@ -98,6 +120,7 @@ export default function Playground() {
     const last = state.events.reduce((max, e) => Math.max(max, new Date(e.occurredAt).getTime()), 0);
     const base = last || Date.now();
     const at = when === 'now' ? Date.now() : when === 'next_day' ? base + DAY : when === 'next_week' ? base + 7 * DAY : base + 60_000;
+    justSent.current = true;
     setState((s) => ({ ...s, events: [...s.events, { id: eventId(), type, payload, occurredAt: new Date(at).toISOString() }] }));
     track(EVENTS.playgroundRun, { scenario: state.scenario ?? 'custom', type });
   };
@@ -132,6 +155,8 @@ export default function Playground() {
   const scenario = state.scenario ? scenarioById(state.scenario) : undefined;
 
   return (
+    // Reduced motion gives every animation below its instant version.
+    <MotionConfig reducedMotion="user">
     <div className="space-y-6">
       {/* Scenarios and sharing */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -223,6 +248,21 @@ export default function Playground() {
               ))}
             </div>
             {open ? (
+              <div className="relative">
+              {/* A short highlight when the rule being edited matched the event just sent, or did not. */}
+              <AnimatePresence>
+                {ruleFlash && (
+                  <motion.div
+                    key={ruleFlash.id}
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute -inset-2 z-10 border ${ruleFlash.matched ? 'border-success-500 bg-success-500/5' : 'border-zinc-500 bg-zinc-500/5'}`}
+                    initial={{ opacity: 0.9 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 1.1, ease: 'easeOut' }}
+                    onAnimationComplete={() => setRuleFlash((current) => (current?.id === ruleFlash.id ? null : current))}
+                  />
+                )}
+              </AnimatePresence>
               <RuleEditor
                 key={`${open.id}:${version}`}
                 rule={open}
@@ -234,6 +274,7 @@ export default function Playground() {
                   setOpenRule(rest[0]?.id ?? null);
                 }}
               />
+              </div>
             ) : (
               <p className="text-sm text-zinc-500">No rules. Add one to start.</p>
             )}
@@ -267,6 +308,27 @@ export default function Playground() {
           </Panel>
         </div>
       </div>
+      {/* Badge unlocks, like the product's own toast. */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast.id}
+            role="status"
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 border border-success-700/70 bg-zinc-950 px-4 py-3 text-sm text-success-100 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]"
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          >
+            <Award className="h-5 w-5 text-success-400" aria-hidden="true" />
+            <span>
+              <span className="block text-xs text-success-300">Badge unlocked</span>
+              <span className="font-semibold">{toast.names.join(', ')}</span>
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }

@@ -199,3 +199,75 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
   background: color-mix(in oklab, var(--color-success-950) 80%, transparent);
   color: var(--color-success-300);
 }
+
+/* The final call to action's glow follows the pointer (WEB-39). */
+.cta-glow {
+  background: radial-gradient(420px circle at var(--glow-x, 50%) var(--glow-y, 50%), color-mix(in oklab, var(--color-brand-500) 18%, transparent), transparent 70%);
+  opacity: var(--glow-opacity, 0);
+  transition: opacity var(--motion-enter) var(--motion-ease-out);
+}
+
+/* ---------- Quiet pages (WEB-43) ---------- */
+
+/* The recommended plan has a slow gradient border. Only a custom property moves, with no layout. */
+@property --plan-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.plan-recommended::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(from var(--plan-angle), transparent 0 55%, var(--color-brand-400) 75%, transparent 90%);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .plan-recommended::before {
+    animation: plan-border 8s linear infinite;
+  }
+}
+@keyframes plan-border {
+  to {
+    --plan-angle: 360deg;
+  }
+}
+
+/* A reading progress bar along the top of blog posts, where scroll-driven animations exist. */
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  height: 2px;
+  background: var(--color-brand-500);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  .reading-progress {
+    display: block;
+    animation: reading-progress linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes reading-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Images in posts fade in once they have loaded (src/motion/reveal.ts marks them). */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-motion] .prose-site img:not([data-loaded]) {
+    opacity: 0;
+  }
+  .prose-site img {
+    transition: opacity var(--motion-enter) var(--motion-ease-out);
+  }
+}

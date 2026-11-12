@@ -74,6 +74,20 @@ jobs:
       - name: Check links
         run: pnpm --filter @gami/website check:links
 
+      # The animation budget (WEB-35): at most 60 KB of animation code on the home page, none on docs.
+      - name: Check the animation budget
+        run: pnpm --filter @gami/website check:motion
+
+      # Lighthouse on a simulated mid-range phone: performance 95+, content within 2 s, no layout shift.
+      - name: Check page speed
+        run: |
+          pnpm --filter @gami/website preview --port 4321 > preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4321/ > /dev/null && break; sleep 1; done
+          pnpm --filter @gami/website check:lighthouse
+        env:
+          SITE_URL: http://localhost:4321
+          CHROME_PATH: /usr/bin/google-chrome
+
       - uses: actions/upload-artifact@v4
         with:
           name: website

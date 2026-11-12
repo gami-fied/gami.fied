@@ -9,7 +9,9 @@
  * Content is only hidden while this script is running (`html[data-motion]`), so without
  * JavaScript, or with reduced motion, everything is simply there.
  */
-import { animate, inView, stagger } from 'motion';
+// motion/mini runs on the browser's own animation engine, so the reveal costs only a few KB.
+import { animate } from 'motion/mini';
+import { inView } from 'motion';
 import { prefersReducedMotion, scene } from './lifecycle';
 import { MOTION } from './tokens';
 
@@ -34,11 +36,23 @@ scene(SELECTOR, (element, { reduced, signal }) => {
   const stop = inView(
     element,
     () => {
-      animate(targets, { opacity: [0, 1], y: [MOTION.rise, 0] }, { duration: MOTION.enter, ease: MOTION.easeOut, delay: stagger(MOTION.stagger) });
+      targets.forEach((target, index) =>
+        animate(target, { opacity: [0, 1], transform: [`translateY(${MOTION.rise}px)`, 'none'] }, { duration: MOTION.enter, ease: MOTION.easeOut, delay: index * MOTION.stagger })
+      );
       element.dataset.revealed = '';
       stop();
     },
     { amount: 0.15 }
   );
   signal.addEventListener('abort', () => stop());
+});
+
+/** Images in long-form text fade in once they load, instead of appearing in pieces. */
+scene('.prose-site img', (image) => {
+  const done = () => (image.dataset.loaded = '');
+  if ((image as HTMLImageElement).complete) done();
+  else {
+    image.addEventListener('load', done, { once: true });
+    image.addEventListener('error', done, { once: true });
+  }
 });

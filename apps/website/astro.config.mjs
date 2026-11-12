@@ -10,6 +10,16 @@ import repoDocs from './src/integrations/repo-docs.mjs';
 // Set per deployment, so previews and forks need no code changes. See .env.example.
 const site = process.env.PUBLIC_SITE_URL || 'https://gami.fied.cc';
 const repository = 'https://github.com/gami-fied/gami.fied';
+/** Code from GSAP, Motion or src/motion is animation code. */
+const ANIMATION_MODULE = /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:gsap|motion|motion-dom|motion-utils)\/|\/src\/motion\//;
+/** @param {{ name: string; moduleIds?: string[]; facadeModuleId?: string | null }} chunk */
+function motionFileName(chunk) {
+  const ids = [...(chunk.moduleIds ?? []), chunk.facadeModuleId ?? ''];
+  // Astro's own naming, with the prefix added for animation code.
+  const name = chunk.name.replace(/[^\w.-]+/g, '_');
+  return ids.some((id) => ANIMATION_MODULE.test(id.replace(/\\/g, '/'))) ? `_astro/motion-${name}.[hash].js` : `_astro/${name}.[hash].js`;
+}
+
 const docsImage = new URL('/og/docs.png', site).href;
 
 export default defineConfig({
@@ -147,5 +157,9 @@ export default defineConfig({
   markdown: { shikiConfig: { theme: 'github-dark' } },
   vite: {
     plugins: [tailwindcss()],
+    // Browser files only: animation code gets a "motion-" prefix, so the budget check (WEB-35) can weigh it.
+    environments: {
+      client: { build: { rolldownOptions: { output: { entryFileNames: motionFileName, chunkFileNames: motionFileName } } } },
+    },
   },
 });

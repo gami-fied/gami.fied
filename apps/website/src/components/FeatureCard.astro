@@ -12,9 +12,10 @@ const { feature } = Astro.props;
 
 <a
   href={`/features/${feature.slug}/`}
+  data-tilt
   class="group flex flex-col border border-zinc-800 bg-zinc-900/30 p-6 transition duration-150 hover:border-zinc-700 hover:bg-zinc-900/70"
 >
-  <span class="flex h-10 w-10 items-center justify-center border border-zinc-800 bg-zinc-950 text-brand-400" transition:name={`feature-icon-${feature.slug}`}>
+  <span class="flex h-10 w-10 items-center justify-center border border-zinc-800 bg-zinc-950 text-brand-400" transition:name={`feature-icon-${feature.slug}`} data-tilt-icon>
     <FeatureIcon slug={feature.slug} />
   </span>
   <h3 class="mt-5 text-base font-semibold text-zinc-100" transition:name={`feature-title-${feature.slug}`}>{feature.name}</h3>

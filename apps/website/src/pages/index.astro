@@ -1,5 +1,5 @@
 ---
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Code } from 'astro:components';
 import { codeTheme } from '../lib/code-theme';
@@ -24,6 +24,18 @@ docker compose up -d`;
 
 // The product tour, recorded from the live demo by `pnpm capture`. The section is left out without it.
 const hasTour = existsSync(join(process.cwd(), 'public/video/tour.mp4'));
+
+// Counted from the source at build time, so they never drift from the product.
+const repo = (path: string) => readFileSync(join(process.cwd(), '../..', path), 'utf8');
+const openapi = JSON.parse(repo('docs/openapi.json')) as { paths: Record<string, Record<string, unknown>> };
+const numbers = [
+  { value: (repo('packages/database/src/features.ts').match(/^  { key: '/gm) ?? []).length, label: 'features in the free, open-source edition' },
+  {
+    value: Object.values(openapi.paths).reduce((total, path) => total + Object.keys(path).filter((method) => ['get', 'post', 'put', 'patch', 'delete'].includes(method)).length, 0),
+    label: 'API operations, each one documented',
+  },
+  { value: (repo('packages/react/src/components.tsx').match(/^export (function|const) [A-Z]/gm) ?? []).length, label: 'ready-made React components' },
+];
 
 const reasons = [
   { icon: Database, title: 'Your data stays yours', text: 'Player data, events and rewards live in your own PostgreSQL. Nothing is sent anywhere else.' },
@@ -61,6 +73,22 @@ const reasons = [
     </div>
   </section>
 
+  <!-- Numbers -->
+  <section class="mx-auto max-w-6xl px-6 pb-8" aria-label="Gami.Fied in numbers">
+    <dl class="grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
+      {
+        numbers.map((item) => (
+          <div class="flex flex-col bg-zinc-950 px-6 py-6 text-center">
+            <dt class="order-2 mt-1 text-sm text-zinc-400">{item.label}</dt>
+            <dd class="text-3xl font-bold tracking-tight text-zinc-50 tabular-nums" data-count-to={item.value}>
+              {item.value}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
   <!-- How it works -->
   <Section
     id="how-it-works"
@@ -80,7 +108,7 @@ const reasons = [
         title="The dashboard in two and a half minutes"
         intro="Rules, badges, streaks, leaderboards, leagues and the store, recorded from the live demo. No sound, with captions."
       >
-        <figure class="overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.8)]">
+        <figure class="overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.8)]" data-flatten>
           <video
             class="block h-auto w-full"
             controls
@@ -169,7 +197,8 @@ const reasons = [
 
   <!-- Final call to action -->
   <section class="mx-auto max-w-6xl px-6 pb-24">
-    <div class="relative overflow-hidden border border-zinc-800 bg-zinc-900/40 px-8 py-14 text-center sm:px-16">
+    <div class="relative overflow-hidden border border-zinc-800 bg-zinc-900/40 px-8 py-14 text-center sm:px-16" data-glow>
+      <div class="cta-glow pointer-events-none absolute inset-0" aria-hidden="true"></div>
       <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_50%_100%,color-mix(in_oklab,var(--color-brand-500)_16%,transparent),transparent)]" aria-hidden="true"></div>
       <h2 class="relative text-balance text-3xl font-bold tracking-tight text-zinc-50">Give your players a reason to come back</h2>
       <p class="relative mx-auto mt-4 max-w-xl text-zinc-400">Free and open source. Install it today, or star the project to follow along.</p>
@@ -185,4 +214,5 @@ const reasons = [
 
 <script>
   import '../motion/scenes/hero';
+  import '../motion/scenes/home';
 </script>
