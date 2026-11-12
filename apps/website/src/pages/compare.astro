@@ -72,6 +72,7 @@ const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
 
 <SiteLayout title="Compare" description="How Gami.Fied compares with hosted gamification APIs, loyalty engines, open-source libraries and building it yourself, including where it is weaker." og="compare">
   <Section
+    reveal={false} as="h1"
     eyebrow="Compare"
     title="How Gami.Fied compares"
     intro="An honest look at the options, including where Gami.Fied is not the best choice yet."
@@ -132,7 +133,7 @@ const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
   </Section>
 
   <Section eyebrow="Being honest" title="Where Gami.Fied is weaker today" intro="These are real gaps. Most are on the plan, but if one matters to you now, another option may suit you better.">
-    <ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-reveal-group>
       {
         weaker.map((item) => (
           <li class="border border-zinc-800 bg-zinc-900/30 p-6">

@@ -87,8 +87,8 @@ const faq = [
 ---
 
 <SiteLayout title="Pricing" description="Gami.Fied Community is free and open source forever. Cloud and Enterprise editions are coming." og="pricing">
-  <Section eyebrow="Pricing" title="Free to run yourself. Hosted when you want it." intro="Community has the whole engine and always will. Cloud and Enterprise are on the way." center class="pt-24">
-    <div class="grid gap-4 lg:grid-cols-3">
+  <Section eyebrow="Pricing" title="Free to run yourself. Hosted when you want it." intro="Community has the whole engine and always will. Cloud and Enterprise are on the way." center reveal={false} as="h1" class="pt-24">
+    <div class="grid gap-4 lg:grid-cols-3" data-reveal-group>
       {
         plans.map((plan) => (
           <div

@@ -57,7 +57,7 @@ const screenshot = screenshotFor(feature.slug);
         <h2 id="in-the-dashboard" class="font-mono text-xs uppercase tracking-wider text-brand-400">
           In the dashboard
         </h2>
-        <figure class="mt-4">
+        <figure class="mt-4" data-reveal>
           <div class="overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.8)]">
             <div class="flex items-center gap-1.5 border-b border-zinc-800 px-3 py-2" aria-hidden="true">
               <span class="h-2 w-2 bg-zinc-700" />
@@ -83,7 +83,7 @@ const screenshot = screenshotFor(feature.slug);
 
   <section class="mx-auto max-w-6xl px-6 pb-20" aria-labelledby="capabilities">
     <h2 id="capabilities" class="sr-only">What it does</h2>
-    <ul class="grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-2 lg:grid-cols-3">
+    <ul class="grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
       {
         feature.capabilities.map((capability) => (
           <li class="bg-zinc-950 p-6">

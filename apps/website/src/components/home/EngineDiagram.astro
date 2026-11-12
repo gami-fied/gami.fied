@@ -6,7 +6,7 @@
  */
 ---
 
-<figure class="relative mx-auto w-full max-w-4xl" aria-labelledby="engine-caption">
+<figure class="relative mx-auto w-full max-w-4xl" aria-labelledby="engine-caption" data-engine-diagram>
   <svg viewBox="0 0 760 320" class="h-auto w-full" role="img" aria-labelledby="engine-title engine-desc">
     <title id="engine-title">How Gami.Fied works</title>
     <desc id="engine-desc">Events from your app flow into the Gami.Fied engine, where rules turn them into XP, a badge and a better place on the leaderboard.</desc>
@@ -81,4 +81,19 @@
   <figcaption id="engine-caption" class="mt-4 text-center text-sm text-zinc-500">
     Events go in. Rules, streaks and limits decide. Rewards come out, on servers you run.
   </figcaption>
+  <!-- Shown only while the diagram animates, so it can be paused (WCAG 2.2.2). -->
+  <button
+    type="button"
+    hidden
+    aria-pressed="false"
+    data-engine-toggle
+    class="absolute right-0 top-0 inline-flex items-center gap-1.5 border border-zinc-800 bg-zinc-950/80 px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+  >
+    <span aria-hidden="true">⏯</span>
+    <span data-label>Pause animation</span>
+  </button>
 </figure>
+
+<script>
+  import '../../motion/scenes/engine';
+</script>

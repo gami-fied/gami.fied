@@ -47,10 +47,10 @@ const reasons = [
       <h1 class="text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-6xl" data-hero-headline>
         The gamification engine you run yourself
       </h1>
-      <p class="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
+      <p class="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400" data-hero-after>
         Turn what people do in your app into XP, streaks, badges, leaderboards, leagues and rewards. Open source, self-hosted, and your data never leaves your servers.
       </p>
-      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row" data-hero-after>
         <Button href="/playground/">Try it in your browser</Button>
         {SITE.demoUrl && <Button href={`${SITE.demoUrl}/demo`} variant="secondary" track={EVENTS.demoStarted} trackSource="home-hero">Try the dashboard</Button>}
         <Button href="#install" variant="secondary" track={EVENTS.installStarted} trackSource="home-hero">Install in one command</Button>
@@ -106,7 +106,7 @@ const reasons = [
     title="More than points and badges"
     intro="Progression, a points economy, competition, community, integrations and the controls to run it, all in the free, open-source edition."
   >
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
       {FEATURES.map((feature) => <FeatureCard feature={feature} />)}
     </div>
   </Section>
@@ -115,7 +115,7 @@ const reasons = [
   <Section eyebrow="For developers" title="Five lines to your first reward" intro="Typed SDK, plain HTTP, or drop-in React components. Pick what fits.">
     <div class="grid items-start gap-8 lg:grid-cols-[1.25fr_1fr]">
       <CodeTabs />
-      <ul class="space-y-5 text-sm">
+      <ul class="space-y-5 text-sm" data-reveal-group>
         {
           [
             ['Typed end to end', 'The SDK covers every public route, with retries and clear errors.'],
@@ -135,7 +135,7 @@ const reasons = [
 
   <!-- Why self-hosted -->
   <Section eyebrow="Why self-hosted" title="Own the engine, not just the integration">
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-3" data-reveal-group>
       {
         reasons.map((reason) => (
           <div class="border border-zinc-800 bg-zinc-900/30 p-6">
@@ -182,3 +182,7 @@ const reasons = [
     </div>
   </section>
 </SiteLayout>
+
+<script>
+  import '../motion/scenes/hero';
+</script>
