@@ -33,6 +33,7 @@ export interface NavLink {
 /** The header links. GitHub is shown separately, as an icon. */
 export const NAV: NavLink[] = [
   { label: 'Features', href: '/features/' },
+  { label: 'Playground', href: '/playground/' },
   { label: 'Compare', href: '/compare/' },
   { label: 'Pricing', href: '/pricing/' },
   { label: 'Docs', href: '/docs/' },
@@ -44,6 +45,7 @@ export const FOOTER: { title: string; links: NavLink[] }[] = [
     title: 'Product',
     links: [
       { label: 'Features', href: '/features/' },
+      { label: 'Playground', href: '/playground/' },
       { label: 'Compare', href: '/compare/' },
       { label: 'Pricing', href: '/pricing/' },
       { label: 'Changelog', href: '/changelog/' },

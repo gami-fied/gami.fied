@@ -1,0 +1,38 @@
+---
+/**
+ * The playground page. The island is the whole point of the page, so it loads straight away.
+ * Everything runs in the browser: no account, no server and no data kept.
+ */
+import Playground from '../components/playground/Playground.tsx';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<SiteLayout
+  title="Playground"
+  description="Write gamification rules and watch a player earn XP, streaks and badges, in your browser with the real Gami.Fied engine. No account needed."
+  og="playground"
+>
+  <div class="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
+    <header class="max-w-3xl">
+      <p class="font-mono text-xs uppercase tracking-wider text-brand-400">Playground</p>
+      <h1 class="mt-3 text-balance text-3xl font-bold tracking-tight text-zinc-50 sm:text-4xl">Try the rules engine in your browser</h1>
+      <p class="mt-4 text-pretty leading-relaxed text-zinc-400">
+        Change a rule, send an event, and see what one player earns. This is the same engine and rule builder that run on a real install, so a rule that works here works there. Nothing you do leaves this page.
+      </p>
+    </header>
+
+    <div class="mt-10">
+      <Playground client:load />
+      <noscript>
+        <p class="border border-zinc-800 p-6 text-sm text-zinc-400">The playground needs JavaScript, because the engine runs in your browser.</p>
+      </noscript>
+    </div>
+
+    <p class="mt-10 max-w-3xl text-xs leading-relaxed text-zinc-500">
+      Not simulated here: XP boosts and limits, challenges, leaderboards and leagues, and achievements that track their own progress. Streak days use UTC. When you are ready, export the rules and
+      <a class="text-brand-300 underline-offset-4 hover:underline" href="/docs/install/docker-compose/">install Gami.Fied</a>, or read the
+      <a class="text-brand-300 underline-offset-4 hover:underline" href={`${SITE.url}/docs/gamification-mechanics/`}>guide to rules</a>.
+    </p>
+  </div>
+</SiteLayout>

@@ -30,6 +30,10 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'How Gami.Fied compares',
     description: 'Hosted APIs, loyalty engines, open-source libraries and building it yourself, including where Gami.Fied is weaker.',
   },
+  playground: {
+    title: 'Playground',
+    description: 'Write gamification rules and watch a player earn XP, streaks and badges, in your browser with the real engine.',
+  },
   pricing: {
     title: 'Pricing',
     description: 'Community is free and open source forever. Cloud and Enterprise editions are coming.',

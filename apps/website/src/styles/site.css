@@ -3,6 +3,23 @@
 @import '@gami/ui/tokens.css';
 @plugin '@tailwindcss/typography';
 
+/* The playground uses the dashboard's own controls and rule builder, from packages/ui. */
+@source '../../../../packages/ui/src';
+
+/* The one dashboard animation those controls use: menus pop in. */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@utility animate-pop {
+  animation: pop-in 150ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 @layer base {
   html {
     color-scheme: dark;

@@ -6,6 +6,15 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ## [Unreleased]
 
+### Fixed
+
+- Rules built in the dashboard's visual editor with an "Award achievement" action can now be saved. The editor stored the achievement's id without its key, which the API needs, so saving failed.
+- "Is in" and "is not in" conditions from the visual editor are saved as lists, as the API requires, instead of as one piece of text.
+
+### Changed
+
+- The rules engine's plugin loader moved to `@gami/rules/node`, so the rest of the engine runs in a browser.
+
 ## [1.1.0] - 2026-11-08
 
 A large feature release: streaks, a points economy and reward store, leagues and social play, inbound connectors, staging environments, plugins, and controls for platform administrators. Everything is additive: `/v1` keeps working as it did, and nothing has to change in your app.

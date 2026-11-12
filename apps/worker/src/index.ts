@@ -12,7 +12,8 @@ import { startLifecycle, stopLifecycle } from './lifecycle.js';
 import { startMaintenance, stopMaintenance } from './maintenance.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
-import { listPlugins, loadPlugins } from '@gami/rules';
+import { listPlugins } from '@gami/rules';
+import { loadPlugins } from '@gami/rules/node';
 
 const log = createLogger('Worker');
 

@@ -14,7 +14,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
       <span>{SITE.name}</span>
     </a>
 
-    <ul class="hidden items-center gap-1 text-sm md:flex">
+    <ul class="hidden items-center gap-1 text-sm lg:flex">
       {
         NAV.map((link) => (
           <li>
@@ -39,7 +39,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
       </a>
       <button
         type="button"
-        class="p-2 text-zinc-300 md:hidden"
+        class="p-2 text-zinc-300 lg:hidden"
         aria-expanded="false"
         aria-controls="mobile-menu"
         aria-label="Open the menu"
@@ -51,7 +51,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
     </div>
   </nav>
 
-  <div id="mobile-menu" class="hidden border-t border-zinc-800 bg-zinc-950 md:hidden" data-menu>
+  <div id="mobile-menu" class="hidden border-t border-zinc-800 bg-zinc-950 lg:hidden" data-menu>
     <ul class="mx-auto flex max-w-6xl flex-col px-4 py-3">
       {
         NAV.map((link) => (

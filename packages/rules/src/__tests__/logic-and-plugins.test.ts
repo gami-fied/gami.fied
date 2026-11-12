@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { evaluateConditionTree } from '../evaluator.js';
 import { applyLogic, validateLogic } from '../logic.js';
-import { clearPlugins, definePlugin, getPluginAction, listPlugins, loadPlugins, registerPlugin } from '../plugins.js';
+import { loadPlugins } from '../node.js';
+import { clearPlugins, definePlugin, getPluginAction, listPlugins, registerPlugin } from '../plugins.js';
 import { validateRuleForSave } from '../validator.js';
 import type { EventData } from '../types.js';
 

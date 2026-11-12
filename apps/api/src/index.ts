@@ -18,7 +18,7 @@ import { lifecycleRoutes } from './lifecycle/index.js';
 import { ruleVersionRoutes } from './rules/versions.js';
 import { xpPolicyRoutes } from './xp-policy/index.js';
 import { storeRoutes } from './store/index.js';
-import { loadPlugins } from '@gami/rules';
+import { loadPlugins } from '@gami/rules/node';
 import { segmentRoutes } from './segments/index.js';
 import { leagueRoutes } from './engagement/leagues.js';
 import { socialRoutes } from './engagement/social.js';

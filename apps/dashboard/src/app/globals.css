@@ -3,6 +3,9 @@
 /* Colours and fonts come from the shared design tokens, also used by the website. */
 @import '@gami/ui/tokens.css';
 
+/* Classes used by the shared components in packages/ui. */
+@source '../../../../packages/ui/src';
+
 @layer base {
   :root {
     --motion-exit: 120ms;
