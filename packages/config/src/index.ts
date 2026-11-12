@@ -15,3 +15,4 @@ export * from './redact.js';
 export * from './validation.js';
 export * from './product.js';
 export * from './logger.js';
+export * from './demo.js';

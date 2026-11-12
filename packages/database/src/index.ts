@@ -8,3 +8,5 @@ export * from './platform-settings.js';
 export * from './analytics.js';
 export * from './event-aggregates.js';
 export * from './features.js';
+export * from './demo.js';
+export { DEMO_LOCKED_FEATURES, DEMO_POLICY, DEMO_APP_NAME } from './demo-data.js';

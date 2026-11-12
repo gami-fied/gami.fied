@@ -373,6 +373,9 @@ importers:
       '@gami/config':
         specifier: workspace:*
         version: link:../config
+      '@gami/progression':
+        specifier: workspace:*
+        version: link:../progression
       better-auth:
         specifier: ^1.7.18
         version: 1.7.18(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(kysely@0.29.8)(postgres@3.4.9))(next@16.4.5(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12(@types/node@26.6.6)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vue@3.5.45(typescript@5.9.3))
@@ -389,9 +392,6 @@ importers:
       '@gami/challenges':
         specifier: workspace:*
         version: link:../challenges
-      '@gami/progression':
-        specifier: workspace:*
-        version: link:../progression
       '@gami/rules':
         specifier: workspace:*
         version: link:../rules

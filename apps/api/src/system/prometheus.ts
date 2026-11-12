@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'crypto';
+import { demoMetricSamples } from '../demo/index.js';
 import { product } from '@gami/config';
 import { checkDatabaseHealth, db } from '@gami/database';
 import { checkRedisHealth, getBullMQQueueMetrics, getWorkerHeartbeatStatus } from '@gami/queue';
@@ -100,6 +101,9 @@ const HELP: Record<string, [string, string]> = {
   gami_process_uptime_seconds: ['gauge', 'Seconds since this API process started.'],
   gami_process_resident_memory_bytes: ['gauge', 'Memory used by this API process.'],
   gami_process_heap_used_bytes: ['gauge', 'JavaScript heap used by this API process.'],
+  gami_demo_live: ['gauge', 'Live demos on a demo instance.'],
+  gami_demo_capacity: ['gauge', 'Most live demos a demo instance allows.'],
+  gami_demo_refused_total: ['counter', 'Demo starts refused since this API process started, by reason.'],
 };
 
 export async function renderPrometheusMetrics(): Promise<string> {
@@ -165,6 +169,8 @@ export async function renderPrometheusMetrics(): Promise<string> {
     { name: 'gami_process_resident_memory_bytes', value: memory.rss },
     { name: 'gami_process_heap_used_bytes', value: memory.heapUsed }
   );
+
+  samples.push(...(await within(demoMetricSamples(), [])));
 
   const text = format(samples, HELP);
   cached = { at: Date.now(), text };

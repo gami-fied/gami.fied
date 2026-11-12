@@ -1,6 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { EmailMessage, EmailProvider, SmtpConfig } from './types.js';
-import { createLogger } from '@gami/config';
+import { createLogger, isDemoInstance } from '@gami/config';
 
 const log = createLogger('SmtpEmailProvider');
 
@@ -63,6 +63,9 @@ export class SmtpEmailProvider implements EmailProvider {
  * Gets a configured SmtpEmailProvider instance from custom config or process environment variables.
  */
 export function getSmtpProviderFromConfig(customConfig?: SmtpConfig): SmtpEmailProvider | null {
+  // A demo instance sends no email at all, whatever is configured. Every email goes through here.
+  if (isDemoInstance()) return null;
+
   if (customConfig && customConfig.host && customConfig.fromEmail) {
     return new SmtpEmailProvider(customConfig);
   }

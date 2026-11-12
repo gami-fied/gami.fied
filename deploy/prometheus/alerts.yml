@@ -68,3 +68,19 @@ groups:
         annotations:
           summary: Average API response time is over 1 second
           runbook: docs/operations.md#the-api-is-slow
+
+      # Demo instances only: these metrics are not sent anywhere else.
+      - alert: GamiDemoNearlyFull
+        expr: gami_demo_live / clamp_min(gami_demo_capacity, 1) > 0.9
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of live demo slots are in use"
+          runbook: docs/live-demo.md#capacity
+
+      - alert: GamiDemoRefusingStarts
+        expr: increase(gami_demo_refused_total{reason="capacity"}[15m]) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: Visitors are being turned away because every demo slot is in use
+          runbook: docs/live-demo.md#capacity

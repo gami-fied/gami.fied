@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@gami/config": "workspace:*",
+    "@gami/progression": "workspace:*",
     "better-auth": "^1.7.18",
     "drizzle-orm": "^0.45.4",
     "postgres": "^3.4.9",
@@ -35,7 +36,6 @@
   },
   "devDependencies": {
     "@gami/challenges": "workspace:*",
-    "@gami/progression": "workspace:*",
     "@gami/rules": "workspace:*",
     "@types/node": "^26.6.6",
     "drizzle-kit": "^0.31.11",

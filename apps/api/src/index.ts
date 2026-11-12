@@ -75,6 +75,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { analyticsRoutes } from './analytics/index.js';
+import { demoRoutes } from './demo/index.js';
 import { globalErrorHandler } from './middleware/error-handler.js';
 import { ipRateLimitHook } from './middleware/rate-limiter.js';
 import { requestTracingHook } from './middleware/request-tracing.js';
@@ -228,6 +229,9 @@ export async function buildServer() {
 
   // Register Better Auth handler & auth endpoints
   await fastify.register(authRoutes);
+
+  // Live demos without an account, on a demo instance only.
+  await fastify.register(demoRoutes);
 
   // Register Organization management endpoints
   await fastify.register(organizationRoutes);

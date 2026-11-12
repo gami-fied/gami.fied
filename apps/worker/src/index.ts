@@ -10,6 +10,7 @@ import { Worker } from 'bullmq';
 import { registerPushProviders } from '@gami/integrations';
 import { startLifecycle, stopLifecycle } from './lifecycle.js';
 import { startMaintenance, stopMaintenance } from './maintenance.js';
+import { startDemoCleanup, stopDemoCleanup } from './demo-cleanup.js';
 import { startOutboxPoller, stopOutboxPoller } from './outbox-poller.js';
 import { processEventJob } from './processor.js';
 import { listPlugins } from '@gami/rules';
@@ -31,6 +32,8 @@ startOutboxPoller();
 startWorkerHeartbeat();
 registerPushProviders();
 startMaintenance();
+// Only on a demo instance: deletes live demos once they expire.
+if (startDemoCleanup()) log.info('Demo cleanup is on');
 startLifecycle();
 
 /** Jobs processed at once. Each holds a database connection while it works. */
@@ -70,7 +73,7 @@ const handleShutdown = async (signal: string) => {
   const finish = (async () => {
     // Stop taking new work first, then let what is running finish.
     stopWorkerHeartbeat();
-    await Promise.all([worker.close(), stopOutboxPoller(), stopMaintenance(), stopLifecycle()]);
+    await Promise.all([worker.close(), stopOutboxPoller(), stopMaintenance(), stopLifecycle(), stopDemoCleanup()]);
     await connection.quit();
   })();
   const timeout = new Promise<'timeout'>((resolve) =>
