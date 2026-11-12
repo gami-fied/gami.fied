@@ -15,7 +15,7 @@ export default tseslint.config(
   ...astro.configs.recommended,
   {
     // Config files and scripts run in Node.
-    files: ['**/*.config.{js,mjs,cjs}', 'scripts/**/*.{js,mjs}'],
+    files: ['**/*.config.{js,mjs,cjs}', '**/scripts/**/*.{js,mjs}', 'apps/website/src/integrations/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
   {

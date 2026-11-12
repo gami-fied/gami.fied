@@ -30,7 +30,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
 | 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
-| 9 | Website, docs and sandbox | 6 / 44 | In progress, 5 partly done |
+| 9 | Website, docs and sandbox | 10 / 44 | In progress, 6 partly done |
 | 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
@@ -589,14 +589,14 @@ The docs live at `/docs` through Starlight, reading the repository's own `docs/`
 
 ### 9.3 Docs
 
-- [ ] **WEB-12** `P1` Serve the repository's `docs/` folder through Starlight at `/docs`, with a sidebar grouped by task (install, concepts, guides, reference, operations), "edit this page" links, and headings that can be linked to.
-- [ ] **WEB-13** `P1` Search across the docs with Starlight's built-in Pagefind, which is built at compile time and needs no search service.
-- [ ] **WEB-14** `P1` API reference rendered from `docs/openapi.json` (for example Scalar, through its Starlight integration), with a "try it" panel that calls the demo instance with a demo key.
-- [ ] **WEB-15** `P1` Installation guides as their own section: Docker Compose (the release files), upgrading, reverse proxies, backups, and a one-page "production checklist". Link each to the matching GitHub release.
+- [x] **WEB-12** `P1` Serve the repository's `docs/` folder through Starlight at `/docs`, with a sidebar grouped by task (install, concepts, guides, reference, operations), "edit this page" links, and headings that can be linked to. `[ran]` Done: `src/integrations/repo-docs.mjs` copies `docs/` in at build time and on every change in development, taking each title from the first heading and the description from the first paragraph, pointing links between docs at their pages, turning GitHub callouts into asides, and linking "edit this page" to the source file. `CHANGELOG.md` gets the same link rewriting.
+- [x] **WEB-13** `P1` Search across the docs with Starlight's built-in Pagefind, which is built at compile time and needs no search service. `[ran]` Done: every docs page and API endpoint page is indexed.
+- [~] **WEB-14** `P1` API reference rendered from `docs/openapi.json` (for example Scalar, through its Starlight integration), with a "try it" panel that calls the demo instance with a demo key. `[ran]` Done: one searchable page per endpoint at `/docs/api/` (starlight-openapi), and a Scalar explorer at `/docs/api-explorer/` with a "try it" panel, served from the site itself with telemetry off. Left: set `PUBLIC_DEMO_API_URL` and `PUBLIC_DEMO_API_KEY` once the demo instance exists (WEB-25), and add the site to its `TRUSTED_ORIGINS`.
+- [x] **WEB-15** `P1` Installation guides as their own section: Docker Compose (the release files), upgrading, reverse proxies, backups, and a one-page "production checklist". Link each to the matching GitHub release. `[ran]` Done: `docs/install/` has Docker Compose, upgrading (with going back), reverse proxy with Caddy and nginx, and a production checklist, next to the existing backups guide. The guides link to the latest release; WEB-18 pins them per version.
 - [ ] **WEB-16** `P2` One-click deploy guides for common self-hosting platforms (for example Coolify, Railway, Render, DigitalOcean), each tested on a real account before it is published.
-- [ ] **WEB-17** `P2` SDK and React component docs with live examples, generated where possible from the SDK's types.
+- [ ] **WEB-17** `P2` SDK and React component docs with live examples, generated where possible from the SDK's types. Note: the hand-written SDK and React guides are served. TypeDoc 0.28 fails with minimatch 11, which the workspace pins for a security fix, so a generated reference waits for a TypeDoc release that supports it. Live examples come with the playground (9.4).
 - [ ] **WEB-18** `P2` Versioned docs: the latest release by default, with older versions kept at `/docs/v1.0/...`, built from each release tag.
-- [ ] **WEB-19** `P2` A link checker in CI for the built site, covering internal links and anchors.
+- [x] **WEB-19** `P2` A link checker in CI for the built site, covering internal links and anchors. `[ran]` Done: `pnpm --filter @gami/website check:links` checks every internal link and anchor on every built page, and runs in the website workflow after the build.
 
 ### 9.4 In-browser playground
 

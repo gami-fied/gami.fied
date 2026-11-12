@@ -22,6 +22,7 @@ export const collections = {
 
   // The repository's own CHANGELOG.md, so release notes are written once.
   changelog: defineCollection({
-    loader: glob({ pattern: 'CHANGELOG.md', base: '../..' }),
+    // Copied from the repository root by src/integrations/repo-docs.mjs, with its links rewritten.
+    loader: glob({ pattern: 'CHANGELOG.md', base: './src/content/changelog' }),
   }),
 };

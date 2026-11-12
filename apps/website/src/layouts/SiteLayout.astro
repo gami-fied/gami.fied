@@ -19,9 +19,11 @@ interface Props {
   description?: string;
   og?: string;
   noindex?: boolean;
+  /** Full-screen tools such as the API explorer leave the footer out. */
+  footer?: boolean;
 }
 
-const props = Astro.props;
+const { footer = true, ...props } = Astro.props;
 ---
 
 <!doctype html>
@@ -42,6 +44,6 @@ const props = Astro.props;
     <main id="main" class="flex-1">
       <slot />
     </main>
-    <SiteFooter />
+    {footer && <SiteFooter />}
   </body>
 </html>

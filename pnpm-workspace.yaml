@@ -8,9 +8,12 @@ overrides:
   eslint-plugin-react-hooks>zod: ^4.6.6
   '@esbuild-kit/core-utils>esbuild': ^0.25.0
   '@esbuild-kit/esm-loader>esbuild': ^0.25.0
+  httpsnippet>form-data: ^4.0.6
+  '@tailwindcss/typography>postcss-selector-parser': ^6.1.5
 allowBuilds:
   esbuild: true
   msgpackr-extract: true
+  vue-demi: false
 minimumReleaseAgeExclude:
   - '@better-auth/core@1.7.18'
   - '@better-auth/drizzle-adapter@1.7.18'
