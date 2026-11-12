@@ -132,6 +132,7 @@ export default defineConfig({
             { label: 'Authentication and security', slug: 'docs/authentication-and-security' },
             { label: 'Data retention', slug: 'docs/data-retention' },
             { label: 'Disaster recovery', slug: 'docs/disaster-recovery' },
+            { label: 'Running a live demo', slug: 'docs/live-demo' },
             { label: 'Security status', slug: 'docs/security-audit' },
             { label: 'Release checklist', slug: 'docs/release-checklist' },
           ],

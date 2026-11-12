@@ -15,6 +15,8 @@ export const SITE = {
   waitlistUrl: import.meta.env.PUBLIC_WAITLIST_URL || '',
   /** A contact address for the legal pages. Without it they point to GitHub. */
   contactEmail: import.meta.env.PUBLIC_CONTACT_EMAIL || '',
+  /** The demo dashboard. "Try the dashboard" buttons appear only when it is set. */
+  demoUrl: (import.meta.env.PUBLIC_DEMO_URL || '').replace(/\/$/, ''),
   demoApiUrl: import.meta.env.PUBLIC_DEMO_API_URL || '',
   demoApiKey: import.meta.env.PUBLIC_DEMO_API_KEY || '',
   /** Previews and forks set this so search engines never index them. */

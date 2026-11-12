@@ -13,6 +13,8 @@ import { apiFetch } from '@/lib/api-client';
 
 interface DemoConfig {
   enabled: boolean;
+  /** True when the server could not be reached, which is not the same as having no demos. */
+  unreachable?: boolean;
   ttlHours: number | null;
   turnstileSiteKey: string | null;
 }
@@ -77,9 +79,9 @@ export default function DemoPage() {
 
   useEffect(() => {
     apiFetch('/api/demo')
-      .then((res) => (res.ok ? res.json() : { enabled: false, ttlHours: null, turnstileSiteKey: null }))
+      .then((res) => (res.ok ? res.json() : { enabled: false, unreachable: res.status >= 500, ttlHours: null, turnstileSiteKey: null }))
       .then(setConfig)
-      .catch(() => setConfig({ enabled: false, ttlHours: null, turnstileSiteKey: null }));
+      .catch(() => setConfig({ enabled: false, unreachable: true, ttlHours: null, turnstileSiteKey: null }));
   }, []);
 
   // Ticks the checklist while the request runs.
@@ -139,7 +141,7 @@ export default function DemoPage() {
             </p>
           ) : !config.enabled ? (
             <div className="space-y-3 text-sm text-zinc-300">
-              <p>This server does not offer live demos.</p>
+              <p>{config.unreachable ? 'The server is not answering right now. Try again in a minute.' : 'This server does not offer live demos.'}</p>
               <a className="inline-flex items-center gap-1.5 font-semibold text-brand-300 hover:text-brand-200" href="/login">
                 Sign in instead <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </a>

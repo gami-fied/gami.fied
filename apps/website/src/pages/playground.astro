@@ -29,6 +29,18 @@ import { SITE } from '../lib/site';
       </noscript>
     </div>
 
+    {
+      SITE.demoUrl && (
+        <div class="mt-10 flex flex-col gap-4 border border-zinc-800 bg-zinc-900/40 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="font-semibold text-zinc-100">See it in the real dashboard</p>
+            <p class="mt-1 text-sm text-zinc-400">A throwaway workspace with 36 players and a month of activity. No account, deleted after a day.</p>
+          </div>
+          <a href={`${SITE.demoUrl}/demo`} data-track="demo_started" data-track-source="playground" class="inline-flex shrink-0 items-center justify-center bg-brand-500 px-5 py-3 text-sm font-semibold text-on-accent transition-colors hover:bg-brand-400">Try the dashboard</a>
+        </div>
+      )
+    }
+
     <p class="mt-10 max-w-3xl text-xs leading-relaxed text-zinc-500">
       Not simulated here: XP boosts and limits, challenges, leaderboards and leagues, and achievements that track their own progress. Streak days use UTC. When you are ready, export the rules and
       <a class="text-brand-300 underline-offset-4 hover:underline" href="/docs/install/docker-compose/">install Gami.Fied</a>, or read the

@@ -47,6 +47,7 @@ const reasons = [
       </p>
       <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
         <Button href="/playground/">Try it in your browser</Button>
+        {SITE.demoUrl && <Button href={`${SITE.demoUrl}/demo`} variant="secondary" track={EVENTS.demoStarted} trackSource="home-hero">Try the dashboard</Button>}
         <Button href="#install" variant="secondary" track={EVENTS.installStarted} trackSource="home-hero">Install in one command</Button>
       </div>
     </div>

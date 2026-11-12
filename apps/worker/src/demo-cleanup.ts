@@ -11,8 +11,10 @@ const log = createLogger('DemoCleanup');
 
 const INTERVAL_MS = 10 * 60 * 1000;
 const LOCK_KEY = 'demo:cleanup:lock';
+const FIRST_PASS_MS = 15_000;
 
 let timer: NodeJS.Timeout | null = null;
+let first: NodeJS.Timeout | null = null;
 let running: Promise<void> | null = null;
 
 /** One pass: deletes expired demos in batches until none are left. */
@@ -42,13 +44,16 @@ export function startDemoCleanup(): boolean {
       running = null;
     });
   };
-  tick();
+  // The first pass waits for Redis to connect at start-up.
+  first = setTimeout(tick, FIRST_PASS_MS);
   timer = setInterval(tick, INTERVAL_MS);
   return true;
 }
 
 export async function stopDemoCleanup(): Promise<void> {
   if (timer) clearInterval(timer);
+  if (first) clearTimeout(first);
   timer = null;
+  first = null;
   await running;
 }

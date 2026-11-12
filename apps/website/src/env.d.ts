@@ -14,6 +14,7 @@ interface ImportMetaEnv {
   /** A contact address shown on the legal pages. Without it they point to GitHub issues. */
   readonly PUBLIC_CONTACT_EMAIL?: string;
   /** The demo instance the API explorer sends requests to. Without it the explorer only documents. */
+  readonly PUBLIC_DEMO_URL?: string;
   readonly PUBLIC_DEMO_API_URL?: string;
   /** A demo project API key, filled in for "try it". Public by design, so use a demo project only. */
   readonly PUBLIC_DEMO_API_KEY?: string;

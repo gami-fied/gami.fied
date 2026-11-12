@@ -21,6 +21,7 @@ Documentation for **Gami.Fied Community Edition**, a self-hosted gamification en
 | ⚛️ [**React & Live Updates**](./react.md) | Ready-made components, hooks, toasts and the live stream for your own app. |
 | 🔔 [**Notifications & Integrations**](./notifications-and-integrations.md) | In-app notifications, email, signed webhooks and Discord. |
 | ⚙️ [**Platform Administration**](./platform-administration.md) | Becoming an admin, the admin pages, audit logs and storage cleanup. |
+| 🎪 [**Live Demo Instance**](./live-demo.md) | Letting visitors try the dashboard without an account, with lockdown, limits and cleanup. |
 | 📥 [**Install**](./install/docker-compose.md) | [Docker Compose](./install/docker-compose.md) from the release files, [reverse proxy and HTTPS](./install/reverse-proxy.md), [upgrading](./install/upgrading.md) and the [production checklist](./install/production-checklist.md). |
 | 🐳 [**Deployment & Production**](./deployment-and-production.md) | Docker Compose setup, environment variables, health checks, settings and troubleshooting. |
 | 🩺 [**Operations**](./operations.md) | Prometheus metrics, alerts, logging, tuning and a runbook. See [Performance](./performance.md) for measured capacity. |
