@@ -6,15 +6,23 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildServer } from '../index.js';
 
-// Demo settings are read when the server is built.
-const saved = { ...process.env };
-Object.assign(process.env, {
+// Demo settings are read when the server is built. Only these variables change, and each is put
+// back afterwards, because test files can share a process and demo mode turns all email off.
+const DEMO_ENV = {
   GAMI_DEMO_MODE: 'true',
   GAMI_DEMO_STARTS_PER_HOUR: '2',
   GAMI_DEMO_MAX_LIVE: '50',
   TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
   TURNSTILE_SECRET_KEY: 'test-secret',
-});
+};
+const TOUCHED = [...Object.keys(DEMO_ENV), 'SMTP_HOST', 'SMTP_FROM_EMAIL'];
+const saved = Object.fromEntries(TOUCHED.map((key) => [key, process.env[key]]));
+const restoreEnv = () => {
+  for (const key of TOUCHED) {
+    if (saved[key] === undefined) delete process.env[key];
+    else process.env[key] = saved[key];
+  }
+};
 
 describe('live demos', () => {
   let app: Awaited<ReturnType<typeof buildServer>>;
@@ -29,6 +37,7 @@ describe('live demos', () => {
     app.inject({ method: 'POST', url: '/api/demo/start', remoteAddress, payload: token ? { turnstileToken: token } : {} });
 
   beforeAll(async () => {
+    Object.assign(process.env, DEMO_ENV);
     app = await buildServer();
     await app.ready();
   });
@@ -37,7 +46,7 @@ describe('live demos', () => {
     vi.restoreAllMocks();
     await deleteAllDemos();
     await app.close();
-    process.env = saved;
+    restoreEnv();
   });
 
   it('says whether demos are offered, with the challenge site key', async () => {

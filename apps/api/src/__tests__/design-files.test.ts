@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { createDemoWorkspace, db, deleteAllDemos, member, organizations, projects, rewards, rules, runMigrations, users } from '@gami/database';
+import { createDemoWorkspace, db, deleteAllDemos, member, organizations, projectMembers, projects, rewards, rules, runMigrations, users } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
@@ -39,6 +39,8 @@ describe('design files', () => {
     const plain = await signUp('design_member');
     memberCookie = plain.cookie;
     await db.insert(member).values({ id: `mem_design_m_${suffix}`, organizationId: targetOrgId, userId: plain.id, role: 'member', createdAt: new Date() });
+    // A member who can see the project, so the test reaches the owner-and-admin check.
+    await db.insert(projectMembers).values({ id: `pm_design_${suffix}`, projectId: targetProjectId, userId: plain.id });
   });
 
   afterAll(async () => {

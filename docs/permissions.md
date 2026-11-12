@@ -55,6 +55,9 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/currencies` | Member | Signed-in user only |
 | `POST` | `/currencies` | Admin | Signed-in user only |
 | `PATCH` | `/currencies/:currencyId` | Admin | Signed-in user only |
+| `GET` | `/design` | Admin | Signed-in user only |
+| `POST` | `/design` | Admin | Signed-in user only |
+| `POST` | `/design/preview` | Admin | Signed-in user only |
 | `GET` | `/email-deliveries` | Admin | API key with `notifications:read` |
 | `GET` | `/events` | Member | API key with `events:read` |
 | `GET` | `/events/:eventId` | Member | API key with `events:read` |
