@@ -1,9 +1,27 @@
 import { defineCollection } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { z } from 'astro/zod';
 import { docsLoader } from '@astrojs/starlight/loaders';
 import { docsSchema } from '@astrojs/starlight/schema';
 
-// The docs are served by Starlight under /docs. WEB-12 points this at the repository's own docs/
-// folder, so the guides have one source.
 export const collections = {
+  // Served by Starlight under /docs. WEB-12 points this at the repository's own docs/ folder.
   docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+
+  blog: defineCollection({
+    loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
+    schema: z.object({
+      title: z.string(),
+      description: z.string(),
+      date: z.coerce.date(),
+      author: z.string().default('The Gami.Fied team'),
+      tags: z.array(z.string()).default([]),
+      draft: z.boolean().default(false),
+    }),
+  }),
+
+  // The repository's own CHANGELOG.md, so release notes are written once.
+  changelog: defineCollection({
+    loader: glob({ pattern: 'CHANGELOG.md', base: '../..' }),
+  }),
 };

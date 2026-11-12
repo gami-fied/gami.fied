@@ -1,0 +1,36 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+import { SITE } from '../../lib/site';
+
+const contact = SITE.contactEmail ? `mailto:${SITE.contactEmail}` : SITE.issues;
+---
+
+<LegalLayout title="Terms" description="The terms for using this website and the live demo." og="legal" updated="12 November 2026">
+  <p>
+    These terms cover this website and the live demo. The {SITE.name} software is covered by its own licences, explained on the
+    <a href="/legal/licences/">licences page</a>.
+  </p>
+
+  <h2>The website</h2>
+  <p>
+    You may read, link to and share anything on this site. The content is provided as it is, to help you understand and use {SITE.name},
+    and may change at any time.
+  </p>
+
+  <h2>The live demo</h2>
+  <ul>
+    <li>It is for trying {SITE.name}, not for real use. Demo projects and everything in them are deleted after 24 hours.</li>
+    <li>Do not enter real personal data, or anything you would not want others to see.</li>
+    <li>Do not use it to attack, overload or misuse the demo or anyone else. Demos that do may be removed early.</li>
+    <li>It may be unavailable, reset or changed at any time.</li>
+  </ul>
+
+  <h2>No warranty</h2>
+  <p>
+    The website and the demo are provided without any warranty, and we are not liable for any loss from using them, to the extent the law
+    allows.
+  </p>
+
+  <h2>Contact</h2>
+  <p>Questions about these terms: <a href={contact}>{SITE.contactEmail || 'open an issue on GitHub'}</a>.</p>
+</LegalLayout>

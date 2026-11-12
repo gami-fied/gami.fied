@@ -1,6 +1,7 @@
 /* Styles for the marketing pages. Docs pages use docs.css, which keeps Starlight's own styles. */
 @import 'tailwindcss';
 @import '@gami/ui/tokens.css';
+@plugin '@tailwindcss/typography';
 
 @layer base {
   html {
@@ -32,4 +33,29 @@
     outline: 2px solid var(--color-brand-400);
     outline-offset: 2px;
   }
+}
+
+/* Long-form pages (blog, changelog, legal) use the typography plugin, tuned to the site. */
+@utility prose-site {
+  --tw-prose-body: var(--color-zinc-300);
+  --tw-prose-headings: var(--color-zinc-50);
+  --tw-prose-lead: var(--color-zinc-400);
+  --tw-prose-links: var(--color-brand-300);
+  --tw-prose-bold: var(--color-zinc-100);
+  --tw-prose-counters: var(--color-zinc-500);
+  --tw-prose-bullets: var(--color-zinc-600);
+  --tw-prose-hr: var(--color-zinc-800);
+  --tw-prose-quotes: var(--color-zinc-200);
+  --tw-prose-quote-borders: var(--color-brand-500);
+  --tw-prose-code: var(--color-zinc-100);
+  --tw-prose-pre-bg: var(--color-zinc-950);
+  --tw-prose-th-borders: var(--color-zinc-700);
+  --tw-prose-td-borders: var(--color-zinc-800);
+}
+
+/* Wide tables in long-form text scroll on their own instead of widening the page on phones. */
+.prose-site table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }

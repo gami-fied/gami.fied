@@ -1,0 +1,44 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+import { SITE } from '../../lib/site';
+
+const contact = SITE.contactEmail ? `mailto:${SITE.contactEmail}` : SITE.issues;
+const contactLabel = SITE.contactEmail || 'an issue on GitHub';
+---
+
+<LegalLayout title="Privacy" description="What this website and the live demo collect, and what they do not." og="legal" updated="12 November 2026">
+  <p>
+    This page covers the {SITE.name} website and the live demo. It does not cover a {SITE.name} install that you or someone else runs:
+    that install is controlled by whoever runs it, and the data in it never comes to us.
+  </p>
+
+  <h2>This website</h2>
+  <ul>
+    <li><strong>No cookies.</strong> The site sets no cookies and stores nothing in your browser to track you.</li>
+    <li>
+      <strong>Visit counts without tracking you.</strong> When analytics is on, it counts page views and a few clicks, such as starting an
+      install, with a cookie-free tool. It does not build a profile of you or follow you to other sites.
+    </li>
+    <li>
+      <strong>Server logs.</strong> The service that serves the site keeps short-lived logs, including addresses, to keep it running and
+      stop abuse.
+    </li>
+  </ul>
+
+  <h2>The live demo</h2>
+  <p>
+    When it is available, the demo creates a temporary project for you without an account. Whatever you enter there is deleted, with the
+    project, after 24 hours. The demo sends no email and does not connect to other services. Please do not enter real personal data.
+  </p>
+
+  <h2>The open-source software</h2>
+  <p>
+    {SITE.name} itself sends nothing to us. It has no telemetry and does not call home, and the data it stores stays in your own
+    database.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about privacy: <a href={contact}>{contactLabel}</a>.
+  </p>
+</LegalLayout>

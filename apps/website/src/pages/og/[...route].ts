@@ -1,5 +1,6 @@
 import { OGImageRoute } from 'astro-og-canvas';
-import { OG_PAGES } from '../../lib/og';
+import { publishedPosts } from '../../lib/blog';
+import { OG_PAGES, type OgPage } from '../../lib/og';
 
 // The brand fonts come from the installed @fontsource packages, so the images match the site.
 const fonts = [
@@ -8,8 +9,15 @@ const fonts = [
 ];
 
 /** Builds a 1200×630 social card for every entry in OG_PAGES at build time. */
+// Every blog post gets its own card, from its title and description.
+const posts = await publishedPosts();
+const pages: Record<string, OgPage> = {
+  ...OG_PAGES,
+  ...Object.fromEntries(posts.map((post) => [`blog/${post.id}`, { title: post.data.title, description: post.data.description }])),
+};
+
 export const { getStaticPaths, GET } = await OGImageRoute({
-  pages: OG_PAGES,
+  pages,
   getImageOptions: (_path, page) => ({
     title: page.title,
     description: page.description,

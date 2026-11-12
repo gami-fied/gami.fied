@@ -22,9 +22,10 @@ minimumReleaseAgeExclude:
   - better-auth@1.7.18
   - '@fastify/cors@11.4.1'
   - '@astrojs/internal-helpers@0.13.2'
-  - '@astrojs/markdown-satteri@0.4.8'
+  - '@astrojs/markdown-satteri@0.4.8 || 0.4.9'
   - '@astrojs/runtime@0.1.0'
   - '@astrojs/vite-plugin-astro@0.1.1'
   - astro@7.4.10
   - '@astrojs/react-renderer@0.1.1'
   - '@astrojs/react@7.1.7'
+  - '@astrojs/mdx@8.1.5'

@@ -9,6 +9,10 @@ interface ImportMetaEnv {
   readonly PUBLIC_ANALYTICS_SCRIPT?: string;
   /** The site's domain for Plausible, or its website ID for Umami. */
   readonly PUBLIC_ANALYTICS_SITE?: string;
+  /** Where "Join the waitlist" goes, such as a form. Without it the pricing page links to GitHub. */
+  readonly PUBLIC_WAITLIST_URL?: string;
+  /** A contact address shown on the legal pages. Without it they point to GitHub issues. */
+  readonly PUBLIC_CONTACT_EMAIL?: string;
 }
 
 interface ImportMeta {

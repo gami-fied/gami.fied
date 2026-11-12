@@ -1,0 +1,26 @@
+---
+/** A page section with an optional small label, a heading and an introduction. */
+interface Props {
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  center?: boolean;
+  class?: string;
+}
+
+const { id, eyebrow, title, intro, center = false, class: extra } = Astro.props;
+---
+
+<section id={id} class:list={['mx-auto max-w-6xl px-6 py-20 sm:py-24', extra]}>
+  {
+    (eyebrow || title || intro) && (
+      <div class:list={['mb-12 max-w-2xl', center && 'mx-auto text-center']}>
+        {eyebrow && <p class="font-mono text-xs uppercase tracking-wider text-brand-400">{eyebrow}</p>}
+        {title && <h2 class="mt-3 text-balance text-3xl font-bold tracking-tight text-zinc-50 sm:text-4xl">{title}</h2>}
+        {intro && <p class="mt-4 text-pretty text-base leading-relaxed text-zinc-400">{intro}</p>}
+      </div>
+    )
+  }
+  <slot />
+</section>

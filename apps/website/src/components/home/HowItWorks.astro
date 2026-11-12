@@ -1,0 +1,67 @@
+---
+/**
+ * The three steps, each with the code that does it and what the player sees. This stacked layout is
+ * what phones and reduced motion get; WEB-38 turns it into a pinned scroll story on wide screens.
+ */
+import { Code } from 'astro:components';
+import { codeTheme } from '../../lib/code-theme';
+
+const steps = [
+  {
+    title: 'Send an event',
+    text: 'Your server, or the SDK in your app, tells Gami.Fied what someone did. A retry with the same idempotency key never counts twice.',
+    lang: 'ts' as const,
+    code: `await gami.events.track({
+  userId: 'user_123',
+  type: 'lesson_completed',
+});`,
+    result: { label: 'Event received', detail: 'lesson_completed · user_123', tone: 'info' },
+  },
+  {
+    title: 'A rule matches',
+    text: 'Rules you set up in the dashboard decide what it is worth. Change them any time, test them on past events, and roll back if needed.',
+    lang: 'json' as const,
+    code: `{
+  "trigger": "lesson_completed",
+  "actions": [{ "type": "award_xp", "params": { "amount": 50 } }]
+}`,
+    result: { label: 'Rule matched', detail: 'Lesson reward · +50 XP', tone: 'brand' },
+  },
+  {
+    title: 'The player is rewarded',
+    text: 'XP lands in their ledger, their streak grows, badges unlock and the leaderboard moves, live in your app through the SDK or React components.',
+    lang: 'tsx' as const,
+    code: `<LevelProgress />
+<StreakCalendar />
+<ToastHost />`,
+    result: { label: 'Level 7 reached', detail: '12-day streak · Seven-day streak badge', tone: 'success' },
+  },
+];
+
+const tones = {
+  info: 'border-info-800/70 bg-info-950/40 text-info-200',
+  brand: 'border-brand-800/70 bg-brand-950/40 text-brand-200',
+  success: 'border-success-800/70 bg-success-950/40 text-success-200',
+} as const;
+---
+
+<ol class="space-y-6" data-how-it-works>
+  {
+    steps.map((step, index) => (
+      <li class="grid gap-6 border border-zinc-800 bg-zinc-900/30 p-6 md:grid-cols-[1fr_1.1fr] md:p-8" data-step={index + 1}>
+        <div>
+          <span class="font-mono text-xs text-brand-400">Step {index + 1}</span>
+          <h3 class="mt-2 text-xl font-semibold text-zinc-50">{step.title}</h3>
+          <p class="mt-3 text-sm leading-relaxed text-zinc-400">{step.text}</p>
+          <div class:list={['mt-6 inline-flex flex-col border px-4 py-3 text-sm', tones[step.result.tone as keyof typeof tones]]}>
+            <span class="font-semibold">{step.result.label}</span>
+            <span class="mt-0.5 text-xs opacity-80">{step.result.detail}</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto border border-zinc-800 bg-zinc-950 p-5 text-[13px] leading-relaxed [&_pre]:!bg-transparent">
+          <Code code={step.code} lang={step.lang} theme={codeTheme} />
+        </div>
+      </li>
+    ))
+  }
+</ol>

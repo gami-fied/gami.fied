@@ -1,0 +1,148 @@
+---
+import { Check } from '@lucide/astro';
+import Button from '../components/Button.astro';
+import Section from '../components/Section.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { EVENTS } from '../lib/analytics';
+import { SITE } from '../lib/site';
+
+interface Plan {
+  name: string;
+  price: string;
+  priceNote: string;
+  summary: string;
+  features: string[];
+  status: 'available' | 'planned';
+  highlight?: boolean;
+}
+
+const plans: Plan[] = [
+  {
+    name: 'Community',
+    price: 'Free',
+    priceNote: 'forever, on your servers',
+    summary: 'The whole engine, self-hosted and open source.',
+    status: 'available',
+    highlight: true,
+    features: [
+      'Every engine feature: rules, streaks, achievements, challenges, leagues, the store and more',
+      'Unlimited players, events and projects',
+      'Dashboard, SDK, React components and webhooks',
+      'Staging projects, promotion and feature controls',
+      'Community support on GitHub',
+    ],
+  },
+  {
+    name: 'Cloud',
+    price: 'Coming soon',
+    priceNote: 'priced by events each month',
+    summary: 'The same engine, run for you.',
+    status: 'planned',
+    features: [
+      'Everything in Community',
+      'Hosting, upgrades and backups handled for you',
+      'Scaling and monitoring',
+      'A free tier to start',
+      'Email support',
+    ],
+  },
+  {
+    name: 'Enterprise',
+    price: 'Coming soon',
+    priceNote: 'self-hosted or Cloud',
+    summary: 'For larger teams and stricter requirements.',
+    status: 'planned',
+    features: [
+      'Everything in Cloud',
+      'Single sign-on with SAML or OIDC, and SCIM',
+      'Impact analytics and A/B tests of mechanics',
+      'Longer data and audit-log retention',
+      'Uptime commitments and priority support',
+    ],
+  },
+];
+
+const faq = [
+  {
+    q: 'Will the Community edition lose features to Cloud?',
+    a: 'No. The engine is never cut down in Community, and new engine features ship to it at the same time. Cloud sells running it for you; Enterprise adds features large companies need, such as single sign-on.',
+  },
+  {
+    q: 'Is Community really free for commercial use?',
+    a: 'Yes. The server is licensed under the AGPL-3.0. You can run it for any purpose, including a commercial product. If you change the server and offer it to others over a network, you share those changes.',
+  },
+  {
+    q: 'Can I use the SDK in a closed-source app?',
+    a: 'Yes. The SDK is MIT licensed, so you can ship it in any app without sharing your code.',
+  },
+  {
+    q: 'What does running it myself cost?',
+    a: 'Only your servers. A small install runs PostgreSQL, Redis, the API, the worker and the dashboard, which fits on one modest machine.',
+  },
+  {
+    q: 'Can I move between Community and Cloud later?',
+    a: 'That is the plan: moving in either direction, using the data export and import that already exist, so nobody is locked in.',
+  },
+];
+---
+
+<SiteLayout title="Pricing" description="Gami.Fied Community is free and open source forever. Cloud and Enterprise editions are coming." og="pricing">
+  <Section eyebrow="Pricing" title="Free to run yourself. Hosted when you want it." intro="Community has the whole engine and always will. Cloud and Enterprise are on the way." center class="pt-24">
+    <div class="grid gap-4 lg:grid-cols-3">
+      {
+        plans.map((plan) => (
+          <div
+            class:list={[
+              'relative flex flex-col border p-7',
+              plan.highlight ? 'border-brand-500/60 bg-brand-500/5' : 'border-zinc-800 bg-zinc-900/30',
+            ]}
+          >
+            {plan.highlight && (
+              <span class="absolute -top-3 left-7 bg-brand-500 px-2 py-0.5 text-[11px] font-semibold text-on-accent">Available now</span>
+            )}
+            <h2 class="text-lg font-semibold text-zinc-100">{plan.name}</h2>
+            <p class="mt-1 text-sm text-zinc-400">{plan.summary}</p>
+            <p class="mt-6 text-3xl font-bold tracking-tight text-zinc-50">{plan.price}</p>
+            <p class="mt-1 text-xs text-zinc-500">{plan.priceNote}</p>
+            <ul class="mt-6 flex-1 space-y-3 text-sm">
+              {plan.features.map((feature) => (
+                <li class="flex gap-2.5 text-zinc-300">
+                  <Check size={16} class="mt-0.5 shrink-0 text-brand-400" aria-hidden="true" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <div class="mt-8">
+              {plan.status === 'available' ? (
+                <Button href="/docs/" class="w-full" track={EVENTS.installStarted} trackSource="pricing">
+                  Install Community
+                </Button>
+              ) : SITE.waitlistUrl ? (
+                <Button href={SITE.waitlistUrl} variant="secondary" external class="w-full" track="waitlist_opened" trackSource={plan.name.toLowerCase()}>
+                  Join the waitlist
+                </Button>
+              ) : (
+                <Button href={SITE.github} variant="secondary" external class="w-full">
+                  Watch on GitHub for news
+                </Button>
+              )}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section eyebrow="Questions" title="Frequently asked" class="pb-24">
+    <dl class="grid gap-x-12 gap-y-8 md:grid-cols-2">
+      {
+        faq.map((item) => (
+          <div>
+            <dt class="font-semibold text-zinc-100">{item.q}</dt>
+            <dd class="mt-2 text-sm leading-relaxed text-zinc-400">{item.a}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </Section>
+</SiteLayout>

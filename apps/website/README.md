@@ -27,11 +27,12 @@ Add packages with the CLI (`pnpm --filter @gami/website add <name>`, or `pnpm as
 
 ```text
 src/
-├─ pages/            # routes: the home page, 404, robots.txt and Open Graph images
+├─ pages/            # routes: home, features, compare, pricing, blog, changelog, legal, 404, RSS, robots.txt, Open Graph images
 ├─ content/docs/     # docs pages served by Starlight under /docs
+├─ content/blog/     # blog posts in Markdown or MDX
 ├─ layouts/          # SiteLayout frames every marketing page
 ├─ components/       # Seo, Analytics, header and footer
-├─ lib/              # site facts (site.ts), Open Graph pages (og.ts), analytics helpers
+├─ lib/              # site facts (site.ts), feature areas (features.ts), Open Graph pages (og.ts), blog and analytics helpers
 ├─ styles/           # site.css for marketing pages, docs.css for Starlight
 └─ assets/           # the brand mark used in docs and social cards
 ```
@@ -47,6 +48,8 @@ All optional. Copy `.env.example` to `.env` to change them locally; in CI they c
 | `PUBLIC_ANALYTICS_PROVIDER` | none | `plausible` or `umami` |
 | `PUBLIC_ANALYTICS_SCRIPT` | none | The provider's script address |
 | `PUBLIC_ANALYTICS_SITE` | none | The Plausible domain, or the Umami website ID |
+| `PUBLIC_WAITLIST_URL` | none | Where the pricing page's waitlist buttons go. Without it they link to GitHub |
+| `PUBLIC_CONTACT_EMAIL` | none | Contact address on the legal pages. Without it they point to GitHub issues |
 
 Analytics is cookie-free, so the site needs no consent banner. Count a click by adding `data-track="<event>"` to an element; the event names are in `src/lib/analytics.ts`.
 

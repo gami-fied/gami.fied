@@ -30,7 +30,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
 | 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
-| 9 | Website, docs and sandbox | 3 / 44 | In progress, 2 partly done |
+| 9 | Website, docs and sandbox | 6 / 44 | In progress, 5 partly done |
 | 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
@@ -580,12 +580,12 @@ The docs live at `/docs` through Starlight, reading the repository's own `docs/`
 
 ### 9.2 Marketing pages
 
-- [ ] **WEB-06** `P1` Home page: the one-line pitch ("the self-hosted, open-source gamification engine"), the animated engine diagram (WEB-37), "how it works" (WEB-38), a five-line code sample, and calls to action for the playground, the demo and installing.
-- [ ] **WEB-07** `P1` Feature pages for each area (progression, economy, competition, community, integrations, administration), each with its own small live animation (WEB-40), a screenshot and a link to its guide.
-- [ ] **WEB-08** `P1` An honest comparison page against hosted APIs and other open-source engines, built from the table in this plan's assessment. Include where Gami.Fied is weaker.
-- [ ] **WEB-09** `P2` Pricing page: Community is free forever; Cloud and Enterprise show "coming soon" with a waitlist until Phase 10 ships. State plainly that the engine is never cut down in Community (see CLOUD-01).
-- [ ] **WEB-10** `P2` Blog, plus a changelog page built from `CHANGELOG.md`, so each release is announced without copying text.
-- [ ] **WEB-11** `P2` Legal pages: privacy policy, terms for the demo and the site, and a plain explanation of the AGPL server and MIT SDK licences.
+- [~] **WEB-06** `P1` Home page: the one-line pitch ("the self-hosted, open-source gamification engine"), the animated engine diagram (WEB-37), "how it works" (WEB-38), a five-line code sample, and calls to action for the playground, the demo and installing. `[ran]` Done: the pitch, a static engine diagram and three-step "how it works" (each with hooks for their animations), Node.js, cURL and React code tabs, why self-hosted, the install commands from the latest release, and calls to action for the docs, installing and GitHub. Left: the playground and demo calls to action once those exist, and the animations (WEB-37, WEB-38).
+- [~] **WEB-07** `P1` Feature pages for each area (progression, economy, competition, community, integrations, administration), each with its own small live animation (WEB-40), a screenshot and a link to its guide. `[ran]` Done: an overview and one page per area from `src/lib/features.ts`, each with its capabilities, links to its guides, a static preview of the feature, a link to the next area, and its own social card. Left: the live animations (WEB-40) and real dashboard screenshots.
+- [x] **WEB-08** `P1` An honest comparison page against hosted APIs and other open-source engines, built from the table in this plan's assessment. Include where Gami.Fied is weaker. `[ran]` Done: a table against hosted APIs, loyalty engines, open-source libraries and building it yourself, plus a list of where Gami.Fied is weaker today.
+- [x] **WEB-09** `P2` Pricing page: Community is free forever; Cloud and Enterprise show "coming soon" with a waitlist until Phase 10 ships. State plainly that the engine is never cut down in Community (see CLOUD-01). `[ran]` Done: three plans and a FAQ. The waitlist button appears once `PUBLIC_WAITLIST_URL` is set, and links to GitHub until then.
+- [x] **WEB-10** `P2` Blog, plus a changelog page built from `CHANGELOG.md`, so each release is announced without copying text. `[ran]` Done: a Markdown or MDX blog with drafts, an RSS feed and a social card per post, the 1.1 release post, and a changelog page that reads `CHANGELOG.md` at build time.
+- [~] **WEB-11** `P2` Legal pages: privacy policy, terms for the demo and the site, and a plain explanation of the AGPL server and MIT SDK licences. `[code]` Done: privacy, terms and licences pages in plain language. Left: the owner reviews them (they are not legal advice), and a contact address is set with `PUBLIC_CONTACT_EMAIL`.
 
 ### 9.3 Docs
 

@@ -1,0 +1,24 @@
+---
+import { Coins, Plug, ShieldCheck, Trophy, TrendingUp, Users } from '@lucide/astro';
+import type { FeatureArea } from '../lib/features';
+
+interface Props {
+  slug: FeatureArea['slug'];
+  size?: number;
+  class?: string;
+}
+
+const icons = {
+  progression: TrendingUp,
+  economy: Coins,
+  competition: Trophy,
+  community: Users,
+  integrations: Plug,
+  administration: ShieldCheck,
+} as const;
+
+const { slug, size = 20, class: extra } = Astro.props;
+const Icon = icons[slug];
+---
+
+<Icon size={size} class={extra} aria-hidden="true" />

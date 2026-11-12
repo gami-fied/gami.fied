@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
@@ -7,6 +8,7 @@ import tailwindcss from '@tailwindcss/vite';
 // Set per deployment, so previews and forks need no code changes. See .env.example.
 const site = process.env.PUBLIC_SITE_URL || 'https://gami.fied.cc';
 const repository = 'https://github.com/gami-fied/gami.fied';
+const docsImage = new URL('/og/docs.png', site).href;
 
 export default defineConfig({
   site,
@@ -31,15 +33,21 @@ export default defineConfig({
         './src/styles/docs.css',
       ],
       head: [
-        { tag: 'meta', attrs: { property: 'og:image', content: new URL('/og/docs.png', site).href } },
+        { tag: 'meta', attrs: { property: 'og:image', content: docsImage } },
         { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
-        { tag: 'meta', attrs: { name: 'twitter:image', content: new URL('/og/docs.png', site).href } },
-        ...(process.env.PUBLIC_NOINDEX === 'true' ? [{ tag: /** @type {const} */ ('meta'), attrs: { name: 'robots', content: 'noindex, nofollow' } }] : []),
+        { tag: 'meta', attrs: { name: 'twitter:image', content: docsImage } },
+        ...(process.env.PUBLIC_NOINDEX === 'true'
+          ? [{ tag: /** @type {const} */ ('meta'), attrs: { name: 'robots', content: 'noindex, nofollow' } }]
+          : []),
       ],
       sidebar: [{ label: 'Start here', items: [{ label: 'Overview', slug: 'docs' }] }],
     }),
     react(),
+    // Blog posts can be written in MDX.
+    mdx(),
   ],
+  // Code samples on marketing pages use the same theme as the docs.
+  markdown: { shikiConfig: { theme: 'github-dark' } },
   vite: {
     plugins: [tailwindcss()],
   },
