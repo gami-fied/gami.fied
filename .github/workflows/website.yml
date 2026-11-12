@@ -47,6 +47,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Release tags, so docs for earlier versions are built (WEB-18).
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -84,6 +87,16 @@ jobs:
           pnpm --filter @gami/website preview --port 4321 > preview.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://localhost:4321/ > /dev/null && break; sleep 1; done
           pnpm --filter @gami/website check:lighthouse
+        env:
+          SITE_URL: http://localhost:4321
+          CHROME_PATH: /usr/bin/google-chrome
+
+      # Every animated page in Chrome, Firefox and WebKit, at desktop and phone sizes, with and without
+      # reduced motion (WEB-44). The preview from the step above is still running.
+      - name: Check motion in three browsers
+        run: |
+          pnpm --filter @gami/website exec playwright-core install --with-deps firefox webkit
+          pnpm --filter @gami/website check:motion-browsers
         env:
           SITE_URL: http://localhost:4321
           CHROME_PATH: /usr/bin/google-chrome

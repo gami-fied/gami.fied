@@ -12,7 +12,9 @@ async function handleProxy(
 
   const targetPath = `/api/${path.join('/')}`;
   const searchParams = request.nextUrl.search;
-  const destinationUrl = `${targetApiBase.replace(/\/$/, '')}${targetPath}${searchParams}`;
+  // Some hosts hand over an internal address as host:port, without a scheme.
+  const apiBase = /^https?:\/\//.test(targetApiBase) ? targetApiBase : `http://${targetApiBase}`;
+  const destinationUrl = `${apiBase.replace(/\/$/, '')}${targetPath}${searchParams}`;
 
   const headers = new Headers(request.headers);
   headers.delete('host');

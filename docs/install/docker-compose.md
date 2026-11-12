@@ -66,4 +66,4 @@ Create an account in the dashboard, then [become a platform admin](../platform-a
 - Go through the [production checklist](./production-checklist.md) before real players use it.
 - Learn how to [upgrade](./upgrading.md) when a new release comes out.
 
-To build the images from source instead, see [Installing from published images](../deployment-and-production.md#installing-from-published-images).
+To run it on Render, DigitalOcean, Coolify or Railway instead, see [One-click deploys](./one-click.md). To build the images from source, see [Installing from published images](../deployment-and-production.md#installing-from-published-images).

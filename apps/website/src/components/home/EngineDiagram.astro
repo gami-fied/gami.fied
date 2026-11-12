@@ -89,7 +89,8 @@
     data-engine-toggle
     class="absolute right-0 top-0 inline-flex items-center gap-1.5 border border-zinc-800 bg-zinc-950/80 px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100"
   >
-    <span aria-hidden="true">⏯</span>
+    <!-- An icon rather than an emoji, which browsers draw differently. -->
+    <svg aria-hidden="true" viewBox="0 0 12 12" width="10" height="10" fill="currentColor"><rect x="2" y="2" width="3" height="8"></rect><rect x="7" y="2" width="3" height="8"></rect></svg>
     <span data-label>Pause animation</span>
   </button>
 </figure>

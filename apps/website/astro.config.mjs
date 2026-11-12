@@ -5,7 +5,7 @@ import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
 import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
-import repoDocs from './src/integrations/repo-docs.mjs';
+import repoDocs, { olderDocVersions } from './src/integrations/repo-docs.mjs';
 
 // Set per deployment, so previews and forks need no code changes. See .env.example.
 const site = process.env.PUBLIC_SITE_URL || 'https://gami.fied.cc';
@@ -19,6 +19,9 @@ function motionFileName(chunk) {
   const name = chunk.name.replace(/[^\w.-]+/g, '_');
   return ids.some((id) => ANIMATION_MODULE.test(id.replace(/\\/g, '/'))) ? `_astro/motion-${name}.[hash].js` : `_astro/${name}.[hash].js`;
 }
+
+// Docs for earlier releases, read from their git tags (WEB-18).
+const olderVersions = olderDocVersions();
 
 const docsImage = new URL('/og/docs.png', site).href;
 
@@ -89,6 +92,7 @@ export default defineConfig({
           label: 'Install',
           items: [
             { label: 'Docker Compose', slug: 'docs/install/docker-compose' },
+            { label: 'One-click deploys', slug: 'docs/install/one-click' },
             { label: 'Reverse proxy and HTTPS', slug: 'docs/install/reverse-proxy' },
             { label: 'Upgrading', slug: 'docs/install/upgrading' },
             { label: 'Backups', slug: 'docs/backups' },
@@ -147,6 +151,15 @@ export default defineConfig({
             { label: 'Release checklist', slug: 'docs/release-checklist' },
           ],
         },
+        ...(olderVersions.length
+          ? [
+              {
+                label: 'Older versions',
+                collapsed: true,
+                items: olderVersions.map(({ version }) => ({ label: `Gami.Fied ${version}`, collapsed: true, items: [{ autogenerate: { directory: `docs/v${version}` } }] })),
+              },
+            ]
+          : []),
       ],
     }),
     react(),

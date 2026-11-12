@@ -25,6 +25,7 @@ import { socialRoutes } from './engagement/social.js';
 import { referralRoutes } from './engagement/referrals.js';
 import { connectorRoutes } from './connectors/index.js';
 import { environmentRoutes } from './environments/index.js';
+import { designRoutes } from './environments/design.js';
 import { pluginRoutes } from './plugins/index.js';
 import { adminControlRoutes } from './admin/controls/index.js';
 import { abuseRoutes } from './xp-policy/abuse.js';
@@ -270,6 +271,7 @@ export async function buildServer() {
   await fastify.register(referralRoutes);
   await fastify.register(connectorRoutes);
   await fastify.register(environmentRoutes);
+  await fastify.register(designRoutes);
   await fastify.register(pluginRoutes);
   await fastify.register(projectFeatureRoutes);
   registerPushProviders();

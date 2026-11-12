@@ -5,7 +5,7 @@
  * events so boards and toasts move, and a way to install Gami.Fied for real.
  */
 import { useEffect, useState } from 'react';
-import { Clock, Download, Radio } from 'lucide-react';
+import { Clock, Download, FileDown, Radio } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 import { useDashboard } from '../features/context/dashboard-context';
 
@@ -17,7 +17,7 @@ function timeLeft(expiresAt: string, now: number): string {
 }
 
 export function DemoBanner() {
-  const { selectedOrg } = useDashboard();
+  const { selectedOrg, selectedProject } = useDashboard();
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState<{ kind: 'idle' | 'sending' | 'sent' | 'error'; text?: string }>({ kind: 'idle' });
 
@@ -66,6 +66,17 @@ export function DemoBanner() {
             <Radio className="h-3.5 w-3.5" aria-hidden="true" />
             {state.kind === 'sending' ? 'Sending…' : 'Send traffic'}
           </button>
+          {selectedProject && (
+            // The demo's design as a file, to import into your own install (WEB-30).
+            <a
+              href={`/api/projects/${selectedProject.id}/design`}
+              download
+              className="inline-flex items-center gap-1.5 border border-brand-700/60 px-2.5 py-1 font-semibold text-brand-100 transition-colors hover:border-brand-500"
+            >
+              <FileDown className="h-3.5 w-3.5" aria-hidden="true" />
+              Keep this setup
+            </a>
+          )}
           <a
             href="https://gami.fied.cc/docs/install/docker-compose/"
             target="_blank"

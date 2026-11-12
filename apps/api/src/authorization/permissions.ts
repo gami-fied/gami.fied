@@ -78,8 +78,8 @@ const RESOURCE_ALIASES: Record<string, ScopeResource> = {
 };
 
 /** Credentials and team access. A leaked key must never be able to widen its own reach. */
-// Connectors hold shared secrets, and promotion copies a whole design between projects.
-const SESSION_ONLY_RESOURCES = new Set(['api-keys', 'members', 'connectors', 'promotion']);
+// Connectors hold shared secrets, and promotion and design files copy a whole design.
+const SESSION_ONLY_RESOURCES = new Set(['api-keys', 'members', 'connectors', 'promotion', 'design']);
 
 /** Reads that expose operational data, so plain members cannot see them. */
 const ADMIN_READ_RESOURCES = new Set(['audit-logs', 'email-deliveries', 'api-keys', 'members', 'campaigns']);

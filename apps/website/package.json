@@ -20,7 +20,8 @@
     "capture": "node scripts/capture.mjs",
     "check:motion": "node scripts/check-motion-budget.mjs",
     "check:lighthouse": "node scripts/check-lighthouse.mjs",
-    "record:scenes": "node scripts/record-scenes.mjs"
+    "record:scenes": "node scripts/record-scenes.mjs",
+    "check:motion-browsers": "node scripts/check-motion-browsers.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.9",

@@ -35,6 +35,8 @@ Visitors get a real account with an address that cannot receive mail (`@demo.inv
 
 The banner across the top of a demo shows when it will be deleted, and has a **Send traffic** button that sends a burst of lessons from random players, so leaderboards, the feed and toasts move. It can be pressed every few seconds.
 
+**Keep this setup** downloads the demo's design (its rules, badges, streak, store and league) as a [design file](./connectors-environments-and-plugins.md#design-files), which an install of your own can import on its **Promote changes** page.
+
 ## Seeded data
 
 The players and their lessons are generated for each demo, so no two look the same. Their events are queued like any others, so the worker works out XP, levels, badges, gems and league places with the real engine. This takes a few seconds after the demo starts, and the dashboard fills in as it goes. Streaks are written directly, because the worker handles events in parallel.

@@ -14,6 +14,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { ArrowRight, GitCompareArrows } from 'lucide-react';
+import { DesignFilesCard } from './design-files-card';
 
 interface Item {
   kind: string;
@@ -129,6 +130,9 @@ export function PromotionView() {
           ) : undefined
         }
       />
+
+      {/* Works with or without a promotion target, so it comes first. */}
+      {selectedProject && <DesignFilesCard projectId={selectedProject.id} projectName={selectedProject.name} />}
 
       {error && (
         <div className="border border-warning-800/60 bg-warning-950/30 p-4 text-sm text-warning-200">
