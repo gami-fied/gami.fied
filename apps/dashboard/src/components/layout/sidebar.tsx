@@ -3,7 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Gamepad2, LogOut, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut, ShieldCheck } from 'lucide-react';
+import { LogoMark } from '@gami/ui';
 import { useDashboard } from '../features/context/dashboard-context';
 import { OrganizationSwitcher } from './organization-switcher';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -40,9 +41,7 @@ export function Sidebar({
     >
       <div className="h-14 flex items-center justify-between px-4 border-b border-zinc-800/60 shrink-0">
         <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-3 overflow-hidden">
-          <div className="w-7 h-7 bg-brand-500 flex items-center justify-center text-on-accent shrink-0">
-            <Gamepad2 className="w-4 h-4" />
-          </div>
+          <LogoMark size={28} className="shrink-0 border border-zinc-800" />
           {!isCollapsed && (
             <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap">
               Gami.Fied

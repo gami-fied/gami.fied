@@ -3,15 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
-  "description": "Design tokens, interface pieces and the visual rule builder shared by the Gami.Fied dashboard and website.",
+  "description": "Brand mark, design tokens, interface pieces and the visual rule builder shared by the Gami.Fied dashboard and website.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./rules": "./src/rules/index.ts",
-    "./tokens.css": "./tokens.css"
+    "./tokens.css": "./tokens.css",
+    "./mark.svg": "./brand/mark.svg"
   },
   "files": [
     "src",
+    "brand",
     "tokens.css"
   ],
   "scripts": {

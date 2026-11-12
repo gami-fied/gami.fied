@@ -5,7 +5,8 @@ import { useDashboard } from '../context/dashboard-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building2, FolderGit2, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Building2, FolderGit2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { LogoMark } from '@gami/ui';
 
 export function OnboardingFlow() {
   const { organizations, selectedOrg, createOrganization, createProject } = useDashboard();
@@ -64,9 +65,7 @@ export function OnboardingFlow() {
       <div key={step} className="w-full max-w-lg animate-rise">
         <Card className="bg-zinc-900/90 border-zinc-800 shadow-2xl overflow-hidden">
           <CardHeader className="text-center pb-2 pt-8">
-            <div className="mx-auto w-12 h-12 rounded-none bg-brand-500 flex items-center justify-center text-on-accent mb-3">
-              <Sparkles className="w-6 h-6" />
-            </div>
+            <LogoMark size={48} className="mx-auto mb-3 block border border-zinc-800" />
             <CardTitle className="text-xl font-bold tracking-tight text-zinc-100">
               {step === 'create-org' ? 'Welcome to Gami.Fied' : 'Create Your First Project'}
             </CardTitle>

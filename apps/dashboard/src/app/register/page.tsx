@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Sparkles, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
+import { LogoMark } from '@gami/ui';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -69,9 +70,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Logo Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-none bg-brand-500 items-center justify-center text-on-accent">
-            <Sparkles className="w-6 h-6" />
-          </div>
+          <LogoMark size={48} className="mx-auto block border border-zinc-800" />
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Create your account</h1>
           <p className="text-xs text-zinc-400">Set up your gamification control center</p>
         </div>

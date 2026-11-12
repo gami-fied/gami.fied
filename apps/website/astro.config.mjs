@@ -23,7 +23,8 @@ export default defineConfig({
     starlight({
       title: 'Gami.Fied',
       description: 'Docs for Gami.Fied, the self-hosted, open-source gamification engine.',
-      logo: { src: './src/assets/mark.png', alt: '' },
+      // The same mark as the site and the dashboard, from packages/ui.
+      logo: { src: '../../packages/ui/brand/mark.svg', alt: '' },
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: repository }],
       // Each page from docs/ sets its own edit link to its source file.

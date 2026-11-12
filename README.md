@@ -1,3 +1,5 @@
+<p><img src="packages/ui/brand/mark.svg" alt="" width="64" height="64"></p>
+
 # Gami.Fied Community Edition
 
 [![Release](https://img.shields.io/github/v/release/gami-fied/gami.fied)](https://github.com/gami-fied/gami.fied/releases)

@@ -3,3 +3,4 @@ export * from './button';
 export * from './input';
 export * from './dropdown';
 export * from './checkbox';
+export * from './logo';
