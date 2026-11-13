@@ -6,8 +6,8 @@
 name: gami-production
 
 x-api-environment: &app-environment
-  DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
-  REDIS_HOST: redis
+  DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@gami-postgres:5432/${POSTGRES_DB:-gami_prod}
+  REDIS_HOST: gami-redis
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${REDIS_PASSWORD}
   NODE_ENV: production
@@ -49,7 +49,10 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      - gami-prod-network
+      gami-prod-network:
+        # A name no other app uses. On a host such as Dokploy, the dashboard is also on a
+        # shared network where another app's container may answer to plain 'postgres'.
+        aliases: [gami-postgres]
 
   redis:
     image: redis:7-alpine
@@ -67,14 +70,17 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      - gami-prod-network
+      gami-prod-network:
+        # A name no other app uses. On a host such as Dokploy, the dashboard is also on a
+        # shared network where another app's container may answer to plain 'redis'.
+        aliases: [gami-redis]
 
   migration:
     image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-api:${GAMI_VERSION:-latest}
     container_name: gami-migration-prod
     command: ['node', 'packages/database/dist/migrate.js']
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gami_prod}
+      DATABASE_URL: postgres://${POSTGRES_USER:-gami}:${POSTGRES_PASSWORD}@gami-postgres:5432/${POSTGRES_DB:-gami_prod}
       NODE_ENV: production
     depends_on:
       postgres:
@@ -119,7 +125,10 @@ services:
       retries: 6
       start_period: 15s
     networks:
-      - gami-prod-network
+      gami-prod-network:
+        # A name no other app uses. On a host such as Dokploy, the dashboard is also on a
+        # shared network where another app's container may answer to plain 'api'.
+        aliases: [gami-api]
 
   worker:
     image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-worker:${GAMI_VERSION:-latest}
@@ -146,7 +155,7 @@ services:
       - '${DASHBOARD_PORT:-3000}:3000'
     environment:
       PORT: 3000
-      API_URL: http://api:3001
+      API_URL: http://gami-api:3001
       NODE_ENV: production
     depends_on:
       api:

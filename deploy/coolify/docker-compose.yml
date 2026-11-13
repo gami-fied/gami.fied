@@ -7,8 +7,8 @@
 # restored without it.
 
 x-app-environment: &app-environment
-  DATABASE_URL: postgres://gami:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/gami
-  REDIS_HOST: redis
+  DATABASE_URL: postgres://gami:${SERVICE_PASSWORD_POSTGRES}@gami-postgres:5432/gami
+  REDIS_HOST: gami-redis
   REDIS_PORT: 6379
   REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
   NODE_ENV: production
@@ -32,6 +32,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      default:
+        # A name no other app uses. Coolify also puts services on a shared network,
+        # where another app's container may answer to plain 'postgres'.
+        aliases: [gami-postgres]
 
   redis:
     image: redis:7-alpine
@@ -45,12 +50,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      default:
+        # A name no other app uses. Coolify also puts services on a shared network,
+        # where another app's container may answer to plain 'redis'.
+        aliases: [gami-redis]
 
   migration:
     image: ghcr.io/gami-fied/gami-api:${GAMI_VERSION:-latest}
     command: ['node', 'packages/database/dist/migrate.js']
     environment:
-      DATABASE_URL: postgres://gami:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/gami
+      DATABASE_URL: postgres://gami:${SERVICE_PASSWORD_POSTGRES}@gami-postgres:5432/gami
       NODE_ENV: production
     depends_on:
       postgres:
@@ -79,6 +89,11 @@ services:
       timeout: 5s
       retries: 6
       start_period: 15s
+    networks:
+      default:
+        # A name no other app uses. Coolify also puts services on a shared network,
+        # where another app's container may answer to plain 'api'.
+        aliases: [gami-api]
 
   worker:
     image: ghcr.io/gami-fied/gami-worker:${GAMI_VERSION:-latest}
@@ -97,7 +112,7 @@ services:
       # Coolify routes the generated domain to port 3000 here.
       SERVICE_FQDN_DASHBOARD_3000: ''
       PORT: 3000
-      API_URL: http://api:3001
+      API_URL: http://gami-api:3001
       NODE_ENV: production
     depends_on:
       api:
