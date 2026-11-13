@@ -5,12 +5,13 @@
  * Scrolling scrubs the timeline, so the reader sets the pace. On phones and with reduced motion
  * nothing pins: the steps stay stacked, with the standard reveal.
  */
-import { scene } from '../lifecycle';
+import { scene, whenIdle } from '../lifecycle';
 import { loadGsap } from '../gsap';
 
 const STORY = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)';
 
 scene('[data-how-it-works]', async (root, { signal }) => {
+  if (!(await whenIdle(signal))) return;
   const gsap = await loadGsap('ScrollTrigger');
   if (signal.aborted) return;
   const steps = [...root.querySelectorAll<HTMLElement>('.how-step')];

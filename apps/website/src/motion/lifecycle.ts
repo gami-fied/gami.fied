@@ -81,6 +81,21 @@ export function scene(selector: string, start: SceneStart): void {
   if (document.readyState !== 'loading') startAll();
 }
 
+/**
+ * Resolves once the page has loaded and the browser has a quiet moment, so a scene's setup never
+ * competes with the page's first paint and first input. Resolves false if the scene was stopped
+ * meanwhile.
+ */
+export function whenIdle(signal: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    const run = () => resolve(!signal.aborted);
+    // Safari has no requestIdleCallback.
+    const wait = () => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 300));
+    if (document.readyState === 'complete') wait();
+    else window.addEventListener('load', wait, { once: true });
+  });
+}
+
 /** Runs `onVisible` while the element is on screen and the tab is visible, and `onHidden` otherwise. */
 export function whileVisible(element: Element, signal: AbortSignal, onVisible: () => void, onHidden: () => void): void {
   let inView = false;

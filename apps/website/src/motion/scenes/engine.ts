@@ -5,7 +5,7 @@
  * screen, in a background tab or when the reader presses pause, and with reduced motion it stays
  * the still, labelled diagram it starts as.
  */
-import { scene, whileVisible } from '../lifecycle';
+import { scene, whenIdle, whileVisible } from '../lifecycle';
 import { loadGsap } from '../gsap';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -17,6 +17,8 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
     return;
   }
 
+  // The still diagram is already there, so the animation can wait for the page to settle.
+  if (!(await whenIdle(signal))) return;
   const gsap = await loadGsap();
   if (signal.aborted) return;
   const svg = figure.querySelector('svg')!;
@@ -41,9 +43,10 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
     return dot;
   });
 
+  // The still diagram's dot positions, put back when the scene stops.
+  const still = dots.map((dot) => [dot.getAttribute('cx'), dot.getAttribute('cy')] as const);
+
   const ctx = gsap.context(() => {
-    // Dots follow the paths' own coordinates, so they start from the origin.
-    gsap.set([...dots, ...outDots], { attr: { cx: 0, cy: 0 } });
     gsap.set(xpFill, { scaleX: 0.25, transformOrigin: '0% 50%' });
     gsap.set(badge, { scale: 0.6, opacity: 0, transformOrigin: '50% 50%' });
     gsap.set(dots, { opacity: 0 });
@@ -61,8 +64,10 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
           duration,
           ease: 'power1.inOut',
           onUpdate: () => {
+            // Set directly, as this runs on every frame.
             const point = path.getPointAtLength(progress.p * length);
-            gsap.set(dot, { x: point.x, y: point.y });
+            dot.setAttribute('cx', String(point.x));
+            dot.setAttribute('cy', String(point.y));
           },
         },
         at
@@ -123,6 +128,10 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
 
   return () => {
     ctx.revert();
+    dots.forEach((dot, i) => {
+      dot.setAttribute('cx', still[i]![0] ?? '0');
+      dot.setAttribute('cy', still[i]![1] ?? '0');
+    });
     outDots.forEach((dot) => dot.remove());
     rank.textContent = '#5 → #3';
     button?.setAttribute('hidden', '');
