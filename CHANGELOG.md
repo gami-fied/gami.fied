@@ -4,6 +4,12 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 [Semantic Versioning](https://semver.org), and the public API is the `/v1` routes described in
 [`docs/openapi.json`](docs/openapi.json).
 
+## [Unreleased]
+
+### Fixed
+
+- On hosts that also put the dashboard on a shared network, such as Dokploy and Coolify, the dashboard could reach another app's container called `api` instead of Gami.Fied's, and every API call failed. The compose files now give the API, Postgres and Redis names no other app uses (`gami-api`, `gami-postgres`, `gami-redis`), and connect through those.
+
 ## [1.2.0] - 2026-11-13
 
 Gami.Fied now has a home at [gami.fied.cc](https://gami.fied.cc): a website with the docs, an API reference, an in-browser playground and a live demo you can start without signing up. The product gains design files and a demo mode for running that demo yourself. Everything is additive: `/v1` keeps working as it did, and nothing has to change in your app.
