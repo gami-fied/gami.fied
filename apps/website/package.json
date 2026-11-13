@@ -60,6 +60,7 @@
     "lighthouse": "^13.6.0",
     "playwright-core": "^1.65.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "wrangler": "^4.160.1"
   }
 }

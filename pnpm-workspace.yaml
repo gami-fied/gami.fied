@@ -14,6 +14,7 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: true
   vue-demi: false
+  workerd: true
 minimumReleaseAgeExclude:
   - '@better-auth/core@1.7.18'
   - '@better-auth/drizzle-adapter@1.7.18'

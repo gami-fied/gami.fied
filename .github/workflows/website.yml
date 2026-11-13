@@ -114,10 +114,16 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Wrangler is a dev dependency of the website, so the action uses that one instead of
+          # trying to add its own to the workspace root, which pnpm refuses.
+          packageManager: pnpm
+          workingDirectory: apps/website
+          # The branch name decides production or preview: the project's production branch
+          # (master) publishes the site, and anything else gets a preview address.
           command: >-
-            pages deploy apps/website/dist
+            pages deploy dist
             --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'gami-fied-website' }}
-            --branch=${{ env.IS_PRODUCTION == 'true' && 'main' || github.head_ref || github.ref_name }}
+            --branch=${{ github.head_ref || github.ref_name }}
 
       - name: Show the address
         if: steps.deploy.outcome == 'success'
