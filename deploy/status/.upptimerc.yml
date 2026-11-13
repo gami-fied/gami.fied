@@ -1,0 +1,39 @@
+# Status page for gami.fied.cc, run by Upptime (https://upptime.js.org) on GitHub Actions.
+# Copy this file into a repository made from the Upptime template, as described in README.md.
+owner: gami-fied
+repo: status
+
+sites:
+  - name: Website
+    url: https://gami.fied.cc
+  - name: Docs
+    url: https://gami.fied.cc/docs/
+  - name: Docs search
+    url: https://gami.fied.cc/pagefind/pagefind.js
+  - name: Live demo
+    url: https://demo.gami.fied.cc/demo
+  - name: Live demo API
+    url: https://demo.gami.fied.cc/api/demo
+    # The demo is up only when it says demos are on.
+    expectedStatusCodes:
+      - 200
+    __dangerous__body_down: '"enabled":false'
+  # Uncomment once the Cloud edition exists (Phase 10).
+  # - name: Cloud API
+  #   url: https://api.gami.fied.cloud/health
+
+status-website:
+  cname: status.gami.fied.cc
+  name: Gami.Fied status
+  introTitle: "Is Gami.Fied up?"
+  introMessage: The website, docs and live demo. Self-hosted installs run on your own servers and are not shown here.
+  navbar:
+    - title: Status
+      href: /
+    - title: Website
+      href: https://gami.fied.cc
+    - title: GitHub
+      href: https://github.com/gami-fied/gami.fied
+
+# An issue is opened in the status repository for each outage, and closed when it recovers.
+assignees: []

@@ -1,5 +1,3 @@
-import { pathToFileURL } from 'url';
-import path from 'path';
 import type { EventData } from './types.js';
 
 /**
@@ -7,7 +5,11 @@ import type { EventData } from './types.js';
  *
  * A plugin is a module whose default export comes from `definePlugin`. List the modules in
  * `GAMI_PLUGINS` (comma separated package names or file paths), and both the API (which checks
- * rules when they are saved) and the worker (which runs them) load it at start-up.
+ * rules when they are saved) and the worker (which runs them) load it at start-up with
+ * `loadPlugins` from `@gami/rules/node`.
+ *
+ * Everything in this file runs in a browser too. Loading plugins from disk does not, so it lives in
+ * `node.ts`.
  */
 
 export interface PluginActionContext {
@@ -80,25 +82,4 @@ export function listPlugins() {
 export function clearPlugins(): void {
   actions.clear();
   loaded.length = 0;
-}
-
-/**
- * Loads every plugin named in `GAMI_PLUGINS`. A plugin that fails to load stops start-up, because
- * rules that use it would otherwise fail quietly later.
- */
-export async function loadPlugins(spec: string | undefined = process.env['GAMI_PLUGINS']): Promise<number> {
-  const names = (spec ?? '').split(',').map((item) => item.trim()).filter(Boolean);
-  for (const name of names) {
-    const target = name.startsWith('.') || path.isAbsolute(name) ? pathToFileURL(path.resolve(name)).href : name;
-    let mod: { default?: GamiPlugin } & Partial<GamiPlugin>;
-    try {
-      mod = (await import(target)) as typeof mod;
-    } catch (err) {
-      throw new Error(`Could not load the plugin "${name}": ${(err as Error).message}`, { cause: err });
-    }
-    const plugin = (mod.default ?? mod) as GamiPlugin;
-    if (loaded.some((item) => item.name === plugin.name)) continue;
-    registerPlugin(plugin);
-  }
-  return names.length;
 }

@@ -4,12 +4,12 @@ This file tracks everything that needs fixing, improving or building. Tick items
 
 - **Audit date:** 2026-11-05
 - **Audited commit:** `5749e78` on `master`
-- **Current version:** `1.1.0`, released on 2026-11-08
+- **Current version:** `1.2.0`, released on 2026-11-13
 
 ## How to use this file
 
 - `[ ]` not started, `[~]` in progress, `[x]` done, `[-]` dropped (add a one-line reason).
-- Work the phases in order. Phases 0 to 2 block any public 1.0. Phases 3 to 5 can overlap. Phases 6 to 8 follow.
+- Work the phases in order. Phases 0 to 2 block any public 1.0. Phases 3 to 5 can overlap. Phases 6 to 8 follow. Phase 9 can start now; Phase 10 waits for DEC-5 and DEC-6.
 - Add the PR link after an item when it is done, for example `[x] **SEC-01** ... (#123)`.
 - New bugs go in the matching sub-phase with the next free ID.
 
@@ -29,7 +29,9 @@ This file tracks everything that needs fixing, improving or building. Tick items
 | 5 | Dashboard UI and UX | 51 / 57 | In progress, 6 partly done |
 | 6 | Scale and operations | 10 / 21 | In progress, 7 partly done |
 | 7 | New product features | 19 / 26 | In progress, 3 partly done |
-| 8 | Launch and community | 0 / 11 | Not started |
+| 8 | Launch and community | 0 / 11 | Not started, 4 moved to Phases 9 and 10 |
+| 9 | Website, docs and sandbox | 33 / 44 | In progress, 10 partly done |
+| 10 | Cloud edition (open core) | 0 / 24 | Not started |
 
 ## Decisions needed from the maintainer
 
@@ -39,7 +41,11 @@ These change the work in later phases, so settle them early.
 - [x] **DEC-2: Product name.** The repo mixes "Gami", "Gami.Fied", "Gami Engine" and "gami.fied". Pick one and do a trademark check. Decided: **Gami.Fied**, on `gami.fied.cc`. Left: replace the other spellings.
 - [ ] **DEC-3: Default branch.** Local work is on `master`, the main branch is `main`, and both exist on `origin`. Keep one.
 - [ ] **DEC-4: Target customer.** Recommendation: developers of consumer, edtech, fitness and community apps who want to own their data. This decides whether streaks, rewards and React components come before enterprise work such as SSO.
-- [ ] **DEC-5: Business model.** Community only, open core, or a hosted cloud. The `edition: 'community'` field implies more editions are planned.
+- [ ] **DEC-5: Business model.** Community only, open core, or a hosted cloud. The `edition: 'community'` field implies more editions are planned. Recommendation: **open core**. A paid Cloud and Enterprise edition sells running it, scale and enterprise features, while the Community engine stays complete (Phase 10).
+- [ ] **DEC-6: Contributor licence agreement.** Without one, outside contributions are AGPL-only, which blocks using them in Cloud or `ee/` code. Recommendation: adopt a CLA (for example through CLA Assistant) before accepting outside pull requests.
+- [ ] **DEC-7: Enterprise licence.** How `ee/` is licensed: a commercial licence with source available, or the Business Source License, which turns into open source after a few years. Recommendation: a commercial source-available licence, as GitLab and PostHog use.
+- [x] **DEC-8: Website stack and docs tool.** Decided: **Astro** with the **Starlight** docs theme for `apps/website`, because it sends almost no JavaScript on content pages, with React islands for the playground and demo, Pagefind for search and Scalar for the API reference. Animation uses GSAP, Motion and Astro's View Transitions (9.7). The dashboard stays on Next.js.
+- [ ] **DEC-9: Cloud tenancy and pricing unit.** Recommendation: shared multi-tenant hosting with dedicated instances for Enterprise, priced by events per month with a free tier. This maps onto the existing per-organization event limit.
 
 ---
 
@@ -515,13 +521,257 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 
 ### 8.2 Go to market
 
-- [ ] **LAUNCH-05** `P1` Build a docs site with search and a live API reference.
-- [ ] **LAUNCH-06** `P1` Publish a hosted demo with sample data, and record a 2-minute video.
-- [ ] **LAUNCH-07** `P1` Write a landing page positioned as a self-hosted alternative to hosted gamification APIs, with an honest comparison table.
+- [-] **LAUNCH-05** `P1` Build a docs site with search and a live API reference. Moved to WEB-12 to WEB-19.
+- [-] **LAUNCH-06** `P1` Publish a hosted demo with sample data, and record a 2-minute video. Moved to WEB-25 to WEB-31.
+- [-] **LAUNCH-07** `P1` Write a landing page positioned as a self-hosted alternative to hosted gamification APIs, with an honest comparison table. Moved to WEB-06 to WEB-08.
 - [ ] **LAUNCH-08** `P2` Build one real example app in `examples/`, such as a learning app with streaks.
 - [ ] **LAUNCH-09** `P2` Publish guides on gamification design, including when not to use it.
 - [ ] **LAUNCH-10** `P2` Launch on GitHub, Hacker News, Product Hunt, and self-hosting communities once the demo is solid.
-- [ ] **LAUNCH-11** `P3` Validate a hosted cloud offering if DEC-5 points that way.
+- [-] **LAUNCH-11** `P3` Validate a hosted cloud offering if DEC-5 points that way. Moved to Phase 10.
+
+---
+
+## Phase 9: Website, docs and sandbox
+
+**Goal:** Anyone can understand Gami.Fied, try it without an account, and install it, from one fast, polished site at `gami.fied.cc`.
+
+**Stack (DEC-8, decided):** [Astro](https://astro.build) with the [Starlight](https://starlight.astro.build) docs theme, in a new `apps/website` in this repository. Astro sends plain HTML and CSS by default and adds JavaScript only to the parts of a page that need it, which suits a content site far better than the dashboard's Next.js. Interactive parts are React "islands", so they can use `packages/rules` and reuse dashboard components. Animation uses GSAP, Motion and Astro's View Transitions, chosen per element in 9.7.
+
+```text
+apps/website/
+├─ astro.config.mjs            # Starlight, React, sitemap, View Transitions
+├─ src/
+│  ├─ pages/
+│  │  ├─ index.astro           # home
+│  │  ├─ features/[slug].astro # one page per feature area
+│  │  ├─ compare.astro
+│  │  ├─ pricing.astro
+│  │  ├─ blog/[...slug].astro
+│  │  ├─ changelog.astro       # built from CHANGELOG.md
+│  │  ├─ playground.astro      # hosts the playground island
+│  │  ├─ demo.astro            # starts a live demo
+│  │  └─ 404.astro
+│  ├─ content/
+│  │  ├─ config.ts             # docs (the repository's docs/ folder) and blog collections
+│  │  └─ blog/                 # posts in MDX
+│  ├─ components/              # static .astro components: header, footer, cards, tables
+│  ├─ islands/                 # React: Playground, DemoLauncher, PricingToggle, CodeTabs
+│  ├─ motion/
+│  │  ├─ tokens.ts             # durations, easings, distances, shared by CSS, GSAP and Motion
+│  │  ├─ lifecycle.ts          # start and clean up animations around page transitions
+│  │  ├─ reveal.ts             # the standard scroll reveal (Motion)
+│  │  └─ scenes/               # GSAP scenes: hero engine, how it works, feature demos
+│  ├─ layouts/
+│  └─ styles/                  # Tailwind and the shared design tokens
+└─ public/                     # fonts, Open Graph images, static media
+```
+
+The docs live at `/docs` through Starlight, reading the repository's own `docs/` folder, so `docs/` stays the only source and `pnpm docs:check` keeps covering it.
+
+**Hosting:** the site is static and can sit on any CDN. The live demo is a separate, isolated Gami.Fied instance at `demo.gami.fied.cc` that never holds customer data.
+
+### 9.1 Foundation
+
+- [x] **WEB-01** `P1` Create `apps/website` with Astro, the Starlight, React, Tailwind and sitemap integrations, and View Transitions, wired into Turbo, lint, typecheck and CI. The build is a static export; only the demo start uses a server endpoint, or calls the demo instance directly. `[ran]` Done: Astro 7 with Starlight, React, Tailwind 4 and View Transitions, installed through the CLI at their latest versions, building statically and covered by the root lint, typecheck and build. The sitemap comes from Starlight.
+- [x] **WEB-02** `P1` Share the brand between the dashboard and the website: move colours, type and spacing into design tokens in `packages/ui` that both Tailwind setups read, so the two look like one product. Components shared with the dashboard are used as React islands. `[ran]` Done: `@gami/ui/tokens.css` holds the colours and fonts, and both the dashboard and the website import it. Starlight's accent and greys are mapped onto the same tokens.
+- [~] **WEB-03** `P1` Set up hosting and domains: `gami.fied.cc` for the site, `demo.gami.fied.cc` for the live demo, HTTPS, and a preview deployment for every pull request. `[code]` Done: `.github/workflows/website.yml` builds every change, deploys to Cloudflare Pages once the secrets are set, keeps previews out of search, and links each pull request's preview. Left: create the Cloudflare Pages project, add the secrets, and point `gami.fied.cc` at it.
+- [x] **WEB-04** `P2` SEO basics: titles and descriptions per page, Open Graph images generated at build time, `sitemap.xml`, `robots.txt`, and canonical links for versioned docs. `[ran]` Done: titles, descriptions, canonical links and social cards on every page, Open Graph images drawn at build time in the brand font, `sitemap-index.xml` and `robots.txt`, with previews set to noindex.
+- [~] **WEB-05** `P2` Privacy-friendly analytics without cookies (for example Plausible or Umami, self-hosted), so the site needs no consent banner. Track installs started, playground runs and demo starts. `[code]` Done: Plausible or Umami, loaded only when configured and never on previews, with `data-track` click counting and the event names in one place. Left: run the analytics instance and set its variables, `playground_run` is sent for each event sent in the playground, and `demo_started` when a "Try the dashboard" button is clicked.
+
+### 9.2 Marketing pages
+
+- [x] **WEB-06** `P1` Home page: the one-line pitch ("the self-hosted, open-source gamification engine"), the animated engine diagram (WEB-37), "how it works" (WEB-38), a five-line code sample, and calls to action for the playground, the demo and installing. `[ran]` Done: the pitch, a static engine diagram and three-step "how it works" (each with hooks for their animations), Node.js, cURL and React code tabs, why self-hosted, the install commands from the latest release, and calls to action for the playground, the docs, installing and GitHub. A "Try the dashboard" button appears when `PUBLIC_DEMO_URL` is set, and the diagram and "how it works" are animated (WEB-37, WEB-38).
+- [x] **WEB-07** `P1` Feature pages for each area (progression, economy, competition, community, integrations, administration), each with its own small live animation (WEB-40), a screenshot and a link to its guide. `[ran]` Done: an overview and one page per area from `src/lib/features.ts`, each with its capabilities, links to its guides, a static preview of the feature, a dashboard screenshot from the live demo (WEB-31), a live demo of the feature (WEB-40), a link to the next area, and its own social card.
+- [x] **WEB-08** `P1` An honest comparison page against hosted APIs and other open-source engines, built from the table in this plan's assessment. Include where Gami.Fied is weaker. `[ran]` Done: a table against hosted APIs, loyalty engines, open-source libraries and building it yourself, plus a list of where Gami.Fied is weaker today.
+- [x] **WEB-09** `P2` Pricing page: Community is free forever; Cloud and Enterprise show "coming soon" with a waitlist until Phase 10 ships. State plainly that the engine is never cut down in Community (see CLOUD-01). `[ran]` Done: three plans and a FAQ. The waitlist button appears once `PUBLIC_WAITLIST_URL` is set, and links to GitHub until then.
+- [x] **WEB-10** `P2` Blog, plus a changelog page built from `CHANGELOG.md`, so each release is announced without copying text. `[ran]` Done: a Markdown or MDX blog with drafts, an RSS feed and a social card per post, the 1.1 release post, and a changelog page that reads `CHANGELOG.md` at build time.
+- [~] **WEB-11** `P2` Legal pages: privacy policy, terms for the demo and the site, and a plain explanation of the AGPL server and MIT SDK licences. `[code]` Done: privacy, terms and licences pages in plain language. Left: the owner reviews them (they are not legal advice), and a contact address is set with `PUBLIC_CONTACT_EMAIL`.
+
+### 9.3 Docs
+
+- [x] **WEB-12** `P1` Serve the repository's `docs/` folder through Starlight at `/docs`, with a sidebar grouped by task (install, concepts, guides, reference, operations), "edit this page" links, and headings that can be linked to. `[ran]` Done: `src/integrations/repo-docs.mjs` copies `docs/` in at build time and on every change in development, taking each title from the first heading and the description from the first paragraph, pointing links between docs at their pages, turning GitHub callouts into asides, and linking "edit this page" to the source file. `CHANGELOG.md` gets the same link rewriting.
+- [x] **WEB-13** `P1` Search across the docs with Starlight's built-in Pagefind, which is built at compile time and needs no search service. `[ran]` Done: every docs page and API endpoint page is indexed.
+- [~] **WEB-14** `P1` API reference rendered from `docs/openapi.json` (for example Scalar, through its Starlight integration), with a "try it" panel that calls the demo instance with a demo key. `[ran]` Done: one searchable page per endpoint at `/docs/api/` (starlight-openapi), and a Scalar explorer at `/docs/api-explorer/` with a "try it" panel, served from the site itself with telemetry off. Left: set `PUBLIC_DEMO_API_URL` and `PUBLIC_DEMO_API_KEY` once the demo instance exists (WEB-25), and add the site to its `TRUSTED_ORIGINS`.
+- [x] **WEB-15** `P1` Installation guides as their own section: Docker Compose (the release files), upgrading, reverse proxies, backups, and a one-page "production checklist". Link each to the matching GitHub release. `[ran]` Done: `docs/install/` has Docker Compose, upgrading (with going back), reverse proxy with Caddy and nginx, and a production checklist, next to the existing backups guide. The guides link to the latest release; WEB-18 pins them per version.
+- [~] **WEB-16** `P2` One-click deploy guides for common self-hosting platforms (for example Coolify, Railway, Render, DigitalOcean), each tested on a real account before it is published. `[code]` Done: `render.yaml` (a Render Blueprint), `.do/deploy.template.yaml` (a DigitalOcean App Platform spec), `deploy/coolify/docker-compose.yml` (using Coolify's generated secrets and domain) and Railway steps, with a guide in `docs/install/one-click.md` that says plainly they are untested. The dashboard is the only public service on each, and it now accepts an API address without `http://`. Left: deploy each on a real account, fix what that finds, then remove the warning and publish a Railway template.
+- [ ] **WEB-17** `P2` SDK and React component docs with live examples, generated where possible from the SDK's types. Note: the hand-written SDK and React guides are served. TypeDoc 0.28 fails with minimatch 11, which the workspace pins for a security fix, so a generated reference waits for a TypeDoc release that supports it. Live examples come with the playground (9.4).
+- [x] **WEB-18** `P2` Versioned docs: the latest release by default, with older versions kept at `/docs/v1.0/...`, built from each release tag. `[ran]` Done: the docs sync step reads the newest stable tag of each earlier minor version from git (1.0 from `v1.0.0` now) and builds it at `/docs/v1.0/`, with its links kept inside that version, a banner pointing at the latest docs, no edit link, and no search entries. The sidebar lists them under "Older versions", and the website workflow fetches tags so CI builds them too.
+- [x] **WEB-19** `P2` A link checker in CI for the built site, covering internal links and anchors. `[ran]` Done: `pnpm --filter @gami/website check:links` checks every internal link and anchor on every built page, and runs in the website workflow after the build.
+
+### 9.4 In-browser playground
+
+Runs the real rules engine in the browser. It needs no server, holds no data, and cannot be abused. It is one React island on `/playground`.
+
+- [x] **WEB-20** `P1` Make `packages/rules` run in a browser. `validator.ts` uses `Buffer.byteLength` (use `TextEncoder` instead), and `plugins.ts` imports Node's `path` and `url` for `loadPlugins` (move the loader to a Node-only entry such as `@gami/rules/node`). Add a test that bundles the package for the browser. `[ran]` Done: `TextEncoder` in the validator, `loadPlugins` in `@gami/rules/node` (used by the API and worker), and `browser-bundle.test.ts` bundles the main entry with esbuild for the browser, checks it has no Node built-ins, and evaluates a rule from the bundle.
+- [x] **WEB-21** `P1` Playground island: a rule editor (the dashboard's visual builder and a JSON view), an event composer with presets, and a results panel showing whether the rule matched, which actions ran, and the XP, badges and currency a user would get. It loads with `client:load`, because it is the whole page. `[ran]` Done at `/playground/`. The dashboard's condition and action builders, and the controls they use, moved to `packages/ui` (`@gami/ui` and `@gami/ui/rules`), so the dashboard and the playground share one builder. Rules are checked as a real save would check them, and the results show each rule, the totals its conditions looked at, and what it awarded.
+- [x] **WEB-22** `P2` Simulate a user over time in the browser: streaks, levels and totals over past events, using `packages/progression` and the aggregate logic, with a timeline of what happened. `[ran]` Done: `src/lib/playground/simulate.ts` follows the worker's order (rules, then streaks, then rules on `streak_updated`), measures totals from the player's past events like the database does, and shows a timeline with what each event did. Boosts, limits, challenges and leagues are not simulated, and the page says so.
+- [x] **WEB-23** `P2` Ready-made scenarios to load with one click, such as a learning app with daily streaks, a shop with a points store, or a fitness app with weekly leagues. `[ran]` Done: a learning app (daily streak, a seven-day bonus one lesson away), a shop (points, a monthly spend badge) and a fitness app (weekly streak with freezes, distance and variety badges). Leagues are not simulated, so the fitness app uses a weekly streak instead.
+- [x] **WEB-24** `P2` Share a playground setup as a link, with the state kept in the URL, and export it as rule JSON ready to paste into a real install. `[ran]` Done: the setup and events are compressed into the link's hash, which is never sent to a server, and the rules export as the bodies for `POST /api/projects/:id/rules`, to copy or download.
+
+### 9.5 Live demo without an account
+
+A real dashboard to click around, created on demand and thrown away.
+
+- [x] **WEB-25** `P1` "Try the dashboard" creates a temporary organization and project on the demo instance and signs the visitor in to it without an account. It expires after 24 hours, and the worker deletes it and everything in it. `[ran]` Done: the dashboard's `/demo` page calls `POST /api/demo/start`, which creates a visitor account (`@demo.invalid`, verified, unknown password), a demo organization with `demo_expires_at`, and signs the visitor in with the usual session cookie. The worker deletes expired demos and their visitors' accounts every ten minutes. Only on an instance with `GAMI_DEMO_MODE=true`. Guide: `docs/live-demo.md`.
+- [x] **WEB-26** `P1` Seed every demo with a realistic dataset: users, events over the last month, rules, achievements, streaks, a store and a league. Add a "send traffic" button that generates events live, so boards and toasts move. `[ran]` Done: a language app with 36 generated players and a month of lessons, six rules, five badges, a daily streak, gems with a store, a weekly league and a challenge. Events are queued for the worker, so XP, levels, badges, wallets and league places come from the real engine; streaks are written directly with the real streak maths. The demo banner has a **Send traffic** button with a cooldown.
+- [x] **WEB-27** `P1` Lock demos down with the admin controls from 1.1.0. Turn off webhooks, integrations, connectors, campaigns and push for demo organizations, and set policies of one project, one member and a low events-per-minute limit. Send no email at all from the demo instance. `[ran]` Done: each demo organization has webhooks, integrations, connectors, campaigns, push and plugins off, one project, one member, 120 events a minute and day-long API keys, and a demo instance sends no email at all (checked in `getSmtpProviderFromConfig`).
+- [x] **WEB-28** `P1` Abuse protection for starting demos: a rate limit per address and a privacy-friendly challenge (for example Cloudflare Turnstile), a cap on live demos, and alerts when it is reached. `[ran]` Done: starts per address per hour (hashed in Redis, refused if Redis is down), a live cap, Cloudflare Turnstile when its keys are set, `gami_demo_*` metrics, and `GamiDemoNearlyFull` and `GamiDemoRefusingStarts` alerts.
+- [~] **WEB-29** `P2` Run the demo instance apart from everything else: its own servers, database and Redis, no customer data, a daily reset of anything left over, and its version updated with each release. `[code]` Done: the settings in `docker-compose.yml` and `.env.production.example`, the cleanup pass catches leftovers, and the guide covers running it apart and upgrading it. Left: the servers, database and Redis for `demo.gami.fied.cc`, Turnstile keys, and `PUBLIC_DEMO_URL` on the website.
+- [x] **WEB-30** `P3` "Keep this setup": export a demo's design (rules, achievements, store and so on) as a file that a self-hosted install can import, and later into a Cloud account. `[ran]` Done: promotion now works through a design document, so `GET /api/projects/:id/design` saves a project's design as a file and `POST .../design/preview` and `POST .../design` check and import one (rules, challenges and levels are validated like a save; missing badges are warned about). The demo banner has **Keep this setup**, and the **Promote changes** page has download and import. `design-files.test.ts` covers export, preview, import, validation, warnings and admin-only access, and `docs/permissions.md` lists the routes. Importing into a Cloud account comes with Phase 10.
+
+### 9.6 Launch the site
+
+- [x] **WEB-31** `P2` Record a two-minute product video and take screenshots for every feature page, with the demo instance as the source. `[ran]` Done: `pnpm --filter @gami/website capture` starts a demo, takes a dark-theme screenshot for each feature page, and records a captioned 2½-minute tour (MP4 with a poster when ffmpeg is there), driving an installed Chrome with `playwright-core`. Feature pages show their screenshot, and the home page shows the tour. These were made from a local demo instance; run it against `demo.gami.fied.cc` for each release.
+- [~] **WEB-32** `P2` A status page for the site, the demo and later the cloud. `[code]` Done: an Upptime setup in `deploy/status` checking the site, docs, search, the demo page and the demo API (down when demos are off), with Cloud checks ready to turn on, and a footer link once `PUBLIC_STATUS_URL` is set. Left: create the `gami-fied/status` repository from the Upptime template, add its token, and point `status.gami.fied.cc` at it (steps in `deploy/status/README.md`).
+
+### 9.7 Motion design
+
+Animation should explain the product, not decorate it. The site's story is "events go in, rewards come out", so the big moments show exactly that, and everything else stays quiet and quick.
+
+**Principles**
+
+1. **One hero moment per page.** Each page gets at most one large animation. Everything else is small: reveals, hovers and state changes.
+2. **Explain, don't decorate.** Every large animation shows how Gami.Fied works: an event moving through a rule, XP filling, a player moving up a league.
+3. **Never delay reading.** Body text and headings are visible on first paint. Animations start after content is readable, and docs pages have no entrance animations at all.
+4. **Only `transform` and `opacity`** for anything that moves, so it stays at 60 frames a second. Nothing animates layout properties, and nothing causes layout shift.
+5. **Respect reduced motion everywhere.** With `prefers-reduced-motion`, every animation has a still or instant version, and looping animations are paused.
+6. **Pay only for what is on screen.** Animation code loads with the component that uses it, heavy scenes load when they scroll near (`client:visible` or `inView`), and anything off screen or in a background tab pauses.
+
+**Which tool does what**
+
+| Tool | Used for | Why |
+| :--- | :--- | :--- |
+| CSS (including scroll-driven animations) | Hovers, focus states, the header on scroll, the reading progress bar, marquees | Costs no JavaScript. Where scroll-driven CSS is not supported, the effect is simply skipped |
+| Astro View Transitions | Moving between pages, and a feature card growing into its feature page | Built in, smooth, and close to free |
+| Motion, plain JavaScript (`animate`, `inView`, `scroll`) | Scroll reveals, number changes, tabs, small interactive touches | Very small, and enough for most of the site |
+| Motion for React (`motion/react`) | Everything inside the playground and demo islands | They are React already, and it matches the dashboard |
+| GSAP with ScrollTrigger, SplitText, Flip, MotionPath and DrawSVG | The hero engine diagram, "how it works", feature demos, headline reveals | Timelines and scroll-scrubbed scenes are where GSAP is unmatched. Every plugin is free |
+
+**Shared timing** (`src/motion/tokens.ts`, used by CSS variables, GSAP and Motion alike):
+
+| Token | Value | Used for |
+| :--- | :--- | :--- |
+| `instant` | 120 ms | Hovers, presses, toggles |
+| `quick` | 200 ms | Page transitions, menus, tooltips |
+| `enter` | 450 ms | Scroll reveals |
+| `scene` | 700 ms | Headline reveals, scene steps |
+| `stagger` | 60 ms | Between items in a group |
+| `ease-out` | `cubic-bezier(0.16, 1, 0.3, 1)` (expo out) | Things arriving |
+| `ease-in-out` | `cubic-bezier(0.65, 0, 0.35, 1)` | Things moving from place to place |
+| `spring` | stiffness 260, damping 24 | Interactive things that follow the pointer or a value |
+| `rise` | 16 px | How far a revealed item travels |
+
+**Items**
+
+- [x] **WEB-33** `P1` Motion foundation in `src/motion/`: the tokens above; `lifecycle.ts`, which starts each page's animations on `astro:page-load` and kills GSAP timelines, ScrollTriggers and Motion animations on `astro:before-swap`, so nothing runs twice or leaks after a page transition; GSAP and its plugins registered once and loaded only on pages that use them; and a single reduced-motion switch (GSAP `matchMedia` plus Motion's reduced-motion setting). `[ran]` Done in `apps/website/src/motion`: `tokens.ts` (also CSS variables), `lifecycle.ts` (scenes start on `astro:page-load`, are cleaned up on `astro:before-swap`, and restart when reduced motion changes), `gsap.ts` (plugins registered once and loaded only by the scenes that use them), and one reduced-motion switch.
+- [x] **WEB-34** `P1` Site-wide motion: `[ran]` Done: a 200 ms cross-fade between marketing pages (docs load normally), the feature card morphing into its page, a header that firms up on scroll with CSS only, one reveal style for the site (hidden only while its script runs, never on page-top headings), and 120 ms buttons.
+  - **Page transitions:** a 200 ms cross-fade between marketing pages with View Transitions. Docs pages swap instantly, with no fade, because readers jump around.
+  - **Feature card to feature page:** the card's icon and title morph into the page header (`transition:name`), so moving between pages feels like zooming in.
+  - **Header:** after 80 px of scrolling it shrinks a little and gains a blurred background, with a CSS scroll-driven animation (static where unsupported).
+  - **Scroll reveal:** sections and cards fade in while rising 16 px, over 450 ms, with a 60 ms stagger in groups, once only, with Motion's `inView`. This is the only reveal style on the site, used everywhere for consistency.
+  - **Buttons and links:** primary buttons lift 1 px and brighten on hover, and press down to 98% on click, over 120 ms in CSS. No magnetic or wobbly buttons; they feel slow and cheap.
+- [x] **WEB-35** `P1` Performance budget for animation, checked in CI: no more than 60 KB compressed of animation code on the home page and 0 KB on docs pages; Lighthouse performance of at least 95 on mobile for the home page; no layout shift caused by animation; and the largest content visible within 2 seconds on a mid-range phone. `[ran]` Done: `check:motion` follows every script a page can load and allows 60 KB of animation code on the home page (54 KB now, with Motion's mini build, no MotionPath or SplitText, and DrawSVG loaded on hover) and 0 KB on docs; `check:lighthouse` needs performance 95+, the largest content within 2 s and layout shift under 0.01 on a simulated mid-range phone (100, 0.91 s and 0 now). Both run in the website workflow.
+- [x] **WEB-36** `P1` Hero headline: the headline is in the page from the first paint and readable straight away. Once fonts load, SplitText lifts each word from behind a mask, 40 ms apart, over 700 ms with expo out. The subheading and buttons fade in 150 ms later. With reduced motion, everything simply appears. `[ran]` Done: the headline is readable on first paint; when the fonts arrive within 0.7 s, its words lift from masks 40 ms apart and the text under it fades in, with the full text kept as its accessible name.
+- [x] **WEB-37** `P1` Hero "live engine" diagram, the home page's one big moment, built in SVG with a looping GSAP timeline: `[ran]` Done: events follow the curved paths into the engine, a rule lights up, and the XP bar fills, the badge pops in and the player climbs, on a 6-second loop that pauses off screen, in a background tab and with its pause button.
+  - Small event dots (`lesson_completed`, `order_paid`) leave an app icon on the left and travel along curved paths (MotionPath) into the Gami.Fied engine in the middle.
+  - The engine pulses as each one passes through a rule.
+  - On the right, rewards come out: an XP bar fills, a badge pops in with a spring, and a leaderboard row slides up a place (Flip).
+  - It loops every 6 seconds with varied events, pauses when off screen or in a background tab, and has a pause button, since it runs longer than 5 seconds (WCAG 2.2.2).
+  - With reduced motion it is a still diagram with labels.
+- [x] **WEB-38** `P1` "How it works" as a scroll story, with GSAP ScrollTrigger: `[ran]` Done: on wide screens with motion the section pins and the scroll scrubs through the steps, with the key code line highlighted and a phone showing each result; stacked with the standard reveal otherwise.
+  - On wide screens the section pins while you scroll through three steps: **Send an event**, **A rule matches**, **The player is rewarded**.
+  - On the left, a code sample highlights the line for each step.
+  - On the right, a phone mock-up shows the result as it happens: the event arriving, the rule card lighting up, then a reward toast and the XP bar filling.
+  - The scroll scrubs the timeline, so readers control the pace.
+  - On phones and with reduced motion there is no pinning: the steps stack, each with the standard reveal.
+- [~] **WEB-39** `P2` Smaller home page touches: `[ran]` Done: the staggered feature grid with a 3-degree tilt and an icon that draws itself on hover (pointer devices only), sliding code-tab underline and cross-fade, the tour tilting flat as it scrolls in, a numbers strip counted from the source at build time, and the pointer glow on the final call to action. Left: the logo or quote marquee, once there are real logos or quotes to show.
+  - **Feature grid:** the standard staggered reveal. On hover (pointer devices only), a card tilts up to 3 degrees towards the cursor on a spring, and its icon plays a one-second line animation (DrawSVG).
+  - **Code tabs** (SDK, cURL, React): the underline slides between tabs, and the code cross-fades over 200 ms (Motion).
+  - **Dashboard screenshot:** tilted back 12 degrees, it flattens to face the reader as it scrolls into view (GSAP scrub). The screenshot is still with reduced motion.
+  - **Numbers strip** ("events a second", "features"): each number counts up once when it comes into view, over 1.2 seconds (Motion).
+  - **Logos or quotes:** a slow CSS marquee that pauses on hover, and stops with reduced motion.
+  - **Final call to action:** a soft glow follows the pointer, using CSS variables set on pointer move, with no library.
+- [x] **WEB-40** `P2` One small live demo per feature page, each a GSAP timeline that plays when in view and pauses when not: `[ran]` Done for all six areas: a week filling with a freeze (progression), coins in and a purchase out (economy), you overtaking Maya (competition), the feed taking new activity (community), pulses through the engine (integrations), and a switch turning off what depends on it (administration). Each plays only on screen.
+  - **Streaks:** a week of calendar days fills in one by one, and the flame grows with the count; a missed day is saved by a freeze, which glows blue.
+  - **Leaderboards and leagues:** rows reorder smoothly as scores change (Flip), and the top player moves up into the next tier.
+  - **Store and wallets:** a coin drops into a wallet, the balance ticks up, then a reward is bought and the balance ticks down.
+  - **Achievements:** a locked badge fills with progress, then unlocks with a spring and a short burst of particles.
+  - **Connectors:** Segment, Stripe and GitHub logos connect to the engine with lines that draw themselves (DrawSVG), then send a pulse along each line.
+  - **Administration:** a feature switch is turned off, and the features that depend on it switch off in sequence, as in the real admin screen.
+- [x] **WEB-41** `P2` Playground motion, with Motion for React inside the island: `[ran]` Done with Motion for React: the results panel animates its height, rules and rewards appear 60 ms apart, the XP bar fills on a spring, a badge unlock shows a toast, the open rule flashes when it matches or not, and new timeline entries slide in. `MotionConfig` makes all of it instant with reduced motion.
+  - **Results:** the results panel animates its height changes with layout animation; matched actions appear one by one, 60 ms apart; the XP bar fills on a spring; a badge unlock uses the same toast as the product.
+  - **Rule editor:** the rule being tested shows a short highlight when it matches or does not.
+  - **Simulation:** each new day on the timeline slides in, and streak and level changes are marked as they happen.
+  - With reduced motion, results appear at once.
+- [x] **WEB-42** `P2` Live demo start: while the demo is being set up, a checklist ("Creating your project", "Adding players", "Sending events") ticks off step by step with Motion, and finishes by turning into an "Open the dashboard" button. If setup takes longer than expected, a calm message appears instead of a spinner running forever. `[ran]` Done on the `/demo` page: the checklist ticks off with Motion, finishes as "Open the dashboard", and shows a calm note if setup takes longer than 12 seconds. Reduced motion skips the springs.
+- [~] **WEB-43** `P2` Quiet pages: `[ran]` Done: docs keep Starlight's own quiet touches with no entrance animations, the recommended plan has a slow gradient border, blog posts have a CSS reading progress bar, and post images fade in as they load. The 404 page has a small character searching with a magnifying glass and shrugging: inline SVG and CSS only, about 2 KB, playing once in under 5 seconds, and still with reduced motion. Left: the price morph, once Cloud has prices to switch between.
+  - **Docs:** no entrance animations; Starlight's own search dialog fade, copy buttons that turn into a tick, and a theme switch.
+  - **Pricing:** switching monthly to yearly morphs the prices (Motion number animation), and the recommended plan has a slow gradient border.
+  - **Blog:** a reading progress bar along the top (CSS scroll-driven), and images that fade in as they load.
+  - **404:** a small animated character "looking for" the page, as a Lottie or Rive file under 30 KB, shown still with reduced motion. Optional.
+- [~] **WEB-44** `P2` Motion quality checks before launch: every animated page tested in Chrome, Safari and Firefox, on a mid-range Android phone and an iPhone, with reduced motion on and off, and with keyboard-only navigation. Keep short screen recordings of each scene in the pull request, so changes to them can be reviewed. `[ran]` Done: `check:motion-browsers` runs every animated page in Chrome, Firefox and WebKit, at desktop and phone sizes (an emulated Pixel and iPhone), with reduced motion on and off, checking for errors, hidden content, layout shift, the pause control and the scroll story; all 12 combinations pass, and it runs in CI. Keyboard-only use passes, and `record:scenes` records each scene for pull requests. Left: a real Safari, a mid-range Android phone and an iPhone.
+
+---
+
+## Phase 10: Cloud edition (open core)
+
+**Goal:** A paid, hosted Gami.Fied that funds the project, while the self-hosted Community edition stays complete and free.
+
+**Principle:** Cloud sells running it, scale and enterprise needs. It never wins by removing engine features from Community. Everything released under AGPL stays available, and new engine features ship to Community at the same time.
+
+**Shape:** the cloud runs the same API, worker and dashboard as Community, configured per customer. Cloud-only code lives in a separate private repository:
+
+```text
+gami-cloud/                 # private
+├─ apps/
+│  ├─ control-plane/        # sign-up, plans, customer admin for the team
+│  └─ billing/              # Stripe checkout, customer portal and webhooks
+├─ packages/
+│  ├─ entitlements/         # plan -> feature switches and organization policies
+│  └─ metering/             # events and active users per organization
+└─ infra/                   # Terraform and deployment for production
+```
+
+Enterprise features that self-hosting companies can also buy (SSO, SCIM) live in this repository under `ee/` with a commercial licence, and are left out of Community builds.
+
+### 10.1 Editions and licensing
+
+- [ ] **CLOUD-01** `P1` Write `docs/editions.md`: what Community, Cloud and Enterprise each include, the rule that the engine is never cut down in Community, and a table of features by edition. Publish it on the website (WEB-09).
+- [ ] **CLOUD-02** `P1` Add a contributor licence agreement bot before taking outside contributions, so contributed code can be used in every edition (see DEC-6).
+- [ ] **CLOUD-03** `P2` Create `ee/` with its own `LICENSE`, and make Community builds and images leave it out. CI checks that nothing outside `ee/` imports from it.
+- [ ] **CLOUD-04** `P2` Edition detection: `product.edition` becomes `community`, `cloud` or `enterprise`. Self-hosted Enterprise uses a signed licence key checked offline, so it never has to call home.
+
+### 10.2 Plans, billing and usage
+
+- [ ] **CLOUD-05** `P1` Set up the private `gami-cloud` repository. It consumes this repository's packages and images by version, never by copying code, so a Community release can be deployed to Cloud unchanged.
+- [ ] **CLOUD-06** `P1` Sign-up and onboarding for the cloud: create an account, an organization and a first project, verify email, and land in the existing onboarding checklist.
+- [ ] **CLOUD-07** `P1` Plans and entitlements: each plan is a set of feature switches and organization policies (projects, members, events per minute and so on), applied through the admin controls added in 1.1.0. Changing plan rewrites those settings in one step and records it in the audit log.
+- [ ] **CLOUD-08** `P1` Usage metering: count events and monthly active users per organization, store daily totals, and show usage against the plan in the dashboard.
+- [ ] **CLOUD-09** `P1` Billing with Stripe: checkout, the customer portal, invoices, failed-payment retries, upgrades and downgrades with proration, and tax collection.
+- [ ] **CLOUD-10** `P1` Limits when a plan runs out: warnings at 80% and 100%, a grace period, then events beyond the plan answer `429` with a clear code. Data is never deleted for being over the limit.
+- [ ] **CLOUD-11** `P2` Free trials and a free tier, with the trial length and limits set in one place.
+
+### 10.3 Running the cloud
+
+- [ ] **CLOUD-12** `P1` Infrastructure as code (for example Terraform): managed PostgreSQL with point-in-time recovery, Redis, object storage for backups and exports, and separate staging and production.
+- [ ] **CLOUD-13** `P1` Shared multi-tenant hosting by default, on the existing organization isolation. Before launch, run a focused review of cross-tenant access and per-tenant rate limits, and add a test suite that tries to reach another tenant's data.
+- [ ] **CLOUD-14** `P1` Backups, restore drills and disaster recovery, building on `docs/disaster-recovery.md`, with a target recovery time and data loss stated on the pricing page.
+- [ ] **CLOUD-15** `P1` Monitoring, alerting and on-call with the Prometheus metrics added in 1.1.0, plus the status page (WEB-32).
+- [ ] **CLOUD-16** `P2` Dedicated instances for Enterprise customers who need them, deployed from the same images.
+- [ ] **CLOUD-17** `P2` Regions for data residency, starting with the EU and the US.
+- [ ] **CLOUD-18** `P2` Compliance groundwork: a data processing agreement, a list of sub-processors, GDPR export and deletion (the erase routes exist), a penetration test, and SOC 2 readiness.
+
+### 10.4 What paid plans add
+
+- [ ] **CLOUD-19** `P2` SSO with SAML and OIDC, and SCIM provisioning (FEAT-25), as Enterprise features in `ee/`.
+- [ ] **CLOUD-20** `P2` Impact analytics and A/B tests of mechanics (FEAT-24) and the balance dashboard (FEAT-23), offered in Cloud and Enterprise.
+- [ ] **CLOUD-21** `P2` Longer data and audit-log retention, and audit-log export, set per plan.
+- [ ] **CLOUD-22** `P2` Support tiers and uptime commitments, with response times per plan.
+
+### 10.5 Keep Community healthy
+
+- [ ] **CLOUD-23** `P1` Moving both ways: import a self-hosted install into Cloud, and export a Cloud organization to run it yourself, using the existing data export and import. Nobody is locked in.
+- [ ] **CLOUD-24** `P2` A release check that every engine feature in Cloud is also in the Community build, with any exception listed in `docs/editions.md`.
 
 ---
 
@@ -533,3 +783,7 @@ Measured on a production build on 6 November 2026. API times are inflated by the
 4. **M4, Honest RC2:** Phase 3.
 5. **M5, Integrable:** DX-01 to DX-04, DX-07, DX-10, FEAT-01 and FEAT-02, then UX-01 to UX-04.
 6. **M6, Public 1.0:** Remaining `P1` items, LAUNCH-01 to LAUNCH-07.
+7. **M7, Website and playground:** WEB-01 to WEB-15, WEB-20 and WEB-21, and the `P1` motion items WEB-33 to WEB-38. Static, cheap and safe, and it gives people a reason to try Gami.Fied before Cloud exists.
+8. **M8, Live demo:** WEB-25 to WEB-29, then the rest of Phase 9, including the remaining motion work (WEB-39 to WEB-44).
+9. **M9, Cloud beta:** Settle DEC-5, DEC-6, DEC-7 and DEC-9, then CLOUD-01, CLOUD-02, CLOUD-05 to CLOUD-10 and CLOUD-12 to CLOUD-15, with a waitlist of design partners.
+10. **M10, Cloud launch:** The rest of Phase 10, starting with CLOUD-23 so moving both ways works on day one.

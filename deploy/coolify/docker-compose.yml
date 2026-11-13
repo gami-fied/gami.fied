@@ -1,0 +1,109 @@
+# Gami.Fied for Coolify (https://coolify.io): in Coolify, add a resource from a Docker Compose file,
+# paste this file, and deploy. Coolify generates every password and secret (SERVICE_PASSWORD_* and
+# SERVICE_BASE64_*), and gives the dashboard a domain (SERVICE_FQDN_DASHBOARD_3000), whose full address (SERVICE_URL_DASHBOARD) the API
+# uses as its public address. Guide: docs/install/one-click.md. Not yet tested on a real Coolify server.
+#
+# Keep a copy of the generated ENCRYPTION_MASTER_KEY (SERVICE_BASE64_64_ENCRYPTION): backups cannot be
+# restored without it.
+
+x-app-environment: &app-environment
+  DATABASE_URL: postgres://gami:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/gami
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+  NODE_ENV: production
+  BETTER_AUTH_SECRET: ${SERVICE_BASE64_64_AUTH}
+  BETTER_AUTH_URL: ${SERVICE_URL_DASHBOARD}
+  NEXT_PUBLIC_APP_URL: ${SERVICE_URL_DASHBOARD}
+  ENCRYPTION_MASTER_KEY: ${SERVICE_BASE64_64_ENCRYPTION}
+  TRUST_PROXY: 'true'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: gami
+      POSTGRES_USER: gami
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U gami -d gami']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ['sh', '-c', 'exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"']
+    environment:
+      REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migration:
+    image: ghcr.io/gami-fied/gami-api:${GAMI_VERSION:-latest}
+    command: ['node', 'packages/database/dist/migrate.js']
+    environment:
+      DATABASE_URL: postgres://gami:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/gami
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # A one-off step: it exits when the database is up to date.
+    restart: 'no'
+
+  api:
+    image: ghcr.io/gami-fied/gami-api:${GAMI_VERSION:-latest}
+    environment:
+      <<: *app-environment
+      PORT: 3001
+      HOST: 0.0.0.0
+      PLATFORM_BOOTSTRAP_SECRET: ${SERVICE_BASE64_64_BOOTSTRAP}
+      BACKUP_STORAGE_PATH: /app/storage/backups
+    volumes:
+      - backups_data:/app/storage/backups
+    depends_on:
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "fetch(\"http://localhost:3001/ready\").then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  worker:
+    image: ghcr.io/gami-fied/gami-worker:${GAMI_VERSION:-latest}
+    environment:
+      <<: *app-environment
+      OUTBOX_POLL_INTERVAL_MS: 1000
+    depends_on:
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+
+  dashboard:
+    image: ghcr.io/gami-fied/gami-dashboard:${GAMI_VERSION:-latest}
+    environment:
+      # Coolify routes the generated domain to port 3000 here.
+      SERVICE_FQDN_DASHBOARD_3000: ''
+      PORT: 3000
+      API_URL: http://api:3001
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  backups_data:

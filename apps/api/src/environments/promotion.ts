@@ -13,7 +13,7 @@ import {
   xpBoosts,
   xpLimits,
 } from '@gami/database';
-import { eq } from 'drizzle-orm';
+import { eq, getTableColumns } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { recordVersion } from '../rules/versions.js';
 
@@ -145,37 +145,92 @@ function changedFields(a: Record<string, unknown>, b: Record<string, unknown>): 
   return [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((key) => canonical(a[key]) !== canonical(b[key])).sort();
 }
 
-/** What would change in the target if the source's design were promoted to it. */
-export async function diffProjects(sourceId: string, targetId: string): Promise<PromotionItem[]> {
-  const [sourceLookup, targetLookup] = await Promise.all([lookupFor(db, sourceId), lookupFor(db, targetId)]);
+/**
+ * A project's design as a file: every promotable item in its portable form, with project IDs
+ * replaced by keys. It carries no player data. Another project, on this install or another, can
+ * import it (WEB-30), and promotion between environments uses it too.
+ */
+export interface DesignDocument {
+  format: typeof DESIGN_FORMAT;
+  version: 1;
+  exportedAt: string;
+  project: { name: string };
+  items: Partial<Record<PromotableKind, Record<string, unknown>[]>>;
+}
+
+export const DESIGN_FORMAT = 'gami.fied/design';
+
+/** The design of one project, ready to save as a file or apply to another project. */
+export async function exportDesign(projectId: string, projectName: string): Promise<DesignDocument> {
+  const lookup = await lookupFor(db, projectId);
+  const items: DesignDocument['items'] = {};
+  for (const kind of PROMOTABLE_KINDS) {
+    const rows = await rowsOf(db, kind, projectId);
+    // Stock is not part of a reward's portable form, so it travels beside it, for new rewards only.
+    items[kind] = rows.map((row) => ({ ...KINDS[kind].portable(row, lookup), ...(kind === 'rewards' ? { stock: row['stock'] ?? null } : {}) }));
+  }
+  return { format: DESIGN_FORMAT, version: 1, exportedAt: new Date().toISOString(), project: { name: projectName }, items };
+}
+
+/** An item from a document, split into what is compared and the starting stock of a reward. */
+function fromDocument(kind: PromotableKind, item: Record<string, unknown>) {
+  if (kind !== 'rewards') return { portable: item, stock: null };
+  const { stock, ...portable } = item;
+  return { portable, stock: (stock as number | null | undefined) ?? null };
+}
+
+/** What would change in the target if this design were applied to it. */
+export async function diffDesign(design: DesignDocument, targetId: string): Promise<PromotionItem[]> {
+  const targetLookup = await lookupFor(db, targetId);
   const items: PromotionItem[] = [];
   for (const kind of PROMOTABLE_KINDS) {
     const spec = KINDS[kind];
-    const [source, target] = await Promise.all([rowsOf(db, kind, sourceId), rowsOf(db, kind, targetId)]);
+    const target = await rowsOf(db, kind, targetId);
     const targetBy = new Map(target.map((row) => [spec.identity(row), row]));
-    for (const row of source) {
-      const identity = spec.identity(row);
+    for (const item of design.items[kind] ?? []) {
+      const { portable } = fromDocument(kind, item);
+      const identity = spec.identity(portable as Row);
       const existing = targetBy.get(identity);
       if (!existing) {
-        items.push({ kind, identity, name: spec.label(row), status: 'new' });
+        items.push({ kind, identity, name: spec.label(portable as Row), status: 'new' });
         continue;
       }
       targetBy.delete(identity);
-      const changes = changedFields(spec.portable(row, sourceLookup), spec.portable(existing, targetLookup));
-      items.push({ kind, identity, name: spec.label(row), status: changes.length ? 'changed' : 'same', ...(changes.length ? { changes } : {}) });
+      const changes = changedFields(portable, spec.portable(existing, targetLookup));
+      items.push({ kind, identity, name: spec.label(portable as Row), status: changes.length ? 'changed' : 'same', ...(changes.length ? { changes } : {}) });
     }
     for (const [identity, row] of targetBy) items.push({ kind, identity, name: spec.label(row), status: 'only_in_target' });
   }
   return items;
 }
 
+/** What would change in the target if the source's design were promoted to it. */
+export async function diffProjects(sourceId: string, targetId: string): Promise<PromotionItem[]> {
+  return diffDesign(await exportDesign(sourceId, ''), targetId);
+}
+
+/** A file's timestamps arrive as text and the database wants dates; columns it does not have are dropped. */
+function toColumns(kind: PromotableKind, values: Record<string, unknown>): Record<string, unknown> {
+  const columns = getTableColumns(KINDS[kind].table as never) as Record<string, { dataType: string }>;
+  return Object.fromEntries(
+    Object.entries(values)
+      .filter(([key]) => key in columns && !SKIP.has(key))
+      .map(([key, value]) => [key, columns[key]!.dataType === 'date' && typeof value === 'string' ? new Date(value) : value])
+  );
+}
+
 /**
- * Copies the chosen items from source to target in one transaction, so the target never runs a
- * half-promoted design. Items only in the target are left alone: promotion adds and updates, it never deletes.
+ * Applies the chosen items of a design to a project in one transaction, so it never runs a
+ * half-applied design. Items only in the target are left alone: this adds and updates, it never deletes.
  */
-export async function promote(sourceId: string, targetId: string, selected: { kind: PromotableKind; identity: string }[] | null, actor: string | null) {
+export async function applyDesign(
+  design: DesignDocument,
+  targetId: string,
+  selected: { kind: PromotableKind; identity: string }[] | null,
+  actor: string | null,
+  note = 'Promoted from another environment'
+) {
   const wanted = selected ? new Set(selected.map((item) => `${item.kind}:${item.identity}`)) : null;
-  const sourceLookup = await lookupFor(db, sourceId);
   let created = 0;
   let updated = 0;
 
@@ -185,33 +240,38 @@ export async function promote(sourceId: string, targetId: string, selected: { ki
       const table = spec.table as unknown as typeof rules;
       // Read the target's IDs again for each kind, so references to things copied earlier resolve.
       const targetLookup = await lookupFor(tx, targetId);
-      const [source, target] = await Promise.all([rowsOf(db, kind, sourceId), rowsOf(tx, kind, targetId)]);
+      const target = await rowsOf(tx, kind, targetId);
       const targetBy = new Map(target.map((row) => [spec.identity(row), row]));
 
-      for (const row of source) {
-        const identity = spec.identity(row);
+      for (const item of design.items[kind] ?? []) {
+        const { portable, stock } = fromDocument(kind, item);
+        const identity = spec.identity(portable as Row);
         if (wanted && !wanted.has(`${kind}:${identity}`)) continue;
-        const portable = spec.portable(row, sourceLookup);
         const existing = targetBy.get(identity);
         if (existing && changedFields(portable, spec.portable(existing, targetLookup)).length === 0) continue;
-        const values = spec.restore ? spec.restore(portable, targetLookup) : portable;
-        if (kind === 'rewards' && !values['currencyId']) throw new Error(`The reward "${identity}" needs the currency "${String(portable['currency'])}" in the target. Promote it too.`);
+        const values = toColumns(kind, spec.restore ? spec.restore(portable, targetLookup) : portable);
+        if (kind === 'rewards' && !values['currencyId']) throw new Error(`The reward "${identity}" needs the currency "${String(portable['currency'])}" in the target. Include it too.`);
 
         if (existing) {
           const [saved] = await tx.update(table).set({ ...values, updatedAt: new Date() } as never).where(eq(table.id, existing.id)).returning();
-          if (kind === 'rules' && saved) await recordVersion(tx, saved as never, 'Promoted from another environment', actor);
+          if (kind === 'rules' && saved) await recordVersion(tx, saved as never, note, actor);
           updated += 1;
         } else {
           const prefix = { currencies: 'cur', achievements: 'ach', levels: 'lvl', streaks: 'stk', segments: 'seg', leagues: 'lg', rules: 'rule', challenges: 'chl', boosts: 'bst', limits: 'lim', rewards: 'rwd' }[kind];
           const [saved] = await tx
             .insert(table)
-            .values({ ...values, ...(kind === 'rewards' ? { stock: row['stock'] ?? null } : {}), id: `${prefix}_${crypto.randomUUID()}`, projectId: targetId } as never)
+            .values({ ...values, ...(kind === 'rewards' ? { stock } : {}), id: `${prefix}_${crypto.randomUUID()}`, projectId: targetId } as never)
             .returning();
-          if (kind === 'rules' && saved) await recordVersion(tx, saved as never, 'Promoted from another environment', actor);
+          if (kind === 'rules' && saved) await recordVersion(tx, saved as never, note, actor);
           created += 1;
         }
       }
     }
   });
   return { created, updated };
+}
+
+/** Copies the chosen items of the source's design to the target. */
+export async function promote(sourceId: string, targetId: string, selected: { kind: PromotableKind; identity: string }[] | null, actor: string | null) {
+  return applyDesign(await exportDesign(sourceId, ''), targetId, selected, actor);
 }

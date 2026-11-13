@@ -1,0 +1,20 @@
+---
+import FeatureCard from '../../components/FeatureCard.astro';
+import Section from '../../components/Section.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { FEATURES } from '../../lib/features';
+---
+
+<SiteLayout title="Features" description="Everything in Gami.Fied: progression, a points economy, competition, community, integrations and administration." og="features">
+  <Section
+    reveal={false} as="h1"
+    eyebrow="Features"
+    title="Everything in one open-source engine"
+    intro="Every feature here is in the free Community edition. Pick an area to see what it does."
+    class="pt-24"
+  >
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+      {FEATURES.map((feature) => <FeatureCard feature={feature} />)}
+    </div>
+  </Section>
+</SiteLayout>

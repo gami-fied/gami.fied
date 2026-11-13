@@ -5,8 +5,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useDashboard } from '../context/dashboard-context';
 import { useRules, RuleRecord } from '@/hooks/use-rules';
-import { buildLogicCondition, fitsVisualBuilder, type VisualCondition } from './visual-condition-builder';
-import { buildTotalCondition, parseTotalCondition, type AggregateCondition } from './total-condition';
+import { buildRulesEngineConditions, fitsVisualBuilder, parseRulesEngineConditions, type AggregateCondition, type ConditionGroup, type VisualCondition } from './visual-condition-builder';
 import type { VisualAction } from './visual-action-builder';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
@@ -186,29 +185,11 @@ export function RulesView() {
     }
   }, [editingRule]);
 
+  // The same converters as the website playground, from packages/ui.
   const parseConditionsToVisual = (conditionsObj: StoredConditions | null | undefined) => {
-    if (!conditionsObj) {
-      setMatchMode('all');
-      setVisualConditions([]);
-      return;
-    }
-    const isAny = Array.isArray(conditionsObj.any);
-    const condList = (isAny ? conditionsObj.any : conditionsObj.all) ?? [];
-    setMatchMode(isAny ? 'any' : 'all');
-
-    const mapped: VisualCondition[] = condList.map((c, index) =>
-      c.logic !== undefined
-        ? { id: `c_${index}_${Date.now()}`, kind: 'logic' as const, field: '', operator: 'equals' as const, value: JSON.stringify(c.logic) }
-        : c.aggregate
-        ? parseTotalCondition(c as unknown as AggregateCondition)
-        : {
-            id: `c_${index}_${Date.now()}`,
-            field: c.field || c.fact || '',
-            operator: (c.operator || 'equals') as VisualCondition['operator'],
-            value: String(c.value ?? ''),
-          }
-    );
-    setVisualConditions(mapped);
+    const parsed = parseRulesEngineConditions(conditionsObj as unknown as ConditionGroup | null | undefined);
+    setMatchMode(parsed.matchMode);
+    setVisualConditions(parsed.conditions);
   };
 
   const parseActionsToVisual = (actionsArr: StoredAction[]) => {
@@ -238,33 +219,14 @@ export function RulesView() {
     setVisualActions(mapped);
   };
 
-  const buildRulesEngineConditions = (mode: 'all' | 'any', conds: VisualCondition[]) => {
-    if (conds.length === 0) return null;
-    const formatted = conds.map((c) => {
-      if (c.kind === 'total') return buildTotalCondition(c);
-      if (c.kind === 'logic') return buildLogicCondition(c);
-      let val: string | number | boolean = c.value;
-      if (c.value === 'true') val = true;
-      else if (c.value === 'false') val = false;
-      else if (!isNaN(Number(c.value)) && c.value.trim() !== '') val = Number(c.value);
-
-      return {
-        field: c.field,
-        fact: c.field,
-        operator: c.operator,
-        value: val,
-      };
-    });
-    return { [mode]: formatted };
-  };
-
   const buildRulesEngineActions = (acts: VisualAction[]) => {
     return acts.map((a) => {
       if (a.type === 'award_xp') {
         return { type: 'award_xp', params: { amount: a.amount || 100 } };
       }
       if (a.type === 'award_achievement') {
-        return { type: 'award_achievement', params: { achievementId: a.achievementId || '' } };
+        // The engine awards by key; the id lets this page show which achievement it was.
+        return { type: 'award_achievement', params: { achievementKey: a.achievementKey || '', achievementId: a.achievementId || '' } };
       }
       if (a.type === 'award_currency') {
         return { type: 'award_currency', params: { currency: a.currency || '', amount: a.amount || 100 } };

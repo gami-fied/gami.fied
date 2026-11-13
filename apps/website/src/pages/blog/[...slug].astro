@@ -1,0 +1,38 @@
+---
+import { ArrowLeft } from '@lucide/astro';
+import { render } from 'astro:content';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { formatDate, publishedPosts, type Post } from '../../lib/blog';
+
+export async function getStaticPaths() {
+  const posts = await publishedPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<SiteLayout title={post.data.title} description={post.data.description} og={`blog/${post.id}`}>
+  <!-- How far through the post the reader is, drawn by CSS alone. -->
+  <div class="reading-progress" aria-hidden="true"></div>
+  <article class="mx-auto max-w-3xl px-6 pb-24 pt-16 sm:pt-20">
+    <a href="/blog/" class="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-200">
+      <ArrowLeft size={14} aria-hidden="true" /> All posts
+    </a>
+    <header class="mt-8 border-b border-zinc-800 pb-8">
+      <h1 class="text-balance text-4xl font-bold tracking-tight text-zinc-50">{post.data.title}</h1>
+      <p class="mt-4 text-lg text-zinc-400">{post.data.description}</p>
+      <p class="mt-6 text-sm text-zinc-500">
+        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time> · {post.data.author}
+      </p>
+    </header>
+    <div class="prose prose-site mt-10 max-w-none prose-headings:tracking-tight prose-a:underline-offset-4 prose-pre:border prose-pre:border-zinc-800 prose-pre:rounded-none prose-code:before:content-none prose-code:after:content-none">
+      <Content />
+    </div>
+  </article>
+</SiteLayout>

@@ -127,7 +127,8 @@ export function validateRuleDefinition(rule: unknown): RuleDefinition {
   }
 
   const jsonString = JSON.stringify(rule);
-  if (Buffer.byteLength(jsonString, 'utf8') > SAFETY_LIMITS.MAX_RULE_JSON_BYTES) {
+  // TextEncoder rather than Buffer, so validation also runs in a browser.
+  if (new TextEncoder().encode(jsonString).byteLength > SAFETY_LIMITS.MAX_RULE_JSON_BYTES) {
     throw new Error(
       `Rule JSON size exceeds maximum allowed limit of ${SAFETY_LIMITS.MAX_RULE_JSON_BYTES} bytes`
     );

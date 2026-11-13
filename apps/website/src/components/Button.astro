@@ -1,0 +1,29 @@
+---
+/** The site's one button style. Primary is the brand orange; secondary is an outline. */
+interface Props {
+  href: string;
+  variant?: 'primary' | 'secondary';
+  external?: boolean;
+  track?: string;
+  trackSource?: string;
+  class?: string;
+}
+
+const { href, variant = 'primary', external = false, track, trackSource, class: extra } = Astro.props;
+const base =
+  'inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition duration-[120ms] hover:-translate-y-px active:scale-[0.98] motion-reduce:transform-none';
+const styles = {
+  primary: 'bg-brand-500 text-on-accent hover:bg-brand-400',
+  secondary: 'border border-zinc-700 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-900/60',
+};
+---
+
+<a
+  href={href}
+  class:list={[base, styles[variant], extra]}
+  {...(external ? { target: '_blank', rel: 'noopener' } : {})}
+  {...(track ? { 'data-track': track } : {})}
+  {...(trackSource ? { 'data-track-source': trackSource } : {})}
+>
+  <slot />
+</a>

@@ -1,0 +1,198 @@
+---
+/**
+ * The 404 page's character (WEB-43): a small block in the brand's style, looking for the page with
+ * a magnifying glass, then shrugging. Inline SVG with CSS only, so it costs no JavaScript and about
+ * 2 KB. It plays once, in under 5 seconds, so it needs no pause control (WCAG 2.2.2), and with
+ * reduced motion it is a still picture. Only transforms and opacity move.
+ */
+---
+
+<svg class="lost" viewBox="0 0 220 180" width="220" height="180" role="img" aria-labelledby="lost-title">
+  <title id="lost-title">A small square character searching with a magnifying glass, then shrugging</title>
+
+  <!-- Shadow, which breathes with the body. -->
+  <ellipse class="lost-shadow" cx="110" cy="164" rx="46" ry="6" fill="var(--color-zinc-800)"></ellipse>
+
+  <g class="lost-body">
+    <!-- The block, with the brand's G. -->
+    <rect x="62" y="56" width="96" height="96" fill="var(--color-zinc-900)" stroke="var(--color-zinc-700)" stroke-width="2"></rect>
+    <path d="M136 80H84v48h52v-22h-26" fill="none" stroke="var(--color-brand-500)" stroke-width="6" stroke-linecap="square" opacity="0.35"></path>
+
+    <!-- Eyes, which follow the glass, and blink. -->
+    <g class="lost-eyes">
+      <g class="lost-blink">
+        <rect x="88" y="88" width="10" height="14" fill="var(--color-zinc-100)"></rect>
+        <rect x="122" y="88" width="10" height="14" fill="var(--color-zinc-100)"></rect>
+      </g>
+    </g>
+
+    <!-- The arm and magnifying glass, which sweep from side to side. -->
+    <g class="lost-glass">
+      <line x1="150" y1="118" x2="176" y2="96" stroke="var(--color-zinc-600)" stroke-width="5" stroke-linecap="square"></line>
+      <circle cx="186" cy="86" r="15" fill="color-mix(in oklab, var(--color-info-400) 14%, transparent)" stroke="var(--color-zinc-300)" stroke-width="4"></circle>
+      <circle cx="181" cy="81" r="4" fill="var(--color-zinc-100)" opacity="0.55"></circle>
+    </g>
+  </g>
+
+  <!-- The question that appears when nothing is found. -->
+  <g class="lost-question">
+    <rect x="96" y="10" width="28" height="30" fill="var(--color-brand-500)"></rect>
+    <text x="110" y="33" text-anchor="middle" font-size="22" font-weight="700" fill="var(--color-on-accent)">?</text>
+  </g>
+</svg>
+
+<style>
+  .lost {
+    overflow: visible;
+  }
+  .lost-body,
+  .lost-shadow,
+  .lost-eyes,
+  .lost-blink,
+  .lost-glass,
+  .lost-question {
+    transform-box: fill-box;
+  }
+  .lost-body {
+    transform-origin: 50% 100%;
+  }
+  .lost-shadow {
+    transform-origin: 50% 50%;
+  }
+  .lost-blink {
+    transform-origin: 50% 50%;
+  }
+  /* The glass pivots at the shoulder. */
+  .lost-glass {
+    transform-origin: 0% 100%;
+  }
+  .lost-question {
+    transform-origin: 50% 100%;
+  }
+
+  /* With reduced motion: the still picture, question showing. */
+  @media (prefers-reduced-motion: no-preference) {
+    .lost-body {
+      animation: lost-hop 4.5s var(--motion-ease-in-out) both;
+    }
+    .lost-shadow {
+      animation: lost-shadow 4.5s var(--motion-ease-in-out) both;
+    }
+    .lost-glass {
+      animation: lost-sweep 4.5s var(--motion-ease-in-out) both;
+    }
+    .lost-eyes {
+      animation: lost-look 4.5s var(--motion-ease-in-out) both;
+    }
+    .lost-blink {
+      animation: lost-blink 4.5s linear both;
+    }
+    .lost-question {
+      animation: lost-question 4.5s var(--motion-ease-out) both;
+    }
+  }
+
+  /* Searching: the glass sweeps out to the right, back across to the left, then drops. */
+  @keyframes lost-sweep {
+    0% {
+      transform: rotate(0deg);
+    }
+    18% {
+      transform: rotate(-14deg);
+    }
+    40% {
+      transform: rotate(10deg) translateX(-62px);
+    }
+    58% {
+      transform: rotate(-18deg) translateX(-118px);
+    }
+    76% {
+      transform: rotate(-4deg) translateX(-118px);
+    }
+    100% {
+      transform: rotate(32deg) translateY(10px);
+    }
+  }
+  /* The eyes follow the glass. */
+  @keyframes lost-look {
+    0%,
+    10% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(6px);
+    }
+    42% {
+      transform: translateX(-2px);
+    }
+    60% {
+      transform: translateX(-7px);
+    }
+    80%,
+    100% {
+      transform: translateX(0) translateY(-2px);
+    }
+  }
+  @keyframes lost-blink {
+    0%,
+    30%,
+    33%,
+    84%,
+    87%,
+    100% {
+      transform: scaleY(1);
+    }
+    31.5%,
+    85.5% {
+      transform: scaleY(0.1);
+    }
+  }
+  /* A small hop as it gives up, and a shrug. */
+  @keyframes lost-hop {
+    0%,
+    76% {
+      transform: translateY(0) scale(1);
+    }
+    82% {
+      transform: translateY(0) scale(1.04, 0.94);
+    }
+    88% {
+      transform: translateY(-10px) scale(0.98, 1.03);
+    }
+    94%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes lost-shadow {
+    0%,
+    82% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    88% {
+      transform: scale(0.8);
+      opacity: 0.6;
+    }
+    94%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes lost-question {
+    0%,
+    80% {
+      transform: translateY(8px) scale(0.6);
+      opacity: 0;
+    }
+    90% {
+      transform: translateY(-3px) scale(1.06);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+</style>

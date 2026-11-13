@@ -1,0 +1,151 @@
+---
+/**
+ * The same first step in three ways. Tabs are plain buttons with a few lines of script, so the
+ * code is in the page as HTML and readable even before JavaScript runs.
+ */
+import { Code } from 'astro:components';
+import { codeTheme } from '../../lib/code-theme';
+
+interface Tab {
+  id: string;
+  label: string;
+  lang: 'ts' | 'bash' | 'tsx';
+  code: string;
+}
+
+const tabs: Tab[] = [
+  {
+    id: 'sdk',
+    label: 'Node.js',
+    lang: 'ts',
+    code: `import { Gami } from '@gami.fied/sdk';
+
+const gami = new Gami({ baseUrl: process.env.GAMI_API_URL, apiKey: process.env.GAMI_API_KEY });
+
+// Rules, streaks and achievements run in the background.
+await gami.events.track({
+  userId: 'user_123',
+  type: 'lesson_completed',
+  properties: { course: 'spanish-101' },
+});`,
+  },
+  {
+    id: 'curl',
+    label: 'cURL',
+    lang: 'bash',
+    code: `curl -X POST https://gami.example.com/v1/events \\
+  -H "x-api-key: $GAMI_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "event": "lesson_completed", "user_id": "user_123" }'`,
+  },
+  {
+    id: 'react',
+    label: 'React',
+    lang: 'tsx',
+    code: `import { GamiProvider, LevelProgress, StreakCalendar, ToastHost } from '@gami.fied/react';
+import '@gami.fied/react/styles.css';
+
+export function Rewards({ token }: { token: string }) {
+  return (
+    <GamiProvider endUserToken={token} baseUrl="https://gami.example.com">
+      <LevelProgress />
+      <StreakCalendar />
+      <ToastHost position="bottom-right" />
+    </GamiProvider>
+  );
+}`,
+  },
+];
+---
+
+<div class="min-w-0 border border-zinc-800 bg-zinc-950" data-code-tabs>
+  <div class="relative flex border-b border-zinc-800" role="tablist" aria-label="Code samples">
+    {
+      tabs.map((tab, index) => (
+        <button
+          type="button"
+          role="tab"
+          id={`tab-${tab.id}`}
+          aria-controls={`panel-${tab.id}`}
+          aria-selected={index === 0 ? 'true' : 'false'}
+          tabindex={index === 0 ? 0 : -1}
+          class="relative px-4 py-3 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-200 aria-selected:text-zinc-100 aria-selected:after:absolute aria-selected:after:inset-x-0 aria-selected:after:-bottom-px aria-selected:after:h-0.5 aria-selected:after:bg-brand-500"
+        >
+          {tab.label}
+        </button>
+      ))
+    }
+    <!-- Slides between tabs once the script runs; until then each tab draws its own underline. -->
+    <span class="tab-indicator pointer-events-none absolute -bottom-px left-0 hidden h-0.5 w-full origin-left bg-brand-500" aria-hidden="true" data-tab-indicator></span>
+  </div>
+  {
+    tabs.map((tab, index) => (
+      <div role="tabpanel" id={`panel-${tab.id}`} aria-labelledby={`tab-${tab.id}`} hidden={index !== 0} class="overflow-x-auto p-5 text-[13px] leading-relaxed [&_pre]:!bg-transparent">
+        <Code code={tab.code} lang={tab.lang} theme={codeTheme} />
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  [data-code-tabs][data-indicator] [role='tab']::after {
+    display: none;
+  }
+  [data-code-tabs][data-indicator] [data-tab-indicator] {
+    display: block;
+  }
+</style>
+
+<script>
+  import { animate } from 'motion/mini';
+  import { prefersReducedMotion } from '../../motion/lifecycle';
+  import { MOTION } from '../../motion/tokens';
+
+  // Works for every tab set on the page, and again after page transitions.
+  const setup = () => {
+    document.querySelectorAll<HTMLElement>('[data-code-tabs]').forEach((root) => {
+      if (root.dataset.ready) return;
+      root.dataset.ready = 'true';
+      const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+      const indicator = root.querySelector<HTMLElement>('[data-tab-indicator]');
+      // The underline slides with transforms only, sized against the whole tab bar.
+      const moveIndicator = (tab: HTMLButtonElement, instant: boolean) => {
+        if (!indicator) return;
+        const bar = indicator.parentElement!.getBoundingClientRect();
+        const box = tab.getBoundingClientRect();
+        // A CSS transition moves it, so this needs no animation library.
+        indicator.style.transition = instant || prefersReducedMotion() ? 'none' : `transform ${MOTION.quick}s cubic-bezier(${MOTION.easeInOut.join(',')})`;
+        indicator.style.transform = `translateX(${box.left - bar.left}px) scaleX(${box.width / bar.width})`;
+      };
+      const select = (next: HTMLButtonElement) => {
+        for (const tab of tabs) {
+          const on = tab === next;
+          tab.setAttribute('aria-selected', String(on));
+          tab.tabIndex = on ? 0 : -1;
+          const panel = root.querySelector<HTMLElement>(`#${tab.getAttribute('aria-controls')}`);
+          if (panel) panel.hidden = !on;
+          if (panel && on && !prefersReducedMotion()) animate(panel, { opacity: [0, 1] }, { duration: MOTION.quick, ease: MOTION.easeOut });
+        }
+        moveIndicator(next, false);
+        next.focus();
+      };
+      root.dataset.indicator = '';
+      moveIndicator(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true') ?? tabs[0]!, true);
+      // Removed when the page is swapped, so listeners never pile up across visits.
+      const page = new AbortController();
+      document.addEventListener('astro:before-swap', () => page.abort(), { once: true });
+      window.addEventListener('resize', () => moveIndicator(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true') ?? tabs[0]!, true), { signal: page.signal });
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('keydown', (event) => {
+          const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+          if (!step) return;
+          event.preventDefault();
+          select(tabs[(index + step + tabs.length) % tabs.length]!);
+        });
+      });
+    });
+  };
+  setup();
+  document.addEventListener('astro:page-load', setup);
+</script>

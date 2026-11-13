@@ -1,0 +1,105 @@
+# One-click deploy to DigitalOcean App Platform
+# (https://cloud.digitalocean.com/apps/new?repo=https://github.com/gami-fied/gami.fied/tree/master).
+# The dashboard is the only public service; it forwards /api and /v1 to the API over the app's
+# private network. Guide: docs/install/one-click.md. Not yet tested on a real DigitalOcean account.
+spec:
+  name: gami-fied
+
+  # Shared by every part of the app, so each secret is entered once.
+  envs:
+    - key: NODE_ENV
+      value: production
+    - key: TRUST_PROXY
+      value: 'true'
+    - key: DATABASE_URL
+      scope: RUN_TIME
+      value: ${db.DATABASE_URL}
+    - key: REDIS_URL
+      scope: RUN_TIME
+      value: ${redis.DATABASE_URL}
+    - key: BETTER_AUTH_URL
+      value: ${APP_URL}
+    - key: NEXT_PUBLIC_APP_URL
+      value: ${APP_URL}
+    # Fill these in with long random values, for example from `openssl rand -hex 32`.
+    # Keep a copy of ENCRYPTION_MASTER_KEY: backups cannot be restored without it.
+    - key: BETTER_AUTH_SECRET
+      type: SECRET
+      value: ''
+    - key: ENCRYPTION_MASTER_KEY
+      type: SECRET
+      value: ''
+    - key: PLATFORM_BOOTSTRAP_SECRET
+      type: SECRET
+      value: ''
+
+  services:
+    - name: dashboard
+      image:
+        registry_type: GHCR
+        registry: gami-fied
+        repository: gami-dashboard
+        tag: latest
+      http_port: 3000
+      instance_count: 1
+      instance_size_slug: apps-s-1vcpu-0.5gb
+      routes:
+        - path: /
+      health_check:
+        http_path: /login
+      envs:
+        - key: PORT
+          value: '3000'
+        - key: API_URL
+          value: http://api:3001
+
+    - name: api
+      image:
+        registry_type: GHCR
+        registry: gami-fied
+        repository: gami-api
+        tag: latest
+      # Reachable only from the dashboard and the worker.
+      internal_ports:
+        - 3001
+      instance_count: 1
+      instance_size_slug: apps-s-1vcpu-1gb
+      health_check:
+        http_path: /ready
+        port: 3001
+      envs:
+        - key: PORT
+          value: '3001'
+        - key: HOST
+          value: 0.0.0.0
+
+  workers:
+    - name: worker
+      image:
+        registry_type: GHCR
+        registry: gami-fied
+        repository: gami-worker
+        tag: latest
+      instance_count: 1
+      instance_size_slug: apps-s-1vcpu-0.5gb
+
+  jobs:
+    # Brings the database up to date before each deploy goes live.
+    - name: migrate
+      kind: PRE_DEPLOY
+      image:
+        registry_type: GHCR
+        registry: gami-fied
+        repository: gami-api
+        tag: latest
+      run_command: node packages/database/dist/migrate.js
+      instance_size_slug: apps-s-1vcpu-0.5gb
+
+  databases:
+    - name: db
+      engine: PG
+      production: false
+    # Managed Valkey (Redis-compatible) for the event queue and rate limits.
+    - name: redis
+      engine: VALKEY
+      production: true

@@ -1,0 +1,218 @@
+---
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { Code } from 'astro:components';
+import { codeTheme } from '../lib/code-theme';
+import { Database, Scale, Server } from '@lucide/astro';
+import GithubIcon from '../components/icons/GithubIcon.astro';
+import Button from '../components/Button.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import Section from '../components/Section.astro';
+import CodeTabs from '../components/home/CodeTabs.astro';
+import EngineDiagram from '../components/home/EngineDiagram.astro';
+import HowItWorks from '../components/home/HowItWorks.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { EVENTS } from '../lib/analytics';
+import { FEATURES } from '../lib/features';
+import { SITE } from '../lib/site';
+
+// "latest" always points at the newest release, so this never needs a version bump.
+const install = `curl -LO ${SITE.github}/releases/latest/download/docker-compose.yml
+curl -LO ${SITE.github}/releases/latest/download/env.example
+cp env.example .env   # then fill in the secrets
+docker compose up -d`;
+
+// The product tour, recorded from the live demo by `pnpm capture`. The section is left out without it.
+const hasTour = existsSync(join(process.cwd(), 'public/video/tour.mp4'));
+
+// Counted from the source at build time, so they never drift from the product.
+const repo = (path: string) => readFileSync(join(process.cwd(), '../..', path), 'utf8');
+const openapi = JSON.parse(repo('docs/openapi.json')) as { paths: Record<string, Record<string, unknown>> };
+const numbers = [
+  { value: (repo('packages/database/src/features.ts').match(/^  { key: '/gm) ?? []).length, label: 'features in the free, open-source edition' },
+  {
+    value: Object.values(openapi.paths).reduce((total, path) => total + Object.keys(path).filter((method) => ['get', 'post', 'put', 'patch', 'delete'].includes(method)).length, 0),
+    label: 'API operations, each one documented',
+  },
+  { value: (repo('packages/react/src/components.tsx').match(/^export (function|const) [A-Z]/gm) ?? []).length, label: 'ready-made React components' },
+];
+
+const reasons = [
+  { icon: Database, title: 'Your data stays yours', text: 'Player data, events and rewards live in your own PostgreSQL. Nothing is sent anywhere else.' },
+  { icon: Scale, title: 'No bill per user', text: 'Run it for ten players or ten million. The engine is open source and free, with no per-user pricing.' },
+  { icon: Server, title: 'Runs with one command', text: 'Docker Compose brings up the API, worker, dashboard, PostgreSQL and Redis, with health checks and migrations.' },
+];
+---
+
+<SiteLayout og="index">
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(55%_60%_at_50%_0%,color-mix(in_oklab,var(--color-brand-500)_20%,transparent),transparent)]" aria-hidden="true"></div>
+    <div class="relative mx-auto max-w-4xl px-6 pb-12 pt-20 text-center sm:pt-28">
+      <a
+        href="/blog/"
+        class="mb-6 inline-flex items-center gap-2 border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-medium text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+      >
+        <span class="h-1.5 w-1.5 bg-brand-500" aria-hidden="true"></span>
+        Open source and self-hosted · Read what is new
+      </a>
+      <h1 class="text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-6xl" data-hero-headline>
+        The gamification engine you run yourself
+      </h1>
+      <p class="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400" data-hero-after>
+        Turn what people do in your app into XP, streaks, badges, leaderboards, leagues and rewards. Open source, self-hosted, and your data never leaves your servers.
+      </p>
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row" data-hero-after>
+        <Button href="/playground/">Try it in your browser</Button>
+        {SITE.demoUrl && <Button href={`${SITE.demoUrl}/demo`} variant="secondary" track={EVENTS.demoStarted} trackSource="home-hero">Try the dashboard</Button>}
+        <Button href="#install" variant="secondary" track={EVENTS.installStarted} trackSource="home-hero">Install in one command</Button>
+      </div>
+    </div>
+    <div class="relative px-6 pb-8">
+      <EngineDiagram />
+    </div>
+  </section>
+
+  <!-- Numbers -->
+  <section class="mx-auto max-w-6xl px-6 pb-8" aria-label="Gami.Fied in numbers">
+    <dl class="grid gap-px border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
+      {
+        numbers.map((item) => (
+          <div class="flex flex-col bg-zinc-950 px-6 py-6 text-center">
+            <dt class="order-2 mt-1 text-sm text-zinc-400">{item.label}</dt>
+            <dd class="text-3xl font-bold tracking-tight text-zinc-50 tabular-nums" data-count-to={item.value}>
+              {item.value}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <!-- How it works -->
+  <Section
+    id="how-it-works"
+    eyebrow="How it works"
+    title="Three steps from event to reward"
+    intro="Send events from anywhere. Gami.Fied decides what they are worth, and your players see it straight away."
+  >
+    <HowItWorks />
+  </Section>
+
+  <!-- Product tour -->
+  {
+    hasTour && (
+      <Section
+        id="tour"
+        eyebrow="See it"
+        title="The dashboard in two and a half minutes"
+        intro="Rules, badges, streaks, leaderboards, leagues and the store, recorded from the live demo. No sound, with captions."
+      >
+        <figure class="overflow-hidden border border-zinc-800 bg-zinc-950 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.8)]" data-flatten>
+          <video
+            class="block h-auto w-full"
+            controls
+            playsinline
+            muted
+            preload="none"
+            poster="/video/tour-poster.jpg"
+            width="1440"
+            height="900"
+            aria-label="A tour of the Gami.Fied dashboard with demo data: the overview, sending traffic, rules, achievements, streaks, the leaderboard, leagues, the store and players."
+          >
+            <source src="/video/tour.mp4" type="video/mp4" />
+            Your browser cannot play this video. <a href="/video/tour.mp4">Download it</a> instead.
+          </video>
+        </figure>
+      </Section>
+    )
+  }
+
+  <!-- Features -->
+  <Section
+    eyebrow="Everything in one engine"
+    title="More than points and badges"
+    intro="Progression, a points economy, competition, community, integrations and the controls to run it, all in the free, open-source edition."
+  >
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+      {FEATURES.map((feature) => <FeatureCard feature={feature} />)}
+    </div>
+  </Section>
+
+  <!-- Code -->
+  <Section eyebrow="For developers" title="Five lines to your first reward" intro="Typed SDK, plain HTTP, or drop-in React components. Pick what fits.">
+    <div class="grid items-start gap-8 lg:grid-cols-[1.25fr_1fr]">
+      <CodeTabs />
+      <ul class="space-y-5 text-sm" data-reveal-group>
+        {
+          [
+            ['Typed end to end', 'The SDK covers every public route, with retries and clear errors.'],
+            ['Safe in the browser', 'Short-lived player tokens read only that player\'s own data.'],
+            ['Live by default', 'Toasts and leaderboards update the moment rewards land.'],
+            ['Documented API', 'An OpenAPI document, tested against the real responses.'],
+          ].map(([title, text]) => (
+            <li class="border-l-2 border-brand-500/60 pl-4">
+              <p class="font-semibold text-zinc-100">{title}</p>
+              <p class="mt-1 leading-relaxed text-zinc-400">{text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </Section>
+
+  <!-- Why self-hosted -->
+  <Section eyebrow="Why self-hosted" title="Own the engine, not just the integration">
+    <div class="grid gap-4 md:grid-cols-3" data-reveal-group>
+      {
+        reasons.map((reason) => (
+          <div class="border border-zinc-800 bg-zinc-900/30 p-6">
+            <reason.icon size={20} class="text-brand-400" aria-hidden="true" />
+            <h3 class="mt-4 font-semibold text-zinc-100">{reason.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-zinc-400">{reason.text}</p>
+          </div>
+        ))
+      }
+    </div>
+    <p class="mt-6 text-sm text-zinc-500">
+      Comparing options? See <a href="/compare/" class="text-brand-300 underline-offset-4 hover:underline">how Gami.Fied compares</a>, including where it is weaker.
+    </p>
+  </Section>
+
+  <!-- Install -->
+  <Section id="install" eyebrow="Install" title="Up and running in minutes" intro="Download the release files, fill in your secrets, and start it. Upgrades are one setting.">
+    <div class="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <div class="overflow-x-auto border border-zinc-800 bg-zinc-950 p-5 text-[13px] leading-relaxed [&_pre]:!bg-transparent">
+        <Code code={install} lang="bash" theme={codeTheme} />
+      </div>
+      <div class="space-y-4 text-sm text-zinc-400">
+        <p>The dashboard opens at <code class="bg-zinc-800/80 px-1 py-0.5 text-zinc-200">http://localhost:3000</code>. Images are published for amd64 and arm64.</p>
+        <div class="flex flex-wrap gap-3">
+          <Button href="/docs/" variant="secondary">Read the install guide</Button>
+          <Button href={SITE.releases} variant="secondary" external track={EVENTS.installStarted} trackSource="home-install">See the latest release</Button>
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <!-- Final call to action -->
+  <section class="mx-auto max-w-6xl px-6 pb-24">
+    <div class="relative overflow-hidden border border-zinc-800 bg-zinc-900/40 px-8 py-14 text-center sm:px-16" data-glow>
+      <div class="cta-glow pointer-events-none absolute inset-0" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_50%_100%,color-mix(in_oklab,var(--color-brand-500)_16%,transparent),transparent)]" aria-hidden="true"></div>
+      <h2 class="relative text-balance text-3xl font-bold tracking-tight text-zinc-50">Give your players a reason to come back</h2>
+      <p class="relative mx-auto mt-4 max-w-xl text-zinc-400">Free and open source. Install it today, or star the project to follow along.</p>
+      <div class="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <Button href="/docs/">Get started</Button>
+        <Button href={SITE.github} variant="secondary" external>
+          <GithubIcon size={16} /> Star on GitHub
+        </Button>
+      </div>
+    </div>
+  </section>
+</SiteLayout>
+
+<script>
+  import '../motion/scenes/hero';
+  import '../motion/scenes/home';
+</script>

@@ -1,0 +1,58 @@
+---
+/**
+ * The frame for every marketing page: head tags, fonts, page transitions, header and footer.
+ * Docs pages are framed by Starlight instead.
+ */
+import '@fontsource/space-grotesk/400.css';
+import '@fontsource/space-grotesk/500.css';
+import '@fontsource/space-grotesk/700.css';
+import '@fontsource/space-mono/400.css';
+import '../styles/site.css';
+// The fonts most pages use first, preloaded so text does not move when they arrive.
+import groteskRegular from '@fontsource/space-grotesk/files/space-grotesk-latin-400-normal.woff2?url';
+import groteskBold from '@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2?url';
+import { ClientRouter, fade } from 'astro:transitions';
+import Analytics from '../components/Analytics.astro';
+import Seo from '../components/Seo.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  og?: string;
+  noindex?: boolean;
+  /** Full-screen tools such as the API explorer leave the footer out. */
+  footer?: boolean;
+}
+
+const { footer = true, ...props } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="font" type="font/woff2" href={groteskRegular} crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href={groteskBold} crossorigin />
+    <Seo {...props} />
+    <ClientRouter fallback="swap" />
+    <Analytics />
+  </head>
+  <body class="flex min-h-dvh flex-col bg-zinc-950 text-zinc-100">
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-on-accent">Skip to content</a>
+    <SiteHeader />
+    <main id="main" class="flex-1" transition:animate={fade({ duration: '200ms' })}>
+      <slot />
+    </main>
+    {footer && <SiteFooter />}
+    <script>
+      // Scroll reveals on every marketing page. Heavier scenes load with their own components.
+      import '../motion/reveal';
+    </script>
+  </body>
+</html>

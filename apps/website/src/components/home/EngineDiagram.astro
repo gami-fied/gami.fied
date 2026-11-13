@@ -1,0 +1,100 @@
+---
+/**
+ * "Events in, rewards out", the home page's one big picture. This is the still version, which is
+ * also what people with reduced motion see. WEB-37 animates it with GSAP, using the `data-part`
+ * hooks: event dots travel along the paths, the engine pulses, and the rewards fill in.
+ */
+---
+
+<figure class="relative mx-auto w-full max-w-4xl" aria-labelledby="engine-caption" data-engine-diagram>
+  <svg viewBox="0 0 760 320" class="h-auto w-full" role="img" aria-labelledby="engine-title engine-desc">
+    <title id="engine-title">How Gami.Fied works</title>
+    <desc id="engine-desc">Events from your app flow into the Gami.Fied engine, where rules turn them into XP, a badge and a better place on the leaderboard.</desc>
+    <defs>
+      <linearGradient id="engine-glow" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="var(--color-brand-500)" stop-opacity="0.22"></stop>
+        <stop offset="100%" stop-color="var(--color-brand-500)" stop-opacity="0.04"></stop>
+      </linearGradient>
+    </defs>
+
+    <!-- Your app -->
+    <g data-part="app">
+      <rect x="20" y="96" width="150" height="128" fill="var(--color-zinc-900)" stroke="var(--color-zinc-800)"></rect>
+      <text x="40" y="126" fill="var(--color-zinc-400)" font-size="12">Your app</text>
+      <rect x="40" y="142" width="110" height="22" fill="var(--color-zinc-950)" stroke="var(--color-zinc-800)"></rect>
+      <text x="50" y="157" fill="var(--color-zinc-300)" font-size="11" font-family="var(--font-mono)">lesson_completed</text>
+      <rect x="40" y="174" width="110" height="22" fill="var(--color-zinc-950)" stroke="var(--color-zinc-800)"></rect>
+      <text x="50" y="189" fill="var(--color-zinc-300)" font-size="11" font-family="var(--font-mono)">order_paid</text>
+    </g>
+
+    <!-- Paths in -->
+    <path data-part="path-in-1" d="M170 153 C 230 153, 250 140, 300 140" fill="none" stroke="var(--color-zinc-700)" stroke-dasharray="4 6"></path>
+    <path data-part="path-in-2" d="M170 185 C 230 185, 250 180, 300 180" fill="none" stroke="var(--color-zinc-700)" stroke-dasharray="4 6"></path>
+    <circle data-part="event-dot-1" cx="236" cy="147" r="5" fill="var(--color-brand-400)"></circle>
+    <circle data-part="event-dot-2" cx="252" cy="182" r="5" fill="var(--color-info-400)"></circle>
+
+    <!-- The engine -->
+    <g data-part="engine">
+      <rect x="300" y="72" width="160" height="176" fill="url(#engine-glow)" stroke="var(--color-brand-500)" stroke-opacity="0.7"></rect>
+      <text x="380" y="104" text-anchor="middle" fill="var(--color-zinc-50)" font-size="15" font-weight="700">Gami.Fied</text>
+      <text x="380" y="122" text-anchor="middle" fill="var(--color-zinc-500)" font-size="11">engine</text>
+      {
+        ['Rules', 'Streaks', 'Limits'].map((label, index) => (
+          <g data-part={`rule-${index + 1}`}>
+            <rect x="320" y={138 + index * 34} width="120" height="24" fill="var(--color-zinc-950)" stroke="var(--color-zinc-800)" />
+            <text x="334" y={154 + index * 34} fill="var(--color-zinc-300)" font-size="11">{label}</text>
+            <circle cx="426" cy={150 + index * 34} r="3" fill="var(--color-success-400)" />
+          </g>
+        ))
+      }
+    </g>
+
+    <!-- Paths out -->
+    <path data-part="path-out-1" d="M460 110 C 510 110, 520 96, 560 96" fill="none" stroke="var(--color-zinc-700)" stroke-dasharray="4 6"></path>
+    <path data-part="path-out-2" d="M460 160 C 510 160, 520 160, 560 160" fill="none" stroke="var(--color-zinc-700)" stroke-dasharray="4 6"></path>
+    <path data-part="path-out-3" d="M460 210 C 510 210, 520 226, 560 226" fill="none" stroke="var(--color-zinc-700)" stroke-dasharray="4 6"></path>
+
+    <!-- XP -->
+    <g data-part="reward-xp">
+      <rect x="560" y="72" width="180" height="48" fill="var(--color-zinc-900)" stroke="var(--color-zinc-800)"></rect>
+      <text x="574" y="91" fill="var(--color-zinc-300)" font-size="11">+50 XP · Level 7</text>
+      <rect x="574" y="101" width="152" height="6" fill="var(--color-zinc-800)"></rect>
+      <rect data-part="xp-fill" x="574" y="101" width="110" height="6" fill="var(--color-brand-500)"></rect>
+    </g>
+
+    <!-- Badge -->
+    <g data-part="reward-badge">
+      <rect x="560" y="136" width="180" height="48" fill="var(--color-zinc-900)" stroke="var(--color-zinc-800)"></rect>
+      <rect x="574" y="148" width="24" height="24" fill="var(--color-warning-500)" fill-opacity="0.2" stroke="var(--color-warning-400)"></rect>
+      <text x="586" y="165" text-anchor="middle" fill="var(--color-warning-300)" font-size="12">★</text>
+      <text x="608" y="158" fill="var(--color-zinc-200)" font-size="11" font-weight="600">Badge unlocked</text>
+      <text x="608" y="173" fill="var(--color-zinc-500)" font-size="10">Seven-day streak</text>
+    </g>
+
+    <!-- Leaderboard -->
+    <g data-part="reward-rank">
+      <rect x="560" y="200" width="180" height="48" fill="var(--color-zinc-900)" stroke="var(--color-zinc-800)"></rect>
+      <text x="574" y="220" fill="var(--color-zinc-300)" font-size="11">Weekly leaderboard</text>
+      <text x="574" y="237" fill="var(--color-success-400)" font-size="11" font-family="var(--font-mono)">#5 → #3</text>
+    </g>
+  </svg>
+  <figcaption id="engine-caption" class="mt-4 text-center text-sm text-zinc-500">
+    Events go in. Rules, streaks and limits decide. Rewards come out, on servers you run.
+  </figcaption>
+  <!-- Shown only while the diagram animates, so it can be paused (WCAG 2.2.2). -->
+  <button
+    type="button"
+    hidden
+    aria-pressed="false"
+    data-engine-toggle
+    class="absolute right-0 top-0 inline-flex items-center gap-1.5 border border-zinc-800 bg-zinc-950/80 px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+  >
+    <!-- An icon rather than an emoji, which browsers draw differently. -->
+    <svg aria-hidden="true" viewBox="0 0 12 12" width="10" height="10" fill="currentColor"><rect x="2" y="2" width="3" height="8"></rect><rect x="7" y="2" width="3" height="8"></rect></svg>
+    <span data-label>Pause animation</span>
+  </button>
+</figure>
+
+<script>
+  import '../../motion/scenes/engine';
+</script>

@@ -1,6 +1,6 @@
 {
   "name": "gami-fied",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -44,7 +44,9 @@
     "@types/node": "^26.6.6",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "^3.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
     "prettier": "^3.9.10",
     "turbo": "^2.11.10",
     "typescript": "^5.9.3",

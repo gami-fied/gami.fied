@@ -10,6 +10,8 @@ export interface Organization {
   name: string;
   slug: string;
   role?: string;
+  /** Set for a live demo on a demo instance: when it and everything in it are deleted. */
+  demoExpiresAt?: string | null;
 }
 
 export interface Project {

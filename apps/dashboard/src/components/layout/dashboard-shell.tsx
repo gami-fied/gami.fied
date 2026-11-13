@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDashboard } from '../features/context/dashboard-context';
 import { Sidebar } from './sidebar';
 import { ApiStatusBanner } from './api-status-banner';
+import { DemoBanner } from './demo-banner';
 import { CommandPalette } from './command-palette';
 import { Topbar } from './topbar';
 import { OnboardingFlow } from '../features/onboarding/onboarding-flow';
@@ -127,6 +128,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         <Topbar onMobileMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />
         <CommandPalette />
         <ApiStatusBanner />
+        <DemoBanner />
 
         {error && (
           <div className="m-6 mb-0 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs px-4 py-3 rounded-none flex items-center justify-between">

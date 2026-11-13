@@ -1,0 +1,43 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+import { repoFile, SITE } from '../../lib/site';
+---
+
+<LegalLayout title="Licences" description="What the AGPL-3.0 server licence and the MIT SDK licence mean for you, in plain words." og="legal" updated="12 November 2026">
+  <p>
+    {SITE.name} uses two licences on purpose: a copyleft licence for the server, so improvements to the engine stay open, and a
+    permissive one for the code you put in your own apps. This page explains them in plain words. The licence texts are what count.
+  </p>
+
+  <h2>The server: AGPL-3.0</h2>
+  <p>
+    The API, worker, dashboard and engine packages are licensed under the
+    <a href={repoFile('LICENSE')}>GNU Affero General Public License v3.0</a>.
+  </p>
+  <ul>
+    <li>You can run it for any purpose, including inside a commercial product, at no cost.</li>
+    <li>You can read, change and share the code.</li>
+    <li>
+      If you change the server and let people use your changed version over a network, you must offer them the source code of your
+      changes, under the same licence.
+    </li>
+    <li>Running it unchanged, or connecting your app to it through its API, does not on its own make your app's code subject to the AGPL.</li>
+  </ul>
+
+  <h2>The SDK: MIT</h2>
+  <p>
+    The TypeScript SDK, <code>@gami.fied/sdk</code>, is licensed under the <a href={repoFile('packages/sdk/LICENSE')}>MIT License</a>.
+    You can use it in any app, open or closed source, and you only need to keep its copyright notice.
+  </p>
+
+  <h2>Future editions</h2>
+  <p>
+    Paid Cloud and Enterprise editions are planned. Enterprise-only features will live in their own folder with their own licence, and
+    the engine in the open-source edition will not be cut down.
+  </p>
+
+  <h2>Contributing</h2>
+  <p>
+    Contributions are welcome. How contributions are licensed is described in the repository before outside contributions are accepted.
+  </p>
+</LegalLayout>

@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import { LogoMark } from '@gami/ui';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,9 +68,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Logo Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-none bg-brand-500 items-center justify-center text-on-accent">
-            <Sparkles className="w-6 h-6" />
-          </div>
+          <LogoMark size={48} className="mx-auto block border border-zinc-800" />
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Sign in to Gami.Fied</h1>
           <p className="text-xs text-zinc-400">Sign in to your gamification dashboard</p>
         </div>

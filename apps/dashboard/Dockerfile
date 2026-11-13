@@ -6,7 +6,9 @@ RUN corepack enable
 FROM base AS builder
 WORKDIR /app
 COPY . .
-RUN pnpm install --frozen-lockfile
+# Installs only this app's packages and the root tools (turbo), so the website and the other
+# apps' dependencies are not installed, once per platform, under emulation.
+RUN pnpm install --frozen-lockfile --filter "@gami/dashboard..." --filter "{.}"
 # Published images run on any domain, so no address is built in. The browser talks to this
 # server, and this server reaches the API through API_URL, which is read at runtime.
 ENV NEXT_OUTPUT=standalone

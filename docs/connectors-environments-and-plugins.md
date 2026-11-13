@@ -38,6 +38,20 @@ currencies, achievements, levels, streaks, segments, leagues, rules, challenges,
 - Store stock is not copied over a live count. Player data (users, XP, purchases) is never copied.
 - Both projects must be in one organization, and you must be an owner or admin of both.
 
+### Design files
+
+A design file is a project's design saved as JSON: its currencies, achievements, levels, streaks, segments, leagues, rules, challenges, boosts, limits and store rewards, with project IDs replaced by keys. It never holds player data. Use one to copy a design to a project on another install, to keep a backup of your rules, or to keep the setup of the [live demo](./live-demo.md).
+
+On the **Promote changes** page, owners and admins can download the project's design or import a file. Importing shows what it would add and change first, and warns about rules that award an achievement neither the file nor the project has. Like promotion, it adds and updates, and never deletes.
+
+| Route | What it does |
+| :--- | :--- |
+| `GET /api/projects/:projectId/design` | Downloads the design as a file |
+| `POST /api/projects/:projectId/design/preview` | Checks a file (`{ "design": ... }`) and lists what it would add or change |
+| `POST /api/projects/:projectId/design` | Imports it, optionally only the chosen `items` |
+
+Rules, challenges and levels in a file are checked as if they were saved in the dashboard, so a file that would not save is refused whole. Files may be up to 4 MB.
+
 ## Expression conditions
 
 When the rule builder cannot express a condition, add an **expression**: a [JSONLogic](https://jsonlogic.com) rule that reads the event's `type`, `userId`, `occurredAt` and `payload`.

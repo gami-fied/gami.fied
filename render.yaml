@@ -1,0 +1,94 @@
+# One-click deploy to Render (https://render.com/deploy?repo=https://github.com/gami-fied/gami.fied).
+# The dashboard is the only public service; it forwards /api and /v1 to the private API.
+# Guide: docs/install/one-click.md. Not yet tested on a real Render account.
+
+services:
+  - type: web
+    name: gami-dashboard
+    runtime: image
+    image:
+      url: ghcr.io/gami-fied/gami-dashboard:latest
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # host:port of the private API; the dashboard adds http:// itself.
+      - key: API_URL
+        fromService:
+          name: gami-api
+          type: pserv
+          property: hostport
+
+  - type: pserv
+    name: gami-api
+    runtime: image
+    image:
+      url: ghcr.io/gami-fied/gami-api:latest
+    # Brings the database up to date before each deploy goes live.
+    preDeployCommand: node packages/database/dist/migrate.js
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: 'true'
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gami-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: gami-redis
+          type: keyvalue
+          property: connectionString
+      # The dashboard's public address, such as https://gami-dashboard.onrender.com. Render asks for it.
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - fromGroup: gami-secrets
+
+  - type: worker
+    name: gami-worker
+    runtime: image
+    image:
+      url: ghcr.io/gami-fied/gami-worker:latest
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gami-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: gami-redis
+          type: keyvalue
+          property: connectionString
+      - fromGroup: gami-secrets
+
+  # The event queue needs Redis to keep every job, so nothing may be evicted.
+  - type: keyvalue
+    name: gami-redis
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: gami-db
+    databaseName: gami
+    user: gami
+
+envVarGroups:
+  # Generated once by Render and shared by the API and worker. Keep a copy of ENCRYPTION_MASTER_KEY:
+  # backups cannot be restored without it.
+  - name: gami-secrets
+    envVars:
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: ENCRYPTION_MASTER_KEY
+        generateValue: true
+      - key: PLATFORM_BOOTSTRAP_SECRET
+        generateValue: true

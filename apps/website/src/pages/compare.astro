@@ -1,0 +1,171 @@
+---
+import { Check, Minus, X } from '@lucide/astro';
+import Button from '../components/Button.astro';
+import Section from '../components/Section.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+
+/**
+ * An honest comparison. Facts about other products come from their public pages, linked below,
+ * as checked for PLAN.md's assessment. Update the date when you re-check them.
+ */
+const checkedOn = 'November 2026';
+
+type Mark = 'yes' | 'no' | 'partly';
+interface Cell {
+  mark: Mark;
+  note?: string;
+}
+
+const columns = ['Gami.Fied', 'Hosted gamification APIs', 'Enterprise loyalty engines', 'Open-source libraries', 'Building it yourself'];
+
+const rows: { label: string; cells: Cell[] }[] = [
+  {
+    label: 'Runs on your own servers',
+    cells: [{ mark: 'yes' }, { mark: 'no', note: 'Hosted only' }, { mark: 'partly', note: 'Usually by quote' }, { mark: 'yes' }, { mark: 'yes' }],
+  },
+  {
+    label: 'Open source',
+    cells: [{ mark: 'yes', note: 'AGPL server, MIT SDK' }, { mark: 'no' }, { mark: 'partly', note: 'Limited free editions' }, { mark: 'yes' }, { mark: 'yes', note: 'Your code' }],
+  },
+  {
+    label: 'Dashboard for your team',
+    cells: [{ mark: 'yes' }, { mark: 'yes' }, { mark: 'yes' }, { mark: 'no', note: 'Mostly code only' }, { mark: 'no', note: 'You build it' }],
+  },
+  {
+    label: 'Streaks, achievements, leagues and a store',
+    cells: [{ mark: 'yes' }, { mark: 'yes' }, { mark: 'partly', note: 'Loyalty focus' }, { mark: 'partly', note: 'Some of them' }, { mark: 'no', note: 'Months of work' }],
+  },
+  {
+    label: 'SDK and drop-in UI components',
+    cells: [{ mark: 'yes' }, { mark: 'yes' }, { mark: 'partly' }, { mark: 'no' }, { mark: 'no' }],
+  },
+  {
+    label: 'Cost as you grow',
+    cells: [{ mark: 'yes', note: 'Free, you pay for servers' }, { mark: 'partly', note: 'Monthly plans' }, { mark: 'partly', note: 'Enterprise contracts' }, { mark: 'yes', note: 'Free' }, { mark: 'partly', note: 'Engineering time' }],
+  },
+  {
+    label: 'Someone else runs it for you',
+    cells: [{ mark: 'no', note: 'Cloud is planned' }, { mark: 'yes' }, { mark: 'yes' }, { mark: 'no' }, { mark: 'no' }],
+  },
+];
+
+const examples = [
+  { group: 'Hosted gamification APIs', name: 'Trophy', href: 'https://trophy.so/pricing' },
+  { group: 'Enterprise loyalty engines', name: 'Open Loyalty', href: 'https://www.openloyalty.io/' },
+  { group: 'Open-source libraries', name: 'gengine (ActiDoo)', href: 'https://github.com/actidoo/gamification-engine' },
+  { group: 'Open-source libraries', name: 'GamifyKit', href: 'https://github.com/devblac/gamifykit' },
+];
+
+const weaker = [
+  { title: 'No managed hosting yet', text: 'You run the servers. A hosted Cloud edition is planned but not available. If you want someone else to run it today, a hosted API is the better fit.' },
+  { title: 'A young project', text: 'The community is small and the project is new. Hosted products and loyalty engines have years of production use behind them.' },
+  { title: 'No single sign-on yet', text: 'SAML, OIDC and SCIM are planned for Enterprise. Today the dashboard uses email and password accounts.' },
+  { title: 'Push not yet proven on real accounts', text: 'Apple and Google push are tested against stand-ins, not real developer accounts.' },
+  { title: 'No impact analytics yet', text: 'A/B tests of mechanics and retention reports, which prove the effect of gamification, are planned.' },
+  { title: 'React components need browser testing', text: 'They are tested by rendering on the server, not yet in real browsers, and are not on npm yet.' },
+];
+
+const icon = { yes: Check, no: X, partly: Minus } as const;
+const tone = { yes: 'text-success-400', no: 'text-zinc-600', partly: 'text-warning-400' } as const;
+const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
+---
+
+<SiteLayout title="Compare" description="How Gami.Fied compares with hosted gamification APIs, loyalty engines, open-source libraries and building it yourself, including where it is weaker." og="compare">
+  <Section
+    reveal={false} as="h1"
+    eyebrow="Compare"
+    title="How Gami.Fied compares"
+    intro="An honest look at the options, including where Gami.Fied is not the best choice yet."
+    class="pt-24"
+  >
+    <div class="relative overflow-x-auto border border-zinc-800">
+      <table class="w-full min-w-[820px] border-collapse text-left text-sm">
+        <caption class="sr-only">Gami.Fied compared with other options</caption>
+        <thead>
+          <tr class="border-b border-zinc-800 bg-zinc-900/60">
+            <th scope="col" class="w-56 px-4 py-4 font-medium text-zinc-500"><span class="sr-only">Feature</span></th>
+            {
+              columns.map((column, index) => (
+                <th scope="col" class:list={['px-4 py-4 font-semibold', index === 0 ? 'bg-brand-500/10 text-brand-200' : 'text-zinc-200']}>
+                  {column}
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody>
+          {
+            rows.map((row) => (
+              <tr class="border-b border-zinc-800/70 last:border-0">
+                <th scope="row" class="px-4 py-4 font-medium text-zinc-300">{row.label}</th>
+                {row.cells.map((cell, index) => {
+                  const Icon = icon[cell.mark];
+                  return (
+                    <td class:list={['px-4 py-4 align-top', index === 0 && 'bg-brand-500/5']}>
+                      <span class="inline-flex items-start gap-2">
+                        <Icon size={16} class:list={['mt-0.5 shrink-0', tone[cell.mark]]} aria-hidden="true" />
+                        <span class="sr-only">{label[cell.mark]}</span>
+                        {cell.note && <span class="text-zinc-400">{cell.note}</span>}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-xs text-zinc-500">
+      Each column is a kind of product, not one product. Examples:
+      {
+        examples.map((example, index) => (
+          <>
+            <a href={example.href} target="_blank" rel="noopener" class="underline-offset-2 hover:text-zinc-300 hover:underline">
+              {example.name}
+            </a>
+            {index < examples.length - 1 ? ', ' : '.'}
+          </>
+        ))
+      }
+      {' '}Checked against their public pages in {checkedOn}. Something out of date? <a href="https://github.com/gami-fied/gami.fied/issues" target="_blank" rel="noopener" class="underline-offset-2 hover:text-zinc-300 hover:underline">Tell us</a>.
+    </p>
+  </Section>
+
+  <Section eyebrow="Being honest" title="Where Gami.Fied is weaker today" intro="These are real gaps. Most are on the plan, but if one matters to you now, another option may suit you better.">
+    <ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+      {
+        weaker.map((item) => (
+          <li class="border border-zinc-800 bg-zinc-900/30 p-6">
+            <h3 class="font-semibold text-zinc-100">{item.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-zinc-400">{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <Section eyebrow="When it fits" title="Gami.Fied is a good fit when" class="pb-24">
+    <div class="grid items-start gap-8 lg:grid-cols-[1.3fr_1fr]">
+      <ul class="space-y-3 text-zinc-300">
+        {
+          [
+            'You want player data in your own database, for privacy, compliance or control.',
+            'You expect many players and do not want a bill that grows with each one.',
+            'You want to change the engine itself, or add your own rule actions.',
+            'You are comfortable running a Docker Compose stack, or have a team that is.',
+          ].map((point) => (
+            <li class="flex gap-3">
+              <Check size={18} class="mt-0.5 shrink-0 text-success-400" aria-hidden="true" />
+              {point}
+            </li>
+          ))
+        }
+      </ul>
+      <div class="flex flex-wrap gap-3">
+        <Button href="/docs/">Get started</Button>
+        <Button href="/pricing/" variant="secondary">See pricing</Button>
+      </div>
+    </div>
+  </Section>
+</SiteLayout>

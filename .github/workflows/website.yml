@@ -1,0 +1,143 @@
+name: Website
+
+# Builds the website for every change that touches it, and deploys it to Cloudflare Pages once the
+# repository has the secrets: production from master, and a preview for every pull request.
+#
+# To turn deployment on, add these in Settings → Secrets and variables → Actions:
+#   secrets.CLOUDFLARE_API_TOKEN   an API token with "Cloudflare Pages: Edit"
+#   secrets.CLOUDFLARE_ACCOUNT_ID  the Cloudflare account ID
+#   vars.CLOUDFLARE_PAGES_PROJECT  the Pages project name (defaults to gami-fied-website)
+#   vars.WEBSITE_URL               the production address (defaults to https://gami.fied.cc)
+# Optional variables: WAITLIST_URL, CONTACT_EMAIL, DEMO_URL, DEMO_API_URL, DEMO_API_KEY and STATUS_URL (see apps/website/.env.example).
+# Without them, the workflow only builds, so forks and outside pull requests still get checked.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/website/**'
+      - 'packages/ui/**'
+      - 'docs/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/website.yml'
+  pull_request:
+    paths:
+      - 'apps/website/**'
+      - 'packages/ui/**'
+      - 'docs/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+jobs:
+  build:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    env:
+      IS_PRODUCTION: ${{ github.event_name != 'pull_request' && (github.ref_name == 'master' || github.ref_name == 'main') }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Release tags, so docs for earlier versions are built (WEB-18).
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @gami/website... build
+        env:
+          PUBLIC_SITE_URL: ${{ vars.WEBSITE_URL || 'https://gami.fied.cc' }}
+          # Previews stay out of search results and send no analytics.
+          PUBLIC_NOINDEX: ${{ env.IS_PRODUCTION == 'true' && 'false' || 'true' }}
+          PUBLIC_ANALYTICS_PROVIDER: ${{ vars.ANALYTICS_PROVIDER }}
+          PUBLIC_ANALYTICS_SCRIPT: ${{ vars.ANALYTICS_SCRIPT }}
+          PUBLIC_ANALYTICS_SITE: ${{ vars.ANALYTICS_SITE }}
+          PUBLIC_WAITLIST_URL: ${{ vars.WAITLIST_URL }}
+          PUBLIC_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          PUBLIC_DEMO_URL: ${{ vars.DEMO_URL }}
+          PUBLIC_STATUS_URL: ${{ vars.STATUS_URL }}
+          PUBLIC_DEMO_API_URL: ${{ vars.DEMO_API_URL }}
+          PUBLIC_DEMO_API_KEY: ${{ vars.DEMO_API_KEY }}
+
+      # Every internal link and anchor, on every page, including the docs.
+      - name: Check links
+        run: pnpm --filter @gami/website check:links
+
+      # The animation budget (WEB-35): at most 60 KB of animation code on the home page, none on docs.
+      - name: Check the animation budget
+        run: pnpm --filter @gami/website check:motion
+
+      # Lighthouse on a simulated mid-range phone: performance 95+, content within 2 s, no layout shift.
+      - name: Check page speed
+        run: |
+          pnpm --filter @gami/website preview --port 4321 > preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4321/ > /dev/null && break; sleep 1; done
+          pnpm --filter @gami/website check:lighthouse
+        env:
+          SITE_URL: http://localhost:4321
+          CHROME_PATH: /usr/bin/google-chrome
+
+      # Every animated page in Chrome, Firefox and WebKit, at desktop and phone sizes, with and without
+      # reduced motion (WEB-44). The preview from the step above is still running.
+      - name: Check motion in three browsers
+        run: |
+          pnpm --filter @gami/website exec playwright-core install --with-deps firefox webkit
+          pnpm --filter @gami/website check:motion-browsers
+        env:
+          SITE_URL: http://localhost:4321
+          CHROME_PATH: /usr/bin/google-chrome
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: website
+          path: apps/website/dist
+          retention-days: 7
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Wrangler is a dev dependency of the website, so the action uses that one instead of
+          # trying to add its own to the workspace root, which pnpm refuses.
+          packageManager: pnpm
+          workingDirectory: apps/website
+          # The branch name decides production or preview: the project's production branch
+          # (master) publishes the site, and anything else gets a preview address.
+          command: >-
+            pages deploy dist
+            --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'gami-fied-website' }}
+            --branch=${{ github.head_ref || github.ref_name }}
+
+      - name: Show the address
+        if: steps.deploy.outcome == 'success'
+        run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Link the preview on the pull request
+        if: steps.deploy.outcome == 'success' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.deployment-url }}';
+            const marker = '<!-- website-preview -->';
+            const body = `${marker}\nWebsite preview: ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });

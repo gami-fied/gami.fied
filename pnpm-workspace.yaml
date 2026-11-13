@@ -8,9 +8,13 @@ overrides:
   eslint-plugin-react-hooks>zod: ^4.6.6
   '@esbuild-kit/core-utils>esbuild': ^0.25.0
   '@esbuild-kit/esm-loader>esbuild': ^0.25.0
+  httpsnippet>form-data: ^4.0.6
+  '@tailwindcss/typography>postcss-selector-parser': ^6.1.5
 allowBuilds:
   esbuild: true
   msgpackr-extract: true
+  vue-demi: false
+  workerd: true
 minimumReleaseAgeExclude:
   - '@better-auth/core@1.7.18'
   - '@better-auth/drizzle-adapter@1.7.18'
@@ -21,3 +25,11 @@ minimumReleaseAgeExclude:
   - '@better-auth/telemetry@1.7.18'
   - better-auth@1.7.18
   - '@fastify/cors@11.4.1'
+  - '@astrojs/internal-helpers@0.13.2'
+  - '@astrojs/markdown-satteri@0.4.8 || 0.4.9'
+  - '@astrojs/runtime@0.1.0'
+  - '@astrojs/vite-plugin-astro@0.1.1'
+  - astro@7.4.10
+  - '@astrojs/react-renderer@0.1.1'
+  - '@astrojs/react@7.1.7'
+  - '@astrojs/mdx@8.1.5'

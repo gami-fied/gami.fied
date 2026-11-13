@@ -1,14 +1,23 @@
 import eslint from '@eslint/js';
 import nextPlugin from '@next/eslint-plugin-next';
+import astro from 'eslint-plugin-astro';
+import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/.next/**', '**/node_modules/**', '**/.turbo/**', '**/next-env.d.ts'],
+    ignores: ['**/dist/**', '**/.next/**', '**/node_modules/**', '**/.turbo/**', '**/next-env.d.ts', '**/.astro/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  // The website's .astro components.
+  ...astro.configs.recommended,
+  {
+    // Config files and scripts run in Node.
+    files: ['**/*.config.{js,mjs,cjs}', '**/scripts/**/*.{js,mjs}', 'apps/website/src/integrations/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
   {
     files: ['apps/dashboard/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks, '@next/next': nextPlugin },

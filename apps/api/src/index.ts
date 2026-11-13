@@ -18,13 +18,14 @@ import { lifecycleRoutes } from './lifecycle/index.js';
 import { ruleVersionRoutes } from './rules/versions.js';
 import { xpPolicyRoutes } from './xp-policy/index.js';
 import { storeRoutes } from './store/index.js';
-import { loadPlugins } from '@gami/rules';
+import { loadPlugins } from '@gami/rules/node';
 import { segmentRoutes } from './segments/index.js';
 import { leagueRoutes } from './engagement/leagues.js';
 import { socialRoutes } from './engagement/social.js';
 import { referralRoutes } from './engagement/referrals.js';
 import { connectorRoutes } from './connectors/index.js';
 import { environmentRoutes } from './environments/index.js';
+import { designRoutes } from './environments/design.js';
 import { pluginRoutes } from './plugins/index.js';
 import { adminControlRoutes } from './admin/controls/index.js';
 import { abuseRoutes } from './xp-policy/abuse.js';
@@ -75,6 +76,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { analyticsRoutes } from './analytics/index.js';
+import { demoRoutes } from './demo/index.js';
 import { globalErrorHandler } from './middleware/error-handler.js';
 import { ipRateLimitHook } from './middleware/rate-limiter.js';
 import { requestTracingHook } from './middleware/request-tracing.js';
@@ -229,6 +231,9 @@ export async function buildServer() {
   // Register Better Auth handler & auth endpoints
   await fastify.register(authRoutes);
 
+  // Live demos without an account, on a demo instance only.
+  await fastify.register(demoRoutes);
+
   // Register Organization management endpoints
   await fastify.register(organizationRoutes);
   await fastify.register(organizationDataRoutes);
@@ -266,6 +271,7 @@ export async function buildServer() {
   await fastify.register(referralRoutes);
   await fastify.register(connectorRoutes);
   await fastify.register(environmentRoutes);
+  await fastify.register(designRoutes);
   await fastify.register(pluginRoutes);
   await fastify.register(projectFeatureRoutes);
   registerPushProviders();

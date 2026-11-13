@@ -1,0 +1,26 @@
+---
+/**
+ * Loads a cookie-free analytics provider, only when one is configured:
+ *
+ * - `PUBLIC_ANALYTICS_PROVIDER`: `plausible` or `umami`
+ * - `PUBLIC_ANALYTICS_SCRIPT`: the script address of your (ideally self-hosted) instance
+ * - `PUBLIC_ANALYTICS_SITE`: the site's domain for Plausible, or its website ID for Umami
+ *
+ * Both count page views on their own, including View Transitions navigation, because they follow
+ * the browser's history. Previews (`PUBLIC_NOINDEX=true`) never load analytics.
+ */
+import { SITE } from '../lib/site';
+
+const provider = import.meta.env.PUBLIC_ANALYTICS_PROVIDER;
+const src = import.meta.env.PUBLIC_ANALYTICS_SCRIPT;
+const site = import.meta.env.PUBLIC_ANALYTICS_SITE;
+const enabled = Boolean(src && site) && !SITE.noindex;
+---
+
+{enabled && provider === 'plausible' && <script is:inline defer data-domain={site} src={src} />}
+{enabled && provider === 'umami' && <script is:inline defer data-website-id={site} src={src} />}
+
+<script>
+  import { setupTracking } from '../lib/analytics';
+  setupTracking();
+</script>
