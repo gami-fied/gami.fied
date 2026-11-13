@@ -42,7 +42,12 @@ async function checkPage(page, path, { desktop, reducedMotion }) {
         // The scroll story holds its own steps out of view; that is not a stuck reveal.
         if (story?.classList.contains('is-story') && story.contains(group)) continue;
         const targets = group.hasAttribute('data-reveal-group') ? [...group.children] : [group];
-        if (targets.some((el) => parseFloat(getComputedStyle(el).opacity) < 0.99)) problems.push('content left hidden');
+        const hidden = targets.find((el) => parseFloat(getComputedStyle(el).opacity) < 0.99);
+        if (hidden) {
+          // Named, with whether its reveal ever started, so a failure says where to look.
+          const label = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}.${String(el.className).split(' ').slice(0, 3).join('.')}`;
+          problems.push(`content left hidden: ${label(hidden)} (opacity ${getComputedStyle(hidden).opacity}, reveal ${group.hasAttribute('data-revealed') ? 'started' : 'never started'})`);
+        }
       }
       const shift = performance.getEntriesByType?.('layout-shift')?.reduce((sum, e) => sum + (e.hadRecentInput ? 0 : e.value), 0) ?? 0;
       if (shift > 0.01) problems.push(`layout shift ${shift.toFixed(3)}`);
@@ -56,6 +61,23 @@ async function checkPage(page, path, { desktop, reducedMotion }) {
     },
     { desktop, reducedMotion }
   );
+}
+
+/**
+ * Jumps straight to the bottom of a page, as a link to an anchor or the End key would, so
+ * sections are carried past the screen without being seen. None of them may stay hidden.
+ */
+async function checkJump(page, path) {
+  await page.goto(`${site}${path}`, { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(1500);
+  return page.evaluate(() => {
+    const story = document.querySelector('[data-how-it-works]');
+    return [...document.querySelectorAll('[data-reveal],[data-reveal-group]')]
+      .filter((group) => !(story?.classList.contains('is-story') && story.contains(group)))
+      .filter((group) => (group.hasAttribute('data-reveal-group') ? [...group.children] : [group]).some((el) => parseFloat(getComputedStyle(el).opacity) < 0.99))
+      .map((group) => `jumping to the bottom left ${group.tagName.toLowerCase()}.${String(group.className).split(' ').slice(0, 3).join('.')} hidden`);
+  });
 }
 
 let failures = 0;
@@ -79,6 +101,7 @@ for (const browser of BROWSERS) {
         const problems = await checkPage(page, path, { desktop: size === 'desktop', reducedMotion: reducedMotion === 'reduce' });
         for (const problem of problems) found.push(`${path}: ${problem}`);
       }
+      for (const problem of await checkJump(page, '/')) found.push(`/: ${problem}`);
       // The playground answers a sent event with a badge toast.
       await page.goto(`${site}/playground/`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(500);

@@ -33,18 +33,28 @@ scene(SELECTOR, (element, { reduced, signal }) => {
     return;
   }
   const targets = element.hasAttribute('data-reveal-group') ? [...element.children] : [element];
+  let settle: number | undefined;
   const stop = inView(
     element,
     () => {
-      targets.forEach((target, index) =>
+      const animations = targets.map((target, index) =>
         animate(target, { opacity: [0, 1], transform: [`translateY(${MOTION.rise}px)`, 'none'] }, { duration: MOTION.enter, ease: MOTION.easeOut, delay: index * MOTION.stagger })
       );
       element.dataset.revealed = '';
       stop();
+      // A busy or throttled page can stall a fade part-way. Shortly after it should have
+      // ended, every fade is finished, so content is never left half-visible.
+      const total = (MOTION.enter + MOTION.stagger * targets.length) * 1000 + 400;
+      settle = window.setTimeout(() => animations.forEach((animation) => animation.complete()), total);
     },
-    { amount: 0.15 }
+    // Anything already scrolled past counts as reached: a fast scroll or a jump to an anchor can
+    // carry a section past the screen without it ever being seen intersecting.
+    { amount: 0.15, margin: '100000px 0px 0px 0px' }
   );
-  signal.addEventListener('abort', () => stop());
+  signal.addEventListener('abort', () => {
+    stop();
+    window.clearTimeout(settle);
+  });
 });
 
 /** Images in long-form text fade in once they load, instead of appearing in pieces. */
