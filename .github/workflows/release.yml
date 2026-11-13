@@ -17,6 +17,8 @@ jobs:
     name: Publish ${{ matrix.app }}
     needs: verify
     runs-on: ubuntu-latest
+    # A normal build takes about 15 minutes. A stuck one fails here instead of after six hours.
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write

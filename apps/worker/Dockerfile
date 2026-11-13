@@ -6,7 +6,9 @@ RUN corepack enable
 FROM base AS builder
 WORKDIR /app
 COPY . .
-RUN pnpm install --frozen-lockfile
+# Installs only this app's packages and the root tools (turbo), so the website and the other
+# apps' dependencies are not installed, once per platform, under emulation.
+RUN pnpm install --frozen-lockfile --filter "@gami/worker..." --filter "{.}"
 RUN pnpm exec turbo build --filter=@gami/worker...
 # Reinstalls from the lockfile with production packages only, so the image runs the exact
 # versions CI tested. `pnpm deploy` is avoided because it can resolve newer versions.
