@@ -82,14 +82,20 @@ jobs:
         run: |
           version="${TAG#v}"
           awk -v heading="## [${version}]" 'index($0, heading) == 1 { found = 1; next } /^## / { found = 0 } found' CHANGELOG.md > release-notes.md
-      - name: Create the release
+      - name: Create or update the release
         run: |
           prerelease=""
           if [[ "$TAG" == *-* ]]; then prerelease="--prerelease"; fi
           notes="--generate-notes"
           if [[ -s release-notes.md ]]; then notes="--notes-file release-notes.md"; fi
-          gh release create "$TAG" docker-compose.yml env.example \
-            --title "Gami.Fied $TAG" \
-            $notes \
-            --verify-tag \
-            $prerelease
+          # A tag that was moved and pushed again already has its release: bring it up to date.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" docker-compose.yml env.example --clobber
+            if [[ -s release-notes.md ]]; then gh release edit "$TAG" --title "Gami.Fied $TAG" --notes-file release-notes.md; fi
+          else
+            gh release create "$TAG" docker-compose.yml env.example \
+              --title "Gami.Fied $TAG" \
+              $notes \
+              --verify-tag \
+              $prerelease
+          fi
