@@ -4,16 +4,41 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 [Semantic Versioning](https://semver.org), and the public API is the `/v1` routes described in
 [`docs/openapi.json`](docs/openapi.json).
 
-## [Unreleased]
+## [1.2.0] - 2026-11-13
+
+Gami.Fied now has a home at [gami.fied.cc](https://gami.fied.cc): a website with the docs, an API reference, an in-browser playground and a live demo you can start without signing up. The product gains design files and a demo mode for running that demo yourself. Everything is additive: `/v1` keeps working as it did, and nothing has to change in your app.
+
+### Run it
+
+```bash
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.2.0/docker-compose.yml
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.2.0/env.example
+cp env.example .env
+```
+
+Fill in `.env`, then run `docker compose up -d`. Images are published for `linux/amd64` and `linux/arm64`.
+
+### Added
+
+- Design files: download a project's design (currencies, achievements, levels, streaks, segments, leagues, rules, challenges, boosts, limits and store rewards) as JSON, preview what a file would add or change, and import all or part of it, from the API (`/api/projects/:projectId/design`) or the dashboard's **Promote changes** page. See [Connectors, environments and plugins](docs/connectors-environments-and-plugins.md#design-files).
+- Demo mode for running a public live demo: `GAMI_DEMO_MODE=true` lets visitors start a seeded, locked-down workspace that deletes itself after a day, behind a Cloudflare Turnstile check and per-address limits. A demo instance sends no email. See [Live demo](docs/live-demo.md).
+- One-click deploy files for Render, DigitalOcean App Platform and Coolify, described in [One-click deploys](docs/install/one-click.md). They have not been tried on those platforms yet.
+- The website (`apps/website`): product pages, the docs with search and the docs for earlier releases, the API reference, the playground, a blog and this changelog.
 
 ### Fixed
 
 - Rules built in the dashboard's visual editor with an "Award achievement" action can now be saved. The editor stored the achievement's id without its key, which the API needs, so saving failed.
 - "Is in" and "is not in" conditions from the visual editor are saved as lists, as the API requires, instead of as one piece of text.
+- The dashboard reaches the API when `API_URL` is given without `http://`.
 
 ### Changed
 
+- The dashboard, docs and README use the Gami.Fied mark.
 - The rules engine's plugin loader moved to `@gami/rules/node`, so the rest of the engine runs in a browser.
+
+### Upgrading from 1.1.0
+
+Set `GAMI_VERSION=1.2.0` and run `docker compose up -d`. One migration adds a column to `organizations` for demo workspaces; no data changes. The demo settings are all off unless you set `GAMI_DEMO_MODE`.
 
 ## [1.1.0] - 2026-11-08
 
@@ -182,6 +207,8 @@ Second release candidate. Added prebuilt Docker images, the release workflow, an
 
 First release candidate.
 
+[1.2.0]: https://github.com/gami-fied/gami.fied/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/gami-fied/gami.fied/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/gami-fied/gami.fied/compare/v1.0.0-rc.2...v1.0.0
 [1.0.0-rc.2]: https://github.com/gami-fied/gami.fied/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/gami-fied/gami.fied/releases/tag/v1.0.0-rc.1

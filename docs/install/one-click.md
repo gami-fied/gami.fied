@@ -64,4 +64,4 @@ Railway templates are made in Railway's own dashboard, so this is a list of step
 
 ## Upgrading
 
-Every platform here runs the `latest` images, so redeploying picks up a new release. To stay on one version, change `latest` to a version such as `1.1.0` in the file or the service settings, then follow [Upgrading](./upgrading.md) when you move on. Read the release notes first.
+Every platform here runs the `latest` images, so redeploying picks up a new release. To stay on one version, change `latest` to a version such as `1.2.0` in the file or the service settings, then follow [Upgrading](./upgrading.md) when you move on. Read the release notes first.

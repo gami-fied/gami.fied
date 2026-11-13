@@ -4,7 +4,7 @@ This file tracks everything that needs fixing, improving or building. Tick items
 
 - **Audit date:** 2026-11-05
 - **Audited commit:** `5749e78` on `master`
-- **Current version:** `1.1.0`, released on 2026-11-08
+- **Current version:** `1.2.0`, released on 2026-11-13
 
 ## How to use this file
 

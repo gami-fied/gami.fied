@@ -35,7 +35,7 @@ To rotate `ENCRYPTION_MASTER_KEY`, set the new value and move the old one to `EN
 | `NEXT_PUBLIC_APP_URL` | Public address of the dashboard | `https://app.example.com` |
 | `ENCRYPTION_MASTER_KEY` | Encrypts stored secrets and backups. Keep a copy | `openssl rand -hex 32` |
 | `PLATFORM_BOOTSTRAP_SECRET` | Claims the first platform admin | `openssl rand -hex 32` |
-| `GAMI_VERSION` | Image version to run | `1.1.0` |
+| `GAMI_VERSION` | Image version to run | `1.2.0` |
 | `TRUST_PROXY` | Set to `true` behind a reverse proxy | `true` |
 | `TRUSTED_ORIGINS` | Extra sites allowed to call the API, comma separated | `https://www.example.com` |
 | `NODE_ENV` | Environment | `production` |

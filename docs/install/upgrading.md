@@ -15,7 +15,7 @@ Every release is listed on [GitHub releases](https://github.com/gami-fied/gami.f
 In the folder with your `docker-compose.yml`, set the version you want in `.env`:
 
 ```bash
-GAMI_VERSION=1.1.0
+GAMI_VERSION=1.2.0
 ```
 
 Then pull the images and restart:
