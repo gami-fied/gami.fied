@@ -51,7 +51,8 @@ Read a player's group with `gami.me.leagues()`, or `GET /v1/users/:userId/league
 
 ## Friends, kudos and the feed
 
-- **Friends** go both ways and are stored both ways. Players add each other by **invite code**, so nobody's ID is ever exposed: `gami.me.addFriend(code)`. Your server can link users directly with `POST /v1/users/:userId/friends`. A player can have up to 500.
+- **Friends** go both ways and are stored both ways. Players find each other by **invite code**, so nobody's ID is ever exposed. `gami.me.addFriend(code)` sends a request, and the two become friends when the other player accepts with `gami.me.acceptFriend(code)`, or at once if they had already asked. `gami.me.friendRequests()` lists the requests waiting for a player, and `gami.me.declineFriend(code)` turns one down or takes one back. A code is meant to be shared, so having someone's code never shows you their feed on its own. Your server can link users directly with `POST /v1/users/:userId/friends`. A player can have up to 500 friends and 100 requests waiting.
+- Adding friends, giving kudos and using an invite code change things, so the player's token must be created with `access: 'write'`. See [API authentication](./api-authentication.md).
 - **Kudos** are a small thank-you: `gami.me.giveKudos(code, 'Nice streak!')`. One per friend per day, and at most 30 a day from one person.
 - The **feed** shows what a player and their friends did lately: achievements earned, kudos received and league promotions. `gami.me.feed()`.
 

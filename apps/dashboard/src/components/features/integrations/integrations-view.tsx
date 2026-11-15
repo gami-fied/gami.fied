@@ -557,7 +557,7 @@ export function IntegrationsView() {
                       )}
 
                       {intg.lastError && (
-                        <p className="text-[11px] text-danger-400 bg-danger-950/30 border border-danger-900 p-2 mt-1">
+                        <p className="text-xs text-danger-400 bg-danger-950/30 border border-danger-900 p-2 mt-1">
                           Last Error: {intg.lastError}
                         </p>
                       )}
@@ -942,14 +942,14 @@ export function IntegrationsView() {
                         variant="secondary"
                         size="sm"
                         onClick={handleAddFieldToTemplate}
-                        className="text-[11px] h-6 px-2 border-success-800/80 hover:bg-success-950/40 text-success-400 font-medium"
+                        className="text-xs h-6 px-2 border-success-800/80 hover:bg-success-950/40 text-success-400 font-medium"
                       >
                         <PlusCircle className="w-3 h-3 mr-1" /> Add Field
                       </Button>
                     </div>
 
                     {(getActiveTemplate().fields || []).length === 0 ? (
-                      <p className="text-[11px] text-zinc-400 text-center py-6">
+                      <p className="text-xs text-zinc-400 text-center py-6">
                         No custom fields configured for this template. Click "Add Field" to add
                         key-value metadata.
                       </p>
@@ -961,7 +961,7 @@ export function IntegrationsView() {
                             className="p-3 bg-zinc-950/80 border border-zinc-800 space-y-3"
                           >
                             <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
-                              <span className="text-[11px] font-bold text-success-400 flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-success-400 flex items-center gap-1.5">
                                 <span className="w-4 h-4 bg-success-950 text-success-400 border border-success-800 text-xs flex items-center justify-center font-bold">
                                   {idx + 1}
                                 </span>
@@ -1115,7 +1115,7 @@ export function IntegrationsView() {
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-700/60">
                           {getActiveTemplate().fields!.map((f, idx) => (
                             <div key={idx} className={f.inline ? 'col-span-1' : 'col-span-2'}>
-                              <div className="text-[11px] font-bold text-zinc-400">{f.name}</div>
+                              <div className="text-xs font-bold text-zinc-400">{f.name}</div>
                               <div className="text-xs text-zinc-200">
                                 {f.value
                                   .replace(/\{\{userName\}\}/g, 'Ronak')
@@ -1211,7 +1211,7 @@ export function IntegrationsView() {
                           {del.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-400 mt-1">
+                      <p className="text-xs text-zinc-400 mt-1">
                         Attempts: {del.attempts} | {formatDateTime(del.createdAt)}
                         {del.replayedAt && ` (Replayed: ${formatDateTime(del.replayedAt)})`}
                       </p>

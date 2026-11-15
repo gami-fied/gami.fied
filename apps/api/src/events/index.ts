@@ -8,7 +8,7 @@ import { hasScope } from '../authorization/permissions.js';
 import { checkPolicyRateLimit, checkRateLimit } from '../middleware/rate-limiter.js';
 import { waitForEventRewards } from '../public/event-rewards.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
-import { ingestEvent } from '../services/event-ingestion.js';
+import { ingestEvent, ingestEvents } from '../services/event-ingestion.js';
 
 const eventIngestionSchema = z.object({
   event: z.string().min(1).max(128),
@@ -183,27 +183,25 @@ export async function eventRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const results = [];
-    for (const [index, item] of parsed.data.events.entries()) {
-      try {
-        const result = await ingestEvent({
-          projectId: project.id,
-          eventType: item.event,
-          externalUserId: item.user_id,
-          payload: item.payload,
-          occurredAt: item.occurred_at,
-          idempotencyKey: item.idempotency_key?.trim() || undefined,
-        });
-        results.push(
-          result.outcome === 'accepted'
-            ? { index, status: 'accepted', id: result.id, duplicate: result.duplicate }
-            : { index, status: 'rejected', code: result.outcome.toUpperCase() }
-        );
-      } catch (err: unknown) {
-        request.log.error({ err }, 'Batch event ingestion failed');
-        results.push({ index, status: 'failed', code: 'INTERNAL_SERVER_ERROR' });
+    const ingested = await ingestEvents(
+      parsed.data.events.map((item) => ({
+        projectId: project.id,
+        eventType: item.event,
+        externalUserId: item.user_id,
+        payload: item.payload,
+        occurredAt: item.occurred_at,
+        idempotencyKey: item.idempotency_key?.trim() || undefined,
+      }))
+    );
+    const results = ingested.map((result, index) => {
+      if (result.outcome === 'failed') {
+        request.log.error({ err: result.error }, 'Batch event ingestion failed');
+        return { index, status: 'failed', code: 'INTERNAL_SERVER_ERROR' };
       }
-    }
+      return result.outcome === 'accepted'
+        ? { index, status: 'accepted', id: result.id, duplicate: result.duplicate }
+        : { index, status: 'rejected', code: result.outcome.toUpperCase() };
+    });
 
     const accepted = results.filter((result) => result.status === 'accepted').length;
     return reply.status(207).send({ accepted, rejected: results.length - accepted, results });

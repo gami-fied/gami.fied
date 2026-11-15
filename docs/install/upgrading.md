@@ -36,7 +36,7 @@ docker compose ps
 curl http://localhost:3001/ready
 ```
 
-Open the dashboard and send a test event. The [smoke test](../deployment-and-production.md#5-production-smoke-testing) lists what to check.
+Open the dashboard and send a test event. The [smoke test](../deployment-and-production.md#production-smoke-testing) lists what to check.
 
 ## Going back
 

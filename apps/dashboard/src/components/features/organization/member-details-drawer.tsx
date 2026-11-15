@@ -135,7 +135,7 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
           </div>
 
           {['owner', 'admin'].includes(member.role) ? (
-            <p className="text-[11px] text-success-400 p-2 bg-success-950/40 border border-success-900">
+            <p className="text-xs text-success-400 p-2 bg-success-950/40 border border-success-900">
               ⚡ As an Organization {member.role.toUpperCase()}, this user automatically has full access to all projects.
             </p>
           ) : (
@@ -167,7 +167,7 @@ export function MemberDetailsDrawer({ member, isOpen, onClose, onRefresh }: Memb
 
               {/* Assigned Project List */}
               {assignedProjects.length === 0 ? (
-                <p className="text-zinc-400 text-[11px] py-2 text-center border border-zinc-800 bg-zinc-900/60">
+                <p className="text-zinc-400 text-xs py-2 text-center border border-zinc-800 bg-zinc-900/60">
                   No project access assigned. Member cannot view or access any project in this organization.
                 </p>
               ) : (

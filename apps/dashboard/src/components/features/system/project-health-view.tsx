@@ -116,7 +116,7 @@ export function ProjectHealthView() {
             {(metrics?.eventsIngested ?? 0).toLocaleString()}{' '}
             <span className="text-xs font-normal text-zinc-400">events</span>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Total raw events ingested and processed for {selectedProject.name}.
           </p>
         </div>
@@ -130,7 +130,7 @@ export function ProjectHealthView() {
             {(metrics?.webhookStats.delivered ?? 0).toLocaleString()}{' '}
             <span className="text-xs font-normal text-zinc-400">delivered</span>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Successful HTTP webhook deliveries. Failed:{' '}
             {(metrics?.webhookStats.failed ?? 0).toLocaleString()}.
           </p>
@@ -145,7 +145,7 @@ export function ProjectHealthView() {
             {(metrics?.integrationStats.delivered ?? 0).toLocaleString()}{' '}
             <span className="text-xs font-normal text-zinc-400">channel messages</span>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Discord embed dispatches. Failed:{' '}
             {(metrics?.integrationStats.failed ?? 0).toLocaleString()}.
           </p>

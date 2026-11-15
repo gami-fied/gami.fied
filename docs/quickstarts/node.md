@@ -2,12 +2,12 @@
 
 Integrate Gami.Fied using `@gami.fied/sdk`.
 
-## 1. Install Package
+## Install Package
 ```bash
 pnpm add @gami.fied/sdk
 ```
 
-## 2. Copy Code Snippet
+## Copy Code Snippet
 ```typescript
 import { Gami, GamiError } from '@gami.fied/sdk';
 

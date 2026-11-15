@@ -44,7 +44,7 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
         >
           <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           <span className="hidden md:inline">Search</span>
-          <kbd className="hidden md:inline font-sans text-[11px] text-zinc-400 border border-zinc-800 px-1">
+          <kbd className="hidden md:inline font-sans text-xs text-zinc-400 border border-zinc-800 px-1">
             {shortcut}
           </kbd>
         </button>

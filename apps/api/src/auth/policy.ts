@@ -20,8 +20,19 @@ interface AuthRequest {
   headers: Headers;
 }
 
-const failedLoginKey = (email: string) =>
-  `login_failures:${crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex')}`;
+const emailHash = (email: string) => crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+
+/**
+ * Failures are counted for an email and an address together, so a stranger sending wrong
+ * passwords locks out only their own address, not the account's owner.
+ */
+const failedLoginKey = (email: string, ip: string) => `login_failures:${emailHash(email)}:${ip}`;
+
+/** Failures for an email from every address, which catches guessing spread over many addresses. */
+const failedLoginTotalKey = (email: string) => `login_failures_all:${emailHash(email)}`;
+
+/** The account as a whole locks only after far more failures than one address is allowed. */
+const totalFailureLimit = (perAddress: number) => Math.max(perAddress * 10, 50);
 
 export async function checkPasswordPolicy(password: string): Promise<AuthPolicyDenial | null> {
   const { passwordMinLength, requireNumbers, requireSpecialChars } =
@@ -86,10 +97,10 @@ async function checkSignIn(ip: string, email: string | undefined): Promise<AuthP
   }
 
   if (email) {
-    const failures = await getRedisConnection()
-      .get(failedLoginKey(email))
-      .catch(() => null);
-    if (Number(failures) >= maxFailedLoginAttempts) {
+    const [failures, total] = await getRedisConnection()
+      .mget(failedLoginKey(email, ip), failedLoginTotalKey(email))
+      .catch(() => [null, null]);
+    if (Number(failures) >= maxFailedLoginAttempts || Number(total) >= totalFailureLimit(maxFailedLoginAttempts)) {
       return {
         status: 429,
         code: 'ACCOUNT_LOCKED',
@@ -128,9 +139,12 @@ export async function checkAuthPolicy(request: AuthRequest): Promise<AuthPolicyD
   return null;
 }
 
-/** Counts failed sign-ins per email, and clears the count on success. Redis errors are ignored. */
-export async function recordSignInResult(email: string, succeeded: boolean): Promise<void> {
-  const key = failedLoginKey(email);
+/**
+ * Counts failed sign-ins, and clears this address's count on success. Without Redis nothing can be
+ * counted, so the lockout is off until it is back; the warning below says so.
+ */
+export async function recordSignInResult(email: string, ip: string, succeeded: boolean): Promise<void> {
+  const key = failedLoginKey(email, ip);
   try {
     const redis = getRedisConnection();
     if (succeeded) {
@@ -138,8 +152,8 @@ export async function recordSignInResult(email: string, succeeded: boolean): Pro
       return;
     }
     const { lockoutDurationMinutes } = await getPlatformSettings('security');
-    await redis.incr(key);
-    await redis.expire(key, lockoutDurationMinutes * 60);
+    const seconds = lockoutDurationMinutes * 60;
+    await redis.multi().incr(key).expire(key, seconds).incr(failedLoginTotalKey(email)).expire(failedLoginTotalKey(email), seconds).exec();
   } catch (err) {
     log.warn('Could not record sign-in result:', (err as Error).message);
   }

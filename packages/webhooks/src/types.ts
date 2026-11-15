@@ -8,6 +8,10 @@ export type WebhookEventType =
   | 'reward.redeemed'
   | 'reward.cancelled'
   | 'referral.completed'
+  | 'box.opened'
+  | 'goal.completed'
+  | 'journey.completed'
+  | 'leaderboard.prize_paid'
   | 'webhook.test';
 
 export const SUPPORTED_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
@@ -20,6 +24,10 @@ export const SUPPORTED_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'reward.redeemed',
   'reward.cancelled',
   'referral.completed',
+  'box.opened',
+  'goal.completed',
+  'journey.completed',
+  'leaderboard.prize_paid',
 ];
 
 export interface WebhookPayload {

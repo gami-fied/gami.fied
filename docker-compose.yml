@@ -31,6 +31,14 @@ x-api-environment: &app-environment
   TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
   TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
 
+# Applied to every Gami.Fied container: nothing can be written outside the listed volumes and
+# /tmp, no Linux capabilities are held, and a process cannot gain more rights than it started with.
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  tmpfs: ['/tmp']
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -76,6 +84,7 @@ services:
         aliases: [gami-redis]
 
   migration:
+    <<: *hardening
     image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-api:${GAMI_VERSION:-latest}
     container_name: gami-migration-prod
     command: ['node', 'packages/database/dist/migrate.js']
@@ -89,11 +98,13 @@ services:
       - gami-prod-network
 
   api:
+    <<: *hardening
     image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-api:${GAMI_VERSION:-latest}
     container_name: gami-api-prod
     restart: unless-stopped
     ports:
-      - '${PORT:-3001}:3001'
+      # Reachable from this machine only, for a reverse proxy to sit in front. See BIND_ADDRESS in the env file.
+      - '${BIND_ADDRESS:-127.0.0.1}:${PORT:-3001}:3001'
     environment:
       <<: *app-environment
       PORT: 3001
@@ -105,6 +116,8 @@ services:
       BACKUP_STORAGE_PATH: /app/storage/backups
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-}
       RATE_LIMIT_IP_MAX: ${RATE_LIMIT_IP_MAX:-}
+      RATE_LIMIT_KEY_MAX: ${RATE_LIMIT_KEY_MAX:-}
+      RATE_LIMIT_PLAYER_MAX: ${RATE_LIMIT_PLAYER_MAX:-}
     volumes:
       - backups_prod_data:/app/storage/backups
     depends_on:
@@ -131,6 +144,7 @@ services:
         aliases: [gami-api]
 
   worker:
+    <<: *hardening
     image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-worker:${GAMI_VERSION:-latest}
     container_name: gami-worker-prod
     restart: unless-stopped
@@ -148,11 +162,13 @@ services:
       - gami-prod-network
 
   dashboard:
+    <<: *hardening
+    tmpfs: ['/tmp', '/app/apps/dashboard/.next/cache']
     image: ${GAMI_REGISTRY:-ghcr.io/gami-fied}/gami-dashboard:${GAMI_VERSION:-latest}
     container_name: gami-dashboard-prod
     restart: unless-stopped
     ports:
-      - '${DASHBOARD_PORT:-3000}:3000'
+      - '${BIND_ADDRESS:-127.0.0.1}:${DASHBOARD_PORT:-3000}:3000'
     environment:
       PORT: 3000
       API_URL: http://gami-api:3001

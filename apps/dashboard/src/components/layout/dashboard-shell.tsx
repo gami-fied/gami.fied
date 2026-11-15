@@ -8,13 +8,16 @@ import { Sidebar } from './sidebar';
 import { ApiStatusBanner } from './api-status-banner';
 import { DemoBanner } from './demo-banner';
 import { CommandPalette } from './command-palette';
+import { KeyboardShortcuts } from './keyboard-shortcuts';
+import { TitleTooltips } from '../ui/title-tooltips';
 import { Topbar } from './topbar';
 import { OnboardingFlow } from '../features/onboarding/onboarding-flow';
 import { EmptyState } from '../ui/empty-state';
 import { ShellSkeleton } from '../ui/skeleton';
 import { usePermissions } from '@/hooks/use-permissions';
-import { findAdminOnlyRoute, findFeatureRoute } from '@/lib/navigation';
+import { documentTitle, findAdminOnlyRoute, findFeatureRoute } from '@/lib/navigation';
 import { useProjectFeatures } from '@/hooks/use-project-features';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { FeatureOff } from './feature-off';
 import { FolderKanban, ShieldAlert } from 'lucide-react';
 
@@ -51,6 +54,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, String(!isCollapsed));
     setIsCollapsed(!isCollapsed);
   };
+
+  // One title per page, with the project, so browser tabs and history can be told apart.
+  useDocumentTitle(documentTitle(pathname, selectedProject?.name));
 
   // Platform Email OTP Verification Enforcement
   useEffect(() => {
@@ -94,6 +100,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
+      {/* The first thing a keyboard reaches, so the menu does not have to be tabbed through on every page. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:bg-brand-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       {/* Desktop Sidebar */}
       {!needsOnboarding && (
         <div className="hidden lg:block">
@@ -127,6 +140,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       >
         <Topbar onMobileMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />
         <CommandPalette />
+        <KeyboardShortcuts />
+        <TitleTooltips />
         <ApiStatusBanner />
         <DemoBanner />
 
@@ -143,7 +158,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 p-4 sm:p-6 md:p-8 w-full max-w-[96rem] mx-auto space-y-6">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 p-4 sm:p-6 md:p-8 w-full max-w-[96rem] mx-auto space-y-6 outline-none"
+        >
           {needsOnboarding ? (
             <OnboardingFlow />
           ) : restrictedRoute ? (

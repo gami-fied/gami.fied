@@ -24,3 +24,8 @@ export async function requestTracingHook(request: FastifyRequest, reply: Fastify
   (request as FastifyRequest & { requestId: string }).requestId = requestId;
   reply.header('x-request-id', requestId);
 }
+
+/** The address of a request with any token in its query string removed, for logs. */
+export function redactUrl(url: string): string {
+  return url.replace(/([?&](?:access_token|token)=)[^&#]*/gi, '$1[redacted]');
+}

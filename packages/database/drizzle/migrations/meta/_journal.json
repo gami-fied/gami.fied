@@ -288,6 +288,27 @@
       "when": 1794468247270,
       "tag": "0040_demo_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794586880263,
+      "tag": "0041_friend_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794636257514,
+      "tag": "0042_player_token_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794720913277,
+      "tag": "0043_mechanics",
+      "breakpoints": true
     }
   ]
 }

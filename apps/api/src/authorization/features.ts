@@ -26,6 +26,13 @@ const PROJECT_SEGMENTS: Record<string, FeatureKey> = {
   connectors: 'connectors',
   analytics: 'analytics',
   promotion: 'environments',
+  boxes: 'loot_boxes',
+  passes: 'season_pass',
+  cosmetics: 'cosmetics',
+  teams: 'teams',
+  goals: 'teams',
+  journeys: 'journeys',
+  'leaderboard-prizes': 'leaderboard_prizes',
 };
 
 /** Second segment under `/users/:userId/`. */
@@ -43,6 +50,12 @@ const USER_SEGMENTS: Record<string, FeatureKey> = {
   feed: 'social',
   referral: 'referrals',
   ranking: 'boosts_limits',
+  boxes: 'loot_boxes',
+  passes: 'season_pass',
+  cosmetics: 'cosmetics',
+  team: 'teams',
+  goals: 'teams',
+  journeys: 'journeys',
 };
 
 /** The feature a project route needs, from its pattern such as `/api/projects/:projectId/users/:userId/wallets`. */
@@ -71,6 +84,13 @@ const PLAYER_SEGMENTS: Record<string, FeatureKey> = {
   referral: 'referrals',
   stream: 'realtime',
   devices: 'push',
+  boxes: 'loot_boxes',
+  passes: 'season_pass',
+  cosmetics: 'cosmetics',
+  team: 'teams',
+  teams: 'teams',
+  goals: 'teams',
+  journeys: 'journeys',
 };
 
 export function featureForPlayerPath(url: string): FeatureKey | null {
@@ -79,6 +99,7 @@ export function featureForPlayerPath(url: string): FeatureKey | null {
   if (!match) return null;
   // Sharing an achievement is a social feature, even though it sits under achievements.
   if (/^\/v1\/me\/achievements\/[^/]+\/share$/.test(path)) return 'social';
+  if (path === '/v1/me/leaderboard/prizes') return 'leaderboard_prizes';
   return PLAYER_SEGMENTS[match[1]!] ?? null;
 }
 

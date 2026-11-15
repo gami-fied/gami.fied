@@ -17,6 +17,7 @@ import { createLogger, demoSettings } from '@gami/config';
 import { auth, countLiveDemos, createDemoWorkspace, db, endUsers, member, organizations, projects, users } from '@gami/database';
 import { getRedisConnection } from '@gami/queue';
 import { requireAuth } from '../authorization/index.js';
+import { countWithExpiry } from '../middleware/rate-limiter.js';
 import { ingestEvent } from '../services/event-ingestion.js';
 
 const log = createLogger('Demo');
@@ -73,9 +74,7 @@ async function readyRedis() {
 async function allowStart(ip: string, perHour: number): Promise<boolean> {
   const redis = await readyRedis();
   const key = `demo:starts:${hashAddress(ip)}`;
-  const used = await redis.incr(key);
-  if (used === 1) await redis.expire(key, 3600);
-  return used <= perHour;
+  return (await countWithExpiry(redis, key, 3600)) <= perHour;
 }
 
 /** The visitor's live demo organization and its project, or null. */

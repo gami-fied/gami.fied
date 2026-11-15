@@ -8,7 +8,7 @@ npm install @gami.fied/react @gami.fied/sdk
 
 ## How it connects
 
-Your **server** creates a short-lived token for the signed-in player with an API key. The **browser** uses only that token, which can read that one player's data and nothing else.
+Your **server** creates a short-lived token for the signed-in player with an API key. The **browser** uses only that token, which acts for that one player and nothing else. It only reads unless your server creates it with `access: 'write'`, which a store or friends screen needs.
 
 ```ts
 // On your server (never in the browser)
@@ -51,10 +51,18 @@ Tokens last up to an hour. Create a new one when the page loads or the old one e
 | `Leaderboard` | Top players and the player's own place | `period`, `limit` |
 | `ChallengeList` | Open challenges with steps and when repeating ones start over | |
 | `NotificationFeed` | Recent notifications, with new ones added live | `limit` |
+| `MysteryBox` | Boxes and wheels with their odds, and a button to open one | `box`, `onOpen` |
+| `SeasonPass` | Season XP, each tier on both lanes, and buttons to claim and to buy premium | `pass` |
+| `SharedGoals` | Goals for everyone or the player's team, with what the player added | |
+| `TeamCard` | The player's team, its place and its members | |
+| `JourneyPath` | Each journey's steps in order, with locks on the ones not open yet | `journey` |
+| `CosmeticLocker` | Titles, frames and items: owned, worn, and how to get the rest | |
 | `ToastHost` | A toast for each new notification | `duration`, `position`, `renderToast` |
 | `ProgressBar` | A labelled bar, for your own screens | `fraction`, `label`, `detail` |
 
-Each also has a hook if you want to draw it yourself: `useMe`, `useStreaks`, `useAchievementProgress`, `useChallenges`, `useLeaderboard(period, limit)` and `useNotifications(limit)`. They return `{ data, loading, error, refresh }`, keep what is on screen while they refresh, and fetch again by themselves whenever a live update arrives. `useGami()` gives you the client, whether the live stream is connected, and the notifications received so far.
+Each also has a hook if you want to draw it yourself: `useMe`, `useStreaks`, `useAchievementProgress`, `useChallenges`, `useLeaderboard(period, limit)`, `useNotifications(limit)`, `useBoxes`, `usePasses`, `useGoals`, `useTeam`, `useJourneys` and `useCosmetics`. They return `{ data, loading, error, refresh }`, keep what is on screen while they refresh, and fetch again by themselves whenever a live update arrives. `useGami()` gives you the client, whether the live stream is connected, and the notifications received so far.
+
+`MysteryBox`, `SeasonPass` and `CosmeticLocker` have buttons that change things, so they need a token created with `access: 'write'`. See [Boxes, passes, teams and journeys](./boxes-passes-teams-and-journeys.md).
 
 ## Styling
 

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { projects } from './projects.js';
 
 export const endUsers = pgTable(
@@ -17,6 +17,8 @@ export const endUsers = pgTable(
     active: boolean('active').default(true).notNull(),
     /** Shadow ban: the user keeps playing and earning, but is left out of every leaderboard. */
     rankingHidden: boolean('ranking_hidden').default(false).notNull(),
+    /** Player tokens carry this number. Raising it, for example at sign-out, ends every token made before. */
+    tokenVersion: integer('token_version').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
   },

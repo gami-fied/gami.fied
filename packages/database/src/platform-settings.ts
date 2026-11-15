@@ -37,6 +37,18 @@ export const rateLimitSettingsSchema = z.object({
     .int()
     .min(1)
     .default(() => Number(process.env['RATE_LIMIT_MAX']) || 1000),
+  /** Requests one API key may make in a window, on every route except event ingestion, which has its own limit. */
+  perApiKeyLimit: z
+    .number()
+    .int()
+    .min(1)
+    .default(() => Number(process.env['RATE_LIMIT_KEY_MAX']) || 600),
+  /** Requests one player's tokens may make in a window. */
+  perPlayerLimit: z
+    .number()
+    .int()
+    .min(1)
+    .default(() => Number(process.env['RATE_LIMIT_PLAYER_MAX']) || 300),
   windowMs: z
     .number()
     .int()

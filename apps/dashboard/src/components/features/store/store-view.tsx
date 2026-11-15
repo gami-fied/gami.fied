@@ -18,6 +18,7 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input, Textarea } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
@@ -331,20 +332,16 @@ export function StoreView() {
           </AdminOnly>
         }
         toolbar={
-          <div role="tablist" className="flex gap-1 overflow-x-auto">
-            {([['rewards', 'Rewards'], ['purchases', 'Purchases'], ['currencies', 'Currencies']] as [Tab, string][]).map(([id, label]) => (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-                className={`whitespace-nowrap border-b-2 px-3 py-1.5 text-sm transition-colors ${tab === id ? 'border-brand-500 text-zinc-100' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
-              >
-                {label}
-                {id === 'purchases' && pendingCount ? <Badge variant="orange" className="ml-2">{pendingCount}</Badge> : null}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            label="Store sections"
+            value={tab}
+            onChange={setTab}
+            items={[
+              { id: 'rewards', label: 'Rewards' },
+              { id: 'purchases', label: 'Purchases', badge: pendingCount ? <Badge variant="orange" className="ml-1">{pendingCount}</Badge> : null },
+              { id: 'currencies', label: 'Currencies' },
+            ]}
+          />
         }
       />
 

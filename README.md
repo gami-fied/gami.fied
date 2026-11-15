@@ -61,7 +61,7 @@ To run it rather than work on it, see [Self-hosting with Docker](#self-hosting-w
 - [pnpm](https://pnpm.io/) 11 or later
 - [Docker & Docker Compose](https://www.docker.com/)
 
-### 1. Clone & Install Dependencies
+### Clone & Install Dependencies
 
 ```bash
 git clone https://github.com/gami-fied/gami.fied.git
@@ -69,7 +69,7 @@ cd gami.fied
 pnpm install
 ```
 
-### 2. Create Your Environment File
+### Create Your Environment File
 
 ```bash
 cp .env.example .env
@@ -77,7 +77,7 @@ cp .env.example .env
 
 The defaults match the local Docker services. For deployments, use `.env.production.example`.
 
-### 3. Start Local Infrastructure (PostgreSQL & Redis)
+### Start Local Infrastructure (PostgreSQL & Redis)
 
 ```bash
 # Spin up PostgreSQL (port 5432) and Redis (port 6379)
@@ -87,13 +87,13 @@ pnpm infra:up
 pnpm infra:status
 ```
 
-### 4. Run Database Migrations
+### Run Database Migrations
 
 ```bash
 pnpm db:migrate:dev
 ```
 
-### 5. Load Demo Data (Optional)
+### Load Demo Data (Optional)
 
 ```bash
 pnpm db:seed
@@ -101,7 +101,7 @@ pnpm db:seed
 
 This prints a demo dashboard login and a fresh API key.
 
-### 6. Start Development Applications
+### Start Development Applications
 
 ```bash
 pnpm dev
@@ -189,6 +189,7 @@ Everything is in the [`docs/`](./docs) folder:
 - 🎮 [Gamification mechanics](./docs/gamification-mechanics.md)
 - 🛒 [Economy and store](./docs/economy-and-store.md)
 - 🏆 [Segments, leagues and social](./docs/social-and-competition.md)
+- 🎁 [Boxes, passes, teams and journeys](./docs/boxes-passes-teams-and-journeys.md)
 - 🔌 [Connectors, environments and plugins](./docs/connectors-environments-and-plugins.md)
 - 🎛️ [Features and organization rules](./docs/platform-administration-features.md)
 - 🛠️ [API reference](./docs/api-reference.md) and [TypeScript SDK](./docs/sdk.md)

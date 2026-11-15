@@ -4,7 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
 import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
-import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { ArrowLeft, Ban, Boxes, KeyRound, LogOut, PlayCircle, Trash2, Users } from 'lucide-react';
 import { FeatureBoard } from './feature-board';
 import { PolicyForm } from './policy-form';
+import { Tabs } from '@/components/ui/tabs';
 
 type Tab = 'overview' | 'features' | 'rules' | 'people';
 
@@ -211,22 +212,7 @@ export function OrganizationDetail({ organizationId }: { organizationId: string 
         </Button>
       </motion.div>
 
-      <LayoutGroup>
-        <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-zinc-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              role="tab"
-              aria-selected={tab === item.id}
-              onClick={() => setTab(item.id)}
-              className={`relative whitespace-nowrap px-3 py-2 text-sm transition-colors ${tab === item.id ? 'text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}`}
-            >
-              {item.label}
-              {tab === item.id && <motion.span layoutId="org-tab" className="absolute inset-x-0 -bottom-px h-0.5 bg-brand-500" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
-            </button>
-          ))}
-        </div>
-      </LayoutGroup>
+      <Tabs label="Organization sections" value={tab} onChange={setTab} items={TABS} className="border-b border-zinc-800" />
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>

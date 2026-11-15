@@ -15,6 +15,7 @@ import SiteLayout from '../layouts/SiteLayout.astro';
 import { EVENTS } from '../lib/analytics';
 import { FEATURES } from '../lib/features';
 import { SITE } from '../lib/site';
+import tourScenes from '../lib/tour.json';
 
 // "latest" always points at the newest release, so this never needs a version bump.
 const install = `curl -LO ${SITE.github}/releases/latest/download/docker-compose.yml
@@ -24,6 +25,8 @@ docker compose up -d`;
 
 // The product tour, recorded from the live demo by `pnpm capture`. The section is left out without it.
 const hasTour = existsSync(join(process.cwd(), 'public/video/tour.mp4'));
+// Written by the same recording, with the exact time of each caption. Older recordings have none.
+const hasCaptionTrack = existsSync(join(process.cwd(), 'public/video/tour.vtt'));
 
 // Counted from the source at build time, so they never drift from the product.
 const repo = (path: string) => readFileSync(join(process.cwd(), '../..', path), 'utf8');
@@ -44,7 +47,21 @@ const reasons = [
 ];
 ---
 
-<SiteLayout og="index">
+<SiteLayout
+  og="index"
+  jsonLd={{
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: SITE.name,
+    description: SITE.description,
+    url: SITE.url,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Linux, Docker',
+    license: 'https://www.gnu.org/licenses/agpl-3.0.html',
+    codeRepository: SITE.github,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  }}
+>
   <!-- Hero -->
   <section class="relative overflow-hidden">
     <div class="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(55%_60%_at_50%_0%,color-mix(in_oklab,var(--color-brand-500)_20%,transparent),transparent)]" aria-hidden="true"></div>
@@ -121,9 +138,16 @@ const reasons = [
             aria-label="A tour of the Gami.Fied dashboard with demo data: the overview, sending traffic, rules, achievements, streaks, the leaderboard, leagues, the store and players."
           >
             <source src="/video/tour.mp4" type="video/mp4" />
+            {hasCaptionTrack && <track kind="captions" src="/video/tour.vtt" srclang="en" label="English" default />}
             Your browser cannot play this video. <a href="/video/tour.mp4">Download it</a> instead.
           </video>
         </figure>
+        <details class="mt-4 text-sm text-zinc-400">
+          <summary class="cursor-pointer text-zinc-300 hover:text-zinc-100">Read what the tour shows</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 leading-relaxed">
+            {tourScenes.map((scene) => <li>{scene.caption}</li>)}
+          </ol>
+        </details>
       </Section>
     )
   }

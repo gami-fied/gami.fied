@@ -18,7 +18,7 @@ describe('chat and push integrations', () => {
     app.inject({ method: 'POST', url: `${base}/integrations`, headers: { cookie }, payload: { name: 'Test', ...payload } });
 
   const tokenFor = async (userId: string) =>
-    JSON.parse((await app.inject({ method: 'POST', url: '/v1/end-user-tokens', headers: { 'x-api-key': apiKey }, payload: { userId } })).payload).token as string;
+    JSON.parse((await app.inject({ method: 'POST', url: '/v1/end-user-tokens', headers: { 'x-api-key': apiKey }, payload: { userId, access: 'write' } })).payload).token as string;
 
   beforeAll(async () => {
     await runMigrations();

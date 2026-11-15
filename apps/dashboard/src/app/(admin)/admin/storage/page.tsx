@@ -223,7 +223,7 @@ export default function AdminStoragePage() {
           <div className="text-2xl font-bold text-white tracking-tight">
             {metrics?.databaseSizeBytes ? formatBytes(metrics.databaseSizeBytes) : 'PostgreSQL DB'}
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Total disk space allocated to the active PostgreSQL database instance.
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function AdminStoragePage() {
           <div className="text-2xl font-bold text-white tracking-tight">
             {calculateTotalRows().toLocaleString()} <span className="text-xs font-normal text-zinc-400">rows</span>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Combined total records stored across outboxes, delivery logs &amp; audit history.
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function AdminStoragePage() {
           <div className="text-2xl font-bold text-white tracking-tight">
             {metrics?.tables ? Object.keys(metrics.tables).length : 6} <span className="text-xs font-normal text-zinc-400">monitored tables</span>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Independent log and history outboxes configured for automated maintenance.
           </p>
         </div>
@@ -292,19 +292,19 @@ export default function AdminStoragePage() {
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-zinc-400 leading-relaxed min-h-[32px]">
+                    <p className="text-xs text-zinc-400 leading-relaxed min-h-[32px]">
                       {table.description}
                     </p>
 
                     {/* Breakdown metrics */}
                     <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-[11px]">
+                      <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-xs">
                         <span className="text-zinc-400 block text-xs">Completed / Sent</span>
                         <span className="text-success-400 font-bold">
                           {(table.completedRows ?? table.totalRows).toLocaleString()}
                         </span>
                       </div>
-                      <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-[11px]">
+                      <div className="p-2 bg-zinc-900/60 border border-zinc-800/80 text-xs">
                         <span className="text-zinc-400 block text-xs">Failed / Error</span>
                         <span className="text-danger-400 font-bold">
                           {(table.failedRows ?? 0).toLocaleString()}

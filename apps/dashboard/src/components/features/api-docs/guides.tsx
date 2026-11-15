@@ -83,7 +83,7 @@ export function Guides({ baseUrl }: { baseUrl: string }) {
         <p>
           <strong className="text-zinc-100">From a browser or app,</strong> your server creates a
           short-lived token with {code('POST /v1/end-user-tokens')}. Your frontend sends it as{' '}
-          {code('Authorization: Bearer <token>')} to the {code('/v1/me')} endpoints, which only read
+          {code('Authorization: Bearer <token>')} to the {code('/v1/me')} endpoints, which by default only read
           that one user&apos;s data.
         </p>
       </Guide>
@@ -134,7 +134,7 @@ export function Guides({ baseUrl }: { baseUrl: string }) {
           Check {code('error.code')} in your code rather than the message, which can change. Quote{' '}
           {code('requestId')} if you need help.
         </p>
-        <div className="overflow-x-auto">
+        <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
           <table className="w-full text-xs">
             <tbody className="divide-y divide-zinc-800/70">
               {ERROR_CODES.map(([status, name, meaning]) => (

@@ -431,7 +431,199 @@ const pathParams = {
   rewardKey: 'The reward\'s key, from List store rewards.',
   segmentId: 'The segment\'s ID or key.',
   friendId: 'The friend: their Gami.Fied ID or yours.',
+  boxKey: 'The box\'s key, from List mystery boxes and wheels.',
+  passKey: 'The pass\'s key, from List season passes.',
+  teamId: 'The team\'s ID or key.',
 };
+
+const meItems = (properties: Record<string, Schema>) =>
+  object({ data: { type: 'array', description: 'The results.', items: object(properties) } });
+
+/** One thing a player can be given. Which of the other fields is set depends on `type`. */
+const PRIZE: Schema = {
+  type: 'object',
+  required: ['type'],
+  description: 'A prize. `xp` and `currency` carry an `amount`; `currency`, `achievement` and `cosmetic` name what they give by key.',
+  properties: {
+    type: { type: 'string', enum: ['xp', 'currency', 'achievement', 'cosmetic'], description: 'What kind of prize it is.', example: 'currency' },
+    amount: { type: 'integer', description: 'How much XP or currency.', example: 20 },
+    currency: { type: 'string', description: 'Key of the currency.', example: 'gems' },
+    achievement: { type: 'string', description: 'Key of the achievement.', example: 'first_order' },
+    cosmetic: { type: 'string', description: 'Key of the cosmetic.', example: 'night_owl' },
+  },
+};
+const prizeList = (description: string): Schema => ({ type: 'array', description, items: PRIZE });
+/** A list whose rows are described in words, for the wide rows the dashboard reads. */
+const rowsOf = (description: string): Schema => ({
+  type: 'object',
+  required: ['data'],
+  properties: { data: { type: 'array', description, items: { type: 'object', additionalProperties: true } } },
+});
+
+const BOX_DROP = object({
+  id: id('The item\'s ID.', 'itm_4f2a9c1d'),
+  name: text('Display name.', '500 gems'),
+  rare: flag('Whether the guarantee counts it as rare.', true),
+  chance: { type: 'number', description: 'Chance of this item, as a percentage with two decimals.', example: 2.5 },
+  prizes: prizeList('What the item gives.'),
+});
+
+const PLAYER_BOX = {
+  key: text('The box\'s key.', 'daily_chest'),
+  name: text('Display name.', 'Daily chest'),
+  description: optionalText('What it is.', null),
+  imageUrl: optionalText('Link to a picture.', null),
+  kind: { type: 'string', enum: ['box', 'wheel'], description: 'How to show it. The draw is the same.', example: 'box' },
+  cost: count('What a try costs. 0 is free.', 0),
+  currency: optionalText('Key of the currency a try costs, or null when it is free.', null),
+  currencyName: optionalText('Name of that currency.', null),
+  currencySymbol: optionalText('Its symbol.', null),
+  affordable: flag('Whether this player can pay for a try.', true),
+  items: { type: 'array', description: 'The drop table: every item and its chance.', items: BOX_DROP },
+  guaranteeAfter: { ...nullable('integer'), description: 'After this many tries in a row with nothing rare, the next gives a rare item. Null means no guarantee.', example: 10 },
+  triesUntilGuarantee: { ...nullable('integer'), description: 'Tries left before one is sure to be rare. 0 means the next one is.', example: 7 },
+  dailyLimit: { ...nullable('integer'), description: 'Most tries in a UTC day, or null for no limit.', example: 3 },
+  triesLeftToday: { ...nullable('integer'), description: 'Tries left today.', example: 2 },
+};
+
+const BOX_OPEN = object({
+  id: id('ID of this try.', 'lbo_3f9c2a61-6f0e-4c58-9d0b-2c1d6f0a7e11'),
+  item: object({ id: id('The item\'s ID.', 'itm_4f2a9c1d'), name: text('What the player got.', '50 XP'), rare: flag('Whether it is a rare item.', false) }),
+  prizes: prizeList('What was given.'),
+  guaranteed: flag('True when the guarantee chose the item, not chance.', false),
+  cost: count('What the try cost.', 0),
+  createdAt: date('When.'),
+  duplicate: flag('True if this idempotency key was used before, so nothing new happened.', false),
+});
+
+const LANE = (which: string) =>
+  object({
+    prizes: prizeList(`What the ${which} lane gives at this tier.`),
+    claimed: flag('Whether the player has claimed it.', false),
+    claimable: flag('Whether it is ready to claim now.', true),
+  });
+
+const PLAYER_PASS = {
+  key: text('The pass\'s key.', 'season_1'),
+  name: text('Display name.', 'Season 1'),
+  description: optionalText('What it is.', null),
+  status: { type: 'string', enum: ['upcoming', 'active', 'ended'], description: 'Where the season stands.', example: 'active' },
+  startAt: date('When the season starts.'),
+  endAt: date('When it ends. XP earned after this does not count.'),
+  claimUntil: date('Rewards can be claimed until this time, a week after the end.'),
+  xp: count('XP the player earned while the season has run.', 750),
+  tier: count('How many tiers are unlocked.', 1),
+  xpToNextTier: { ...nullable('integer'), description: 'Season XP still needed for the next tier. Null at the top.', example: 250 },
+  premium: object({
+    available: flag('Whether the pass has a premium lane to buy.', false),
+    owned: flag('Whether the player holds it.', false),
+    cost: { ...nullable('integer'), description: 'What it costs.', example: null },
+    currency: optionalText('Key of the currency it costs.', null),
+    currencyName: optionalText('Name of that currency.', null),
+    currencySymbol: optionalText('Its symbol.', null),
+    affordable: flag('Whether the player can pay for it.', false),
+  }),
+  tiers: {
+    type: 'array',
+    description: 'Each tier, lowest first.',
+    items: object({ tier: count('Tier number, from 1.', 1), xp: count('Season XP that unlocks it.', 0), unlocked: flag('Whether the player has reached it.', true), free: LANE('free'), premium: LANE('premium') }),
+  },
+};
+
+const PASS_CLAIM = object({
+  pass: text('The pass\'s key.', 'season_1'),
+  claimed: {
+    type: 'array',
+    description: 'What was given by this call. Empty when nothing was ready.',
+    items: object({ tier: count('Tier number.', 1), lane: { type: 'string', enum: ['free', 'premium'], description: 'Which lane.', example: 'free' }, prizes: prizeList('What was given.') }),
+  },
+});
+const PASS_CLAIM_BODY = {
+  type: 'object',
+  properties: {
+    tier: { type: 'integer', minimum: 1, description: 'The tier to claim. Leave out, with `lane`, to claim everything that is ready.', example: 1 },
+    lane: { type: 'string', enum: ['free', 'premium'], description: 'Which lane of that tier.', example: 'free' },
+  },
+};
+
+const PLAYER_TEAM = {
+  ...nullable('object'),
+  description: 'The team, or null when the user is in none.',
+  required: ['key', 'name', 'imageUrl', 'members', 'maxMembers', 'xp', 'rank', 'teams', 'roster'],
+  properties: {
+    key: text('The team\'s key.', 'red'),
+    name: text('Display name.', 'Red team'),
+    imageUrl: optionalText('Link to a picture.', null),
+    members: count('How many players are in it.', 1),
+    maxMembers: { ...nullable('integer'), description: 'Most members, or null for no limit.', example: null },
+    xp: count('XP held by its members together.', 750),
+    rank: { ...nullable('integer'), description: 'Its place among the teams by XP.', example: 1 },
+    teams: count('How many teams there are.', 1),
+    roster: {
+      type: 'array',
+      description: 'Up to 50 members, highest XP first.',
+      items: object({ name: optionalText('Display name.', 'Ada'), avatarUrl: optionalText('Profile picture.', null), xp: count('Their XP.', 750), isMe: flag('Whether this is the user asked about.', true) }),
+    },
+  },
+};
+const TEAM_JOIN = object({ team: object({ key: text('The team\'s key.', 'red'), name: text('Display name.', 'Red team') }), joined: flag('False when they were already in it.', true) });
+const TEAM_BODY = { type: 'object', required: ['team'], properties: { team: { type: 'string', description: 'The team\'s key or ID.', example: 'red' } } };
+
+const PLAYER_GOAL = {
+  key: text('The goal\'s key.', 'million_lessons'),
+  name: text('Display name.', 'A million lessons'),
+  description: optionalText('What it is.', null),
+  scope: { type: 'string', enum: ['community', 'team'], description: 'Whether everyone shares one total, or each team has its own.', example: 'community' },
+  target: count('The total to reach.', 1000000),
+  progress: count('The total so far, for everyone or for the player\'s team.', 412000),
+  percent: count('Progress as a whole percentage.', 41),
+  completed: flag('Whether the target was reached.', false),
+  completedAt: optionalDate('When it was reached.'),
+  myContribution: count('How much this player added.', 12),
+  endsAt: optionalDate('When it stops counting, if it has an end.'),
+  open: flag('Whether events still count.', true),
+  rewards: prizeList('What every contributor gets when the target is reached.'),
+};
+
+const PLAYER_COSMETIC = {
+  key: text('The cosmetic\'s key.', 'night_owl'),
+  name: text('Display name.', 'Night owl'),
+  description: optionalText('What it is.', null),
+  kind: { type: 'string', enum: ['title', 'frame', 'item'], description: 'A player wears one title and one frame, and any number of items.', example: 'title' },
+  imageUrl: optionalText('Link to a picture.', null),
+  owned: flag('Whether the player owns it.', true),
+  equipped: flag('Whether they are wearing it.', false),
+  achievement: { ...nullable('object'), description: 'The achievement that unlocks it, if one does.', required: ['key', 'name'], properties: { key: text('Its key.', 'first'), name: text('Its name.', 'First') } },
+  cost: { ...nullable('integer'), description: 'What it costs to buy, or null when it is not for sale.', example: null },
+  currency: optionalText('Key of the currency it costs.', null),
+  currencySymbol: optionalText('Its symbol.', null),
+  affordable: flag('Whether the player can pay for it.', false),
+};
+const EQUIP = object({ key: text('The cosmetic\'s key.', 'night_owl'), kind: text('Its kind.', 'title'), equipped: flag('Whether it is worn now.', true) });
+
+const PLAYER_JOURNEY = {
+  key: text('The journey\'s key.', 'onboarding'),
+  name: text('Display name.', 'Getting started'),
+  description: optionalText('What it is.', null),
+  completed: flag('Whether every step is finished.', false),
+  stepsDone: count('How many steps are finished.', 0),
+  rewards: prizeList('What finishing the last step gives.'),
+  steps: {
+    type: 'array',
+    description: 'The steps, in order.',
+    items: object({
+      challenge: text('The challenge\'s key.', 'ten'),
+      name: text('Display name.', 'Ten'),
+      description: optionalText('What to do.', null),
+      target: count('How many events finish it.', 10),
+      progress: count('Counted so far.', 0),
+      completed: flag('Whether it is finished.', false),
+      locked: flag('True until every step before it is finished. Events do not count for a locked step.', false),
+    }),
+  },
+};
+
+const userDocs = (what: string) => `Uses your own ID for the user, or their Gami.Fied ID. ${what}`;
 
 const query = (name: string, description: string, schema: Schema): Param => ({
   name,
@@ -569,6 +761,14 @@ const DOCS: Record<string, Doc> = {
     }),
     errors: [404],
   },
+  'POST /users/:userId/tokens/revoke': {
+    tag: 'Users',
+    description: 'Ends every player token made for this user so far. Call it when they sign out of your app, so a token left in a browser stops working before it expires. Tokens made afterwards work as usual.',
+    status: 200,
+    responseDescription: 'Their earlier tokens no longer work.',
+    response: object({ revoked: flag('Always true.', true) }),
+    errors: [404],
+  },
   'POST /users/:userId/erase': {
     tag: 'Users',
     description: 'Deletes a user and their personal data for good, for requests such as GDPR erasure. This can\'t be undone, so the body must confirm it.',
@@ -684,6 +884,198 @@ const DOCS: Record<string, Doc> = {
       },
     },
     example: { idempotencyKey: 'order-4821-reward' },
+  },
+  'GET /boxes': {
+    tag: 'Store',
+    description: 'Lists the mystery boxes and wheels, enabled or not. Each row has the box\'s settings, its `items` with their weights, a `dropTable` with each item\'s chance as a percentage, and how many times it was opened and by how many players.',
+    status: 200,
+    responseDescription: 'The boxes.',
+    response: rowsOf('The boxes.'),
+  },
+  'GET /users/:userId/boxes': {
+    tag: 'Store',
+    description: userDocs('Lists the boxes this user can open, with the drop table, whether they can pay, how many tries they have left today, and how far they are from the guarantee.'),
+    status: 200,
+    responseDescription: 'The boxes.',
+    errors: [404],
+    response: meItems(PLAYER_BOX),
+  },
+  'POST /users/:userId/boxes/:boxKey/open': {
+    tag: 'Store',
+    description: 'Opens a box for a user: one try gives one item, picked by weight. The cost, the draw and the prizes happen together or not at all. After `guaranteeAfter` tries in a row with nothing rare, the try is drawn from the rare items only. Fails with 409 and a `code` of `INSUFFICIENT_POINTS` or `LIMIT_REACHED`. A `box.opened` webhook is sent. Send an idempotency key so a retry does not open twice.',
+    status: 201,
+    responseDescription: 'What the try gave. Returns 200 instead of 201 when the key was used before.',
+    errors: [404, 409],
+    response: BOX_OPEN,
+    body: { type: 'object', properties: { idempotencyKey: { type: 'string', maxLength: 128, description: 'Makes a retry safe.', example: 'order-4821-box' } } },
+    example: { idempotencyKey: 'order-4821-box' },
+  },
+  'GET /passes': {
+    tag: 'Store',
+    description: 'Lists the season passes. Each row has the season\'s dates, its `tiers` with the free and premium prizes, what the premium lane costs, and how many players have started it and hold the premium lane.',
+    status: 200,
+    responseDescription: 'The passes.',
+    response: rowsOf('The passes.'),
+  },
+  'GET /users/:userId/passes': {
+    tag: 'Store',
+    description: userDocs('Lists each pass that is running or can still be claimed from, with the XP the user earned this season, each tier, and what is ready to claim.'),
+    status: 200,
+    responseDescription: 'The passes.',
+    errors: [404],
+    response: meItems(PLAYER_PASS),
+  },
+  'POST /users/:userId/passes/:passKey/claim': {
+    tag: 'Store',
+    description: 'Gives a user the rewards of tiers they have reached. Send a `tier` and a `lane` for one reward, or neither to claim everything that is ready. Each reward is given once. Fails with 409 and a `code` of `TIER_LOCKED`, `PREMIUM_REQUIRED`, `ALREADY_CLAIMED`, `PASS_NOT_STARTED` or `PASS_ENDED`.',
+    status: 200,
+    responseDescription: 'What was given.',
+    errors: [404, 409],
+    response: PASS_CLAIM,
+    body: PASS_CLAIM_BODY,
+    example: {},
+  },
+  'POST /users/:userId/passes/:passKey/premium': {
+    tag: 'Store',
+    description: 'Gives a user the premium lane without charging points, for example after they paid you. Doing it again changes nothing.',
+    status: 200,
+    responseDescription: 'They hold the premium lane.',
+    errors: [404],
+    response: object({ pass: text('The pass\'s key.', 'season_1'), premium: flag('Always true.', true) }),
+  },
+  'GET /cosmetics': {
+    tag: 'Store',
+    description: 'Lists the cosmetics: titles, avatar frames and profile items. Each row has its kind, the achievement that unlocks it, what it costs, and how many players own it.',
+    status: 200,
+    responseDescription: 'The cosmetics.',
+    response: rowsOf('The cosmetics.'),
+  },
+  'GET /users/:userId/cosmetics': {
+    tag: 'Store',
+    description: userDocs('Lists every cosmetic as this user sees it: owned, worn, and how to get the rest.'),
+    status: 200,
+    responseDescription: 'The cosmetics.',
+    errors: [404],
+    response: meItems(PLAYER_COSMETIC),
+  },
+  'POST /users/:userId/cosmetics': {
+    tag: 'Store',
+    description: 'Gives a user a cosmetic, for example as a gift. Doing it again changes nothing.',
+    status: 200,
+    responseDescription: 'Done.',
+    errors: [400, 404],
+    response: object({ key: text('The cosmetic\'s key.', 'night_owl'), given: flag('False when they already had it.', true) }),
+    body: { type: 'object', required: ['cosmetic'], properties: { cosmetic: { type: 'string', description: 'The cosmetic\'s key.', example: 'night_owl' } } },
+    example: { cosmetic: 'night_owl' },
+  },
+  'GET /teams': {
+    tag: 'Social',
+    description: 'Lists the teams with their size and the XP their members hold together, highest first. This is also the team board.',
+    status: 200,
+    responseDescription: 'The teams.',
+    response: meItems({
+      id: id('The team\'s ID.', 'team_3f9c2a61-6f0e-4c58-9d0b-2c1d6f0a7e11'),
+      key: text('The team\'s key.', 'red'),
+      name: text('Display name.', 'Red team'),
+      imageUrl: optionalText('Link to a picture.', null),
+      maxMembers: { ...nullable('integer'), description: 'Most members, or null for no limit.', example: null },
+      createdAt: date('When it was made.'),
+      members: count('How many players are in it.', 12),
+      xp: count('XP held by its members together.', 8400),
+      rank: count('Its place by XP.', 1),
+    }),
+  },
+  'GET /teams/:teamId/members': {
+    tag: 'Social',
+    description: 'Lists up to 500 members of a team, highest XP first.',
+    status: 200,
+    responseDescription: 'The team and its members.',
+    errors: [404],
+    response: object({
+      team: { type: 'object', description: 'The team.', additionalProperties: true },
+      data: {
+        type: 'array',
+        description: 'The members.',
+        items: object({
+          userId,
+          externalId: text('Your ID for this user.', 'user_123'),
+          name: optionalText('Display name.', 'Ada'),
+          avatarUrl: optionalText('Profile picture.', null),
+          xp: count('Their XP.', 750),
+          joinedAt: date('When they joined.'),
+        }),
+      },
+    }),
+  },
+  'GET /users/:userId/team': {
+    tag: 'Social',
+    description: userDocs('Gets the user\'s team with its place and members. A user is in one team at a time.'),
+    status: 200,
+    responseDescription: 'The team.',
+    errors: [404],
+    response: object({ team: PLAYER_TEAM }),
+  },
+  'POST /users/:userId/team': {
+    tag: 'Social',
+    description: 'Puts a user in a team. A user in another team moves. Fails with 409 `TEAM_FULL` when the team has a size limit and is at it.',
+    status: 200,
+    responseDescription: 'They are in the team.',
+    errors: [400, 404, 409],
+    response: TEAM_JOIN,
+    body: TEAM_BODY,
+    example: { team: 'red' },
+  },
+  'DELETE /users/:userId/team': {
+    tag: 'Social',
+    description: 'Takes a user out of their team. It is not an error if they were in none.',
+    status: 204,
+    responseDescription: 'Done.',
+    errors: [404],
+    response: {},
+  },
+  'GET /goals': {
+    tag: 'Challenges',
+    description: 'Lists the shared goals. Each row has the goal\'s settings, how many players contributed and were paid, and its `progress`: one line for a community goal, or one per team for a team goal.',
+    status: 200,
+    responseDescription: 'The goals.',
+    response: rowsOf('The goals.'),
+  },
+  'GET /users/:userId/goals': {
+    tag: 'Challenges',
+    description: userDocs('Lists the shared goals this user can see, with the total so far (everyone\'s, or their team\'s for a team goal) and how much they added. A team goal also carries `team`, which is null when the user is in no team.'),
+    status: 200,
+    responseDescription: 'The goals.',
+    errors: [404],
+    response: { type: 'object', required: ['data'], properties: { data: { type: 'array', description: 'The goals.', items: { type: 'object', required: Object.keys(PLAYER_GOAL), properties: { ...PLAYER_GOAL, team: { ...nullable('object'), description: 'For a team goal, the user\'s team.', additionalProperties: true } } } } } },
+  },
+  'GET /journeys': {
+    tag: 'Challenges',
+    description: 'Lists the journeys. Each row has its `steps` (challenge keys, in order), the prizes for finishing, and how many players finished it.',
+    status: 200,
+    responseDescription: 'The journeys.',
+    response: rowsOf('The journeys.'),
+  },
+  'GET /users/:userId/journeys': {
+    tag: 'Challenges',
+    description: userDocs('Lists the journeys with this user\'s progress on each step, and whether the step is open yet.'),
+    status: 200,
+    responseDescription: 'The journeys.',
+    errors: [404],
+    response: meItems(PLAYER_JOURNEY),
+  },
+  'GET /leaderboard-prizes': {
+    tag: 'Leaderboard',
+    description: 'Lists the prizes for places on the daily, weekly and monthly boards. Each row has the period, the range of places, the prizes, and the last period that was paid.',
+    status: 200,
+    responseDescription: 'The prizes.',
+    response: rowsOf('The prizes.'),
+  },
+  'GET /leaderboard-prizes/payouts': {
+    tag: 'Leaderboard',
+    description: 'Lists the 100 most recent prizes that were paid, newest first, with the player, their place and their XP in that period.',
+    status: 200,
+    responseDescription: 'The payouts.',
+    response: rowsOf('The payouts.'),
   },
   'GET /segments': {
     tag: 'Segments',
@@ -1176,12 +1568,10 @@ function publicOperation(route: (typeof PUBLIC_ROUTES)[number]) {
     'x-required-scope': route.scope,
     ...(parameters.length > 0 ? { parameters } : {}),
     ...(doc.body ? { requestBody: jsonBody(doc.body, doc.example) } : {}),
-    responses: responses(doc.status, doc.responseDescription, doc.response, [
-      ...(doc.errors ?? []),
-      401,
-      403,
-      429,
-    ]),
+    responses:
+      doc.status === 204
+        ? { 204: { description: doc.responseDescription }, ...Object.fromEntries([...(doc.errors ?? []), 401, 403, 429].map((code) => [code, errorResponse(code)])) }
+        : responses(doc.status, doc.responseDescription, doc.response, [...(doc.errors ?? []), 401, 403, 429]),
   };
 }
 
@@ -1202,8 +1592,28 @@ function meOperation(path: string, summaryText: string, description: string, res
   };
 }
 
-const meItems = (properties: Record<string, Schema>) =>
-  object({ data: { type: 'array', description: 'The results.', items: object(properties) } });
+/** A `/v1/me` request that changes something, which needs a token created with `access: "write"`. */
+function meWrite(method: 'post' | 'delete', path: string, summaryText: string, description: string, options: { parameters?: unknown[]; body?: unknown; success: number; response?: Schema; errors: number[] }) {
+  const failures = Object.fromEntries(options.errors.map((code) => [code, errorResponse(code)]));
+  return {
+    operationId: operationId(method, path),
+    tags: ['Current user'],
+    summary: summaryText,
+    description: `${description} Needs a token created with \`access: "write"\`; a read-only token gets 403 \`TOKEN_READ_ONLY\`.`,
+    security: [{ endUserToken: [] }],
+    ...(options.parameters ? { parameters: options.parameters } : {}),
+    ...(options.body ? { requestBody: options.body } : {}),
+    responses: options.response ? responses(options.success, summaryText, options.response, options.errors) : { [options.success]: { description: summaryText }, ...failures },
+  };
+}
+
+const codeParameter = { name: 'code', in: 'path', required: true, description: "The other player's invite code.", schema: { type: 'string' } };
+const codeBody = (extra: Record<string, Schema> = {}, example: Record<string, unknown> = {}) =>
+  jsonBody(
+    { type: 'object', required: ['code'], properties: { code: { type: 'string', minLength: 4, maxLength: 32, description: "The other player's invite code.", example: 'K7P2QX9M' }, ...extra } },
+    { code: 'K7P2QX9M', ...example }
+  );
+
 
 /** Builds the spec from the public route table, so the two cannot disagree. */
 export function buildOpenApiDocument() {
@@ -1278,7 +1688,7 @@ export function buildOpenApiDocument() {
         operationId: 'postEndUserTokens',
         tags: ['Current user'],
         summary: 'Create a short-lived token for one user',
-        description: 'Call this from your server, then give the token to your frontend. It can only read that one user\'s data with the `/v1/me` endpoints, so your API key stays private.',
+        description: 'Call this from your server, then give the token to your frontend, so your API key stays private. A token acts for that one user with the `/v1/me` endpoints. By default it only reads. Pass `access: "write"` to also let the user buy rewards, add friends, give kudos and register a device.',
         'x-required-scope': 'users:write',
         requestBody: jsonBody(
           {
@@ -1287,6 +1697,7 @@ export function buildOpenApiDocument() {
             properties: {
               userId: { type: 'string', minLength: 1, maxLength: 128, description: 'Your own ID for the user, or their Gami.Fied ID.', example: 'user_123' },
               expiresInSeconds: { type: 'integer', minimum: 60, maximum: 3600, default: 900, description: 'How long the token lasts.', example: 900 },
+              access: { type: 'string', enum: ['read', 'write'], default: 'read', description: 'What the token may do for its user. `write` is needed for every `/v1/me` request that is not a `GET`.', example: 'read' },
             },
           },
           { userId: 'user_123', expiresInSeconds: 900 }
@@ -1294,6 +1705,7 @@ export function buildOpenApiDocument() {
         responses: responses(201, 'The token.', object({
           token: text('Send as `Authorization: Bearer <token>`.', 'geu_eyJwcm9qZWN0IjoicHJqXzhmM2syIn0.c2lnbmF0dXJl'),
           expiresAt: date('When the token stops working.'),
+          access: { type: 'string', enum: ['read', 'write'], description: 'What the token may do.', example: 'read' },
         }), [400, 401, 403, 404, 429]),
       },
     },
@@ -1305,6 +1717,11 @@ export function buildOpenApiDocument() {
         level: { ...nullable('object'), description: 'Current level. Null if the project has no levels.', required: ['number', 'name'], properties: { number: count('Level number.', 2), name: text('Level name.', 'Explorer') } },
         xpToNextLevel: { ...nullable('integer'), description: 'XP still needed. Null at the top level.', example: 250 },
         progressPercent: { ...nullable('integer'), description: 'Percent of the way to the next level.', example: 50 },
+        cosmetics: object({
+          title: { ...nullable('object'), description: 'The title the player wears.', required: ['key', 'name'], properties: { key: text('Its key.', 'night_owl'), name: text('Its name.', 'Night owl') } },
+          frame: { ...nullable('object'), description: 'The avatar frame the player wears.', required: ['key', 'name', 'imageUrl'], properties: { key: text('Its key.', 'gold_ring'), name: text('Its name.', 'Gold ring'), imageUrl: optionalText('Link to its picture.', null) } },
+          items: { type: 'array', description: 'Profile items the player wears.', items: object({ key: text('Its key.', 'trophy'), name: text('Its name.', 'Trophy'), imageUrl: optionalText('Link to its picture.', null) }) },
+        }),
       })),
     },
     '/v1/me/devices': {
@@ -1312,7 +1729,7 @@ export function buildOpenApiDocument() {
         operationId: 'postMeDevices',
         tags: ['Current user'],
         summary: "Register the current user's phone for push notifications",
-        description: "Call this from your mobile app with the token the phone's push service gave it, each time the app starts. A token belongs to one player, so if the phone is later used by someone else it moves to them. Needs a push integration (Apple or Firebase) set up in the dashboard.'",
+        description: "Needs a token created with `access: \"write\"`. Call this from your mobile app with the token the phone's push service gave it, each time the app starts. A token belongs to one player, so if the phone is later used by someone else it moves to them. Needs a push integration (Apple or Firebase) set up in the dashboard.'",
         security: [{ endUserToken: [] }],
         requestBody: jsonBody(
           {
@@ -1333,7 +1750,7 @@ export function buildOpenApiDocument() {
         operationId: 'deleteMeDevicesToken',
         tags: ['Current user'],
         summary: "Remove the current user's phone",
-        description: "Call this when the player signs out, so they stop getting notifications on that phone. Only removes a phone registered to the token holder.'",
+        description: "Needs a token created with `access: \"write\"`. Call this when the player signs out, so they stop getting notifications on that phone. Only removes a phone registered to the token holder.'",
         security: [{ endUserToken: [] }],
         parameters: [{ name: 'token', in: 'path', required: true, description: 'The device token, URL-encoded.', schema: { type: 'string' } }],
         responses: responses(200, 'The phone is removed, or was not registered.', object({ removed: flag('Always true.', true) }), [401]),
@@ -1366,7 +1783,7 @@ export function buildOpenApiDocument() {
         operationId: 'postMeRewardsRewardKeyRedeem',
         tags: ['Current user'],
         summary: 'Buy a reward as the current user',
-        description: 'Spends the token holder\'s points on a reward. Returns 409 with a `code` of `INSUFFICIENT_POINTS`, `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED` when it cannot be bought. Send `idempotencyKey` so a retry does not buy twice.',
+        description: 'Spends the token holder\'s points on a reward. Needs a token created with `access: "write"`; a read-only token gets 403 `TOKEN_READ_ONLY`. Returns 409 with a `code` of `INSUFFICIENT_POINTS`, `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED` when it cannot be bought. Send `idempotencyKey` so a retry does not buy twice.',
         security: [{ endUserToken: [] }],
         parameters: [{ name: 'rewardKey', in: 'path', required: true, description: 'The reward\'s key.', schema: { type: 'string' } }],
         requestBody: jsonBody({ type: 'object', properties: { idempotencyKey: { type: 'string', maxLength: 128, description: 'Makes a retry safe.', example: 'buy-1' } } }, { idempotencyKey: 'buy-1' }, false),
@@ -1401,12 +1818,51 @@ export function buildOpenApiDocument() {
       })),
     },
     '/v1/me/friends': {
+      post: meWrite('post', '/v1/me/friends', 'Ask a player to be friends', 'Sends a friend request to the player with this code. They become friends when that player accepts, or at once if they had already asked.', {
+        body: codeBody(),
+        success: 201,
+        response: object({
+          friends: flag('True when the two are friends now.', false),
+          status: { type: 'string', enum: ['friends', 'requested'], description: 'Whether they are friends, or the request is waiting.', example: 'requested' },
+        }),
+        errors: [400, 401, 403, 404, 429],
+      }),
       get: meOperation('/v1/me/friends', "List the current user's friends", 'Friends are found by invite code, so no IDs are shown.', meItems({
         name: optionalText('Name.', 'Grace'),
         avatarUrl: optionalText('Picture.', null),
         totalXp: count('All-time XP.', 1300),
         code: optionalText('Their invite code, used to remove them or give kudos.', 'K7P2QX9M'),
       })),
+    },
+    '/v1/me/friends/requests': {
+      get: meOperation('/v1/me/friends/requests', 'List friend requests waiting for the current user', 'A player becomes a friend only after they accept. Answer a request with the sender\'s code.', meItems({
+        name: optionalText('Who asked.', 'Grace'),
+        avatarUrl: optionalText('Picture.', null),
+        code: text('Their invite code, used to accept or decline.', 'K7P2QX9M'),
+        requestedAt: date('When they asked.'),
+      })),
+    },
+    '/v1/me/friends/{code}': {
+      delete: meWrite('delete', '/v1/me/friends/{code}', 'End a friendship', 'Removes the player with this code from the current user\'s friends, both ways.', {
+        parameters: [codeParameter],
+        success: 204,
+        errors: [401, 403],
+      }),
+    },
+    '/v1/me/friends/requests/{code}/accept': {
+      post: meWrite('post', '/v1/me/friends/requests/{code}/accept', 'Accept a friend request', 'Accepts the request sent by the player with this code.', {
+        parameters: [codeParameter],
+        success: 201,
+        response: object({ friends: flag('Always true.', true) }),
+        errors: [401, 403, 404],
+      }),
+    },
+    '/v1/me/friends/requests/{code}': {
+      delete: meWrite('delete', '/v1/me/friends/requests/{code}', 'Decline or take back a friend request', 'Declines a request from the player with this code, or takes back one sent to them.', {
+        parameters: [codeParameter],
+        success: 204,
+        errors: [401, 403],
+      }),
     },
     '/v1/me/feed': {
       get: meOperation('/v1/me/feed', 'Get the current user\'s friends feed', 'What the player and their friends did lately.', meItems({
@@ -1419,6 +1875,12 @@ export function buildOpenApiDocument() {
       })),
     },
     '/v1/me/kudos': {
+      post: meWrite('post', '/v1/me/kudos', 'Give kudos to a player', 'A small thank-you to the player with this code. One per person per day, and at most 30 a day.', {
+        body: codeBody({ message: { type: 'string', maxLength: 280, description: 'An optional message.', example: 'Great streak!' } }, { message: 'Great streak!' }),
+        success: 201,
+        response: object({ id: id('ID of the kudos.', 'kdo_5f0c1e7a'), createdAt: date('When it was given.') }),
+        errors: [400, 401, 403, 404, 409, 429],
+      }),
       get: meOperation('/v1/me/kudos', 'List kudos the current user received', 'The 50 most recent.', meItems({
         from: optionalText('Who gave it.', 'Ada'),
         message: optionalText('The message.', 'Great streak!'),
@@ -1426,6 +1888,12 @@ export function buildOpenApiDocument() {
       })),
     },
     '/v1/me/referral': {
+      post: meWrite('post', '/v1/me/referral', 'Use an invite code', 'Records that the current user joined with this code. Works once, in their first 30 days.', {
+        body: codeBody(),
+        success: 201,
+        response: object({ status: { type: 'string', enum: ['pending', 'rewarded', 'capped'], description: 'Whether the invite has been rewarded yet.', example: 'pending' } }),
+        errors: [400, 401, 403, 404, 409],
+      }),
       get: meOperation('/v1/me/referral', "Get the current user's invite code", 'The player\'s invite code and how their invites went.', object({
         code: text('The code.', 'K7P2QX9M'),
         invited: count('People who used it.', 3),
@@ -1458,6 +1926,14 @@ export function buildOpenApiDocument() {
         iconUrl: optionalText('Link to a badge image.', null),
         awardedAt: date('When it was awarded.'),
       })),
+    },
+    '/v1/me/achievements/{achievementKey}/share': {
+      get: {
+        ...meOperation('/v1/me/achievements/{achievementKey}/share', 'Get a share image link for an achievement', 'A link to a 1200 by 630 image of an achievement the current user earned, for social media. The link is signed and public.', object({
+          url: text('The address of the image.', 'https://api.example.com/v1/share/ua_5f0c1e7a.Zm9vYmFyYmF6cXV4MTIzNA.svg'),
+        })),
+        parameters: [{ name: 'achievementKey', in: 'path', required: true, description: 'The achievement\'s key.', schema: { type: 'string' } }],
+      },
     },
     '/v1/me/achievements/progress': {
       get: meOperation('/v1/me/achievements/progress', "Show the current user's achievement progress", 'Shows how far the token holder is toward each achievement that measures itself. Secret achievements are left out until they are earned.', meItems({
@@ -1499,6 +1975,8 @@ export function buildOpenApiDocument() {
             avatarUrl: optionalText('Link to a profile picture.', null),
             xp: count('XP for the period.', 1200),
             levelName: optionalText('Level name, if the project has levels.', 'Gold'),
+            title: optionalText('The title the player wears, if any.', null),
+            frameUrl: optionalText('Picture of the avatar frame the player wears, if any.', null),
             isMe: flag('Whether this is the token holder.', false),
           }) },
           me: { ...nullable('object'), description: 'The token holder\'s own entry. Null if they have no XP in the period.', additionalProperties: true },
@@ -1520,6 +1998,7 @@ export function buildOpenApiDocument() {
         target: count('How many events, or steps, finish it.', 10),
         progress: count('Counted so far.', 4),
         completed: flag('Whether the user finished it this period.', false),
+        locked: flag('True for a step of a journey whose earlier steps are not finished. Events do not count yet.', false),
         periodEndsAt: optionalDate('When a repeating challenge starts over, or when a one-off one ends.'),
         steps: { ...nullable('array'), description: 'For a steps challenge, each step and whether it is done.', items: { type: 'object', properties: { name: { type: 'string' }, done: { type: 'boolean' } } } },
       })),
@@ -1532,6 +2011,110 @@ export function buildOpenApiDocument() {
         message: text('Full text.', 'You earned First order'),
         createdAt: date('When it was sent.'),
       })),
+    },
+    '/v1/me/boxes': {
+      get: meOperation('/v1/me/boxes', 'List the boxes the current user can open', 'Lists the mystery boxes and wheels, each with its drop table (every item and its chance), what a try costs, how many tries are left today, and how far the player is from the guarantee. Show the drop table to players: published odds are what makes random rewards fair.', meItems(PLAYER_BOX)),
+    },
+    '/v1/me/boxes/{boxKey}/open': {
+      post: meWrite('post', '/v1/me/boxes/{boxKey}/open', 'Open a box as the current user', 'One try gives one item, picked by weight. The cost, the draw and the prizes happen together. Returns 409 with a `code` of `INSUFFICIENT_POINTS` or `LIMIT_REACHED` when it cannot be opened. Send `idempotencyKey` so a retry does not open twice.', {
+        parameters: [{ name: 'boxKey', in: 'path', required: true, description: "The box's key.", schema: { type: 'string' } }],
+        body: jsonBody({ type: 'object', properties: { idempotencyKey: { type: 'string', maxLength: 128, description: 'Makes a retry safe.', example: 'open-1' } } }, { idempotencyKey: 'open-1' }, false),
+        success: 201,
+        response: BOX_OPEN,
+        errors: [401, 403, 404, 409],
+      }),
+    },
+    '/v1/me/passes': {
+      get: meOperation('/v1/me/passes', "List the current user's season passes", 'Lists each pass that is running or can still be claimed from, with the XP earned this season, each tier, and what is ready to claim.', meItems(PLAYER_PASS)),
+    },
+    '/v1/me/passes/{passKey}/claim': {
+      post: meWrite('post', '/v1/me/passes/{passKey}/claim', 'Claim season pass rewards', 'Send a `tier` and a `lane` for one reward, or neither to claim everything that is ready. Returns 409 with a `code` of `TIER_LOCKED`, `PREMIUM_REQUIRED`, `ALREADY_CLAIMED`, `PASS_NOT_STARTED` or `PASS_ENDED`.', {
+        parameters: [{ name: 'passKey', in: 'path', required: true, description: "The pass's key.", schema: { type: 'string' } }],
+        body: jsonBody(PASS_CLAIM_BODY, {}, false),
+        success: 200,
+        response: PASS_CLAIM,
+        errors: [401, 403, 404, 409],
+      }),
+    },
+    '/v1/me/passes/{passKey}/premium': {
+      post: meWrite('post', '/v1/me/passes/{passKey}/premium', 'Buy the premium lane of a pass', 'Spends the player\'s points on the premium lane while the season is running. Its rewards for tiers already reached can then be claimed. Returns 409 with a `code` of `INSUFFICIENT_POINTS`, `NO_PREMIUM_LANE` or `PASS_NOT_ACTIVE`.', {
+        parameters: [{ name: 'passKey', in: 'path', required: true, description: "The pass's key.", schema: { type: 'string' } }],
+        success: 201,
+        response: object({ pass: text('The pass\'s key.', 'season_1'), premium: flag('Always true.', true), duplicate: flag('True if the player already held it, so nothing was charged.', false), cost: count('What was charged.', 500) }),
+        errors: [401, 403, 404, 409],
+      }),
+    },
+    '/v1/me/team': {
+      get: meOperation('/v1/me/team', "Get the current user's team", 'Gets the player\'s team with its place among the teams and up to 50 members. `team` is null when they are in none.', object({ team: PLAYER_TEAM })),
+      post: meWrite('post', '/v1/me/team', 'Join a team', 'Joins a team, leaving any other. Returns 409 `TEAM_FULL` when the team is at its size limit. If you place players in teams yourself, give them read-only tokens and this cannot be used.', {
+        body: jsonBody(TEAM_BODY, { team: 'red' }),
+        success: 200,
+        response: TEAM_JOIN,
+        errors: [400, 401, 403, 404, 409],
+      }),
+      delete: meWrite('delete', '/v1/me/team', 'Leave the team', 'Takes the player out of their team. It is not an error if they were in none.', { success: 204, errors: [401, 403] }),
+    },
+    '/v1/me/teams': {
+      get: meOperation('/v1/me/teams', 'List the teams', 'Lists every team with its size and XP, highest first. It is both the list to join from and the team board.', meItems({
+        key: text('The team\'s key.', 'red'),
+        name: text('Display name.', 'Red team'),
+        imageUrl: optionalText('Link to a picture.', null),
+        members: count('How many players are in it.', 12),
+        maxMembers: { ...nullable('integer'), description: 'Most members, or null for no limit.', example: null },
+        full: flag('Whether it is at its size limit.', false),
+        xp: count('XP held by its members together.', 8400),
+        rank: count('Its place by XP.', 1),
+        isMine: flag('Whether the player is in it.', false),
+      })),
+    },
+    '/v1/me/goals': {
+      get: meOperation('/v1/me/goals', 'List shared goals for the current user', 'Lists the shared goals with the total so far (everyone\'s, or the player\'s team\'s for a team goal) and how much the player added. A finished or expired goal stays on the list for a week. A team goal also carries `team`, which is null when the player is in no team.', {
+        type: 'object',
+        required: ['data'],
+        properties: { data: { type: 'array', description: 'The goals.', items: { type: 'object', required: Object.keys(PLAYER_GOAL), properties: { ...PLAYER_GOAL, team: { ...nullable('object'), description: 'For a team goal, the player\'s team.', additionalProperties: true } } } } },
+      }),
+    },
+    '/v1/me/cosmetics': {
+      get: meOperation('/v1/me/cosmetics', 'List cosmetics for the current user', 'Lists every title, frame and profile item: which the player owns and wears, and how to get the rest.', meItems(PLAYER_COSMETIC)),
+    },
+    '/v1/me/cosmetics/{cosmeticKey}/buy': {
+      post: meWrite('post', '/v1/me/cosmetics/{cosmeticKey}/buy', 'Buy a cosmetic', 'Spends the player\'s points on a cosmetic. Returns 409 with a `code` of `INSUFFICIENT_POINTS`, `ALREADY_OWNED` or `NOT_FOR_SALE`.', {
+        parameters: [{ name: 'cosmeticKey', in: 'path', required: true, description: "The cosmetic's key.", schema: { type: 'string' } }],
+        success: 201,
+        response: object({ key: text('The cosmetic\'s key.', 'night_owl'), name: text('Display name.', 'Night owl'), kind: text('Its kind.', 'title'), cost: count('What it cost.', 200), currency: text('Key of the currency.', 'gems') }),
+        errors: [401, 403, 404, 409],
+      }),
+    },
+    '/v1/me/cosmetics/{cosmeticKey}/equip': {
+      post: meWrite('post', '/v1/me/cosmetics/{cosmeticKey}/equip', 'Wear a cosmetic', 'Puts on a cosmetic the player owns. A new title or frame replaces the one worn. Returns 403 `NOT_OWNED` otherwise.', {
+        parameters: [{ name: 'cosmeticKey', in: 'path', required: true, description: "The cosmetic's key.", schema: { type: 'string' } }],
+        success: 200,
+        response: EQUIP,
+        errors: [401, 403, 404],
+      }),
+      delete: meWrite('delete', '/v1/me/cosmetics/{cosmeticKey}/equip', 'Take a cosmetic off', 'Takes off a cosmetic the player is wearing.', {
+        parameters: [{ name: 'cosmeticKey', in: 'path', required: true, description: "The cosmetic's key.", schema: { type: 'string' } }],
+        success: 200,
+        response: EQUIP,
+        errors: [401, 403, 404],
+      }),
+    },
+    '/v1/me/leaderboard/prizes': {
+      get: meOperation('/v1/me/leaderboard/prizes', 'List leaderboard prizes for the current user', 'Lists the prizes for places on the daily, weekly and monthly boards, and the last 20 the player won. Prizes are paid shortly after a period ends, in UTC.', object({
+        prizes: {
+          type: 'array',
+          description: 'What is on offer.',
+          items: object({ name: text('Display name.', 'Weekly top 3'), period: { type: 'string', enum: ['daily', 'weekly', 'monthly'], description: 'Which board.', example: 'weekly' }, fromRank: count('First place it covers.', 1), toRank: count('Last place it covers.', 3), rewards: prizeList('What each of those places gets.') }),
+        },
+        won: {
+          type: 'array',
+          description: 'What the player won, newest first.',
+          items: object({ period: text('Which board.', 'weekly'), periodStart: text('First day of the period, in UTC.', '2026-11-02'), rank: count('Their place.', 2), xp: count('Their XP in that period.', 1840), rewards: prizeList('What they got.'), paidAt: date('When it was paid.') }),
+        },
+      })),
+    },
+    '/v1/me/journeys': {
+      get: meOperation('/v1/me/journeys', "List the current user's journeys", 'Lists the journeys with the player\'s progress on each step. A step is `locked` until every step before it is finished.', meItems(PLAYER_JOURNEY)),
     },
     '/v1/me/rank': {
       get: meOperation('/v1/me/rank', "Get the current user's rank", 'Gets the token holder\'s all-time position. `rank` is null until they earn XP.', object({

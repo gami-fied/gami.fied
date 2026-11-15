@@ -18,6 +18,7 @@ import {
 } from '@gami/database';
 import { expireLots, warnExpiringLots } from '@gami/rewards';
 import { closeEndedSeasons } from '@gami/leaderboards';
+import { payGoalPrizes, payLeaderboardPrizes } from './mechanics.js';
 import { isFeatureEnabledForProject } from '@gami/database';
 import { renderLifecycleEmail, type LifecycleKind } from '@gami/notifications';
 import { periodIndex, streakStatus, type StreakCadence } from '@gami/progression';
@@ -387,6 +388,12 @@ async function tick(): Promise<void> {
     // Seasons that have ended are scored, and players move up or down for the next one.
     const seasons = await closeEndedSeasons();
     if (seasons > 0) log.info('Closed league seasons', { seasons });
+    // The top places of a day, week or month that has ended are paid their prizes.
+    const places = await payLeaderboardPrizes();
+    if (places > 0) log.info('Paid leaderboard prizes', { places });
+    // Contributors to a goal that was reached are paid, a batch at a time.
+    const contributors = await payGoalPrizes(5000);
+    if (contributors > 0) log.info('Paid shared goal prizes', { contributors });
   } catch (err) {
     log.error('Lifecycle pass failed', { error: (err as Error).message });
   }

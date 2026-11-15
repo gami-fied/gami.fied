@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ServerUnreachableNotice } from '@/components/ui/server-unreachable-notice';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -45,6 +46,8 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-950 text-zinc-100">
       <div className="w-full max-w-md">
+        <ServerUnreachableNotice />
+
         <Card className="bg-zinc-900/90 border-zinc-800 shadow-xl">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Reset your password</CardTitle>

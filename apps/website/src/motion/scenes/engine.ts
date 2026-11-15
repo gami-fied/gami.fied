@@ -22,6 +22,11 @@ scene('[data-engine-diagram]', async (figure, { reduced, signal }) => {
   const gsap = await loadGsap();
   if (signal.aborted) return;
   const svg = figure.querySelector('svg')!;
+  // Phones show the stacked version instead, so there is nothing here to animate.
+  if (getComputedStyle(svg).display === 'none') {
+    button?.setAttribute('hidden', '');
+    return;
+  }
   const part = <T extends SVGElement = SVGElement>(name: string) => svg.querySelector<T>(`[data-part="${name}"]`)!;
 
   const dots = [part<SVGCircleElement>('event-dot-1'), part<SVGCircleElement>('event-dot-2')];

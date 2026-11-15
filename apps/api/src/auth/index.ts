@@ -70,7 +70,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const response = await auth.handler(webReq);
 
     if (request.method === 'POST' && url.pathname.endsWith('/sign-in/email') && authBody?.email) {
-      await recordSignInResult(authBody.email, response.ok);
+      await recordSignInResult(authBody.email, request.ip, response.ok);
     }
 
     // If sign-up via email succeeded, check if Platform Email OTP Verification is enabled

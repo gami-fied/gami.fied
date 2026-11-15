@@ -160,7 +160,7 @@ export default function DeveloperPage() {
                 Step {item.step}
               </div>
               <div className="text-xs font-bold text-white truncate">{item.title}</div>
-              <div className="text-[11px] text-zinc-400 mt-1 truncate">{item.desc}</div>
+              <div className="text-xs text-zinc-400 mt-1 truncate">{item.desc}</div>
               {idx < 5 && (
                 <div className="hidden md:block absolute -right-2.5 top-1/2 -translate-y-1/2 z-10">
                   <ArrowRight className="w-3.5 h-3.5 text-zinc-700" />
@@ -191,7 +191,7 @@ export default function DeveloperPage() {
               )}
             </button>
           </div>
-          <pre className="p-4 bg-zinc-950 border border-zinc-800 font-mono text-xs text-success-300 overflow-x-auto">
+          <pre tabIndex={0} className="p-4 bg-zinc-950 border border-zinc-800 font-mono text-xs text-success-300 overflow-x-auto">
             {sampleCurl}
           </pre>
         </div>
@@ -205,10 +205,10 @@ export default function DeveloperPage() {
             Send events and read XP, achievements and leaderboards from a Node.js server.
           </p>
         </div>
-        <pre className="p-3 bg-zinc-950 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto">
+        <pre tabIndex={0} className="p-3 bg-zinc-950 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto">
           {`pnpm add @gami.fied/sdk`}
         </pre>
-        <pre className="p-3 bg-zinc-950 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto">
+        <pre tabIndex={0} className="p-3 bg-zinc-950 text-xs font-mono text-zinc-200 border border-zinc-800 overflow-x-auto">
           {`import { Gami } from '@gami.fied/sdk';
 
 const gami = new Gami({ apiKey: process.env.GAMI_API_KEY! });

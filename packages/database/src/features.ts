@@ -31,16 +31,24 @@ export const FEATURES = [
   { key: 'achievements', name: 'Achievements', category: 'Progression', requires: ['rules'], description: 'Badges, with tiers and progress.' },
   { key: 'streaks', name: 'Streaks', category: 'Progression', requires: ['events'], description: 'Daily and weekly streaks with freezes.' },
   { key: 'challenges', name: 'Challenges', category: 'Progression', requires: ['events', 'xp'], description: 'Quests with steps and repeats.' },
+  { key: 'journeys', name: 'Journeys', category: 'Progression', requires: ['challenges'], description: 'Chains of challenges, where finishing one opens the next.' },
+  { key: 'season_pass', name: 'Season pass', category: 'Progression', requires: ['xp'], description: 'A track of rewards for a season, with free and premium lanes.' },
   { key: 'boosts_limits', name: 'Boosts & limits', category: 'Progression', requires: ['rules', 'xp'], description: 'XP multipliers, caps, cooldowns and hiding people from rankings.' },
 
   { key: 'leaderboards', name: 'Leaderboards', category: 'Competition', requires: ['xp'], description: 'Rankings by period, with search.' },
   { key: 'segments', name: 'Segments', category: 'Competition', requires: ['users'], description: 'Saved groups of players, and boards for them, for teams and for countries.' },
   { key: 'leagues', name: 'Leagues', category: 'Competition', requires: ['leaderboards'], description: 'Tiers of small groups with promotion and relegation.' },
 
+  { key: 'leaderboard_prizes', name: 'Leaderboard prizes', category: 'Competition', requires: ['leaderboards'], description: 'Prizes for the top places when a day, week or month ends.' },
+
   { key: 'wallets', name: 'Currencies & wallets', category: 'Economy', requires: ['users'], description: 'Points people save and spend, with expiry.' },
   { key: 'store', name: 'Reward store', category: 'Economy', requires: ['wallets'], description: 'Rewards bought with currency, with stock and codes.' },
 
+  { key: 'loot_boxes', name: 'Mystery boxes & wheels', category: 'Economy', requires: ['users'], description: 'Random rewards with published odds and a guarantee.' },
+  { key: 'cosmetics', name: 'Cosmetics', category: 'Economy', requires: ['users'], description: 'Titles, avatar frames and profile items to unlock, buy and wear.' },
+
   { key: 'social', name: 'Friends & kudos', category: 'Community', requires: ['users'], description: 'Friends, kudos, the activity feed and share cards.' },
+  { key: 'teams', name: 'Teams & shared goals', category: 'Community', requires: ['events'], description: 'Teams, and targets a team or everyone reaches together.' },
   { key: 'referrals', name: 'Invites', category: 'Community', requires: ['xp'], description: 'Invite codes with rewards for both sides.' },
 
   { key: 'campaigns', name: 'Campaigns', category: 'Messaging', requires: ['users'], description: 'Streak reminders, weekly recaps and win-back emails.' },

@@ -20,7 +20,7 @@ export function CodeBlock({ code, label }: CodeBlockProps) {
   return (
     <div className="border border-zinc-800 bg-zinc-950 min-w-0">
       <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-1.5">
-        <div className="min-w-0 text-[11px] font-semibold text-zinc-400">{label}</div>
+        <div className="min-w-0 text-xs font-semibold text-zinc-400">{label}</div>
         <button
           onClick={copy}
           aria-label="Copy code"
@@ -30,7 +30,7 @@ export function CodeBlock({ code, label }: CodeBlockProps) {
           {copied ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
       </div>
-      <pre className="overflow-x-auto p-3 text-xs leading-relaxed text-zinc-200">
+      <pre tabIndex={0} aria-label="Code" className="overflow-x-auto p-3 text-xs leading-relaxed text-zinc-200">
         <code>{code}</code>
       </pre>
     </div>

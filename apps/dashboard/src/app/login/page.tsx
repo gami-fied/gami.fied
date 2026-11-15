@@ -6,9 +6,6 @@ import Link from 'next/link';
 import { authClient } from '../../lib/auth-client';
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
@@ -16,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
 import { LogoMark } from '@gami/ui';
+import { ServerUnreachableNotice } from '@/components/ui/server-unreachable-notice';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,17 +68,13 @@ export default function LoginPage() {
         <div className="text-center space-y-2">
           <LogoMark size={48} className="mx-auto block border border-zinc-800" />
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Sign in to Gami.Fied</h1>
-          <p className="text-xs text-zinc-400">Sign in to your gamification dashboard</p>
+          <p className="text-sm text-zinc-400">Use your email and password.</p>
         </div>
 
+        <ServerUnreachableNotice />
+
         <Card className="bg-zinc-900/90 border-zinc-800 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Dashboard Sign In</CardTitle>
-            <CardDescription>
-              Enter your email and password to access your workspaces
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
                 <div className="p-3 bg-danger-950/40 border border-danger-800/60 text-danger-300 text-xs rounded-none font-medium">
@@ -89,7 +83,7 @@ export default function LoginPage() {
               )}
 
               <Input
-                label="Work Email"
+                label="Email"
                 type="email"
                 placeholder="name@company.com"
                 value={email}
@@ -114,7 +108,7 @@ export default function LoginPage() {
 
               <Button type="submit" variant="primary" isLoading={loading} className="w-full">
                 <Lock className="w-4 h-4" />
-                Sign In to Dashboard
+                Sign in
               </Button>
             </form>
           </CardContent>

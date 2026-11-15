@@ -16,6 +16,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
 import { canViewPersonalData, requireProjectAccess } from '../authorization/index.js';
+import { createEndUserToken } from '../public/end-user.js';
 
 const createUserSchema = z.object({
   externalId: z.string().min(1).max(128),
@@ -39,8 +40,15 @@ const USER_SORTS: Record<string, SQL[]> = {
   name: [asc(endUsers.name), asc(endUsers.externalId)],
 };
 
+/** A user as the API returns one: without the counter that only exists to end their tokens. */
+function publicUser<T extends object>(user: T): T {
+  const { tokenVersion: _internal, ...rest } = user as T & { tokenVersion?: number };
+  void _internal;
+  return rest as T;
+}
+
 function forViewer<T extends { email: string | null }>(user: T, membership: { role: string }): T {
-  return canViewPersonalData(membership) ? user : { ...user, email: null };
+  return publicUser(canViewPersonalData(membership) ? user : { ...user, email: null });
 }
 
 export async function userRoutes(fastify: FastifyInstance) {
@@ -196,7 +204,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return reply.status(201).send(newUser);
+    return reply.status(201).send(publicUser(newUser));
   });
 
   // 5. PATCH /api/projects/:projectId/users/:userId (Update profile & reactivation - Owner/Admin only)
@@ -254,7 +262,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       });
     }
 
-    return reply.status(200).send(updatedUser);
+    return reply.status(200).send(publicUser(updatedUser!));
   });
 
   // One view of what happened to a user: events, rule runs, XP and badges, newest first.
@@ -406,6 +414,38 @@ export async function userRoutes(fastify: FastifyInstance) {
     return reply.status(200).send({ success: true, message: 'User erased permanently' });
   });
 
+  // A short read-only token for one player, so the dashboard can show staff what that player sees.
+  fastify.post<{ Params: { projectId: string; userId: string } }>('/api/projects/:projectId/users/:userId/preview-token', async (request, reply) => {
+    const { projectId, userId } = request.params;
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access) return;
+    // Servers make player tokens with POST /v1/end-user-tokens. This one is for the dashboard only.
+    if (!access.session) return reply.status(403).send({ error: 'Forbidden', message: 'This endpoint requires a signed-in user' });
+
+    const [player] = await db
+      .select({ id: endUsers.id, active: endUsers.active, tokenVersion: endUsers.tokenVersion })
+      .from(endUsers)
+      .where(and(eq(endUsers.id, userId), eq(endUsers.projectId, projectId)));
+    if (!player?.active) return reply.status(404).send({ error: 'Not Found', message: 'User not found, or deactivated' });
+
+    const expiresAt = new Date(Date.now() + 10 * 60_000);
+    const token = createEndUserToken({ projectId, userId: player.id, access: 'read', tokenVersion: player.tokenVersion }, expiresAt);
+    return reply.status(201).send({ token, expiresAt, access: 'read' });
+  });
+
+  // Ends every player token made for this user so far, for example when they sign out of your app.
+  fastify.post<{ Params: { projectId: string; userId: string } }>('/api/projects/:projectId/users/:userId/tokens/revoke', async (request, reply) => {
+    const { projectId, userId } = request.params;
+    if (!(await requireProjectAccess(request, reply, projectId))) return;
+    const [updated] = await db
+      .update(endUsers)
+      .set({ tokenVersion: sql`${endUsers.tokenVersion} + 1` })
+      .where(and(eq(endUsers.id, userId), eq(endUsers.projectId, projectId)))
+      .returning({ id: endUsers.id });
+    if (!updated) return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
+    return reply.send({ revoked: true });
+  });
+
   // 6. DELETE /api/projects/:projectId/users/:userId (Soft-deactivate user - Owner/Admin only)
   fastify.delete<{
     Params: { projectId: string; userId: string };
@@ -447,7 +487,7 @@ export async function userRoutes(fastify: FastifyInstance) {
     return reply.status(200).send({
       success: true,
       message: 'User account deactivated successfully',
-      user: deactivatedUser,
+      user: deactivatedUser && publicUser(deactivatedUser),
     });
   });
 }

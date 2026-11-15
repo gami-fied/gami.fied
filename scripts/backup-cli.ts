@@ -51,12 +51,12 @@ async function main() {
         process.exit(1);
       }
       console.log(`Executing pre-restore safety backup and restoring backup ID: ${backupId}...`);
-      const result = await restorePlatformBackup({ backupId, actorId: 'cli_admin', confirmRestore: true });
+      const result = await restorePlatformBackup({ backupId, actorId: 'cli_admin', confirmRestore: true, allowPartial: args.includes('--partial') });
       console.log(`✅ Database restoration completed! Safety Backup ID: ${result.safetyBackupId}`);
       break;
     }
     default:
-      console.log('Usage: pnpm backup:create | pnpm backup:list | pnpm backup:verify --id <id> | pnpm backup:restore --id <id>');
+      console.log('Usage: pnpm backup:create | pnpm backup:list | pnpm backup:verify --id <id> | pnpm backup:restore --id <id> [--partial]');
       break;
   }
 }

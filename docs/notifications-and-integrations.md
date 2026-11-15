@@ -4,7 +4,7 @@ Gami.Fied can tell users and your own systems when something happens. All delive
 
 ---
 
-## 1. In-app notifications
+## In-app notifications
 
 Notifications are stored in the `notifications` table, with a type, title, message and data.
 
@@ -14,7 +14,7 @@ Users can read their own with `GET /v1/me/notifications` and an end-user token.
 
 ---
 
-## 2. Email
+## Email
 
 - Emails wait in `email_notification_outbox`.
 - The worker sends them with Nodemailer, using the settings saved under **Platform Admin > Server Settings**, or the `SMTP_*` variables.
@@ -23,7 +23,7 @@ Users can read their own with `GET /v1/me/notifications` and an end-user token.
 
 ---
 
-## 3. Webhooks
+## Webhooks
 
 Webhooks tell your own systems when something happens. The events are:
 
@@ -36,6 +36,10 @@ Webhooks tell your own systems when something happens. The events are:
 | `reward.redeemed` | A user buys a reward in the store. Use it to ship the item or send the code |
 | `reward.cancelled` | A purchase is cancelled and the points are refunded |
 | `referral.completed` | An invited friend qualified and the invite was rewarded |
+| `box.opened` | A user opened a mystery box or spun a wheel, with what it gave |
+| `goal.completed` | A shared goal reached its target, for everyone or for one team |
+| `journey.completed` | A user finished the last step of a journey |
+| `leaderboard.prize_paid` | A place on a daily, weekly or monthly board was paid its prize |
 | `user.created` | A user is created |
 | `user.deactivated` | A user is deactivated |
 
@@ -77,7 +81,7 @@ Webhook addresses are checked when saved and when connecting, so they can't reac
 
 ---
 
-## 4. Discord
+## Discord
 
 The Discord integration posts to a channel through a Discord webhook.
 
@@ -86,7 +90,7 @@ The Discord integration posts to a channel through a Discord webhook.
 
 ---
 
-## 5. Slack, Microsoft Teams and any webhook
+## Slack, Microsoft Teams and any webhook
 
 Connect them from **Integrations**. Each needs the address of an incoming webhook, which is stored encrypted and never shown again, and each sends the same four updates as Discord (XP, achievements, level-ups and finished challenges), which you can switch on and off per integration.
 
@@ -98,7 +102,7 @@ Connect them from **Integrations**. Each needs the address of an incoming webhoo
 
 The address is checked when you save it, and again each time something is sent. Rate limits and server errors are retried, while a deleted or mistyped webhook is reported as a failure that retrying won't fix. The delivery log shows each attempt.
 
-## 6. Push notifications
+## Push notifications
 
 Push sends a notification straight to a player's phone. Connect **Android push (Firebase)** or **iPhone push (Apple)** from Integrations.
 

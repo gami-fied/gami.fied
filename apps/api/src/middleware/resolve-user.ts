@@ -6,6 +6,10 @@ const USER_ROUTE = /^\/api\/projects\/:projectId\/users\/:userId(\/|$)/;
 
 /** Lets every user route accept the customer's own ID as well as the internal one. */
 async function resolveUserId(request: FastifyRequest) {
+  // A request with no credentials is refused by the route anyway, so it should not cost a query first.
+  const { headers } = request;
+  if (!headers.cookie && !headers['x-api-key'] && !headers.authorization) return;
+
   const params = request.params as { projectId: string; userId: string };
 
   const [user] = await db

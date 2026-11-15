@@ -9,6 +9,7 @@ import { formatRelativeTime } from '@/hooks/use-relative-time';
 import type { AuditLogItem } from '@/hooks/use-audit-logs';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { TablePagination } from '@/components/ui/table';
 
 export function AuditLogsView() {
   const { selectedProject } = useDashboard();
@@ -132,7 +133,7 @@ export function AuditLogsView() {
       </div>
 
       {/* Table */}
-      <div className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
+      <div tabIndex={0} role="region" aria-label="Table" className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
             <tr>
@@ -162,7 +163,7 @@ export function AuditLogsView() {
             ) : (
               logs.map((log) => (
                 <tr key={log.id} className="hover:bg-zinc-900/40 font-mono transition-colors">
-                  <td className="px-4 py-3 text-zinc-400 text-[11px] whitespace-nowrap">
+                  <td className="px-4 py-3 text-zinc-400 text-xs whitespace-nowrap">
                     <span title={formatDateTime(log.createdAt)}>
                       {formatRelativeTime(log.createdAt)}
                     </span>
@@ -177,14 +178,14 @@ export function AuditLogsView() {
                   </td>
 
                   <td className="px-4 py-3 text-zinc-300">
-                    <div className="text-[11px] font-semibold text-white">{log.actorType}</div>
+                    <div className="text-xs font-semibold text-white">{log.actorType}</div>
                     <div className="text-xs text-zinc-400 truncate max-w-[140px]">
                       {log.actorId}
                     </div>
                   </td>
 
                   <td className="px-4 py-3 text-zinc-300">
-                    <div className="text-[11px] font-semibold text-success-400">
+                    <div className="text-xs font-semibold text-success-400">
                       {log.resourceType}
                     </div>
                     <div className="text-xs text-zinc-400 truncate max-w-[160px]">
@@ -207,29 +208,7 @@ export function AuditLogsView() {
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between border-t border-zinc-800 pt-4 text-xs">
-        <span className="text-zinc-400">
-          Showing page <strong className="text-white">{page}</strong> of{' '}
-          <strong className="text-white">{totalPages}</strong> ({total} total entries)
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1 || loading}
-            className="bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 text-zinc-300 border border-zinc-800 px-3 py-1.5 text-xs"
-          >
-            ← Previous
-          </button>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages || loading}
-            className="bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 text-zinc-300 border border-zinc-800 px-3 py-1.5 text-xs"
-          >
-            Next →
-          </button>
-        </div>
-      </div>
+      <TablePagination page={page} totalPages={totalPages} total={total} disabled={loading} onPageChange={(next) => setPage(next)} />
 
       {/* Details Drawer / Modal */}
       {selectedLogForDetails && (
@@ -277,7 +256,7 @@ export function AuditLogsView() {
               <label className="text-xs text-zinc-400 block font-bold mb-1">
                 Metadata (Redacted)
               </label>
-              <pre className="bg-zinc-900 border border-zinc-800 p-3 text-[11px] text-success-300 font-mono overflow-x-auto">
+              <pre tabIndex={0} className="bg-zinc-900 border border-zinc-800 p-3 text-xs text-success-300 font-mono overflow-x-auto">
                 {JSON.stringify(selectedLogForDetails.metadata, null, 2)}
               </pre>
             </div>

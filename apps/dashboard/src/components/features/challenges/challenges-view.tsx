@@ -14,6 +14,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  SortableHead,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ import {
 } from 'lucide-react';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
 import { Dropdown } from '@/components/ui/dropdown';
 import { Repeat } from 'lucide-react';
 import {
@@ -51,6 +53,8 @@ import {
   type ConditionDraft,
   type StepDraft,
 } from './challenge-form-parts';
+import { localTimeZoneLabel, toDateTimeLocal } from '@/lib/format';
+import { useSort } from '@/hooks/use-sort';
 
 export function ChallengesView() {
   const { selectedProject } = useDashboard();
@@ -64,6 +68,12 @@ export function ChallengesView() {
   } = useChallengeSummary(projectId);
 
   const [activeTab, setActiveTab] = useState<'management' | 'user_lookup'>('management');
+  const { sorted: sortedChallenges, sort } = useSort(challenges, {
+    name: (challenge) => challenge.name,
+    trigger: (challenge) => challenge.trigger,
+    target: (challenge) => challenge.target,
+    status: (challenge) => (challenge.enabled ? 0 : 1),
+  });
 
   // User Lookup state
   const [lookupInput, setLookupInput] = useState('');
@@ -143,8 +153,8 @@ export function ChallengesView() {
       description: ch.description || '',
       trigger: ch.trigger,
       target: ch.target,
-      startAt: ch.startAt ? new Date(ch.startAt).toISOString().slice(0, 16) : '',
-      endAt: ch.endAt ? new Date(ch.endAt).toISOString().slice(0, 16) : '',
+      startAt: ch.startAt ? toDateTimeLocal(ch.startAt) : '',
+      endAt: ch.endAt ? toDateTimeLocal(ch.endAt) : '',
       xpRewardAmount: xpRew ? xpRew.amount : 0,
       achievementKey: achRew ? achRew.achievementKey : '',
       type: ch.type === 'steps' ? 'steps' : 'counter',
@@ -268,28 +278,15 @@ export function ChallengesView() {
         }
         toolbar={
           <>
-            <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-              <button
-                onClick={() => setActiveTab('management')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
-                  activeTab === 'management'
-                    ? 'bg-brand-500 text-on-accent shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                Challenge Management
-              </button>
-              <button
-                onClick={() => setActiveTab('user_lookup')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition ${
-                  activeTab === 'user_lookup'
-                    ? 'bg-brand-500 text-on-accent shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                User Progress Lookup
-              </button>
-            </div>
+            <Tabs
+              label="Challenges sections"
+              value={activeTab}
+              onChange={setActiveTab}
+              items={[
+                { id: 'management', label: 'Challenge Management' },
+                { id: 'user_lookup', label: 'User Progress Lookup' },
+              ]}
+            />
           </>
         }
       />
@@ -379,16 +376,16 @@ export function ChallengesView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Challenge Key / Name</TableHead>
-                    <TableHead>Trigger Event</TableHead>
-                    <TableHead>Target</TableHead>
+                    <SortableHead sortKey="name" sort={sort}>Challenge Key / Name</SortableHead>
+                    <SortableHead sortKey="trigger" sort={sort}>Trigger Event</SortableHead>
+                    <SortableHead sortKey="target" sort={sort}>Target</SortableHead>
                     <TableHead>Configured Rewards</TableHead>
-                    <TableHead>Status</TableHead>
+                    <SortableHead sortKey="status" sort={sort}>Status</SortableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {challenges.map((ch) => {
+                  {sortedChallenges.map((ch) => {
                     const now = new Date();
                     const isExpired = ch.endAt && now >= new Date(ch.endAt);
                     const isFuture = ch.startAt && now < new Date(ch.startAt);
@@ -412,7 +409,7 @@ export function ChallengesView() {
                         <TableCell>
                           <div>
                             <div className="font-semibold text-xs text-zinc-100">{ch.name}</div>
-                            <div className="text-[11px] text-zinc-400 font-mono">{ch.key}</div>
+                            <div className="text-xs text-zinc-400 font-mono">{ch.key}</div>
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-brand-400">
@@ -559,7 +556,7 @@ export function ChallengesView() {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-semibold text-xs text-zinc-100">{item.name}</div>
-                            <div className="text-[11px] text-zinc-400 font-mono">{item.key}</div>
+                            <div className="text-xs text-zinc-400 font-mono">{item.key}</div>
                           </div>
                           {item.completed ? (
                             <Badge variant="emerald" className="text-xs flex items-center gap-1">
@@ -710,6 +707,7 @@ export function ChallengesView() {
             <Input
               label="Start At (Optional)"
               type="datetime-local"
+              helperText={`In ${localTimeZoneLabel()}.`}
               value={formData.startAt}
               onChange={(e) => setFormData({ ...formData, startAt: e.target.value })}
             />
@@ -717,6 +715,7 @@ export function ChallengesView() {
             <Input
               label="End At (Optional)"
               type="datetime-local"
+              helperText={`In ${localTimeZoneLabel()}.`}
               value={formData.endAt}
               onChange={(e) => setFormData({ ...formData, endAt: e.target.value })}
             />

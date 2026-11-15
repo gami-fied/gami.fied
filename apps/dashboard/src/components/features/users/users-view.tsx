@@ -958,7 +958,7 @@ export function UsersView() {
                   </div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
+                    <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
                           <tr className="border-b border-zinc-800 text-xs text-zinc-400">
@@ -1028,7 +1028,7 @@ export function UsersView() {
                     </div>
 
                     {!hasEmail && (
-                      <div className="p-2.5 bg-warning-950/30 border border-warning-800/50 text-warning-300 text-[11px] flex items-center gap-2">
+                      <div className="p-2.5 bg-warning-950/30 border border-warning-800/50 text-warning-300 text-xs flex items-center gap-2">
                         <Mail className="w-3.5 h-3.5 text-warning-400 shrink-0" />
                         <span>
                           Add an email address to this user to enable email notifications.
@@ -1095,7 +1095,7 @@ export function UsersView() {
                           {ch.completed ? '✓ Done' : 'In Progress'}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px]">
+                      <div className="flex items-center gap-2 text-xs">
                         <span className="text-zinc-400">
                           {ch.progress}/{ch.target}
                         </span>

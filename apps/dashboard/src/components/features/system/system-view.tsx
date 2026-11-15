@@ -132,7 +132,7 @@ export function SystemView() {
             <span className="text-base font-bold text-white">Fastify API</span>
             {getStatusBadge(metrics?.health.api || 'checking', metrics?.health.api === 'healthy')}
           </div>
-          <div className="text-[11px] text-zinc-400">Liveness probe: /health</div>
+          <div className="text-xs text-zinc-400">Liveness probe: /health</div>
         </div>
 
         {/* PostgreSQL */}
@@ -145,7 +145,7 @@ export function SystemView() {
               metrics?.health.postgres === 'healthy'
             )}
           </div>
-          <div className="text-[11px] text-zinc-400">Readiness probe: SELECT 1</div>
+          <div className="text-xs text-zinc-400">Readiness probe: SELECT 1</div>
         </div>
 
         {/* Redis */}
@@ -158,7 +158,7 @@ export function SystemView() {
               metrics?.health.redis === 'healthy'
             )}
           </div>
-          <div className="text-[11px] text-zinc-400">Readiness probe: PING</div>
+          <div className="text-xs text-zinc-400">Readiness probe: PING</div>
         </div>
 
         {/* Worker Heartbeat */}
@@ -171,7 +171,7 @@ export function SystemView() {
               metrics?.health.workerAlive === true
             )}
           </div>
-          <div className="text-[11px] text-zinc-400 truncate">
+          <div className="text-xs text-zinc-400 truncate">
             {metrics?.health.workerHeartbeat?.timestamp ? (
               <span>
                 Last Heartbeat: {formatRelativeTime(metrics.health.workerHeartbeat.timestamp)}
@@ -297,7 +297,7 @@ export function SystemView() {
           <span className="text-xs text-zinc-400 italic">Requests &amp; Error Histogram</span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
               <tr>

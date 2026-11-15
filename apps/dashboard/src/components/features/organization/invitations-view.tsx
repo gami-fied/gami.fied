@@ -22,6 +22,8 @@ import { Card } from '@/components/ui/card';
 import { InviteModal } from './invite-modal';
 import type { OrganizationInvitationRecord } from '@/lib/organization-types';
 import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { MailPlus as EmptyInvitesIcon } from 'lucide-react';
 
 export function InvitationsView() {
   const toast = useToast();
@@ -181,10 +183,10 @@ export function InvitationsView() {
           </div>
         ) : invitations.length === 0 ? (
           <div className="py-12 text-center text-xs text-zinc-400">
-            No pending or historical invitations found for this organization.
+            <EmptyState icon={EmptyInvitesIcon} title="No invitations yet" description="Invite a teammate from the Members tab, and their invitation shows up here." />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
@@ -254,7 +256,7 @@ export function InvitationsView() {
                               onClick={() => {
                                 handleResend(inv.id);
                               }}
-                              className={`h-7 px-2 border-zinc-800 text-[11px] ${'hover:bg-zinc-900 text-brand-400'}`}
+                              className={`h-7 px-2 border-zinc-800 text-xs ${'hover:bg-zinc-900 text-brand-400'}`}
                             >
                               <Send className="w-3 h-3 mr-1 text-brand-400" /> Resend
                             </Button>
@@ -267,7 +269,7 @@ export function InvitationsView() {
                               onClick={() => {
                                 handleRevoke(inv.id, inv.email);
                               }}
-                              className={`h-7 px-2 text-[11px] ${'border-danger-950 hover:bg-danger-950/40 text-danger-400'}`}
+                              className={`h-7 px-2 text-xs ${'border-danger-950 hover:bg-danger-950/40 text-danger-400'}`}
                             >
                               <Trash2 className="w-3 h-3" /> Revoke
                             </Button>

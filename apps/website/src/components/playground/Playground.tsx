@@ -50,6 +50,8 @@ export default function Playground() {
   const [version, setVersion] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
+  // On a phone the two halves take turns, so sending an event and its result share one screen.
+  const [phoneView, setPhoneView] = useState<'rules' | 'try'>('rules');
   const noticeTimer = useRef<number | undefined>(undefined);
   // Set by sending an event, so the toast and the rule highlight answer that event, not a reload.
   const justSent = useRef(false);
@@ -221,9 +223,29 @@ export default function Playground() {
         </Panel>
       )}
 
+      <div role="tablist" aria-label="Playground" className="sticky top-16 z-10 -mx-2 grid grid-cols-2 gap-1 border border-zinc-800 bg-zinc-950 p-1 xl:hidden">
+        {(
+          [
+            ['rules', 'Rules and setup'],
+            ['try', 'Send and results'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={phoneView === id}
+            onClick={() => setPhoneView(id)}
+            className={`px-3 py-2 text-sm font-medium transition-colors ${phoneView === id ? 'bg-brand-500 text-on-accent' : 'text-zinc-300 hover:text-zinc-100'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_1fr]">
         {/* Rules */}
-        <div className="min-w-0 space-y-6">
+        <div className={`min-w-0 space-y-6 ${phoneView === 'rules' ? '' : 'max-xl:hidden'}`}>
           <Panel
             title="Rules"
             id="rules-title"
@@ -285,7 +307,7 @@ export default function Playground() {
         </div>
 
         {/* Events and results */}
-        <div className="min-w-0 space-y-6">
+        <div className={`min-w-0 space-y-6 ${phoneView === 'try' ? '' : 'max-xl:hidden'}`}>
           <Panel title="Send an event" id="send-title">
             <EventComposer key={`${state.scenario}:${version}`} presets={scenario?.presets ?? []} onSend={send} />
           </Panel>

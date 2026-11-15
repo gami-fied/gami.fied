@@ -389,7 +389,7 @@ export function CampaignsView() {
                   type="button"
                   onClick={() => insertVariable(variable.name)}
                   title={`${variable.description}. For example: ${variable.example}`}
-                  className="border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-zinc-300 hover:bg-zinc-800"
+                  className="border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-xs text-zinc-300 hover:bg-zinc-800"
                 >
                   {`{{${variable.name}}}`}
                 </button>

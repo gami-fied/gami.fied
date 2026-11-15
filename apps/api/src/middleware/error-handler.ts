@@ -1,5 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import { sanitizeRequestId } from './request-tracing.js';
+import { redactUrl, sanitizeRequestId } from './request-tracing.js';
 
 export interface StandardApiErrorResponse {
   error: {
@@ -86,7 +86,7 @@ export function globalErrorHandler(
     requestId,
     statusCode,
     code,
-    url: request.url,
+    url: redactUrl(request.url),
     method: request.method,
   });
 

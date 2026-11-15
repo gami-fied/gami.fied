@@ -20,12 +20,12 @@ export function JsonViewer({ data, title, maxHeight = 'max-h-96' }: JsonViewerPr
   return (
     <div className="rounded-none border border-zinc-800 bg-zinc-950/90 overflow-hidden text-xs">
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/60">
-        <span className="text-zinc-400 text-[11px] font-sans font-medium">
+        <span className="text-zinc-400 text-xs font-sans font-medium">
           {title || 'JSON Payload'}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 transition"
+          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition"
         >
           {copied ? (
             <>
@@ -40,7 +40,7 @@ export function JsonViewer({ data, title, maxHeight = 'max-h-96' }: JsonViewerPr
           )}
         </button>
       </div>
-      <pre className={`p-4 text-success-400/90 overflow-auto ${maxHeight} leading-relaxed`}>
+      <pre tabIndex={0} aria-label="JSON" className={`p-4 text-success-400/90 overflow-auto ${maxHeight} leading-relaxed`}>
         <code>{jsonString}</code>
       </pre>
     </div>

@@ -6,7 +6,7 @@ For every field and response, see the API Docs page in the dashboard, or [`opena
 
 ---
 
-## 1. Events
+## Events
 
 Send what happened to `POST /v1/events`:
 
@@ -38,7 +38,7 @@ To send up to 100 events at once, use `POST /v1/events/batch`. Each event succee
 
 ---
 
-## 2. Rules
+## Rules
 
 A rule has a trigger, optional conditions and one or more actions. The trigger is matched against the event name, and the rule then runs if its conditions pass.
 
@@ -115,7 +115,7 @@ Each time a streak starts, grows, is saved by a freeze or ends, it sends a `stre
 
 ---
 
-## 3. XP
+## XP
 
 - Every change is a row in `xp_ledger`, with an amount and a reason. XP History in the dashboard shows these.
 - Each user's total is kept in `user_xp_balances`, so reading a balance is fast.
@@ -129,7 +129,7 @@ Open any user from **Users**, then **Full profile** (or **Ledger** on their row,
 
 ---
 
-## 4. Levels
+## Levels
 
 Levels aren't calculated from a formula. You define each one with a number, a name and the total XP it needs, and higher levels must need more XP. A user's level comes from comparing their total XP with the enabled levels.
 
@@ -137,7 +137,7 @@ Reaching a new level creates a `level_up` notification and a `level.up` webhook.
 
 ---
 
-## 5. Achievements
+## Achievements
 
 An achievement has a unique key, a name, and an optional description and icon. It's awarded by a rule's `award_achievement` action or a challenge reward, and a user can only earn each one once. Awards are stored in `user_achievements`.
 
@@ -160,7 +160,7 @@ Reaching the target grants the achievement, with its usual notification and webh
 
 ---
 
-## 6. Challenges
+## Challenges
 
 A challenge counts events with a given name until it reaches a target, within optional start and end dates. For example, "Place 10 orders".
 
@@ -181,7 +181,7 @@ Progress for a repeating challenge shows the current period, `completions` count
 
 ---
 
-## 7. Leaderboards
+## Leaderboards
 
 - Rankings are calculated from PostgreSQL on each request, so they're always current. Large projects should test this, as no load test has been published yet.
 - Periods are `all_time`, `daily`, `weekly` and `monthly`, using UTC.
@@ -189,7 +189,7 @@ Progress for a repeating challenge shows the current period, `completions` count
 
 ---
 
-## 8. Streaks
+## Streaks
 
 A streak counts how many days (or weeks) in a row a user did something. You define it once, and the worker updates it every time a matching event arrives.
 
@@ -226,7 +226,7 @@ Not built yet: reminder notifications when a streak is at risk, paying to repair
 
 ---
 
-## 9. Campaigns
+## Campaigns
 
 Campaigns are emails the engine sends on its own. Create them on the **Campaigns** page. They need email set up in Settings, and they go through the same email queue as other notifications, so retries and the unsubscribe link work the same way. Anyone who has unsubscribed or turned email notifications off is never emailed.
 

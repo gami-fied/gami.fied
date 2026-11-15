@@ -4,7 +4,7 @@ Platform admins manage the whole server from `/admin`. This is separate from own
 
 ---
 
-## 1. Becoming a platform admin
+## Becoming a platform admin
 
 **First admin:** sign up, go to `/admin` while signed in, and enter `PLATFORM_BOOTSTRAP_SECRET` from your `.env`. This only works while the server has no platform admins.
 
@@ -22,7 +22,7 @@ Both are recorded in the audit log. Once you're an admin, a **Platform Admin** l
 
 ---
 
-## 2. Admin pages
+## Admin pages
 
 | Page | Purpose |
 | :--- | :--- |
@@ -38,19 +38,19 @@ Both are recorded in the audit log. Once you're an admin, a **Platform Admin** l
 
 ---
 
-## 3. Server settings
+## Server settings
 
 The dashboard uses `GET` and `PATCH /api/admin/config`. See the [settings list](./deployment-and-production.md#instance-settings).
 
 ---
 
-## 4. User profile
+## User profile
 
 Everyone can open their profile from the bottom of the sidebar to change their name and password, choose whether to receive optional system emails, and delete their account. Security emails, such as verification codes, are always sent.
 
 ---
 
-## 5. Audit logs
+## Audit logs
 
 Security and configuration changes are recorded in `audit_logs`, with the actor, action, severity, resource, IP address, user agent and details.
 
@@ -58,6 +58,6 @@ Audit logs are never removed automatically. They keep their history if an organi
 
 ---
 
-## 6. Storage cleanup
+## Storage cleanup
 
 The worker removes old data on a schedule. See [Data retention](./data-retention.md). The Storage page can also clear finished records by hand, using `POST /api/admin/storage/clean`, and it reports how many rows were removed.

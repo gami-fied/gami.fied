@@ -13,6 +13,8 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // A second copy can run beside `next dev` when it builds into its own folder, for example for the page walk.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // Docker builds use a self-contained server. Symlinks make this awkward on Windows.
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   allowedDevOrigins: ['127.0.0.1'],

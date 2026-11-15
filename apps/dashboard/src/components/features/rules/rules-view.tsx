@@ -15,6 +15,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  SortableHead,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,9 +43,13 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
 import { apiFetch } from '@/lib/api-client';
 import { BacktestPanel } from './backtest-panel';
 import { RuleHistoryDialog } from './rule-history-dialog';
+import { useOpenOnParam } from '@/hooks/use-open-on-param';
+import { useSort } from '@/hooks/use-sort';
+import Link from 'next/link';
 
 interface StoredCondition {
   logic?: unknown;
@@ -89,6 +94,31 @@ const VisualActionBuilder = dynamic(() =>
   import('./visual-action-builder').then((mod) => mod.VisualActionBuilder)
 );
 
+/** One thing a rule does. A badge or a currency links to the page where it is set up. */
+function ActionChip({ action }: { action: StoredAction }) {
+  const achievementKey = action.params?.achievementKey || action.achievementKey;
+  const chip = (text: string) => (
+    <Badge variant="emerald" className="text-xs">
+      {text}
+    </Badge>
+  );
+  if (action.type === 'award_achievement' && achievementKey) {
+    return (
+      <Link href="/dashboard/achievements" title={`Open achievements to see "${achievementKey}"`} className="hover:opacity-80">
+        {chip(`Badge: ${achievementKey}`)}
+      </Link>
+    );
+  }
+  if (action.type === 'award_currency') {
+    return (
+      <Link href="/dashboard/store" title="Open the store, where currencies are set up" className="hover:opacity-80">
+        {chip(`+${action.params?.amount} ${action.params?.currency}`)}
+      </Link>
+    );
+  }
+  return chip(action.type === 'award_xp' ? `+${action.params?.amount || action.amount} XP` : String(action.type ?? 'Action'));
+}
+
 export function RulesView() {
   const toast = useToast();
   const { selectedProject } = useDashboard();
@@ -102,6 +132,27 @@ export function RulesView() {
 
   // Modal / Form state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { sorted: sortedRules, sort } = useSort(rules, {
+    name: (rule) => rule.name,
+    trigger: (rule) => rule.trigger,
+    status: (rule) => (rule.enabled ? 0 : 1),
+  });
+  useOpenOnParam(() => {
+    setEditingRule(null);
+    setIsCreateOpen(true);
+  });
+
+  // Search results link here as /dashboard/rules?edit=<id>, which opens that rule.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('edit');
+    const rule = wanted ? rules.find((item) => item.id === wanted) : undefined;
+    if (!rule) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('edit');
+    window.history.replaceState(window.history.state, '', url);
+    setEditingRule(rule);
+    setIsCreateOpen(true);
+  }, [rules]);
   const [editingRule, setEditingRule] = useState<RuleRecord | null>(null);
   const [historyRule, setHistoryRule] = useState<RuleRecord | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -487,30 +538,15 @@ export function RulesView() {
         }
         toolbar={
           <>
-            <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-              <button
-                onClick={() => setActiveTab('rules')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
-                  activeTab === 'rules'
-                    ? 'bg-brand-500 text-on-accent shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                Active Rules ({rules.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('simulator')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-none transition flex items-center gap-1.5 ${
-                  activeTab === 'simulator'
-                    ? 'bg-brand-500 text-on-accent shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Play className="w-3.5 h-3.5" />
-                Rule Simulator
-              </button>
-            </div>
+            <Tabs
+              label="Rules sections"
+              value={activeTab}
+              onChange={setActiveTab}
+              items={[
+                { id: 'rules', label: `Active Rules (${rules.length})`, icon: <Zap className="w-3.5 h-3.5" /> },
+                { id: 'simulator', label: 'Rule Simulator', icon: <Play className="w-3.5 h-3.5" /> },
+              ]}
+            />
           </>
         }
       />
@@ -537,16 +573,16 @@ export function RulesView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Rule Name</TableHead>
-                    <TableHead>Trigger Event</TableHead>
+                    <SortableHead sortKey="name" sort={sort}>Rule Name</SortableHead>
+                    <SortableHead sortKey="trigger" sort={sort}>Trigger Event</SortableHead>
                     <TableHead>Conditions</TableHead>
                     <TableHead>Actions</TableHead>
-                    <TableHead>Status</TableHead>
+                    <SortableHead sortKey="status" sort={sort}>Status</SortableHead>
                     <TableHead className="text-right">Manage</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rules.map((rule) => (
+                  {sortedRules.map((rule) => (
                     <TableRow key={rule.id}>
                       <TableCell>
                         <div>
@@ -555,7 +591,7 @@ export function RulesView() {
                             {rule.draft && <Badge variant="amber" className="ml-2">Draft waiting</Badge>}
                           </div>
                           {rule.description && (
-                            <div className="text-[11px] text-zinc-400">{rule.description}</div>
+                            <div className="text-xs text-zinc-400">{rule.description}</div>
                           )}
                         </div>
                       </TableCell>
@@ -564,7 +600,7 @@ export function RulesView() {
                       </TableCell>
                       <TableCell className="text-xs text-zinc-400">
                         {rule.conditions ? (
-                          <span className="text-[11px] bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
+                          <span className="text-xs bg-zinc-950 px-2 py-1 rounded-none border border-zinc-800">
                             {Array.isArray((rule.conditions as StoredConditions).all)
                               ? `${(rule.conditions as StoredConditions).all?.length} IF (ALL)`
                               : Array.isArray((rule.conditions as StoredConditions).any)
@@ -579,13 +615,7 @@ export function RulesView() {
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(rule.actions) ? (
                             (rule.actions as StoredAction[]).map((act, idx) => (
-                              <Badge key={idx} variant="emerald" className="text-xs">
-                                {act.type === 'award_xp'
-                                  ? `+${act.params?.amount || act.amount} XP`
-                                  : act.type === 'award_currency'
-                                    ? `+${act.params?.amount} ${act.params?.currency}`
-                                    : act.type}
-                              </Badge>
+                              <ActionChip key={idx} action={act} />
                             ))
                           ) : (
                             <Badge variant="emerald">Custom Actions</Badge>
@@ -725,7 +755,7 @@ export function RulesView() {
                             <span className="text-zinc-400 font-medium">
                               1. Trigger Event Match
                             </span>
-                            <span className="flex items-center gap-1 font-bold text-[11px]">
+                            <span className="flex items-center gap-1 font-bold text-xs">
                               {res.matched ? (
                                 <span className="text-success-400 flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Matched
@@ -741,7 +771,7 @@ export function RulesView() {
                           {/* Step 2: Actions Executed */}
                           {res.matched && (
                             <div className="p-2.5 rounded-none bg-success-950/30 border border-success-800/40 space-y-1.5">
-                              <span className="text-success-300 font-bold text-[11px] flex items-center gap-1">
+                              <span className="text-success-300 font-bold text-xs flex items-center gap-1">
                                 <ArrowRight className="w-3.5 h-3.5 text-success-400" />
                                 Actions Executed:
                               </span>
@@ -805,7 +835,7 @@ export function RulesView() {
 
           {/* Preset Buttons */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1">
+            <span className="text-xs font-semibold text-zinc-400 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-brand-400" /> Rule Presets:
             </span>
             <div className="flex flex-wrap gap-1.5">

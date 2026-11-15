@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { authenticateApiKey } from '../services/api-key.service.js';
+import { beginInternalCall } from './internal-call.js';
 import { PUBLIC_ROUTES } from './routes.js';
 
 const FORWARDED_REQUEST_HEADERS = ['x-api-key', 'content-type', 'idempotency-key', 'x-request-id'];
@@ -28,13 +29,20 @@ async function forwardToProjectRoute(request: FastifyRequest, reply: FastifyRepl
     if (typeof value === 'string') headers[name] = value;
   }
 
-  const response = await request.server.inject({
-    method: request.method as 'GET',
-    url: `/api/projects/${auth.project.id}${request.url.slice('/v1'.length)}`,
-    headers,
-    payload: request.body as string | object | undefined,
-    remoteAddress: request.ip,
-  });
+  // The inner call reuses this key check and is not counted against the caller's limit again.
+  const inner = beginInternalCall(auth);
+  let response;
+  try {
+    response = await request.server.inject({
+      method: request.method as 'GET',
+      url: `/api/projects/${auth.project.id}${request.url.slice('/v1'.length)}`,
+      headers: { ...headers, ...inner.headers },
+      payload: request.body as string | object | undefined,
+      remoteAddress: request.ip,
+    });
+  } finally {
+    inner.end();
+  }
 
   for (const name of FORWARDED_RESPONSE_HEADERS) {
     const value = response.headers[name];

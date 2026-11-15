@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import { achievements, db, endUsers, getAuthSecret, friendships, kudos, leagueMembers, leagues, leagueSeasons, projects, userAchievements, userXpBalances } from '@gami/database';
+import { achievements, db, endUsers, getAuthSecret, friendRequests, friendships, kudos, leagueMembers, leagues, leagueSeasons, projects, userAchievements, userXpBalances } from '@gami/database';
 import { and, count, desc, eq, gte, inArray, sql } from 'drizzle-orm';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { requireProjectAccess } from '../authorization/index.js';
 import { friendCircle, resolveEndUserId } from '../leaderboards/index.js';
@@ -10,7 +10,7 @@ export const KUDOS_PER_DAY = 30;
 
 export class SocialError extends Error {
   constructor(
-    public readonly code: 'SELF' | 'NOT_FOUND' | 'LIMIT' | 'ALREADY_SENT' | 'TOO_MANY_FRIENDS',
+    public readonly code: 'SELF' | 'NOT_FOUND' | 'LIMIT' | 'ALREADY_SENT' | 'TOO_MANY_FRIENDS' | 'TOO_MANY_REQUESTS' | 'NO_REQUEST',
     message: string,
     public readonly status = 409
   ) {
@@ -37,6 +37,76 @@ export async function addFriend(projectId: string, userId: string, friendId: str
       { id: `frd_${crypto.randomUUID()}`, projectId, userId: friendId, friendId: userId },
     ])
     .onConflictDoNothing();
+}
+
+/** How many requests one player can have waiting, sent or received, so nobody can be flooded. */
+export const MAX_PENDING_FRIEND_REQUESTS = 100;
+
+const requestBetween = (projectId: string, fromUserId: string, toUserId: string) =>
+  and(eq(friendRequests.projectId, projectId), eq(friendRequests.fromUserId, fromUserId), eq(friendRequests.toUserId, toUserId));
+
+async function clearRequests(projectId: string, a: string, b: string): Promise<void> {
+  await db.delete(friendRequests).where(requestBetween(projectId, a, b));
+  await db.delete(friendRequests).where(requestBetween(projectId, b, a));
+}
+
+/**
+ * A player asks another to be friends. Nothing is shared until the other accepts, because a
+ * player's code is meant to be handed out. If the other player has already asked, both become
+ * friends at once.
+ */
+export async function requestFriend(projectId: string, userId: string, friendId: string): Promise<'friends' | 'requested'> {
+  if (userId === friendId) throw new SocialError('SELF', 'You cannot add yourself as a friend', 400);
+
+  const [already] = await db
+    .select({ id: friendships.id })
+    .from(friendships)
+    .where(and(eq(friendships.projectId, projectId), eq(friendships.userId, userId), eq(friendships.friendId, friendId)));
+  if (already) return 'friends';
+
+  const [theirs] = await db.select({ id: friendRequests.id }).from(friendRequests).where(requestBetween(projectId, friendId, userId));
+  if (theirs) {
+    await addFriend(projectId, userId, friendId);
+    await clearRequests(projectId, userId, friendId);
+    return 'friends';
+  }
+
+  const [[sent], [received]] = await Promise.all([
+    db.select({ total: count() }).from(friendRequests).where(and(eq(friendRequests.projectId, projectId), eq(friendRequests.fromUserId, userId))),
+    db.select({ total: count() }).from(friendRequests).where(and(eq(friendRequests.projectId, projectId), eq(friendRequests.toUserId, friendId))),
+  ]);
+  if ((sent?.total ?? 0) >= MAX_PENDING_FRIEND_REQUESTS) {
+    throw new SocialError('TOO_MANY_REQUESTS', 'You have too many friend requests waiting for an answer', 429);
+  }
+  if ((received?.total ?? 0) >= MAX_PENDING_FRIEND_REQUESTS) {
+    throw new SocialError('TOO_MANY_REQUESTS', 'This player cannot take more friend requests right now', 429);
+  }
+
+  await db.insert(friendRequests).values({ id: `frq_${crypto.randomUUID()}`, projectId, fromUserId: userId, toUserId: friendId }).onConflictDoNothing();
+  return 'requested';
+}
+
+/** The requests waiting for this player's answer, newest first. */
+export async function incomingFriendRequests(projectId: string, userId: string) {
+  return db
+    .select({ id: endUsers.id, name: endUsers.name, avatarUrl: endUsers.avatarUrl, requestedAt: friendRequests.createdAt })
+    .from(friendRequests)
+    .innerJoin(endUsers, eq(endUsers.id, friendRequests.fromUserId))
+    .where(and(eq(friendRequests.projectId, projectId), eq(friendRequests.toUserId, userId), eq(endUsers.active, true)))
+    .orderBy(desc(friendRequests.createdAt));
+}
+
+/** Accepts a request that `fromUserId` sent to `userId`. */
+export async function acceptFriendRequest(projectId: string, userId: string, fromUserId: string): Promise<void> {
+  const [request] = await db.select({ id: friendRequests.id }).from(friendRequests).where(requestBetween(projectId, fromUserId, userId));
+  if (!request) throw new SocialError('NO_REQUEST', 'This player has not asked to be your friend', 404);
+  await addFriend(projectId, userId, fromUserId);
+  await clearRequests(projectId, userId, fromUserId);
+}
+
+/** Declines a request from the other player, or takes back one sent to them. */
+export async function dropFriendRequest(projectId: string, userId: string, otherUserId: string): Promise<void> {
+  await clearRequests(projectId, userId, otherUserId);
 }
 
 export async function removeFriend(projectId: string, userId: string, friendId: string): Promise<void> {
@@ -142,6 +212,12 @@ function shareKey(): Buffer {
  * not the player, and the signature covers the project too, so it cannot be edited or guessed.
  * It is kept short because route parameters are limited to 100 characters.
  */
+/** The public address of a share image, built from the server's configured address, never from the request. */
+export function shareUrl(projectId: string, userAchievementId: string): string {
+  const base = (process.env['BETTER_AUTH_URL'] || 'http://localhost:3001').replace(/\/$/, '');
+  return `${base}/v1/share/${shareToken(projectId, userAchievementId)}.svg`;
+}
+
 export function shareToken(projectId: string, userAchievementId: string): string {
   return `${userAchievementId}.${shareSignature(projectId, userAchievementId)}`;
 }
@@ -245,7 +321,8 @@ export async function socialRoutes(fastify: FastifyInstance) {
   });
 
   // Public: the image behind a share link. The token is signed, so it cannot be guessed or altered.
-  fastify.get<{ Params: { token: string } }>('/share/:token', async (request, reply) => {
+  // `/v1/share` is the address links use, because reverse proxies already send `/v1` to the API.
+  const shareImage = async (request: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
     const parsed = readShareToken(request.params.token.replace(/\.svg$/, ''));
     if (!parsed) return reply.status(404).send({ error: 'Not Found', message: 'This share link is not valid' });
     const [row] = await db
@@ -261,5 +338,7 @@ export async function socialRoutes(fastify: FastifyInstance) {
       .header('cache-control', 'public, max-age=3600')
       .header('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'")
       .send(renderShareCard({ player: row.player || 'A player', title: row.title, description: row.description, project: row.project, date: row.date }));
-  });
+  };
+  fastify.get('/v1/share/:token', shareImage);
+  fastify.get('/share/:token', shareImage);
 }

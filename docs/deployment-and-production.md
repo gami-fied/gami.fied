@@ -4,7 +4,7 @@ This guide covers production deployment using Docker Compose, environment variab
 
 ---
 
-## 1. Production Docker Compose Setup
+## Production Docker Compose Setup
 
 `docker-compose.yml` runs PostgreSQL, Redis, the API, the worker and the dashboard, with health checks and restart policies. A migration step runs before the API starts.
 
@@ -18,11 +18,11 @@ docker compose up -d
 
 The stack refuses to start without `POSTGRES_PASSWORD` and `REDIS_PASSWORD`. Postgres and Redis are not published on the host, so reach them through the Compose network.
 
-Set `TRUST_PROXY=true` only behind a reverse proxy that overwrites `X-Forwarded-*` headers. Without such a proxy, clients could forge their IP address.
+`TRUST_PROXY` says which proxies to believe about the client's address. Prefer a number of proxies (`TRUST_PROXY=1` for one proxy in front) or the proxy's own address or range (`TRUST_PROXY=10.0.0.0/8`) over `true`, which trusts every address in the header. Set `TRUST_PROXY=true` only behind a reverse proxy that overwrites `X-Forwarded-*` headers. Without such a proxy, clients could forge their IP address.
 
 To rotate `ENCRYPTION_MASTER_KEY`, set the new value and move the old one to `ENCRYPTION_MASTER_KEY_PREVIOUS`. Existing secrets keep decrypting, and you can remove the old key once they have all been saved again.
 
-## 2. Production Environment Variable Checklist
+## Production Environment Variable Checklist
 
 | Variable | Description | Example |
 | :--- | :--- | :--- |
@@ -36,7 +36,7 @@ To rotate `ENCRYPTION_MASTER_KEY`, set the new value and move the old one to `EN
 | `ENCRYPTION_MASTER_KEY` | Encrypts stored secrets and backups. Keep a copy | `openssl rand -hex 32` |
 | `PLATFORM_BOOTSTRAP_SECRET` | Claims the first platform admin | `openssl rand -hex 32` |
 | `GAMI_VERSION` | Image version to run | `1.2.0` |
-| `TRUST_PROXY` | Set to `true` behind a reverse proxy | `true` |
+| `TRUST_PROXY` | Which proxies to trust: a number, addresses, or `true` | `1` |
 | `TRUSTED_ORIGINS` | Extra sites allowed to call the API, comma separated | `https://www.example.com` |
 | `NODE_ENV` | Environment | `production` |
 
@@ -44,7 +44,7 @@ To rotate `ENCRYPTION_MASTER_KEY`, set the new value and move the old one to `EN
 
 ---
 
-## 3. Health Checks & Readiness Probes
+## Health Checks & Readiness Probes
 
 The API has two health endpoints for Docker, Kubernetes or uptime checks:
 
@@ -74,7 +74,7 @@ Checks live connectivity to PostgreSQL database and Redis cache. Returns `200 OK
 
 ---
 
-## 4. Monitoring
+## Monitoring
 
 The API serves Prometheus metrics at `GET /metrics`, with sample alert rules in `deploy/prometheus`. Setup, logging, tuning and a runbook are in [Operations](./operations.md). Built-in views:
 
@@ -84,7 +84,7 @@ The API serves Prometheus metrics at `GET /metrics`, with sample alert rules in 
 
 ---
 
-## 5. Production Smoke Testing
+## Production Smoke Testing
 
 This sends a real event through a running stack, using its health checks, sign-up and event routes:
 
@@ -94,7 +94,7 @@ DASHBOARD_URL=http://localhost:3000 API_URL=http://localhost:3001 node scripts/s
 
 ---
 
-## 6. Troubleshooting & Recovery
+## Troubleshooting & Recovery
 
 ### Database Connection Failure
 - Verify `DATABASE_URL` format and password escaping.
@@ -135,7 +135,7 @@ Most settings are on the **Server Settings** and **Security** admin pages. They 
 
 When `allowPublicRegistration` is off, the first account and invited emails can still sign up. When `allowOrgCreation` is off, only platform admins can create organizations.
 
-Rate limits use the saved value, then `RATE_LIMIT_IP_MAX`, `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW`, then defaults of 600 per IP and 1,000 per project each minute.
+Each API key may make 600 requests a minute (`RATE_LIMIT_KEY_MAX`) outside event ingestion, and each player's tokens 300 (`RATE_LIMIT_PLAYER_MAX`). Rate limits use the saved value, then `RATE_LIMIT_IP_MAX`, `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW`, then defaults of 600 per IP and 1,000 per project each minute.
 
 SMTP uses the settings saved in the admin UI, or the `SMTP_*` variables. Certificates are verified unless you set `SMTP_ALLOW_SELF_SIGNED=true`.
 
@@ -168,7 +168,7 @@ The compose file from a release is pinned to that version. In a checkout, it use
 docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
-Then [claim the first platform admin](./platform-administration.md#1-becoming-a-platform-admin).
+Then [claim the first platform admin](./platform-administration.md#becoming-a-platform-admin).
 
 Images have no address built in. The browser only talks to the dashboard, which reaches the API through `API_URL`, so the same image works on any domain. Compose sets `API_URL` for you.
 

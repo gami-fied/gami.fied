@@ -62,6 +62,33 @@ pnpm backup:restore --id bkp_1771438500000_abc1
 > [!WARNING]
 > Restoration will overwrite data created after the target backup timestamp. The automatic safety backup allows operators to revert if necessary.
 
+## What a backup holds
+
+A backup holds every table in the database except the ones below. The list is built from the schema, so tables added by a new version are included without any change to the backup code.
+
+| Left out | Why |
+| :--- | :--- |
+| `platform_backups` | The list of backup files has to survive a restore. |
+| `session` | Sign-ins. Everyone signs in again after a restore. |
+| `verification` | Short-lived codes and password reset links. |
+| `notification_outbox`, `email_notification_outbox`, `webhook_outbox`, `integration_deliveries` | Deliveries that were waiting to be sent. Restoring them would send them a second time. |
+
+The audit log is saved in every backup, but a restore adds to it and never removes from it, so the record of what happened, the restore included, is not cut.
+
+A restore runs in one transaction. If any part fails, nothing changes and the backup can be tried again.
+
+### Backups made by 1.2.0 and earlier
+
+Backups made by 1.2.0 and earlier hold only the 22 tables that existed at 1.0. Restoring one on those versions also emptied every other table, including XP totals, streaks, wallets, the store, leagues and referrals.
+
+A restore now refuses a backup that is missing tables, and lists them. If the old backup is all you have and you accept that the missing tables end up empty, run it from a checkout with the `--partial` flag:
+
+```bash
+pnpm backup:restore --id bkp_1771438500000_abc1 --partial
+```
+
+Make a new backup after upgrading, so your next restore is complete.
+
 ## Encryption and storage
 
 Backups are encrypted by default with `ENCRYPTION_MASTER_KEY`, and they include password hashes and API key hashes. Keep that key separately, because a backup can't be restored without it. Sessions are left out, so a restore signs everyone out.

@@ -6,7 +6,59 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ## [Unreleased]
 
+### Added
+
+- **Mystery boxes and wheels.** Random rewards with weighted items, odds that players can read, an optional cost, a daily limit, and a guaranteed rare item after a run of bad luck. A new **Mystery boxes** page, `GET /v1/me/boxes` and `POST /v1/me/boxes/:boxKey/open`.
+- **Season pass.** A track of tiers that players climb with the XP they earn during a season, with a free lane and a premium lane bought with a currency or given by your server.
+- **Teams and shared goals.** Players join a team, teams are ranked by XP, and a goal sets one target for everyone or for each team. Everyone who contributed is paid when it is reached.
+- **Cosmetics.** Titles, avatar frames and profile items that are unlocked by a badge, bought, won or given, and worn. `/v1/me` and leaderboard rows carry what a player wears.
+- **Leaderboard prizes.** Pay a range of places on the daily, weekly or monthly board when the period ends. Until now a plain board paid nothing.
+- **Journeys.** Chains of challenges where finishing one opens the next, with a prize for finishing the last.
+- These six share one prize format (XP, a currency, a badge or a cosmetic), have their own feature switches, and come with SDK calls (`gami.me.*`, `gami.mechanics.*`), React components (`MysteryBox`, `SeasonPass`, `SharedGoals`, `TeamCard`, `JourneyPath`, `CosmeticLocker`) and four new webhook events (`box.opened`, `goal.completed`, `journey.completed`, `leaderboard.prize_paid`). See [the guide](docs/boxes-passes-teams-and-journeys.md).
+- A `prize_won` notification type, sent for goal, leaderboard and journey prizes.
+- **End a player's tokens early.** `POST /v1/users/:userId/tokens/revoke` (`gami.endUserTokens.revoke(userId)`) ends every token made for that player so far, for sign-out.
+- **Limits per API key and per player.** One API key may make 600 requests a minute outside event ingestion (`RATE_LIMIT_KEY_MAX`), and one player's tokens 300 (`RATE_LIMIT_PLAYER_MAX`), so a single key or player cannot use up what an address is allowed.
+- **`TRUST_PROXY` takes a number or addresses.** `TRUST_PROXY=1` trusts one proxy in front of the API, and `TRUST_PROXY=10.0.0.0/8` trusts only proxies in that range. `true` and `false` work as before.
+- **Search does things.** Ctrl+K now offers actions such as Create rule, New API key and Invite teammate. `?` lists keyboard shortcuts, and `g` then a letter goes to a page.
+- Tables for rules, challenges and API keys sort by column.
+- **Player view.** Each user in the dashboard has a tab that shows what that player sees through the React components, using a short read-only token for them alone.
+- Search finds rules, achievements and rewards by name. Filters, searches and page numbers on Leaderboard, Events, Team and Audit Logs are kept in the address, so a view can be refreshed or shared.
+- **Website:** a light theme for the marketing pages, which follows the choice made in the docs; pages comparing Gami.Fied with Trophy and with Open Loyalty; and a caption track for the product tour.
+- **Website:** a [component gallery](https://gami.fied.cc/components/), four use-case pages, a cost calculator on the pricing page, and a docs home page with links back to the rest of the site. On phones the home page diagram is stacked and readable, controls are large enough to tap, the comparison table keeps its first column in view, and the playground has tabs.
+- A [threat model for player tokens](docs/player-token-security.md), and API docs for every `/v1/me` route, including the ones that change things.
+
+### Changed
+
+- `GET /v1/me` now includes `cosmetics`, each row of `GET /v1/me/leaderboard` includes `title` and `frameUrl`, and each row of `GET /v1/me/challenges` includes `locked`. Run the migration `0043_mechanics` when you upgrade; it only adds tables.
+- **Player tokens are read-only unless you ask for more.** `POST /v1/end-user-tokens` takes `access: "read"` (the default) or `"write"`, and every `/v1/me` request that is not a `GET` now needs a write token; a read-only one gets `403 TOKEN_READ_ONLY`. **If your app lets players buy rewards, add friends, give kudos, use an invite code or register a device with a token, create that token with `access: "write"`** (`gami.endUserTokens.create({ userId, access: 'write' })`). Tokens were documented as read-only before, but were not.
+- **Containers are locked down.** The API, worker and dashboard run with a read-only file system, no Linux capabilities and no way to gain privileges. Only the backups volume and `/tmp` can be written. If you added your own volume mounts or write files elsewhere, check them after upgrading.
+- The release's `env.example` now names the release instead of `latest`, which had overridden the pinned version in the compose file. GitHub Actions are pinned to commits.
+- Live streams for players check for missed updates every two minutes instead of every 15 seconds. Updates still arrive at once, because a stream is told when something changes. A dashboard stream closes within a minute of its user signing out or losing access.
+- Batches of events, from `POST /v1/events/batch` and from connectors, are written in one transaction.
+- **The dashboard menu is regrouped.** Pages are grouped as Progression, Economy, Players, Activity, Connect and Manage. Groups fold, and Connect and Manage start folded. Browser tabs now name the page and project, text is never smaller than 12 px, tabs work with the arrow keys, and there is a "Skip to content" link.
+- **The API and dashboard ports are published on `127.0.0.1` only.** `docker-compose.yml` used to publish them on every network interface, which let people reach the API around a reverse proxy. **If you open the dashboard at `http://your-server:3000` without a proxy, set `BIND_ADDRESS=0.0.0.0` in `.env`,** or put a proxy in front. Platforms that route through the Docker network, such as Coolify and Dokploy, are not affected.
+- **Opening an unsubscribe link now asks first.** The link shows a page with an Unsubscribe button, so mail scanners that open links no longer unsubscribe people. One-click unsubscribe from mail clients works as before.
+- **Sign-in lockout is per address.** Failed sign-ins are counted for an email and an address together, so someone sending wrong passwords locks out their own address and not the account's owner. An account as a whole still locks after ten times the limit, or 50 failures, from all addresses.
+- **Adding a friend now sends a request.** `gami.me.addFriend(code)` answers `{ friends: false, status: 'requested' }`, and the two players become friends when the other accepts with `gami.me.acceptFriend(code)`, or at once if they had already asked. Before, anyone who had a player's invite code became their friend and could see their feed. New: `gami.me.friendRequests()` and `gami.me.declineFriend(code)`. Linking players from your server with an API key is unchanged.
+
 ### Fixed
+
+- Editing a challenge or an XP boost no longer moves its start and end times. The form showed them in UTC but saved them as local time, so every save shifted them by your time-zone offset.
+
+- **Browsers on another site can call the player routes that change things.** CORS for `/v1/me` allowed only `GET`, so buying a reward or adding a friend from a customer's site failed before it was sent.
+- Connectors now follow the same rules as `POST /v1/events`: a suspended organization, connectors switched off, or either event rate limit stops them taking events. Creating, changing, rotating and deleting a connector is written to the audit log.
+- A `/v1` request was counted twice against the limit per address, and looked its API key up twice. It is now counted and checked once.
+- Mail clients' one-click unsubscribe was refused with `415`, because the request is a form post. It is accepted now.
+- The first-admin bootstrap secret is compared in constant time, and allows five attempts an hour per address and per account.
+- Rate-limit counters set their expiry in the same step as the count, so a failure in between can no longer block an address for good.
+- A player can no longer read another player's purchase, and its code, by sending that purchase's idempotency key. The request now gets `409 IDEMPOTENCY_KEY_IN_USE`.
+- A player token stops working as soon as its player is deactivated or erased, instead of lasting until it expires.
+- Tokens in a query string, such as the one a live stream uses, are no longer written to the request log.
+- Share links are built from `BETTER_AUTH_URL` and live under `/v1/share/`, so they work behind a reverse proxy and cannot be pointed at another host. `/share/` links made earlier keep working.
+- **Restoring a backup no longer loses data.** Backups held only the 22 tables that existed at 1.0, and a restore emptied every other table, including XP totals, streaks, wallets, the store, leagues and referrals. Backups now hold every table except sessions, short-lived codes and queued deliveries, and the list is built from the schema. **Make a new backup after upgrading.** A restore now refuses a backup made by an earlier version unless you pass `--partial`, and changes nothing if it fails part way. See [Backups](docs/backups.md).
+- **Organization exports hold everything.** An export now includes streaks, wallets, the store, leagues, segments, referrals, campaigns, boosts and limits, and achievement progress, as format version 2. Version 1 files can still be imported.
+- **Imports keep your own IDs and keys.** An import used to add `_imp_<n>` to each player's external ID and to achievement and challenge keys, so your app could not find imported players and imported rules awarded badges that did not exist. They are now kept exactly. Projects keep their name and slug unless the organization already has that slug.
+- **Imports respect the organization's limits.** An import is counted against the project limit, is refused for demo organizations, and leaves out rules, challenges, levels and segments that the dashboard would not accept, listing each one. A file can no longer refer to rows outside itself.
 
 - On hosts that also put the dashboard on a shared network, such as Dokploy and Coolify, the dashboard could reach another app's container called `api` instead of Gami.Fied's, and every API call failed. The compose files now give the API, Postgres and Redis names no other app uses (`gami-api`, `gami-postgres`, `gami-redis`), and connect through those.
 

@@ -75,8 +75,8 @@ Every method takes one object. Your API key identifies the project, and `userId`
 | `gami.leaderboards` | `list`, `getUserRank` |
 | `gami.achievements` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
 | `gami.challenges` | `list`, `get`, `summary`, `listForUser`, `getForUser` |
-| `gami.endUserTokens` | `create` |
-| `gami.me` | `get`, `achievements`, `challenges`, `notifications`, `rank` |
+| `gami.endUserTokens` | `create`, `revoke` |
+| `gami.me` | `get`, `achievements`, `challenges`, `notifications`, `rank`, and with a token created with `access: 'write'`: `redeem`, `addFriend`, `acceptFriend`, `declineFriend`, `giveKudos`, `useReferral`, `registerDevice` |
 
 `gami.notifications`, `gami.webhooks`, `gami.integrations`, `gami.analytics`, `gami.auditLogs` and `gami.system` are also available. These need a `projectId`.
 

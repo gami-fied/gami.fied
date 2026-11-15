@@ -1,0 +1,44 @@
+---
+import Button from '../components/Button.astro';
+import Section from '../components/Section.astro';
+import ComponentGallery from '../components/gallery/ComponentGallery.tsx';
+import SiteLayout from '../layouts/SiteLayout.astro';
+---
+
+<SiteLayout
+  title="React components"
+  description="Every ready-made Gami.Fied React component, live in your browser with sample data: level progress, streaks, badges, challenges, a leaderboard and notifications."
+  og="components"
+  breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'React components', href: '/components/' }]}
+>
+  <Section
+    reveal={false}
+    as="h1"
+    eyebrow="React components"
+    title="Drop-in pieces for your app"
+    intro="Six components that show a player their progress. Change the theme below and copy what you need. The data here is made up, and nothing is sent anywhere."
+    class="pt-24"
+  >
+    <ComponentGallery client:load />
+    <noscript>
+      <p class="border border-zinc-800 bg-zinc-900/40 p-6 text-sm text-zinc-300">The gallery needs JavaScript. The components are described in the <a class="underline" href="/docs/react/">React guide</a>.</p>
+    </noscript>
+  </Section>
+
+  <Section eyebrow="Use them" title="Two steps to your own app" class="pb-24">
+    <ol class="grid gap-4 md:grid-cols-2">
+      <li class="border border-zinc-800 bg-zinc-900/30 p-6">
+        <h3 class="font-semibold text-zinc-100">1. Make a token on your server</h3>
+        <p class="mt-2 text-sm leading-relaxed text-zinc-400">Your server asks Gami.Fied for a short-lived token for the signed-in player. Your API key never reaches the browser.</p>
+      </li>
+      <li class="border border-zinc-800 bg-zinc-900/30 p-6">
+        <h3 class="font-semibold text-zinc-100">2. Wrap your page in the provider</h3>
+        <p class="mt-2 text-sm leading-relaxed text-zinc-400">Give the token to <code class="font-mono text-zinc-200">GamiProvider</code>, and every component inside it shows that player's own data, live.</p>
+      </li>
+    </ol>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <Button href="/docs/react/">Read the React guide</Button>
+      <Button href="/docs/player-token-security/" variant="secondary">How tokens stay safe</Button>
+    </div>
+  </Section>
+</SiteLayout>

@@ -267,7 +267,7 @@ describe('Milestone 26 — Release Readiness & Security Audit Test Suite', () =>
     expect(res.statusCode).toBe(200);
     const exportPackage = res.json();
     expect(exportPackage.format).toBe('gami-organization-export');
-    expect(exportPackage.version).toBe(1);
+    expect(exportPackage.version).toBe(2);
     expect(exportPackage.manifest.organizationId).toBe(orgAId);
 
     // Verify secret fields (passwords, tokens, API key secrets) are redacted

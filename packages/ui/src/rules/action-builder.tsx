@@ -130,7 +130,7 @@ export function VisualActionBuilder({
           <Zap className="w-4 h-4 text-warning-400" />
           <span className="text-xs font-semibold text-zinc-200">Rule Executed Actions</span>
         </div>
-        <span className="text-[11px] text-zinc-400 font-medium">
+        <span className="text-xs text-zinc-400 font-medium">
           Executed in order when conditions match
         </span>
       </div>

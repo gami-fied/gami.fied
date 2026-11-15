@@ -17,7 +17,21 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 ---
 
-<SiteLayout title={post.data.title} description={post.data.description} og={`blog/${post.id}`}>
+<SiteLayout
+  title={post.data.title}
+  description={post.data.description}
+  og={`blog/${post.id}`}
+  type="article"
+  breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Blog', href: '/blog/' }, { name: post.data.title, href: `/blog/${post.id}/` }]}
+  jsonLd={{
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.data.title,
+    description: post.data.description,
+    datePublished: post.data.date.toISOString(),
+    author: { '@type': 'Person', name: post.data.author },
+  }}
+>
   <!-- How far through the post the reader is, drawn by CSS alone. -->
   <div class="reading-progress" aria-hidden="true"></div>
   <article class="mx-auto max-w-3xl px-6 pb-24 pt-16 sm:pt-20">

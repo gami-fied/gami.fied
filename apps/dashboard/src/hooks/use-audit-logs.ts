@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api-client';
 import { useCallback, useEffect, useState } from 'react';
 import { hasCachedState, useCachedState } from './use-cached-state';
+import { useUrlState } from '@/hooks/use-url-state';
 
 export interface AuditLogItem {
   id: string;
@@ -24,7 +25,7 @@ export interface UseAuditLogsFilter {
 
 export function useAuditLogs(projectId: string | null, filters?: UseAuditLogsFilter) {
   const [logs, setLogs] = useCachedState<AuditLogItem[]>(`auditLogs:${projectId}`, []);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlState<number>('page', 1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);

@@ -7,7 +7,41 @@
 ---
 
 <figure class="relative mx-auto w-full max-w-4xl" aria-labelledby="engine-caption" data-engine-diagram>
-  <svg viewBox="0 0 760 320" class="h-auto w-full" role="img" aria-labelledby="engine-title engine-desc">
+  <!-- Phones get the same three steps stacked, at a size that can be read. The wide drawing below
+       would shrink its labels to about 5 px there. -->
+  <div class="mx-auto max-w-sm space-y-2 sm:hidden" role="img" aria-label="Events from your app flow into the Gami.Fied engine, where rules turn them into XP, a badge and a better place on the leaderboard.">
+    <div class="border border-zinc-800 bg-zinc-900 p-4">
+      <p class="text-xs text-zinc-400">Your app</p>
+      <div class="mt-2 flex flex-wrap gap-2 font-mono text-xs text-zinc-300">
+        <span class="border border-zinc-800 bg-zinc-950 px-2 py-1">lesson_completed</span>
+        <span class="border border-zinc-800 bg-zinc-950 px-2 py-1">order_paid</span>
+      </div>
+    </div>
+    <div class="flex justify-center text-zinc-600" aria-hidden="true">↓</div>
+    <div class="border border-brand-500/70 bg-brand-500/10 p-4">
+      <p class="font-bold text-zinc-50">Gami.Fied <span class="text-xs font-normal text-zinc-500">engine</span></p>
+      <div class="mt-2 grid grid-cols-3 gap-2 text-xs text-zinc-300">
+        {['Rules', 'Streaks', 'Limits'].map((label) => <span class="border border-zinc-800 bg-zinc-950 px-2 py-1.5">{label}</span>)}
+      </div>
+    </div>
+    <div class="flex justify-center text-zinc-600" aria-hidden="true">↓</div>
+    <div class="space-y-2">
+      <div class="border border-zinc-800 bg-zinc-900 p-3">
+        <p class="text-xs text-zinc-300">+50 XP · Level 7</p>
+        <div class="mt-2 h-1.5 bg-zinc-800"><div class="h-full w-3/4 bg-brand-500"></div></div>
+      </div>
+      <div class="flex items-center gap-3 border border-zinc-800 bg-zinc-900 p-3">
+        <span class="flex h-7 w-7 items-center justify-center border border-warning-400 bg-warning-500/20 text-sm text-warning-300">★</span>
+        <p class="text-xs"><span class="font-semibold text-zinc-200">Badge unlocked</span> <span class="text-zinc-500">Seven-day streak</span></p>
+      </div>
+      <div class="flex items-center justify-between border border-zinc-800 bg-zinc-900 p-3 text-xs">
+        <span class="text-zinc-300">Weekly leaderboard</span>
+        <span class="font-mono text-success-400">#5 → #3</span>
+      </div>
+    </div>
+  </div>
+
+  <svg viewBox="0 0 760 320" class="hidden h-auto w-full sm:block" role="img" aria-labelledby="engine-title engine-desc">
     <title id="engine-title">How Gami.Fied works</title>
     <desc id="engine-desc">Events from your app flow into the Gami.Fied engine, where rules turn them into XP, a badge and a better place on the leaderboard.</desc>
     <defs>
@@ -87,7 +121,7 @@
     hidden
     aria-pressed="false"
     data-engine-toggle
-    class="absolute right-0 top-0 inline-flex items-center gap-1.5 border border-zinc-800 bg-zinc-950/80 px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+    class="absolute right-0 top-0 inline-flex items-center gap-1.5 border border-zinc-800 bg-zinc-950/80 px-2 py-1 text-xs text-zinc-400 max-sm:!hidden transition-colors hover:border-zinc-600 hover:text-zinc-100"
   >
     <!-- An icon rather than an emoji, which browsers draw differently. -->
     <svg aria-hidden="true" viewBox="0 0 12 12" width="10" height="10" fill="currentColor"><rect x="2" y="2" width="3" height="8"></rect><rect x="7" y="2" width="3" height="8"></rect></svg>

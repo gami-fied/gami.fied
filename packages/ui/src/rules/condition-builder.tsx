@@ -221,7 +221,7 @@ export function VisualConditionBuilder({
             return (
               <div key={cond.id} className="space-y-2 rounded-none border border-zinc-800 bg-zinc-900/80 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-zinc-400">
+                  <span className="text-xs font-bold text-zinc-400">
                     {idx === 0 ? 'IF' : matchMode.toUpperCase()} · EXPRESSION
                   </span>
                   <button
@@ -240,7 +240,7 @@ export function VisualConditionBuilder({
                   value={cond.value}
                   onChange={(e) => handleUpdateCondition(cond.id, { value: e.target.value })}
                 />
-                <p className={`text-[11px] ${invalid ? 'text-warning-300' : 'text-zinc-500'}`}>
+                <p className={`text-xs ${invalid ? 'text-warning-300' : 'text-zinc-500'}`}>
                   {invalid ?? 'JSONLogic. It can read type, userId, occurredAt and payload, for example { "var": "payload.amount" }.'}
                 </p>
               </div>
@@ -252,7 +252,7 @@ export function VisualConditionBuilder({
             return (
               <div key={cond.id} className="space-y-2 rounded-none border border-zinc-800 bg-zinc-900/80 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-zinc-400">
+                  <span className="text-xs font-bold text-zinc-400">
                     {idx === 0 ? 'IF' : matchMode.toUpperCase()} · TOTAL OVER PAST EVENTS
                   </span>
                   <button
@@ -321,7 +321,7 @@ export function VisualConditionBuilder({
               key={cond.id}
               className="p-3 bg-zinc-900/80 rounded-none border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
             >
-              <div className="text-[11px] font-bold text-zinc-400 w-6 shrink-0 text-center">
+              <div className="text-xs font-bold text-zinc-400 w-6 shrink-0 text-center">
                 {idx === 0 ? 'IF' : matchMode.toUpperCase()}
               </div>
 

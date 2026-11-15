@@ -19,6 +19,10 @@ import { Button } from '@/components/ui/button';
 interface ImportValidation {
   valid?: boolean;
   error?: string;
+  /** Why the import would be refused, such as the organization's project limit. */
+  errors?: string[];
+  /** Rules, challenges, levels and segments that would be left out. */
+  warnings?: string[];
   manifest?: { organizationName?: string };
   remappingPlan?: { projectsToCreate?: number; usersToImport?: number; eventsToImport?: number };
 }
@@ -117,7 +121,8 @@ export default function OrganizationDataPage() {
         setImportFileContent(null);
         setValidationResult(null);
       } else {
-        toast.error('Import failed', 'Please review dry-run validation log.');
+        const problem = (await res.json().catch(() => null)) as { message?: string } | null;
+        toast.error('Import failed', problem?.message || 'Check the file and try again.');
       }
     } catch (err: unknown) {
       toast.error('Import error', (err as Error)?.message || 'Network error executing import');
@@ -163,8 +168,9 @@ export default function OrganizationDataPage() {
               <h2 className="text-sm font-bold text-white">Export Organization Data</h2>
             </div>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Download a complete versioned JSON archive containing project settings, end users,
-              events, XP history, levels, achievements, challenges, rules, and integration metadata.
+              Download one JSON file with every project&apos;s design and player data: rules, levels,
+              achievements, challenges, streaks, wallets, the store, leagues and more. API keys and
+              other secrets are never included.
             </p>
           </div>
 
@@ -272,7 +278,7 @@ export default function OrganizationDataPage() {
                     </span>
                   </p>
                   <p>Remapping Plan:</p>
-                  <ul className="list-disc list-inside text-zinc-400 text-[11px] space-y-0.5">
+                  <ul className="list-disc list-inside text-zinc-400 text-xs space-y-0.5">
                     <li>Projects to create: {validationResult.remappingPlan?.projectsToCreate}</li>
                     <li>End Users to import: {validationResult.remappingPlan?.usersToImport}</li>
                     <li>Events to import: {validationResult.remappingPlan?.eventsToImport}</li>
@@ -282,6 +288,23 @@ export default function OrganizationDataPage() {
 
               {validationResult.error && (
                 <p className="text-xs text-danger-400">{validationResult.error}</p>
+              )}
+
+              {validationResult.errors?.map((message) => (
+                <p key={message} className="text-xs text-danger-400">
+                  {message}
+                </p>
+              ))}
+
+              {validationResult.valid && (validationResult.warnings?.length ?? 0) > 0 && (
+                <div className="text-xs text-warning-400 space-y-1">
+                  <p>These will be left out of the import:</p>
+                  <ul className="list-disc list-inside text-xs space-y-0.5 max-h-32 overflow-y-auto">
+                    {validationResult.warnings!.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           )}

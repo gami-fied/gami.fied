@@ -109,7 +109,7 @@ export function ApiDocsView() {
 
           {!isSearching && (
             <div>
-              <div className="pb-1 text-[11px] font-semibold text-zinc-400">Guides</div>
+              <div className="pb-1 text-xs font-semibold text-zinc-400">Guides</div>
               {GUIDES.map((guide) => (
                 <a
                   key={guide.id}
@@ -124,7 +124,7 @@ export function ApiDocsView() {
 
           {groups.map((group) => (
             <div key={group.name}>
-              <div className="pb-1 text-[11px] font-semibold text-zinc-400">{group.name}</div>
+              <div className="pb-1 text-xs font-semibold text-zinc-400">{group.name}</div>
               {group.endpoints.map(({ id, method, operation }) => (
                 <a
                   key={id}

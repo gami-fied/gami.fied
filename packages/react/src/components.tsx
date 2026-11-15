@@ -11,10 +11,10 @@ import {
 import { useGami } from './provider.js';
 import { runDays } from './streak-days.js';
 
-const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
+export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 const percent = (value: number) => Math.round(Math.max(0, Math.min(1, value)) * 100);
 
-function Status({ loading, error, empty, children }: { loading: boolean; error: Error | null; empty?: string | false; children: ReactNode }) {
+export function Status({ loading, error, empty, children }: { loading: boolean; error: Error | null; empty?: string | false; children: ReactNode }) {
   if (error) return <p className="gami-status gami-status-error" role="alert">Couldn&apos;t load this right now.</p>;
   if (loading) return <p className="gami-status" aria-busy="true">Loading…</p>;
   if (empty) return <p className="gami-status">{empty}</p>;
@@ -57,6 +57,7 @@ export function LevelProgress({ className }: { className?: string }) {
             <div className="gami-row">
               <strong className="gami-big">{data.level ? `Level ${data.level.number}` : 'No level yet'}</strong>
               {data.level && <span className="gami-muted">{data.level.name}</span>}
+              {data.cosmetics?.title && <span className="gami-pill gami-title">{data.cosmetics.title.name}</span>}
               <span className="gami-spacer" />
               <span>{data.totalXp.toLocaleString()} XP</span>
             </div>
@@ -177,7 +178,11 @@ export function Leaderboard({ period = 'all_time', limit = 10, className }: Lead
           {entries.map((entry) => (
             <li key={entry.rank} className={cx('gami-board-row', entry.isMe && 'gami-me')}>
               <span className="gami-rank">{entry.rank}</span>
-              <span className="gami-name">{entry.name ?? 'Player'}{entry.isMe && ' (you)'}</span>
+              <span className="gami-name">
+                {entry.name ?? 'Player'}
+                {entry.isMe && ' (you)'}
+                {entry.title && <span className="gami-pill gami-title">{entry.title}</span>}
+              </span>
               <span className="gami-xp">{entry.xp.toLocaleString()} XP</span>
             </li>
           ))}
@@ -208,6 +213,7 @@ export function ChallengeList({ className }: { className?: string }) {
                 <strong>{item.name}</strong>
                 {item.recurrence && <span className="gami-pill">{item.recurrence === 'daily' ? 'Daily' : 'Weekly'}</span>}
                 {item.completed && <span className="gami-pill gami-done">Done</span>}
+                {item.locked && <span className="gami-pill">Locked</span>}
               </div>
               {item.description && <div className="gami-muted gami-small">{item.description}</div>}
               <ProgressBar fraction={item.target > 0 ? item.progress / item.target : 0} label={`${item.name} progress`} detail={`${item.progress} / ${item.target}`} />

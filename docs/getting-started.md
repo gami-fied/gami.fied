@@ -6,7 +6,7 @@ To run it without building anything, see [Installing from published images](./de
 
 ---
 
-## 1. Prerequisites
+## Prerequisites
 
 Ensure your system meets the following requirements:
 
@@ -18,7 +18,7 @@ Ensure your system meets the following requirements:
 
 ---
 
-## 2. Installation & Infrastructure Spinup
+## Installation & Infrastructure Spinup
 
 ### Clone Repository
 
@@ -62,7 +62,7 @@ This creates a demo organization, project, rules and users, then prints a dashbo
 
 ---
 
-## 3. Running Applications in Development
+## Running Applications in Development
 
 Start all workspace applications concurrently:
 
@@ -85,17 +85,17 @@ pnpm --filter @gami/dashboard dev # Start dashboard UI only
 
 ---
 
-## 4. Becoming a platform admin
+## Becoming a platform admin
 
 1. Open `http://localhost:3000/register` and create an account.
 2. Go to `http://localhost:3000/admin` while signed in.
 3. Enter `PLATFORM_BOOTSTRAP_SECRET` from your `.env`.
 
-This only works while the server has no platform admins. To add more, or to recover access, see [Platform administration](./platform-administration.md#1-becoming-a-platform-admin).
+This only works while the server has no platform admins. To add more, or to recover access, see [Platform administration](./platform-administration.md#becoming-a-platform-admin).
 
 ---
 
-## 5. Integrating with `@gami.fied/sdk`
+## Integrating with `@gami.fied/sdk`
 
 The TypeScript SDK works in Node.js, Next.js, Express and other server code. To use Gami.Fied from a browser, see [Using the SDK in a browser](./sdk.md#using-the-sdk-in-a-browser).
 

@@ -27,6 +27,7 @@ const VALID_NOTIFICATION_TYPES: NotificationType[] = [
   'level_up',
   'challenge_completed',
   'points_expiring',
+  'prize_won',
 ];
 
 export async function createNotificationIntent<T extends NotificationType>(

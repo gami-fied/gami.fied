@@ -18,11 +18,13 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
 import { CardSkeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { Edit2, Gauge, Plus, Rocket, ShieldAlert, Trash2 } from 'lucide-react';
 import { AbuseFlagsPanel } from './abuse-flags-panel';
+import { localTimeZoneLabel, toDateTimeLocal } from '@/lib/format';
 
 type Tab = 'boosts' | 'limits' | 'hits' | 'flags';
 
@@ -84,7 +86,7 @@ const PERIOD_OPTIONS = [
   { value: 'month', label: 'Per month' },
 ];
 
-const toLocalInput = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 16) : '');
+const toLocalInput = (iso: string | null) => (iso ? toDateTimeLocal(iso) : '');
 
 function describeBoost(boost: Boost): string {
   const parts: string[] = [];
@@ -306,19 +308,17 @@ export function BoostsLimitsView() {
           </AdminOnly>
         }
         toolbar={
-          <div role="tablist" className="flex gap-1 overflow-x-auto">
-            {([['boosts', 'Boosts'], ['limits', 'Limits'], ['hits', 'Blocked XP'], ['flags', 'Flags']] as [Tab, string][]).map(([id, label]) => (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-                className={`whitespace-nowrap border-b-2 px-3 py-1.5 text-sm transition-colors ${tab === id ? 'border-brand-500 text-zinc-100' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            label="Boosts and limits sections"
+            value={tab}
+            onChange={setTab}
+            items={[
+              { id: 'boosts', label: 'Boosts' },
+              { id: 'limits', label: 'Limits' },
+              { id: 'hits', label: 'Blocked XP' },
+              { id: 'flags', label: 'Flags' },
+            ]}
+          />
         }
       />
 
@@ -457,8 +457,8 @@ export function BoostsLimitsView() {
             <Input label="Multiplier *" type="number" step="0.1" min={0.1} max={10} value={bMultiplier} onChange={(e) => setBMultiplier(e.target.value)} helperText="2 doubles the XP. 1.5 adds half again." required />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input label="Starts (optional)" type="datetime-local" value={bStart} onChange={(e) => setBStart(e.target.value)} helperText="UTC. Blank means it has started." />
-            <Input label="Ends (optional)" type="datetime-local" value={bEnd} onChange={(e) => setBEnd(e.target.value)} helperText="UTC. Blank means no end." />
+            <Input label="Starts (optional)" type="datetime-local" value={bStart} onChange={(e) => setBStart(e.target.value)} helperText={`In ${localTimeZoneLabel()}. Blank means it has started.`} />
+            <Input label="Ends (optional)" type="datetime-local" value={bEnd} onChange={(e) => setBEnd(e.target.value)} helperText={`In ${localTimeZoneLabel()}. Blank means no end.`} />
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between">

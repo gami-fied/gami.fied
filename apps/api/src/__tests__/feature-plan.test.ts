@@ -19,7 +19,7 @@ describe('the feature catalogue', () => {
     expect(requirementsOf('store')).toEqual(expect.arrayContaining(['wallets', 'users']));
     expect(requirementsOf('leagues')).toEqual(expect.arrayContaining(['leaderboards', 'xp', 'users']));
     expect(dependentsOf('wallets')).toEqual(['store']);
-    expect(dependentsOf('leaderboards')).toEqual(['leagues']);
+    expect(dependentsOf('leaderboards')).toEqual(['leagues', 'leaderboard_prizes']);
   });
 
   it('keeps base features on and turns off anything whose needs are off', () => {

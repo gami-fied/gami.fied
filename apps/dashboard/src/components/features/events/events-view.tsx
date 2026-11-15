@@ -41,6 +41,11 @@ import { setVisibleInterval } from '@/lib/visible-interval';
 import { PageHeader } from '@/components/ui/page-header';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
+import { useOpenOnParam } from '@/hooks/use-open-on-param';
+import Link from 'next/link';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Activity as EmptyEventsIcon } from 'lucide-react';
+import { useUrlState } from '@/hooks/use-url-state';
 
 const AUTO_REFRESH_INTERVAL = 30_000; // 30 seconds
 
@@ -52,14 +57,16 @@ export function EventsView() {
   const live = useLiveUpdates(projectId, () => fetchEvents(page, typeFilter, userIdFilter));
   const toast = useToast();
 
-  const [typeFilter, setTypeFilter] = useState('');
-  const [userIdFilter, setUserIdFilter] = useState('');
+  // Kept in the address, so a filtered list can be refreshed or shared as it is.
+  const [typeFilter, setTypeFilter] = useUrlState<string>('type', '');
+  const [userIdFilter, setUserIdFilter] = useUrlState<string>('user', '');
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Ingestion Playground Modal state
   const [isEmitOpen, setIsEmitOpen] = useState(false);
+  useOpenOnParam(() => setIsEmitOpen(true));
   const [authMode, setAuthMode] = useState<'session' | 'sdk'>('session');
   const [rawSecretKey, setRawSecretKey] = useState('');
   const [emitType, setEmitType] = useState('user_signed_up');
@@ -318,7 +325,13 @@ export function EventsView() {
                       <Badge variant="orange">{evt.type}</Badge>
                     </TableCell>
                     <TableCell className="text-xs text-zinc-400">
-                      {evt.userId || <span className="text-zinc-400">Anonymous</span>}
+                      {evt.userId ? (
+                        <Link href={`/dashboard/users/${encodeURIComponent(evt.userId)}`} onClick={(event) => event.stopPropagation()} className="hover:text-zinc-100 hover:underline">
+                          {evt.userId}
+                        </Link>
+                      ) : (
+                        <span className="text-zinc-400">Anonymous</span>
+                      )}
                     </TableCell>
                     <TableCell
                       className="text-xs text-zinc-400 cursor-default"
@@ -343,7 +356,7 @@ export function EventsView() {
                 {events.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="py-8 text-center text-zinc-400 text-xs">
-                      No events yet. Use Send Test Event to try one, or connect your app.
+                      <EmptyState icon={EmptyEventsIcon} title="No events yet" description="Send a test event to try one, or connect your app." />
                     </TableCell>
                   </TableRow>
                 )}
@@ -378,7 +391,7 @@ export function EventsView() {
 
           {/* Quick Presets */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1">
+            <span className="text-xs font-semibold text-zinc-400 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-brand-400" /> Quick Payload Presets:
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -430,7 +443,7 @@ export function EventsView() {
                   onChange={(e) => setRawSecretKey(e.target.value)}
                   required
                 />
-                <span className="text-[11px] text-zinc-400 block px-1">
+                <span className="text-xs text-zinc-400 block px-1">
                   Enter your raw API key secret string. Key is held temporarily in component memory
                   and never saved to browser storage.
                 </span>

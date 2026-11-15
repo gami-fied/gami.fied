@@ -17,6 +17,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../../..');
 const source = join(repoRoot, 'docs');
 const output = resolve(here, '../content/docs/docs');
+/** The docs home, written for the site. */
+const homePage = resolve(here, '../docs-home.mdx');
 const changelogOutput = resolve(here, '../content/changelog/CHANGELOG.md');
 
 /** GitHub callouts and the Starlight aside each one becomes. */
@@ -240,7 +242,17 @@ function syncVersion(/** @type {string} */ repository, /** @type {{ version: str
 export function syncDocs(/** @type {string} */ repository) {
   const files = markdownFiles(source);
   const written = new Set();
+  // The docs home is written for the site (src/docs-home.mdx), not copied from docs/README.md,
+  // which is an index for people browsing the repository.
+  const home = join(output, 'index.mdx');
+  const homeSource = readFileSync(homePage, 'utf8');
+  written.add(home);
+  if (!existsSync(home) || readFileSync(home, 'utf8') !== homeSource) {
+    mkdirSync(dirname(home), { recursive: true });
+    writeFileSync(home, homeSource);
+  }
   for (const rel of files) {
+    if (rel === 'README.md') continue;
     const outRel = rel.replace(/(^|\/)README\.md$/, '$1index.md');
     const target = join(output, outRel);
     const next = transform(readFileSync(join(source, rel), 'utf8'), rel, repository);
@@ -299,6 +311,7 @@ export default function repoDocs({ repository }) {
       },
       'astro:server:setup': ({ server, logger }) => {
         server.watcher.add(source);
+        server.watcher.add(homePage);
         server.watcher.add(join(repoRoot, 'CHANGELOG.md'));
         const resync = (/** @type {string} */ file) => {
           const path = resolve(file);

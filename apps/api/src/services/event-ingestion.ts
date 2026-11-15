@@ -102,40 +102,43 @@ async function resolveEndUser(
  * The single way events enter the system. User creation, its webhook, the event and its outbox
  * row commit together, and a repeated idempotency key never creates a second event.
  */
-export async function ingestEvent(input: IngestEventInput): Promise<IngestEventResult> {
+async function ingestWithin(tx: Transaction, input: IngestEventInput): Promise<IngestEventResult> {
   const { projectId, eventType, externalUserId, payload, occurredAt, idempotencyKey } = input;
+  if (idempotencyKey) {
+    const existing = await findByIdempotencyKey(tx, projectId, idempotencyKey);
+    if (existing) return resolveRepeat(existing, input);
+  }
+
+  let userId: string | null = null;
+  if (externalUserId) {
+    userId = await resolveEndUser(tx, projectId, externalUserId);
+    if (!userId) return { outcome: 'user_deactivated' };
+  }
+
+  const id = `evt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+  await tx.insert(events).values({
+    id,
+    projectId,
+    userId,
+    type: eventType,
+    payload,
+    idempotencyKey: idempotencyKey || null,
+    occurredAt,
+  });
+  await tx.insert(eventOutbox).values({
+    id: `out_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+    eventId: id,
+    status: 'pending',
+  });
+
+  return { outcome: 'accepted', id, duplicate: false };
+}
+
+export async function ingestEvent(input: IngestEventInput): Promise<IngestEventResult> {
+  const { projectId, idempotencyKey } = input;
 
   try {
-    return await db.transaction(async (tx): Promise<IngestEventResult> => {
-      if (idempotencyKey) {
-        const existing = await findByIdempotencyKey(tx, projectId, idempotencyKey);
-        if (existing) return resolveRepeat(existing, input);
-      }
-
-      let userId: string | null = null;
-      if (externalUserId) {
-        userId = await resolveEndUser(tx, projectId, externalUserId);
-        if (!userId) return { outcome: 'user_deactivated' };
-      }
-
-      const id = `evt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-      await tx.insert(events).values({
-        id,
-        projectId,
-        userId,
-        type: eventType,
-        payload,
-        idempotencyKey: idempotencyKey || null,
-        occurredAt,
-      });
-      await tx.insert(eventOutbox).values({
-        id: `out_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
-        eventId: id,
-        status: 'pending',
-      });
-
-      return { outcome: 'accepted', id, duplicate: false };
-    });
+    return await db.transaction((tx) => ingestWithin(tx, input));
   } catch (err: unknown) {
     if (isUniqueViolation(err) && idempotencyKey) {
       const existing = await findByIdempotencyKey(db, projectId, idempotencyKey);
@@ -143,4 +146,36 @@ export async function ingestEvent(input: IngestEventInput): Promise<IngestEventR
     }
     throw err;
   }
+}
+
+export type IngestBatchResult = IngestEventResult | { outcome: 'failed'; error: unknown };
+
+/**
+ * Takes in a batch in order. All of it is written in one transaction, which is one commit instead
+ * of one per event. If anything in the batch fails, such as two requests racing on the same
+ * idempotency key, nothing is kept and the events are taken in one by one instead, so one bad
+ * event never costs the rest.
+ */
+export async function ingestEvents(inputs: IngestEventInput[]): Promise<IngestBatchResult[]> {
+  if (inputs.length > 1) {
+    try {
+      return await db.transaction(async (tx) => {
+        const results: IngestBatchResult[] = [];
+        for (const input of inputs) results.push(await ingestWithin(tx, input));
+        return results;
+      });
+    } catch {
+      // Fall through to one at a time.
+    }
+  }
+
+  const results: IngestBatchResult[] = [];
+  for (const input of inputs) {
+    try {
+      results.push(await ingestEvent(input));
+    } catch (error) {
+      results.push({ outcome: 'failed', error });
+    }
+  }
+  return results;
 }

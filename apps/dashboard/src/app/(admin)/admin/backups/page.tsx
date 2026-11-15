@@ -213,9 +213,9 @@ export default function AdminBackupsPage() {
             No platform backups created yet. Click "Create PostgreSQL Backup" above.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-900/80 border-b border-zinc-800 text-zinc-400 text-[11px]">
+              <thead className="bg-zinc-900/80 border-b border-zinc-800 text-zinc-400 text-xs">
                 <tr>
                   <th className="p-3">Backup ID</th>
                   <th className="p-3">Type</th>
@@ -257,7 +257,7 @@ export default function AdminBackupsPage() {
                     <td className="p-3 text-zinc-300">{(b.sizeBytes / 1024).toFixed(1)} KB</td>
                     <td className="p-3">
                       {b.encrypted ? (
-                        <span className="flex items-center gap-1 text-success-400 text-[11px]">
+                        <span className="flex items-center gap-1 text-success-400 text-xs">
                           <Lock className="w-3 h-3" /> AES-256
                         </span>
                       ) : (
@@ -269,7 +269,7 @@ export default function AdminBackupsPage() {
                       <button
                         onClick={() => handleVerifyBackup(b.id)}
                         disabled={actionLoading}
-                        className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-[11px] transition"
+                        className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs transition"
                         title="Verify SHA-256 Checksum"
                       >
                         <FileCheck className="w-3.5 h-3.5" />
@@ -281,7 +281,7 @@ export default function AdminBackupsPage() {
                           setShowRestoreModal(true);
                         }}
                         disabled={actionLoading || b.status === 'failed'}
-                        className="px-2 py-1 bg-warning-950/50 hover:bg-warning-900/60 text-warning-300 border border-warning-800/60 text-[11px] transition"
+                        className="px-2 py-1 bg-warning-950/50 hover:bg-warning-900/60 text-warning-300 border border-warning-800/60 text-xs transition"
                         title="Restore Database"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
@@ -290,7 +290,7 @@ export default function AdminBackupsPage() {
                       <button
                         onClick={() => setBackupToDelete(b)}
                         disabled={actionLoading}
-                        className="px-2 py-1 bg-danger-950/50 hover:bg-danger-900/60 text-danger-300 border border-danger-800/60 text-[11px] transition"
+                        className="px-2 py-1 bg-danger-950/50 hover:bg-danger-900/60 text-danger-300 border border-danger-800/60 text-xs transition"
                         title="Delete Backup"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

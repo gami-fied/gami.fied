@@ -66,3 +66,21 @@ export function useNotifications(limit = 20): Resource<Awaited<ReturnType<Return
     .map((item) => ({ id: item.id, type: item.type, title: item.title, message: item.message, createdAt: item.createdAt }));
   return { ...base, data: [...live, ...fetched].slice(0, limit) };
 }
+
+/** Boxes and wheels the player can open, with their odds. */
+export const useBoxes = () => useResource(async (client) => (await client.me.boxes()).data, []);
+
+/** The player's season passes. */
+export const usePasses = () => useResource(async (client) => (await client.me.passes()).data, []);
+
+/** The player's team, or null when they are in none. */
+export const useTeam = () => useResource((client) => client.me.team(), []);
+
+/** Shared goals, with the player's own contribution. */
+export const useGoals = () => useResource(async (client) => (await client.me.goals()).data, []);
+
+/** Every cosmetic: owned, worn, and how to get the rest. */
+export const useCosmetics = () => useResource(async (client) => (await client.me.cosmetics()).data, []);
+
+/** The player's journeys, with each step's progress. */
+export const useJourneys = () => useResource(async (client) => (await client.me.journeys()).data, []);

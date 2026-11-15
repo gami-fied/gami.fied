@@ -1,0 +1,90 @@
+---
+/**
+ * A small calculator: what a hosted plan costs over a year next to running Gami.Fied yourself.
+ * Every number is the visitor's own. The starting values are examples, not anyone's prices, and
+ * the sum is shown so nothing is hidden. It works without JavaScript as a worked example.
+ */
+const fields = [
+  { id: 'hosted', label: 'A hosted plan, per month', value: 300, help: 'The plan you are comparing with.' },
+  { id: 'server', label: 'Your server, per month', value: 40, help: 'One modest machine runs a small install.' },
+  { id: 'hours', label: 'Your time to look after it, hours per month', value: 2, help: 'Upgrades, backups and the odd question.' },
+  { id: 'rate', label: 'What an hour of that time costs', value: 60, help: 'Leave at 0 if you do not count it.' },
+];
+---
+
+<div class="grid gap-8 border border-zinc-800 bg-zinc-900/30 p-6 lg:grid-cols-2" data-cost>
+  <div class="space-y-4">
+    {
+      fields.map((field) => (
+        <div>
+          <label for={`cost-${field.id}`} class="block text-sm font-medium text-zinc-200">
+            {field.label}
+          </label>
+          <div class="mt-1.5 flex items-center border border-zinc-700 bg-zinc-950 focus-within:border-brand-500">
+            {field.id !== 'hours' && <span class="pl-3 text-sm text-zinc-500">$</span>}
+            <input
+              id={`cost-${field.id}`}
+              data-cost-input={field.id}
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="1"
+              value={field.value}
+              aria-describedby={`cost-${field.id}-help`}
+              class="w-full bg-transparent px-3 py-2.5 text-sm text-zinc-100 focus:outline-none"
+            />
+          </div>
+          <p id={`cost-${field.id}-help`} class="mt-1 text-xs text-zinc-500">
+            {field.help}
+          </p>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="flex flex-col justify-center border border-zinc-800 bg-zinc-950 p-6" aria-live="polite">
+    <dl class="space-y-4 text-sm">
+      <div class="flex items-baseline justify-between gap-4">
+        <dt class="text-zinc-400">Hosted, over a year</dt>
+        <dd class="text-xl font-bold tabular-nums text-zinc-100" data-cost-out="hosted">$3,600</dd>
+      </div>
+      <div class="flex items-baseline justify-between gap-4">
+        <dt class="text-zinc-400">Self-hosted, over a year</dt>
+        <dd class="text-xl font-bold tabular-nums text-zinc-100" data-cost-out="self">$1,920</dd>
+      </div>
+      <div class="flex items-baseline justify-between gap-4 border-t border-zinc-800 pt-4">
+        <dt class="font-medium text-zinc-200" data-cost-out="label">Self-hosting costs less by</dt>
+        <dd class="text-2xl font-bold tabular-nums text-brand-400" data-cost-out="difference">$1,680</dd>
+      </div>
+    </dl>
+    <p class="mt-5 text-xs leading-relaxed text-zinc-500">
+      Self-hosted is the server plus your time, times twelve. The starting numbers are examples. A hosted plan also buys you someone else being on call, which this sum does not price.
+    </p>
+  </div>
+</div>
+
+<script>
+  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+  function update(root: HTMLElement) {
+    const read = (name: string) => Math.max(0, Number(root.querySelector<HTMLInputElement>(`[data-cost-input="${name}"]`)?.value) || 0);
+    const write = (name: string, text: string) => {
+      const target = root.querySelector<HTMLElement>(`[data-cost-out="${name}"]`);
+      if (target) target.textContent = text;
+    };
+    const hosted = read('hosted') * 12;
+    const self = (read('server') + read('hours') * read('rate')) * 12;
+    write('hosted', money.format(hosted));
+    write('self', money.format(self));
+    write('label', self <= hosted ? 'Self-hosting costs less by' : 'Hosted costs less by');
+    write('difference', money.format(Math.abs(hosted - self)));
+  }
+
+  // Wired on every page load, because the page may arrive through a page transition.
+  document.addEventListener('astro:page-load', () => {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-cost]')) {
+      update(root);
+      root.addEventListener('input', () => update(root));
+    }
+  });
+</script>

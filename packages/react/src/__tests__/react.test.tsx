@@ -1,7 +1,7 @@
 import { Gami } from '@gami.fied/sdk';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { BadgeGrid, GamiProvider, Leaderboard, LevelProgress, ProgressBar, StreakCalendar, ToastHost, runDays } from '../index.js';
+import { BadgeGrid, CosmeticLocker, GamiProvider, JourneyPath, Leaderboard, LevelProgress, MysteryBox, ProgressBar, SeasonPass, SharedGoals, StreakCalendar, TeamCard, ToastHost, prizeText, runDays } from '../index.js';
 
 const client = new Gami({ endUserToken: 'geu_test', baseUrl: 'http://api.test' });
 
@@ -32,6 +32,26 @@ describe('components', () => {
     expect(html).toContain('aria-label="Achievements"');
     expect(html).toContain('aria-label="Streaks"');
     expect(html).toContain('aria-label="Leaderboard"');
+  });
+
+  it('show the newer mechanics the same way, each with a name for screen readers', () => {
+    const html = renderToStaticMarkup(
+      <GamiProvider client={client} live={false}>
+        <MysteryBox />
+        <SeasonPass />
+        <SharedGoals />
+        <TeamCard />
+        <JourneyPath />
+        <CosmeticLocker />
+      </GamiProvider>
+    );
+    expect(html.match(/aria-busy="true"/g)).toHaveLength(6);
+    for (const label of ['Mystery boxes', 'Season pass', 'Shared goals', 'Team', 'Journeys', 'Cosmetics']) expect(html).toContain(`aria-label="${label}"`);
+  });
+
+  it('describes prizes in words', () => {
+    expect(prizeText([])).toBe('Nothing');
+    expect(prizeText([{ type: 'xp', amount: 1500 }, { type: 'currency', currency: 'gems', amount: 20 }, { type: 'achievement', achievement: 'first' }])).toBe('1,500 XP, 20 gems, a badge');
   });
 
   it('draws the toast area as a polite live region', () => {

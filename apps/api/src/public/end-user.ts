@@ -22,7 +22,7 @@ import {
   userXpBalances,
 } from '@gami/database';
 import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
-import { walletBalance } from '@gami/rewards';
+import { walletBalances } from '@gami/rewards';
 import { getLeaderboard, getUserRank, isSegmentField, segmentWhere, usersWhere, type LeaderboardPeriod } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
 import { and, desc, eq, or, type SQL } from 'drizzle-orm';
@@ -31,10 +31,13 @@ import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
 import { featureDisabledBody, featureForPlayerPath } from '../authorization/features.js';
 import { ipAllowed } from '../authorization/index.js';
+import { checkCallerRateLimit } from '../middleware/rate-limiter.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { loadAchievementProgress } from '../achievements/progress.js';
 import { redeemReward, StoreError } from '../store/redeem.js';
 import { friendCircle } from '../leaderboards/index.js';
+import { NOTHING_WORN, wornBy } from '../mechanics/cosmetics.js';
+import { lockedChallengeIds } from '@gami/rewards';
 import { loadSegmentFilter } from '../segments/index.js';
 import { MAX_STREAMS_PER_PROCESS, MAX_STREAMS_PER_USER, realtimeHub, startPlayerStream } from '../realtime/index.js';
 
@@ -45,19 +48,27 @@ const MAX_TOKEN_SECONDS = 3600;
 interface EndUserContext {
   projectId: string;
   userId: string;
+  /** Whether the token may change things for its player, such as buying a reward or adding a friend. */
+  canWrite: boolean;
+  /** The player's token version when the token was made. */
+  tokenVersion: number;
 }
+
+export type EndUserAccess = 'read' | 'write';
 
 const createTokenSchema = z.object({
   userId: z.string().min(1).max(128),
   expiresInSeconds: z.number().int().min(60).max(MAX_TOKEN_SECONDS).default(DEFAULT_TOKEN_SECONDS),
+  /** `read` only reads the player's data. `write` also lets the player spend points, add friends and register a device. */
+  access: z.enum(['read', 'write']).default('read'),
 });
 
 function sign(payload: string): string {
   return createHmac('sha256', getAuthSecret()).update(`end-user:${payload}`).digest('base64url');
 }
 
-export function createEndUserToken(context: EndUserContext, expiresAt: Date): string {
-  const claims = [context.projectId, context.userId, Math.floor(expiresAt.getTime() / 1000)];
+export function createEndUserToken(context: { projectId: string; userId: string; access?: EndUserAccess; tokenVersion?: number }, expiresAt: Date): string {
+  const claims = [context.projectId, context.userId, Math.floor(expiresAt.getTime() / 1000), context.access === 'write' ? 'w' : 'r', context.tokenVersion ?? 0];
   const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
   return `${TOKEN_PREFIX}${payload}.${sign(payload)}`;
 }
@@ -72,13 +83,17 @@ export function verifyEndUserToken(token: string): EndUserContext | null {
   const actual = Buffer.from(signature);
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
 
-  const [projectId, userId, expiry] = JSON.parse(
+  // Tokens made before the access claim existed have three parts, and only read.
+  const [projectId, userId, expiry, access, tokenVersion] = JSON.parse(
     Buffer.from(payload, 'base64url').toString()
-  ) as [string, string, number];
-  return expiry * 1000 > Date.now() ? { projectId, userId } : null;
+  ) as [string, string, number, string?, number?];
+  return expiry * 1000 > Date.now() ? { projectId, userId, canWrite: access === 'w', tokenVersion: tokenVersion ?? 0 } : null;
 }
 
-/** Tokens only read one user's data. A project's allowlist also limits which sites can use them. */
+/**
+ * A token acts for one player only. It reads their data, and changes things for them only when
+ * it was created with `access: "write"`. A project's allowlist also limits which sites can use it.
+ */
 export async function authenticateEndUser(
   request: FastifyRequest,
   reply: FastifyReply
@@ -122,6 +137,34 @@ export async function authenticateEndUser(
     return null;
   }
 
+  if (request.method !== 'GET' && request.method !== 'HEAD' && !context.canWrite) {
+    await reply.status(403).send({
+      code: 'TOKEN_READ_ONLY',
+      message: 'This token can only read. Create it with access "write" to let the player make changes.',
+    });
+    return null;
+  }
+
+  // A token is good for up to an hour, so the player is checked on every call, not only when it was made.
+  const [player] = await db
+    .select({ active: endUsers.active, tokenVersion: endUsers.tokenVersion })
+    .from(endUsers)
+    .where(and(eq(endUsers.id, context.userId), eq(endUsers.projectId, context.projectId)));
+  if (!player) {
+    await reply.status(404).send({ code: 'NOT_FOUND', message: 'User not found' });
+    return null;
+  }
+  if (!player.active) {
+    await reply.status(403).send({ code: 'USER_DEACTIVATED', message: 'This user is deactivated' });
+    return null;
+  }
+  // Your server ended this player's tokens, for example when they signed out.
+  if (player.tokenVersion !== context.tokenVersion) {
+    await reply.status(401).send({ code: 'TOKEN_REVOKED', message: 'This token has been ended. Create a new one.' });
+    return null;
+  }
+  if (!(await checkCallerRateLimit(reply, 'player', context.userId))) return null;
+
   return context;
 }
 
@@ -151,9 +194,9 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { userId, expiresInSeconds } = parsed.data;
+    const { userId, expiresInSeconds, access } = parsed.data;
     const [user] = await db
-      .select({ id: endUsers.id, active: endUsers.active })
+      .select({ id: endUsers.id, active: endUsers.active, tokenVersion: endUsers.tokenVersion })
       .from(endUsers)
       .where(
         and(
@@ -166,8 +209,8 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     }
 
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
-    const token = createEndUserToken({ projectId: auth.project.id, userId: user.id }, expiresAt);
-    return reply.status(201).send({ token, expiresAt });
+    const token = createEndUserToken({ projectId: auth.project.id, userId: user.id, access, tokenVersion: user.tokenVersion }, expiresAt);
+    return reply.status(201).send({ token, expiresAt, access });
   });
 
   fastify.get('/v1/me', async (request, reply) => {
@@ -193,9 +236,11 @@ export async function endUserRoutes(fastify: FastifyInstance) {
 
     const totalXp = balance?.totalXp ?? 0;
     const level = projectLevels.length > 0 ? calculateLevel(totalXp, projectLevels) : null;
+    const worn = (await wornBy(projectId, [userId])).get(userId) ?? NOTHING_WORN;
     return reply.send({
       externalId: user.externalId,
       name: user.name,
+      cosmetics: worn,
       totalXp,
       level: level && { number: level.level, name: level.name },
       xpToNextLevel: level?.xpToNextLevel ?? null,
@@ -247,14 +292,13 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
     const list = await db.select().from(currencies).where(and(eq(currencies.projectId, context.projectId), eq(currencies.enabled, true))).orderBy(currencies.createdAt);
-    const data = await Promise.all(
-      list.map(async (currency) => ({
-        currency: currency.key,
-        name: currency.name,
-        symbol: currency.symbol,
-        balance: await walletBalance(db, context.projectId, context.userId, currency.id),
-      }))
-    );
+    const balances = await walletBalances(db, context.projectId, context.userId);
+    const data = list.map((currency) => ({
+      currency: currency.key,
+      name: currency.name,
+      symbol: currency.symbol,
+      balance: balances.get(currency.id) ?? 0,
+    }));
     return reply.send({ data });
   });
 
@@ -268,10 +312,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       .innerJoin(currencies, eq(currencies.id, rewards.currencyId))
       .where(and(eq(rewards.projectId, context.projectId), eq(rewards.enabled, true), eq(currencies.enabled, true)))
       .orderBy(rewards.cost, rewards.id);
-    const balances = new Map<string, number>();
-    for (const row of list) {
-      if (!balances.has(row.reward.currencyId)) balances.set(row.reward.currencyId, await walletBalance(db, context.projectId, context.userId, row.reward.currencyId));
-    }
+    const balances = await walletBalances(db, context.projectId, context.userId);
     const data = list.map(({ reward, currencyKey, currencyName, symbol }) => ({
       key: reward.key,
       name: reward.name,
@@ -441,7 +482,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
 
     // Open challenges, started or not, so a daily quest shows up before the player begins it.
     const now = new Date();
-    const [open, rows] = await Promise.all([
+    const [open, rows, locked] = await Promise.all([
       db
         .select()
         .from(challenges)
@@ -456,6 +497,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
             eq(userChallengeProgress.userId, context.userId)
           )
         ),
+      lockedChallengeIds(context.projectId, context.userId),
     ]);
 
     const data = open
@@ -476,6 +518,8 @@ export async function endUserRoutes(fastify: FastifyInstance) {
           target: challenge.target,
           progress,
           completed: current?.completed ?? false,
+          /** True for a step of a journey whose earlier steps are not finished. Events do not count yet. */
+          locked: locked.has(challenge.id),
           periodEndsAt: recurrence ? periodEnd(recurrence, now) : challenge.endAt,
           steps: steps?.map((step, index) => ({ name: step.name, done: index < progress })) ?? null,
         };
@@ -547,10 +591,13 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       getUserRank(context.projectId, context.userId, { period, filter }),
     ]);
 
+    const worn = await wornBy(context.projectId, [...board.entries.map((entry) => entry.userId), ...(mine.entry ? [mine.entry.userId] : [])]);
     const shape = (entry: { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName?: string; userId: string }) => ({
       rank: entry.rank,
       name: entry.name,
       avatarUrl: entry.avatarUrl,
+      title: worn.get(entry.userId)?.title?.name ?? null,
+      frameUrl: worn.get(entry.userId)?.frame?.imageUrl ?? null,
       xp: entry.xp,
       levelName: entry.levelName ?? null,
       isMe: entry.userId === context.userId,

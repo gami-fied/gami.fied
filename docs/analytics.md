@@ -48,43 +48,43 @@ All endpoints need a signed-in user with access to the project, or an API key wi
 
 ### Endpoints
 
-#### 1. Overview Analytics
+#### Overview Analytics
 ```http
 GET /api/projects/:projectId/analytics/overview?range=7d
 ```
 Returns summary metrics (Total Users, Active Users, Events Received, Total XP Awarded, Achievements Unlocked, Challenges Completed).
 
-#### 2. User Growth & Activity
+#### User Growth & Activity
 ```http
 GET /api/projects/:projectId/analytics/users?range=30d
 ```
 Returns total users, new user count in range, active user count in range, and daily user growth trend.
 
-#### 3. Event Volume & Top Types
+#### Event Volume & Top Types
 ```http
 GET /api/projects/:projectId/analytics/events?range=7d
 ```
 Returns total events ingested, daily event volume trend, and top 10 event types.
 
-#### 4. Gamification Insights
+#### Gamification Insights
 ```http
 GET /api/projects/:projectId/analytics/gamification?range=30d
 ```
 Returns XP awarded over time, average XP per active user, top unlocked achievements, challenge completion rate, and top 10 most triggered rules.
 
-#### 5. Notification Activity
+#### Notification Activity
 ```http
 GET /api/projects/:projectId/analytics/notifications?range=7d
 ```
 Returns generated in-app notification counts and email outbox delivery status counts.
 
-#### 6. Integration Delivery Health
+#### Integration Delivery Health
 ```http
 GET /api/projects/:projectId/analytics/integrations?range=7d
 ```
 Returns webhook outbox delivery status and external integration delivery status.
 
-#### 7. CSV Export Download
+#### CSV Export Download
 ```http
 GET /api/projects/:projectId/analytics/export?type=overview&range=30d
 ```
@@ -115,19 +115,19 @@ This guide describes the PostgreSQL data aggregation queries and indexing strate
 
 ### Query Patterns & Indexes
 
-#### 1. Active Users Calculation
+#### Active Users Calculation
 - **Query**: `SELECT COUNT(DISTINCT user_id) FROM events WHERE project_id = $1 AND occurred_at >= $2 AND occurred_at <= $3`
 - **Index Used**: `events_project_occurred_at_idx` (`project_id`, `occurred_at`)
 
-#### 2. User Growth Over Time
+#### User Growth Over Time
 - **Query**: `SELECT date_trunc('day', created_at) as date, COUNT(*) FROM end_users WHERE project_id = $1 AND created_at >= $2 AND created_at <= $3 GROUP BY date_trunc('day', created_at)`
 - **Index Used**: `end_users_project_created_idx` (`project_id`, `created_at`)
 
-#### 3. XP Awarded Trend & Average
+#### XP Awarded Trend & Average
 - **Query**: `SELECT date_trunc('day', created_at) as date, SUM(amount) FROM xp_ledger WHERE project_id = $1 AND created_at >= $2 AND created_at <= $3 GROUP BY date_trunc('day', created_at)`
 - **Index Used**: `xp_ledger_proj_user_created_idx` (`project_id`, `user_id`, `created_at`)
 
-#### 4. Most Triggered Rules
+#### Most Triggered Rules
 - **Query**: `SELECT rules.id, rules.name, rules.trigger, COUNT(rule_executions.id) FROM rule_executions INNER JOIN rules ON rules.id = rule_executions.rule_id WHERE rules.project_id = $1 AND rule_executions.created_at >= $2 AND rule_executions.created_at <= $3 GROUP BY rules.id, rules.name, rules.trigger ORDER BY COUNT(rule_executions.id) DESC LIMIT 10`
 - **Index Used**: `rule_executions_rule_id_idx`.
 

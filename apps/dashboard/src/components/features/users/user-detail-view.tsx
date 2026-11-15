@@ -17,6 +17,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/checkbox';
 import { PageHeader } from '@/components/ui/page-header';
+import { Tabs } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -31,8 +32,9 @@ import {
 import { ArrowLeft, Coins, Flame, Gift, Medal, Trophy } from 'lucide-react';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
+import { UserPreview } from './user-preview';
 
-type Tab = 'overview' | 'ledger' | 'wallet' | 'community' | 'streaks' | 'achievements' | 'challenges';
+type Tab = 'overview' | 'ledger' | 'wallet' | 'community' | 'streaks' | 'achievements' | 'challenges' | 'preview';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -42,6 +44,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'streaks', label: 'Streaks' },
   { id: 'achievements', label: 'Achievements' },
   { id: 'challenges', label: 'Challenges' },
+  { id: 'preview', label: 'Player view' },
 ];
 
 const LEDGER_PAGE_SIZE = 25;
@@ -329,21 +332,7 @@ export function UserDetailView({ userId }: { userId: string }) {
           ) : undefined
         }
         toolbar={
-          <div role="tablist" aria-label="Sections" className="flex gap-1 overflow-x-auto">
-            {TABS.map((item) => (
-              <button
-                key={item.id}
-                role="tab"
-                aria-selected={tab === item.id}
-                onClick={() => selectTab(item.id)}
-                className={`whitespace-nowrap border-b-2 px-3 py-1.5 text-sm transition-colors ${
-                  tab === item.id ? 'border-brand-500 text-zinc-100' : 'border-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <Tabs label="User sections" value={tab} onChange={selectTab} items={TABS} />
         }
       />
 
@@ -415,6 +404,7 @@ export function UserDetailView({ userId }: { userId: string }) {
 
       {tab === 'wallet' && base && <UserWallet base={base} />}
       {tab === 'community' && base && <UserCommunity base={base} />}
+      {tab === 'preview' && base && <UserPreview base={base} />}
 
       {tab === 'streaks' && (
         <div className="space-y-6">
@@ -650,7 +640,7 @@ function LedgerTable({ rows, loading, showSource = false }: { rows: LedgerRow[];
             </TableCell>
             <TableCell className="text-xs text-zinc-300">{entry.reason}</TableCell>
             {showSource && (
-              <TableCell className="text-[11px] text-zinc-400">
+              <TableCell className="text-xs text-zinc-400">
                 {(() => {
                   const source = sourceOf(entry);
                   return source.href ? (

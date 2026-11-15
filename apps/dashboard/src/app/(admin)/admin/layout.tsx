@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { Shield, Server, Building2, Lock, Settings, History, KeyRound, Key, AlertTriangle, CheckCircle, Database, HardDrive, LayoutDashboard, ShieldCheck, ToggleRight } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -34,6 +35,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     checkAdminAccess();
   }, []);
+
+  const currentPage = [...NAV_ITEMS]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  useDocumentTitle([currentPage?.name, 'Platform admin', 'Gami.Fied'].filter(Boolean).join(' · '));
 
   const checkAdminAccess = async () => {
     setCheckingAuth(true);

@@ -560,6 +560,10 @@ export type SdkWebhookEventType =
   | 'reward.redeemed'
   | 'reward.cancelled'
   | 'referral.completed'
+  | 'box.opened'
+  | 'goal.completed'
+  | 'journey.completed'
+  | 'leaderboard.prize_paid'
   | 'webhook.test';
 
 export interface WebhookEndpointRecord {

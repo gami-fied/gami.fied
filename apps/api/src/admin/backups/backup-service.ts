@@ -3,36 +3,42 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import {
-  account,
-  achievements,
-  apiKeys,
   auditLogs,
-  challenges,
   db,
-  endUsers,
-  events,
-  integrations,
-  invitation,
-  levels,
-  member,
-  notifications,
-  notificationPreferences,
-  organizations,
   platformBackups,
-  projects,
-  ruleExecutions,
-  rules,
-  serverConfigs,
-  session,
-  userAchievements,
-  userChallengeProgress,
-  users,
-  webhookEndpoints,
-  xpLedger,
+  reviveRow,
+  rowsPerInsert,
+  schemaTables,
   type PlatformBackupRecord,
+  type SchemaTable,
 } from '@gami/database';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { createAuditLog } from '../../audit-logs/index.js';
+
+/** Written into each backup. Version 1 files hold only the 22 tables that existed at 1.0. */
+export const BACKUP_SCHEMA_VERSION = 2;
+
+/**
+ * Tables a backup leaves out, each with the reason. Every other table in the schema is saved and
+ * restored, so a table added later is covered without touching this file.
+ */
+export const BACKUP_EXCLUDED_TABLES: Record<string, string> = {
+  platformBackups: 'The list of backup files has to survive a restore.',
+  session: 'Sign-ins. Everyone signs in again after a restore.',
+  verification: 'Short-lived codes and password reset links.',
+  notificationOutbox: 'Queued deliveries would be sent a second time.',
+  emailNotificationOutbox: 'Queued emails would be sent a second time.',
+  webhookOutbox: 'Queued webhooks would be sent a second time.',
+  integrationDeliveries: 'Queued messages would be sent a second time.',
+};
+
+/** Saved in every backup, but a restore adds to it instead of replacing it, so the trail is never cut. */
+const APPEND_ONLY_TABLES = new Set(['auditLogs']);
+
+/** The tables a backup holds, parents first. */
+export function backupTables(): SchemaTable[] {
+  return schemaTables().filter((table) => !(table.name in BACKUP_EXCLUDED_TABLES));
+}
 
 const BACKUP_DIR = path.resolve(process.cwd(), process.env.BACKUP_STORAGE_PATH || 'storage/backups');
 
@@ -127,96 +133,32 @@ export async function createPlatformBackup(params: {
       encrypted: encrypt,
       encryptionAlgorithm: encrypt ? 'aes-256-gcm' : null,
       appVersion: product.version,
-      schemaVersion: 1,
+      schemaVersion: BACKUP_SCHEMA_VERSION,
       createdByActorId: params.actorId,
     })
     .returning();
 
   try {
-    // 2. Perform Database Snapshot Dump
-    const [
-      orgsList,
-      projectsList,
-      usersList,
-      accountList,
-      memberList,
-      invitationList,
-      apiKeysList,
-      endUsersList,
-      eventsList,
-      xpLedgerList,
-      levelsList,
-      achievementsList,
-      userAchievementsList,
-      challengesList,
-      userChallengeProgressList,
-      rulesList,
-      ruleExecutionsList,
-      webhookEndpointsList,
-      integrationsList,
-      auditLogsList,
-      serverConfigsList,
-      notificationPreferencesList,
-    ] = await Promise.all([
-      db.select().from(organizations),
-      db.select().from(projects),
-      db.select().from(users),
-      db.select().from(account),
-      db.select().from(member),
-      db.select().from(invitation),
-      db.select().from(apiKeys),
-      db.select().from(endUsers),
-      db.select().from(events),
-      db.select().from(xpLedger),
-      db.select().from(levels),
-      db.select().from(achievements),
-      db.select().from(userAchievements),
-      db.select().from(challenges),
-      db.select().from(userChallengeProgress),
-      db.select().from(rules),
-      db.select().from(ruleExecutions),
-      db.select().from(webhookEndpoints),
-      db.select().from(integrations),
-      db.select().from(auditLogs),
-      db.select().from(serverConfigs),
-      db.select().from(notificationPreferences),
-    ]);
+    // 2. Read every table the backup covers
+    const tables = backupTables();
+    const dumped: Record<string, unknown[]> = {};
+    for (const { name, table } of tables) {
+      dumped[name] = await db.select().from(table);
+    }
 
     const dumpPayload = {
       manifest: {
         backupId,
         backupType: params.backupType || 'manual',
         appVersion: product.version,
-        schemaVersion: 1,
+        schemaVersion: BACKUP_SCHEMA_VERSION,
+        tables: tables.map((table) => table.name),
         createdAt: new Date().toISOString(),
       },
-      tables: {
-        organizations: orgsList,
-        projects: projectsList,
-        users: usersList,
-        account: accountList,
-        member: memberList,
-        invitation: invitationList,
-        apiKeys: apiKeysList,
-        endUsers: endUsersList,
-        events: eventsList,
-        xpLedger: xpLedgerList,
-        levels: levelsList,
-        achievements: achievementsList,
-        userAchievements: userAchievementsList,
-        challenges: challengesList,
-        userChallengeProgress: userChallengeProgressList,
-        rules: rulesList,
-        ruleExecutions: ruleExecutionsList,
-        webhookEndpoints: webhookEndpointsList,
-        integrations: integrationsList,
-        auditLogs: auditLogsList,
-        serverConfigs: serverConfigsList,
-        notificationPreferences: notificationPreferencesList,
-      },
+      tables: dumped,
     };
 
-    let fileData: string | Buffer = JSON.stringify(dumpPayload, null, 2);
+    let fileData: string | Buffer = JSON.stringify(dumpPayload);
 
     if (encrypt) {
       fileData = encryptBackup(fileData);
@@ -353,11 +295,25 @@ export async function deletePlatformBackup(backupId: string, actorId: string): P
   }
 }
 
+/** The backup was made before some of today's tables existed, so restoring it would empty them. */
+export class PartialBackupError extends Error {
+  constructor(public readonly missingTables: string[]) {
+    super(
+      `This backup was made by an older version and is missing ${missingTables.length} of the tables this server has ` +
+        `(${missingTables.slice(0, 6).join(', ')}${missingTables.length > 6 ? ', ...' : ''}). ` +
+        'Restoring it deletes the data in those tables. To go ahead anyway, run `pnpm backup:restore --id <id> --partial`.'
+    );
+    this.name = 'PartialBackupError';
+  }
+}
+
 export async function restorePlatformBackup(params: {
   backupId: string;
   actorId: string;
   confirmRestore: boolean;
-}): Promise<{ safetyBackupId: string; restoredBackupId: string }> {
+  /** Restore a backup that does not hold every table, accepting that the missing ones end up empty. */
+  allowPartial?: boolean;
+}): Promise<{ safetyBackupId: string; restoredBackupId: string; restoredTables: number; restoredRows: number }> {
   if (!params.confirmRestore) {
     throw new Error('Restoration rejected: confirmRestore flag must be explicitly set to true');
   }
@@ -377,14 +333,7 @@ export async function restorePlatformBackup(params: {
     throw new Error(`Restoration aborted: backup verification status is '${verifiedRecord.verificationStatus}'`);
   }
 
-  // 2. Create Pre-Restore Safety Backup
-  const safetyBackup = await createPlatformBackup({
-    actorId: params.actorId,
-    backupType: 'safety',
-    encrypt: true,
-  });
-
-  // 3. Decrypt and Parse Backup File Data
+  // 2. Decrypt and parse the file, and check what it holds, before anything is changed
   const sanitized = sanitizeFilename(record.filename);
   const targetPath = path.join(getBackupStorageDir(), sanitized);
   let fileBuffer: Buffer = fs.readFileSync(targetPath);
@@ -393,7 +342,24 @@ export async function restorePlatformBackup(params: {
     fileBuffer = decryptBackup(fileBuffer);
   }
 
-  const dumpPayload = JSON.parse(fileBuffer.toString('utf-8'));
+  const dumpPayload = JSON.parse(fileBuffer.toString('utf-8')) as { tables?: unknown };
+  if (!dumpPayload?.tables || typeof dumpPayload.tables !== 'object') {
+    throw new Error('Restoration aborted: the backup file holds no tables');
+  }
+  const saved = dumpPayload.tables as Record<string, Record<string, unknown>[] | undefined>;
+
+  const tables = backupTables();
+  const missing = tables.filter((table) => !Array.isArray(saved[table.name])).map((table) => table.name);
+  if (missing.length > 0 && !params.allowPartial) {
+    throw new PartialBackupError(missing);
+  }
+
+  // 3. Create Pre-Restore Safety Backup
+  const safetyBackup = await createPlatformBackup({
+    actorId: params.actorId,
+    backupType: 'safety',
+    encrypt: true,
+  });
 
   // 4. Mark state as restoring
   await db
@@ -401,65 +367,45 @@ export async function restorePlatformBackup(params: {
     .set({ status: 'restoring', updatedAt: new Date() })
     .where(eq(platformBackups.id, params.backupId));
 
-  // 5. Restore Database Tables in Dependency Order
-  if (dumpPayload && dumpPayload.tables) {
-    const deletionOrder = [
-      xpLedger, userAchievements, userChallengeProgress, ruleExecutions, events,
-      endUsers, rules, achievements, challenges, levels, webhookEndpoints, integrations,
-      notifications, notificationPreferences, member, invitation, apiKeys, projects,
-      organizations, session, account, users, serverConfigs
-    ];
-
-    const insertionOrder = [
-      { name: 'users', table: users },
-      { name: 'account', table: account },
-      { name: 'session', table: session },
-      { name: 'organizations', table: organizations },
-      { name: 'projects', table: projects },
-      { name: 'member', table: member },
-      { name: 'invitation', table: invitation },
-      { name: 'apiKeys', table: apiKeys },
-      { name: 'endUsers', table: endUsers },
-      { name: 'rules', table: rules },
-      { name: 'events', table: events },
-      { name: 'ruleExecutions', table: ruleExecutions },
-      { name: 'xpLedger', table: xpLedger },
-      { name: 'levels', table: levels },
-      { name: 'achievements', table: achievements },
-      { name: 'userAchievements', table: userAchievements },
-      { name: 'challenges', table: challenges },
-      { name: 'userChallengeProgress', table: userChallengeProgress },
-      { name: 'webhookEndpoints', table: webhookEndpoints },
-      { name: 'integrations', table: integrations },
-      { name: 'notifications', table: notifications },
-      { name: 'serverConfigs', table: serverConfigs },
-      { name: 'notificationPreferences', table: notificationPreferences },
-    ];
-
+  // 5. Replace every table in one transaction: children are deleted first, parents inserted first
+  let restoredRows = 0;
+  try {
     await db.transaction(async (tx) => {
-      for (const t of deletionOrder) {
-        await tx.delete(t);
+      for (const { name, table } of [...tables].reverse()) {
+        if (!APPEND_ONLY_TABLES.has(name)) await tx.delete(table);
       }
 
-      for (const { name, table } of insertionOrder) {
-        const rows = dumpPayload.tables[name];
-        if (Array.isArray(rows) && rows.length > 0) {
-          const formattedRows = rows.map((r: Record<string, unknown>) => {
-            const copy = { ...r };
-            for (const key of Object.keys(copy)) {
-              if (key.endsWith('At') && typeof copy[key] === 'string') {
-                copy[key] = new Date(copy[key] as string);
-              }
-            }
-            return copy;
-          });
-          for (let i = 0; i < formattedRows.length; i += 100) {
-            const batch = formattedRows.slice(i, i + 100);
-            await tx.insert(table).values(batch);
+      for (const entry of tables) {
+        const rows = (saved[entry.name] ?? []).map((row) => reviveRow(entry, row));
+        const first = rows[0];
+        if (!first) continue;
+
+        const size = rowsPerInsert(first);
+        for (let i = 0; i < rows.length; i += size) {
+          const batch = rows.slice(i, i + size) as never[];
+          if (entry.name === 'auditLogs') {
+            // Deleting organizations and projects cleared these links on the rows that stayed.
+            await tx
+              .insert(auditLogs)
+              .values(batch)
+              .onConflictDoUpdate({
+                target: auditLogs.id,
+                set: { organizationId: sql`excluded.organization_id`, projectId: sql`excluded.project_id` },
+              });
+          } else {
+            await tx.insert(entry.table).values(batch);
           }
         }
+        restoredRows += rows.length;
       }
     });
+  } catch (err) {
+    // The transaction rolled back, so the data is as it was and the backup can be tried again.
+    await db
+      .update(platformBackups)
+      .set({ status: 'available', updatedAt: new Date() })
+      .where(eq(platformBackups.id, params.backupId));
+    throw new Error(`Restore failed and nothing was changed: ${(err as Error)?.message ?? 'unknown error'}`, { cause: err });
   }
 
   await db
@@ -478,11 +424,15 @@ export async function restorePlatformBackup(params: {
     metadata: {
       safetyBackupId: safetyBackup.id,
       restoredBackupId: params.backupId,
+      restoredRows,
+      tablesMissingFromBackup: missing,
     },
   });
 
   return {
     safetyBackupId: safetyBackup.id,
     restoredBackupId: params.backupId,
+    restoredTables: tables.length - missing.length,
+    restoredRows,
   };
 }
