@@ -1,13 +1,30 @@
 import type { HttpClient } from './http.js';
+import type { BoxOpenResult, LeaderboardPrizeInfo, PassClaimResult, PassLane, PlayerBox, PlayerCosmetic, PlayerGoal, PlayerJourney, PlayerPass, PlayerTeam, TeamSummary, WornCosmetics } from './mechanics.js';
 import { connectLive, type LiveConnection, type LiveHandlers } from './stream.js';
 
 export interface MeResponse {
   externalId: string;
   name: string | null;
+  /** The language saved for the player, such as `pt-BR`, or null. */
+  locale: string | null;
   totalXp: number;
   level: { number: number; name: string } | null;
   xpToNextLevel: number | null;
   progressPercent: number | null;
+  /** The title, frame and items the player is wearing. */
+  cosmetics: WornCosmetics;
+}
+
+/** The parts of a browser's service worker registration this file uses, so it compiles without the DOM types. */
+interface BrowserSubscription {
+  toJSON: () => { endpoint?: string; keys?: Record<string, string> };
+  unsubscribe: () => Promise<boolean>;
+}
+interface BrowserRegistration {
+  pushManager: {
+    getSubscription: () => Promise<BrowserSubscription | null>;
+    subscribe: (options: { userVisibleOnly: boolean; applicationServerKey: string }) => Promise<BrowserSubscription>;
+  };
 }
 
 /** The signed-in end user's own data. Use with an `endUserToken`, which is safe in a browser. */
@@ -87,16 +104,39 @@ export class MeResource {
         target: number;
         progress: number;
         completed: boolean;
+        /** True for a step of a journey whose earlier steps are not finished. */
+        locked: boolean;
         periodEndsAt: string | null;
         steps: { name: string; done: boolean }[] | null;
       }[];
     }>({ method: 'GET', path: '/v1/me/challenges' });
   }
 
-  public notifications() {
+  /**
+   * The player's inbox, newest first, with which are unread and how many unread there are in all.
+   * `before` takes the `createdAt` of the last notification you have, to page back.
+   */
+  public notifications(options: { unread?: boolean; limit?: number; before?: string } = {}) {
     return this.http.request<{
-      data: { id: string; type: string; title: string; message: string; createdAt: string }[];
-    }>({ method: 'GET', path: '/v1/me/notifications' });
+      data: { id: string; type: string; title: string; message: string; readAt: string | null; read: boolean; createdAt: string }[];
+      unreadCount: number;
+      hasMore: boolean;
+    }>({ method: 'GET', path: '/v1/me/notifications', query: { unread: options.unread ? 'true' : undefined, limit: options.limit, before: options.before } });
+  }
+
+  /** How many notifications the player has not read. A cheap call for a badge on a bell. */
+  public unreadCount() {
+    return this.http.request<{ unreadCount: number }>({ method: 'GET', path: '/v1/me/notifications/unread-count' });
+  }
+
+  /** Marks one notification read. A read-only token is enough. */
+  public markNotificationRead(notificationId: string) {
+    return this.http.request<{ marked: number; unreadCount: number }>({ method: 'POST', path: `/v1/me/notifications/${encodeURIComponent(notificationId)}/read` });
+  }
+
+  /** Marks every notification read. A read-only token is enough. */
+  public markAllNotificationsRead() {
+    return this.http.request<{ marked: number; unreadCount: number }>({ method: 'POST', path: '/v1/me/notifications/read-all' });
   }
 
   /** The top players for a period and the player's own place. Names and XP only, so it is safe to show. */
@@ -105,7 +145,7 @@ export class MeResource {
    * `sameAs: 'metadata.country'` ranks people who share the player's own value, such as their country.
    */
   public leaderboard(options: { period?: 'all_time' | 'daily' | 'weekly' | 'monthly'; limit?: number; scope?: 'everyone' | 'friends'; segment?: string; sameAs?: string } = {}) {
-    type Entry = { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName: string | null; isMe: boolean };
+    type Entry = { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName: string | null; title: string | null; frameUrl: string | null; isMe: boolean };
     return this.http.request<{ period: string; total: number; entries: Entry[]; me: Entry | null }>({
       method: 'GET',
       path: '/v1/me/leaderboard',
@@ -121,9 +161,74 @@ export class MeResource {
     return this.http.request<{ registered: boolean }>({ method: 'POST', path: '/v1/me/devices', body: device });
   }
 
-  /** Stops push notifications to this phone, for example when the player signs out. */
+  /**
+   * Stops push notifications to a phone or a browser, for example when the player signs out. Pass
+   * the device token, or a browser subscription's `endpoint`.
+   */
   public unregisterDevice(token: string) {
+    return this.http.request<{ removed: boolean }>({ method: 'POST', path: '/v1/me/devices/remove', body: { token } });
+  }
+
+  /** As `unregisterDevice`, with the token in the address. Only for short tokens. */
+  public deleteDevice(token: string) {
     return this.http.request<{ removed: boolean }>({ method: 'DELETE', path: `/v1/me/devices/${encodeURIComponent(token)}` });
+  }
+
+  /** The key a browser subscribes with. It is the public half of the project's key pair. */
+  public webPushKey() {
+    return this.http.request<{ publicKey: string }>({ method: 'GET', path: '/v1/me/push/web-key' });
+  }
+
+  /** Registers a browser's push subscription: pass `subscription.toJSON()`. */
+  public registerWebPush(subscription: { endpoint?: string; keys?: Record<string, string> }) {
+    return this.http.request<{ registered: boolean }>({ method: 'POST', path: '/v1/me/devices', body: { platform: 'web', subscription } });
+  }
+
+  /**
+   * Turns on notifications in this browser: asks the player for permission, subscribes through
+   * your service worker, and registers the subscription. Call it from a click, because browsers
+   * only ask for permission after one. Returns why it did not happen when it did not.
+   *
+   * ```ts
+   * const result = await gami.me.enableWebPush({ serviceWorker: '/gami-push-worker.js' });
+   * if (!result.enabled) console.log(result.reason);
+   * ```
+   */
+  public async enableWebPush(options: { serviceWorker: string }): Promise<{ enabled: true; endpoint: string } | { enabled: false; reason: 'unsupported' | 'denied' | 'not_set_up' }> {
+    const scope = globalThis as unknown as {
+      navigator?: { serviceWorker?: { register: (url: string) => Promise<unknown>; ready: Promise<BrowserRegistration> } };
+      Notification?: { requestPermission: () => Promise<string> };
+      PushManager?: unknown;
+    };
+    if (!scope.navigator?.serviceWorker || !scope.Notification || !scope.PushManager) return { enabled: false, reason: 'unsupported' };
+
+    let publicKey: string;
+    try {
+      publicKey = (await this.webPushKey()).publicKey;
+    } catch {
+      return { enabled: false, reason: 'not_set_up' };
+    }
+    if ((await scope.Notification.requestPermission()) !== 'granted') return { enabled: false, reason: 'denied' };
+
+    await scope.navigator.serviceWorker.register(options.serviceWorker);
+    const registration = await scope.navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    const subscription = existing ?? (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: publicKey }));
+    const json = subscription.toJSON();
+    await this.registerWebPush(json);
+    return { enabled: true, endpoint: json.endpoint ?? '' };
+  }
+
+  /** Turns notifications off in this browser and forgets its subscription. */
+  public async disableWebPush(): Promise<boolean> {
+    const scope = globalThis as unknown as { navigator?: { serviceWorker?: { getRegistration: () => Promise<BrowserRegistration | undefined> } } };
+    const registration = await scope.navigator?.serviceWorker?.getRegistration();
+    const subscription = await registration?.pushManager.getSubscription();
+    if (!subscription) return false;
+    const endpoint = subscription.toJSON().endpoint;
+    await subscription.unsubscribe();
+    if (endpoint) await this.unregisterDevice(endpoint);
+    return true;
   }
 
   /** What the player can spend, one balance per currency. Expired points are not counted. */
@@ -152,7 +257,8 @@ export class MeResource {
   /**
    * Buys a reward with the player's points. Rejects with a 409 and a `code` of `INSUFFICIENT_POINTS`,
    * `OUT_OF_STOCK`, `OUT_OF_CODES` or `LIMIT_REACHED` when it cannot be bought. Pass an
-   * `idempotencyKey` so that a retry after a network error does not buy twice.
+   * `idempotencyKey` so that a retry after a network error does not buy twice. Needs a token
+   * created with `access: 'write'`.
    */
   public redeem(rewardKey: string, options: { idempotencyKey?: string } = {}) {
     return this.http.request<{ id: string; reward: string; cost: number; status: 'pending' | 'fulfilled' | 'cancelled'; code: string | null; duplicate: boolean }>({
@@ -190,8 +296,27 @@ export class MeResource {
     return this.http.request<{ data: { name: string | null; avatarUrl: string | null; totalXp: number; code: string | null }[] }>({ method: 'GET', path: '/v1/me/friends' });
   }
 
+  /**
+   * Asks the player with this code to be friends. They become friends once the other player
+   * accepts, or straight away if that player had already asked. Needs a token with `access: 'write'`.
+   */
   public addFriend(code: string) {
-    return this.http.request<{ friends: true }>({ method: 'POST', path: '/v1/me/friends', body: { code } });
+    return this.http.request<{ friends: boolean; status: 'friends' | 'requested' }>({ method: 'POST', path: '/v1/me/friends', body: { code } });
+  }
+
+  /** Friend requests waiting for this player's answer, newest first. */
+  public friendRequests() {
+    return this.http.request<{ data: { name: string | null; avatarUrl: string | null; code: string; requestedAt: string }[] }>({ method: 'GET', path: '/v1/me/friends/requests' });
+  }
+
+  /** Accepts the request sent by the player with this code. */
+  public acceptFriend(code: string) {
+    return this.http.request<{ friends: true }>({ method: 'POST', path: `/v1/me/friends/requests/${encodeURIComponent(code)}/accept` });
+  }
+
+  /** Declines a request from the player with this code, or takes back one sent to them. */
+  public declineFriend(code: string) {
+    return this.http.request<void>({ method: 'DELETE', path: `/v1/me/friends/requests/${encodeURIComponent(code)}` });
   }
 
   public removeFriend(code: string) {
@@ -203,7 +328,7 @@ export class MeResource {
     return this.http.request<{ data: { type: 'achievement' | 'kudos' | 'promotion'; at: string; name: string | null; title: string; detail: string | null; isMe: boolean }[] }>({ method: 'GET', path: '/v1/me/feed' });
   }
 
-  /** Thanks a friend. One per friend per day. */
+  /** Thanks a player. One per person per day. Needs a token with `access: 'write'`. */
   public giveKudos(code: string, message?: string) {
     return this.http.request<{ id: string }>({ method: 'POST', path: '/v1/me/kudos', body: { code, message } });
   }
@@ -222,5 +347,94 @@ export class MeResource {
       method: 'GET',
       path: '/v1/me/rank',
     });
+  }
+
+  /**
+   * Saves the player's language, such as `pt-BR`, or clears it with null. Notifications and emails
+   * are then written in it where the project has translations. A read-only token is enough.
+   */
+  public setLocale(locale: string | null) {
+    return this.http.request<{ locale: string | null }>({ method: 'POST', path: '/v1/me/locale', body: { locale } });
+  }
+
+  /** The boxes and wheels the player can open, each with its drop table, cost and guarantee. */
+  public boxes() {
+    return this.http.request<{ data: PlayerBox[] }>({ method: 'GET', path: '/v1/me/boxes' });
+  }
+
+  /**
+   * Opens a box. Rejects with a 409 and a `code` of `INSUFFICIENT_POINTS` or `LIMIT_REACHED`. Pass
+   * an `idempotencyKey` so a retry does not open twice. Needs a token with `access: 'write'`.
+   */
+  public openBox(boxKey: string, options: { idempotencyKey?: string } = {}) {
+    return this.http.request<BoxOpenResult>({ method: 'POST', path: `/v1/me/boxes/${encodeURIComponent(boxKey)}/open`, body: options });
+  }
+
+  /** The player's season passes: season XP, each tier, and what is ready to claim. */
+  public passes() {
+    return this.http.request<{ data: PlayerPass[] }>({ method: 'GET', path: '/v1/me/passes' });
+  }
+
+  /** Claims one reward, or everything that is ready when no tier is given. Needs a token with `access: 'write'`. */
+  public claimPass(passKey: string, options: { tier?: number; lane?: PassLane } = {}) {
+    return this.http.request<PassClaimResult>({ method: 'POST', path: `/v1/me/passes/${encodeURIComponent(passKey)}/claim`, body: options });
+  }
+
+  /** Buys the premium lane with the player's points. Needs a token with `access: 'write'`. */
+  public buyPassPremium(passKey: string) {
+    return this.http.request<{ pass: string; premium: boolean; duplicate: boolean; cost: number }>({ method: 'POST', path: `/v1/me/passes/${encodeURIComponent(passKey)}/premium` });
+  }
+
+  /** The player's team with its place and members, or null when they are in none. */
+  public async team(): Promise<PlayerTeam | null> {
+    return (await this.http.request<{ team: PlayerTeam | null }>({ method: 'GET', path: '/v1/me/team' })).team;
+  }
+
+  /** Every team, highest XP first: the list to join from, and the team board. */
+  public teams() {
+    return this.http.request<{ data: (TeamSummary & { full: boolean; isMine: boolean })[] }>({ method: 'GET', path: '/v1/me/teams' });
+  }
+
+  /** Joins a team, leaving any other. Rejects with a 409 `TEAM_FULL`. Needs a token with `access: 'write'`. */
+  public joinTeam(teamKey: string) {
+    return this.http.request<{ team: { key: string; name: string }; joined: boolean }>({ method: 'POST', path: '/v1/me/team', body: { team: teamKey } });
+  }
+
+  public leaveTeam() {
+    return this.http.request<void>({ method: 'DELETE', path: '/v1/me/team' });
+  }
+
+  /** Shared goals, with everyone's progress or the player's team's, and what the player added. */
+  public goals() {
+    return this.http.request<{ data: PlayerGoal[] }>({ method: 'GET', path: '/v1/me/goals' });
+  }
+
+  /** Every cosmetic: owned, worn, and how to get the rest. */
+  public cosmetics() {
+    return this.http.request<{ data: PlayerCosmetic[] }>({ method: 'GET', path: '/v1/me/cosmetics' });
+  }
+
+  /** Buys a cosmetic with the player's points. Needs a token with `access: 'write'`. */
+  public buyCosmetic(cosmeticKey: string) {
+    return this.http.request<{ key: string; name: string; kind: string; cost: number; currency: string }>({ method: 'POST', path: `/v1/me/cosmetics/${encodeURIComponent(cosmeticKey)}/buy` });
+  }
+
+  /** Wears a cosmetic the player owns. A new title or frame replaces the one worn. Needs a token with `access: 'write'`. */
+  public equipCosmetic(cosmeticKey: string) {
+    return this.http.request<{ key: string; kind: string; equipped: boolean }>({ method: 'POST', path: `/v1/me/cosmetics/${encodeURIComponent(cosmeticKey)}/equip` });
+  }
+
+  public unequipCosmetic(cosmeticKey: string) {
+    return this.http.request<{ key: string; kind: string; equipped: boolean }>({ method: 'DELETE', path: `/v1/me/cosmetics/${encodeURIComponent(cosmeticKey)}/equip` });
+  }
+
+  /** The prizes for places on the daily, weekly and monthly boards, and what the player has won. */
+  public leaderboardPrizes() {
+    return this.http.request<LeaderboardPrizeInfo>({ method: 'GET', path: '/v1/me/leaderboard/prizes' });
+  }
+
+  /** The player's journeys: each step's progress and whether it is open yet. */
+  public journeys() {
+    return this.http.request<{ data: PlayerJourney[] }>({ method: 'GET', path: '/v1/me/journeys' });
   }
 }

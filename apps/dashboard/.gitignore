@@ -1,0 +1,5 @@
+# Screenshots and the report from `pnpm walk`
+walk-output/
+
+# A second dev server, started with NEXT_DIST_DIR
+.next-preview/

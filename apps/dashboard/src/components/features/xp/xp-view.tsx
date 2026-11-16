@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Coins, Search, PlusCircle, MinusCircle, Users, History, RefreshCw } from 'lucide-react';
 import { formatRelativeTime } from '@/hooks/use-relative-time';
 import { PageHeader } from '@/components/ui/page-header';
+import Link from 'next/link';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Coins as EmptyXpIcon } from 'lucide-react';
 
 function generateIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -121,7 +124,7 @@ export function XpView() {
             <div className="text-2xl font-black text-brand-400">
               {summary?.totalXpAwarded?.toLocaleString() || 0} XP
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Project aggregate total</p>
+            <p className="text-xs text-zinc-400 mt-1">Project aggregate total</p>
           </CardContent>
         </Card>
 
@@ -136,7 +139,7 @@ export function XpView() {
             <div className="text-2xl font-black text-info-400">
               {summary?.totalTransactions?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">XP changes recorded</p>
+            <p className="text-xs text-zinc-400 mt-1">XP changes recorded</p>
           </CardContent>
         </Card>
 
@@ -149,7 +152,7 @@ export function XpView() {
             <div className="text-2xl font-black text-success-400">
               {summary?.totalUsersWithXp?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Users with XP balance {'>'} 0</p>
+            <p className="text-xs text-zinc-400 mt-1">Users with XP balance {'>'} 0</p>
           </CardContent>
         </Card>
       </div>
@@ -182,11 +185,11 @@ export function XpView() {
               {activeSearchedUser && (
                 <div className="p-4 bg-zinc-950 rounded-none border border-zinc-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-zinc-400 block">End-User ID</span>
+                    <span className="text-xs text-zinc-400 block">End-User ID</span>
                     <span className="text-sm font-bold text-zinc-100">{activeSearchedUser}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[11px] text-zinc-400 block">Current XP Balance</span>
+                    <span className="text-xs text-zinc-400 block">Current XP Balance</span>
                     <span className="text-lg font-black text-brand-400">
                       {userBalance !== null ? userBalance.toLocaleString() : 0} XP
                     </span>
@@ -217,7 +220,7 @@ export function XpView() {
                           </span>
                         </TableCell>
                         <TableCell className="text-xs text-zinc-300">{entry.reason}</TableCell>
-                        <TableCell className="text-[11px] text-zinc-400">
+                        <TableCell className="text-xs text-zinc-400">
                           {entry.ruleExecutionId || entry.ruleId || 'manual'}
                         </TableCell>
                         <TableCell
@@ -262,7 +265,11 @@ export function XpView() {
                   {summary?.topUsers?.map((u, i) => (
                     <TableRow key={u.userId}>
                       <TableCell className="font-bold text-warning-400 text-xs">#{i + 1}</TableCell>
-                      <TableCell className="font-mono text-xs text-zinc-300">{u.userId}</TableCell>
+                      <TableCell className="font-mono text-xs text-zinc-300">
+                        <Link href={`/dashboard/users/${encodeURIComponent(u.userId)}`} className="hover:text-zinc-100 hover:underline">
+                          {u.userId}
+                        </Link>
+                      </TableCell>
                       <TableCell className="text-xs text-zinc-400">{u.externalId}</TableCell>
                       <TableCell className="text-right font-bold text-brand-400">
                         {u.totalXp.toLocaleString()} XP
@@ -273,7 +280,7 @@ export function XpView() {
                   {(!summary?.topUsers || summary.topUsers.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={4} className="py-6 text-center text-zinc-400 text-xs">
-                        No active users with XP balance yet.
+                        <EmptyState icon={EmptyXpIcon} title="Nobody has XP yet" description="Players appear here as soon as a rule awards them XP." />
                       </TableCell>
                     </TableRow>
                   )}
@@ -338,7 +345,7 @@ export function XpView() {
                     <button
                       type="button"
                       onClick={refreshIdempotencyKey}
-                      className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-brand-400 transition"
+                      className="flex items-center gap-1 text-xs text-zinc-400 hover:text-brand-400 transition"
                       title="Generate a new key"
                     >
                       <RefreshCw className="w-3 h-3" />

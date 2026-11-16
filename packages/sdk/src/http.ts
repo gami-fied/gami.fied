@@ -54,7 +54,7 @@ export class HttpClient {
     const base = config.baseUrl || 'http://localhost:3001';
     this.baseUrl = base.replace(/\/+$/, '');
     this.timeout = config.timeout ?? 10000;
-    this.customHeaders = config.headers || {};
+    this.customHeaders = { ...(config.locale ? { 'Accept-Language': config.locale } : {}), ...(config.headers || {}) };
 
     this.retryConfig = {
       maxRetries: config.retry?.maxRetries ?? 3,

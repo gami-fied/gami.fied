@@ -12,6 +12,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  SortableHead,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,10 @@ import { Plus, Copy, Check, AlertTriangle, RefreshCw, Trash2 } from 'lucide-reac
 import { formatRelativeTime } from '@/hooks/use-relative-time';
 import { PageHeader } from '@/components/ui/page-header';
 import { Checkbox, Radio } from '@/components/ui/checkbox';
+import { useOpenOnParam } from '@/hooks/use-open-on-param';
+import { useSort } from '@/hooks/use-sort';
+import { EmptyState } from '@/components/ui/empty-state';
+import { KeyRound as EmptyKeyIcon } from 'lucide-react';
 
 const SCOPE_PRESETS = [
   { value: 'events:write', label: 'Send events', description: 'Safe default for your backend' },
@@ -52,6 +57,12 @@ export function ApiKeysView() {
 
   // Create Key Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { sorted: sortedKeys, sort } = useSort(apiKeys, {
+    name: (key) => key.name,
+    created: (key) => (key.createdAt ? new Date(key.createdAt).getTime() : null),
+    lastUsed: (key) => (key.lastUsedAt ? new Date(key.lastUsedAt).getTime() : null),
+  });
+  useOpenOnParam(() => setIsCreateOpen(true));
   const [keyName, setKeyName] = useState('');
   const [keyScopes, setKeyScopes] = useState<string[]>(['events:write']);
   const [expiryDays, setExpiryDays] = useState(0);
@@ -168,18 +179,18 @@ export function ApiKeysView() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Key Name</TableHead>
+                <SortableHead sortKey="name" sort={sort}>Key Name</SortableHead>
                 <TableHead>Prefix</TableHead>
                 <TableHead>Scopes</TableHead>
                 <TableHead>Expires</TableHead>
-                <TableHead>Created Date</TableHead>
-                <TableHead>Last Used</TableHead>
+                <SortableHead sortKey="created" sort={sort}>Created Date</SortableHead>
+                <SortableHead sortKey="lastUsed" sort={sort}>Last Used</SortableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {apiKeys.map((k) => {
+              {sortedKeys.map((k) => {
                 const isRevoked = !!k.revokedAt;
                 const isExpired = !!k.expiresAt && new Date(k.expiresAt) < new Date();
                 return (
@@ -236,7 +247,7 @@ export function ApiKeysView() {
               {!loading && apiKeys.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="py-8 text-center text-zinc-400 text-xs">
-                    No API keys yet. Create one so your app can send events.
+                    <EmptyState icon={EmptyKeyIcon} title="No API keys yet" description="Create one so your app can send events." />
                   </TableCell>
                 </TableRow>
               )}

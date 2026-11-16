@@ -15,6 +15,7 @@ import { joinLeaguesForUser } from '@gami/leaderboards';
 import { qualifyReferral } from '@gami/rewards';
 import { featuresFor } from '@gami/database';
 import { checkVelocity } from './abuse.js';
+import { payGoalPrizes, processSharedGoalsForEvent } from './mechanics.js';
 
 const log = createLogger('Processor');
 
@@ -102,11 +103,21 @@ export async function processEventJob(
   // 6. Process challenges for event with Failure Isolation & Outbox Dispatch
   try {
     if (on.challenges) {
-      await processChallengesForEvent(eventData);
+      await processChallengesForEvent(eventData, { journeys: on.journeys });
       await dispatchPendingChallengeRewards(50);
     }
   } catch (chErr) {
     eventLog.error('Challenge processing failed', chErr);
+  }
+
+  // Shared goals: everyone, or the player's team, moves one total together.
+  try {
+    if (on.teams) {
+      const goals = await processSharedGoalsForEvent(eventData);
+      if (goals.completed > 0) await payGoalPrizes(100);
+    }
+  } catch (goalErr) {
+    eventLog.error('Shared goal processing failed', goalErr);
   }
 
   // Someone earning or sending events unusually fast is flagged for review.

@@ -1,11 +1,11 @@
 import { db, endUsers, kudos, referralCodes, userAchievements } from '@gami/database';
-import { claimReferral } from '@gami/rewards';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { claimReferral, referralCodeFor } from '@gami/rewards';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { leaguesForUser } from '../engagement/leagues.js';
 import { referralSummary, sendReferralError } from '../engagement/referrals.js';
-import { activityFeed, addFriend, giveKudos, listFriends, removeFriend, sendSocialError, shareToken } from '../engagement/social.js';
+import { acceptFriendRequest, activityFeed, dropFriendRequest, giveKudos, incomingFriendRequests, listFriends, removeFriend, requestFriend, sendSocialError, shareUrl } from '../engagement/social.js';
 import { friendCircle } from '../leaderboards/index.js';
 import { authenticateEndUser } from './end-user.js';
 
@@ -37,7 +37,14 @@ export async function endUserSocialRoutes(fastify: FastifyInstance) {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
     const friends = await listFriends(context.projectId, context.userId);
-    const codes = await db.select({ userId: referralCodes.userId, code: referralCodes.code }).from(referralCodes).where(eq(referralCodes.projectId, context.projectId));
+    const friendIds = friends.map((friend) => friend.id);
+    const codes =
+      friendIds.length === 0
+        ? []
+        : await db
+            .select({ userId: referralCodes.userId, code: referralCodes.code })
+            .from(referralCodes)
+            .where(and(eq(referralCodes.projectId, context.projectId), inArray(referralCodes.userId, friendIds)));
     const codeOf = new Map(codes.map((row) => [row.userId, row.code]));
     return reply.send({ data: friends.map((friend) => ({ name: friend.name, avatarUrl: friend.avatarUrl, totalXp: friend.totalXp, code: codeOf.get(friend.id) ?? null })) });
   });
@@ -50,11 +57,46 @@ export async function endUserSocialRoutes(fastify: FastifyInstance) {
     const friendId = await byCode(context.projectId, parsed.data.code);
     if (!friendId) return reply.status(404).send({ code: 'NOT_FOUND', message: 'Nobody has that code' });
     try {
-      await addFriend(context.projectId, context.userId, friendId);
+      // The other player has to accept, unless they asked first.
+      const status = await requestFriend(context.projectId, context.userId, friendId);
+      return reply.status(201).send({ friends: status === 'friends', status });
     } catch (err) {
       return sendSocialError(reply, err);
     }
-    return reply.status(201).send({ friends: true });
+  });
+
+  // Requests waiting for this player's answer. Each is answered with the sender's code.
+  fastify.get('/v1/me/friends/requests', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const requests = await incomingFriendRequests(context.projectId, context.userId);
+    const data = [];
+    for (const item of requests) {
+      data.push({ name: item.name, avatarUrl: item.avatarUrl, code: await referralCodeFor(context.projectId, item.id), requestedAt: item.requestedAt });
+    }
+    return reply.send({ data });
+  });
+
+  fastify.post<{ Params: { code: string } }>('/v1/me/friends/requests/:code/accept', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const fromId = await byCode(context.projectId, request.params.code);
+    if (!fromId) return reply.status(404).send({ code: 'NOT_FOUND', message: 'Nobody has that code' });
+    try {
+      await acceptFriendRequest(context.projectId, context.userId, fromId);
+      return reply.status(201).send({ friends: true });
+    } catch (err) {
+      return sendSocialError(reply, err);
+    }
+  });
+
+  // Declines a request from that player, or takes back one sent to them.
+  fastify.delete<{ Params: { code: string } }>('/v1/me/friends/requests/:code', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const otherId = await byCode(context.projectId, request.params.code);
+    if (otherId) await dropFriendRequest(context.projectId, context.userId, otherId);
+    return reply.status(204).send();
   });
 
   fastify.delete<{ Params: { code: string } }>('/v1/me/friends/:code', async (request, reply) => {
@@ -131,8 +173,7 @@ export async function endUserSocialRoutes(fastify: FastifyInstance) {
     );
     const list = (Array.isArray(rows) ? rows : ((rows as unknown as { rows: { id: string }[] }).rows ?? [])) as { id: string }[];
     if (!list[0]) return reply.status(404).send({ code: 'NOT_FOUND', message: 'You have not earned that achievement' });
-    const base = `${request.protocol}://${request.headers.host ?? 'localhost'}`;
-    return reply.send({ url: `${base}/share/${shareToken(context.projectId, list[0].id)}.svg` });
+    return reply.send({ url: shareUrl(context.projectId, list[0].id) });
   });
 }
 

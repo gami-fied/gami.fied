@@ -9,7 +9,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Input, Textarea } from '@/components/ui/input';
 import { EVENT_CHECKLIST_ITEMS } from './integration-constants';
 
-export type PushProvider = 'fcm' | 'apns';
+export type PushProvider = 'fcm' | 'apns' | 'webpush';
 
 export const PUSH_INFO: Record<PushProvider, { label: string; blurb: string }> = {
   fcm: {
@@ -19,6 +19,10 @@ export const PUSH_INFO: Record<PushProvider, { label: string; blurb: string }> =
   apns: {
     label: 'iPhone push (Apple)',
     blurb: 'Send push notifications to iPhones and iPads through Apple’s push service.',
+  },
+  webpush: {
+    label: 'Browser push (web)',
+    blurb: 'Send notifications to browsers on computers and phones, with no other service in between.',
   },
 };
 
@@ -45,6 +49,7 @@ export function ConnectPushDialog({ provider, projectId, onClose, onConnected }:
   const [teamId, setTeamId] = useState('');
   const [bundleId, setBundleId] = useState('');
   const [sandbox, setSandbox] = useState(false);
+  const [contact, setContact] = useState('');
   const [events, setEvents] = useState<string[]>(EVENT_CHECKLIST_ITEMS.map((item) => item.value));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,7 @@ export function ConnectPushDialog({ provider, projectId, onClose, onConnected }:
     setTeamId('');
     setBundleId('');
     setSandbox(false);
+    setContact('');
     setEvents(EVENT_CHECKLIST_ITEMS.map((item) => item.value));
     setError(null);
   }, [provider]);
@@ -83,7 +89,9 @@ export function ConnectPushDialog({ provider, projectId, onClose, onConnected }:
           credentials:
             provider === 'fcm'
               ? serviceAccount.trim()
-              : { privateKey: keyText.trim(), keyId: keyId.trim(), teamId: teamId.trim(), topic: bundleId.trim() },
+              : provider === 'webpush'
+                ? { subject: contact.includes(':') ? contact.trim() : `mailto:${contact.trim()}` }
+                : { privateKey: keyText.trim(), keyId: keyId.trim(), teamId: teamId.trim(), topic: bundleId.trim() },
           ...(provider === 'apns' ? { sandbox } : {}),
         }),
       });
@@ -103,7 +111,14 @@ export function ConnectPushDialog({ provider, projectId, onClose, onConnected }:
         {error && <div className="border border-danger-800/60 bg-danger-950/40 p-3 text-danger-300">{error}</div>}
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
 
-        {provider === 'fcm' ? (
+        {provider === 'webpush' ? (
+          <div className="space-y-2">
+            <Input label="Contact email" type="email" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="ops@example.com" required />
+            <p className="text-zinc-500">
+              Browser push services ask every sender for a contact, and use it only if something goes wrong. A key pair is made for this project when you connect. The public key is shown afterwards; the private key is stored encrypted and never shown.
+            </p>
+          </div>
+        ) : provider === 'fcm' ? (
           <div className="space-y-2">
             <Textarea
               label="Service account key (JSON)"
@@ -162,7 +177,7 @@ export function ConnectPushDialog({ provider, projectId, onClose, onConnected }:
         </div>
 
         <p className="text-zinc-500">
-          Phones appear once your app registers them with <code className="font-mono">POST /v1/me/devices</code>. See the push guide in the docs.
+          {provider === 'webpush' ? 'Browsers' : 'Phones'} appear once your app registers them with <code className="font-mono">POST /v1/me/devices</code>. See the push guide in the docs.
         </p>
 
         <div className="flex justify-end gap-2 pt-1">

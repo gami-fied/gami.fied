@@ -1,5 +1,5 @@
 /* global document, window, getComputedStyle -- the page.evaluate callbacks run in the browser. */
-// Motion quality checks across browsers (WEB-44): every animated page in Chrome, Firefox and WebKit
+// Motion quality checks across browsers: every animated page in Chrome, Firefox and WebKit
 // (Safari's engine), at desktop and phone sizes, with reduced motion on and off. It looks for
 // script errors, content left hidden, layout shift, the engine's pause control, the scroll story
 // pinning only where it should, and the playground's results.

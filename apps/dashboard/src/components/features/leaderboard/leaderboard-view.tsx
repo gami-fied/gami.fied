@@ -25,14 +25,16 @@ import { Trophy, Medal, Crown, Search, UserCheck, ShieldAlert, Sparkles, User } 
 import { PageHeader } from '@/components/ui/page-header';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { useLiveUpdates } from '@/hooks/use-live-updates';
+import { useUrlState } from '@/hooks/use-url-state';
 
 export function LeaderboardView() {
   const { selectedProject } = useDashboard();
   const projectId = selectedProject?.id || null;
 
-  const [period, setPeriod] = useState<LeaderboardPeriod>('all_time');
-  const [page, setPage] = useState<number>(1);
-  const [search, setSearch] = useState<string>('');
+  // Kept in the address, so a board can be refreshed or shared as it is.
+  const [period, setPeriod] = useUrlState<LeaderboardPeriod>('period', 'all_time');
+  const [page, setPage] = useUrlState<number>('page', 1);
+  const [search, setSearch] = useUrlState<string>('search', '');
 
   // User Rank Lookup Modal
   const [isLookupOpen, setIsLookupOpen] = useState(false);
@@ -235,7 +237,7 @@ export function LeaderboardView() {
           {/* 2nd Place (Silver) */}
           <div className="animate-rise md:order-1">
             <Card className="bg-zinc-900/90 border-zinc-800 relative overflow-hidden text-center p-5 space-y-3">
-              <div className="absolute top-3 left-3 bg-zinc-800 border border-zinc-700 text-zinc-300 px-2.5 py-0.5 rounded-none text-[11px] font-bold flex items-center gap-1">
+              <div className="absolute top-3 left-3 bg-zinc-800 border border-zinc-700 text-zinc-300 px-2.5 py-0.5 rounded-none text-xs font-bold flex items-center gap-1">
                 <Medal className="w-3.5 h-3.5 text-slate-300" /> #2 Silver
               </div>
               <div className="w-14 h-14 rounded-none bg-slate-800 border-2 border-slate-400/60 flex items-center justify-center mx-auto text-slate-200 font-bold text-lg shadow-lg">
@@ -245,7 +247,7 @@ export function LeaderboardView() {
                 <div className="font-bold text-sm text-zinc-100 truncate">
                   {top2 ? top2.name || top2.externalId : 'No contender'}
                 </div>
-                <div className="text-[11px] text-zinc-400">{top2 ? top2.externalId : '-'}</div>
+                <div className="text-xs text-zinc-400">{top2 ? top2.externalId : '-'}</div>
               </div>
               <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-around text-xs">
                 <div>
@@ -267,7 +269,7 @@ export function LeaderboardView() {
           {/* 1st Place (Gold) */}
           <div className="animate-rise md:order-2">
             <Card className="bg-gradient-to-b from-warning-950/40 via-zinc-900 to-zinc-900 border-warning-600/50 relative overflow-hidden text-center p-6 space-y-3 shadow-xl shadow-warning-950/20">
-              <div className="absolute top-3 left-3 bg-warning-500/20 border border-warning-500/40 text-warning-300 px-3 py-0.5 rounded-none text-[11px] font-bold flex items-center gap-1">
+              <div className="absolute top-3 left-3 bg-warning-500/20 border border-warning-500/40 text-warning-300 px-3 py-0.5 rounded-none text-xs font-bold flex items-center gap-1">
                 <Crown className="w-3.5 h-3.5 text-warning-400 fill-warning-400" /> #1 Champion
               </div>
               <div className="w-16 h-16 rounded-none bg-warning-500/20 border-2 border-warning-400 flex items-center justify-center mx-auto text-warning-300 font-extrabold text-xl shadow-lg shadow-warning-500/30">
@@ -299,7 +301,7 @@ export function LeaderboardView() {
           {/* 3rd Place (Bronze) */}
           <div className="animate-rise md:order-3">
             <Card className="bg-zinc-900/90 border-zinc-800 relative overflow-hidden text-center p-5 space-y-3">
-              <div className="absolute top-3 left-3 bg-zinc-800 border border-zinc-700 text-warning-600 px-2.5 py-0.5 rounded-none text-[11px] font-bold flex items-center gap-1">
+              <div className="absolute top-3 left-3 bg-zinc-800 border border-zinc-700 text-warning-600 px-2.5 py-0.5 rounded-none text-xs font-bold flex items-center gap-1">
                 <Medal className="w-3.5 h-3.5 text-warning-600" /> #3 Bronze
               </div>
               <div className="w-14 h-14 rounded-none bg-warning-950/40 border-2 border-warning-700/60 flex items-center justify-center mx-auto text-warning-500 font-bold text-lg shadow-lg">
@@ -309,7 +311,7 @@ export function LeaderboardView() {
                 <div className="font-bold text-sm text-zinc-100 truncate">
                   {top3 ? top3.name || top3.externalId : 'No contender'}
                 </div>
-                <div className="text-[11px] text-zinc-400">{top3 ? top3.externalId : '-'}</div>
+                <div className="text-xs text-zinc-400">{top3 ? top3.externalId : '-'}</div>
               </div>
               <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-around text-xs">
                 <div>
@@ -422,7 +424,7 @@ export function LeaderboardView() {
                               <div className="font-semibold text-xs text-zinc-200">
                                 {entry.name || 'Anonymous User'}
                               </div>
-                              <div className="text-[11px] text-zinc-400">{entry.externalId}</div>
+                              <div className="text-xs text-zinc-400">{entry.externalId}</div>
                             </div>
                           </div>
                         </TableCell>

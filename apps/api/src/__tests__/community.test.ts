@@ -48,7 +48,7 @@ describe('segments, leagues, social, invites, connectors and environments', () =
   };
   const giveXp = (userId: string, amount: number) => db.transaction((tx) => awardXp(tx, { projectId, userId, amount, reason: 'Test', idempotencyKey: randomUUID() }));
   const tokenFor = async (userId: string) =>
-    JSON.parse((await app.inject({ method: 'POST', url: '/v1/end-user-tokens', headers: { 'x-api-key': apiKey }, payload: { userId } })).payload).token as string;
+    JSON.parse((await app.inject({ method: 'POST', url: '/v1/end-user-tokens', headers: { 'x-api-key': apiKey }, payload: { userId, access: 'write' } })).payload).token as string;
   const asPlayer = async (userId: string) => {
     const token = await tokenFor(userId);
     return async (method: 'GET' | 'POST' | 'DELETE', url: string, payload?: unknown) => {
@@ -210,6 +210,9 @@ describe('segments, leagues, social, invites, connectors and environments', () =
 
       expect((await asMax('POST', '/v1/me/friends', { code: 'NOPE2345' })).status).toBe(404);
       expect((await asMax('POST', '/v1/me/friends', { code: code.toLowerCase() })).status).toBe(201);
+      // The other player accepts, using the asker's code.
+      const maxCode = (await asMax('GET', '/v1/me/referral')).body.code as string;
+      expect((await asNoa('POST', `/v1/me/friends/requests/${maxCode}/accept`)).status).toBe(201);
       const friends = (await asMax('GET', '/v1/me/friends')).body.data;
       expect(friends).toEqual([{ name: 'noa', avatarUrl: null, totalXp: 0, code }]);
       expect(JSON.stringify(friends)).not.toContain(noa);

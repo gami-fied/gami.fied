@@ -23,6 +23,7 @@ import {
 } from './criteria-editor';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
+import { useOpenOnParam } from '@/hooks/use-open-on-param';
 
 export function AchievementsView() {
   const { selectedProject } = useDashboard();
@@ -114,6 +115,7 @@ export function AchievementsView() {
     resetForm();
     setIsCreateOpen(true);
   };
+  useOpenOnParam(openCreate);
 
   const openEdit = (achievement: AchievementRecord) => {
     setEditing(achievement);
@@ -191,7 +193,7 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-info-400">
               {summary?.enabledAchievements || 0} / {summary?.totalAchievements || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Enabled definitions</p>
+            <p className="text-xs text-zinc-400 mt-1">Enabled definitions</p>
           </CardContent>
         </Card>
 
@@ -206,7 +208,7 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-brand-400">
               {summary?.totalAwards?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Awarded to users</p>
+            <p className="text-xs text-zinc-400 mt-1">Awarded to users</p>
           </CardContent>
         </Card>
 
@@ -219,7 +221,7 @@ export function AchievementsView() {
             <div className="text-2xl font-black text-success-400">
               {summary?.uniqueUsersWithAchievements?.toLocaleString() || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Distinct users holding badges</p>
+            <p className="text-xs text-zinc-400 mt-1">Distinct users holding badges</p>
           </CardContent>
         </Card>
       </div>
@@ -324,7 +326,7 @@ export function AchievementsView() {
                       </div>
                       <div className="min-w-0">
                         <CardTitle className="truncate text-sm font-bold">{a.name}</CardTitle>
-                        <span className="block truncate font-mono text-[11px] text-zinc-400">
+                        <span className="block truncate font-mono text-xs text-zinc-400">
                           {a.key}
                         </span>
                       </div>
@@ -366,7 +368,7 @@ export function AchievementsView() {
                 </CardContent>
 
                 <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-zinc-400">{a.id}</span>
+                  <span className="text-xs font-mono text-zinc-400">{a.id}</span>
                   <AdminOnly>
                     <button
                       onClick={() => openEdit(a)}

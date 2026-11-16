@@ -216,7 +216,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {activeCount > 1 && (
           <div
             className={clsx(
-              'absolute -top-7 right-1 z-40 flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 rounded-none text-[11px] font-semibold text-zinc-300 shadow-md  transition-[transform,opacity]',
+              'absolute -top-7 right-1 z-40 flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 rounded-none text-xs font-semibold text-zinc-300 shadow-md  transition-[transform,opacity]',
               isHovered ? 'opacity-0 pointer-events-none' : 'opacity-100'
             )}
           >

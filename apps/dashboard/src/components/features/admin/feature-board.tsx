@@ -353,7 +353,7 @@ export function FeatureBoard({ organizationId, onChange }: { organizationId?: st
                             </div>
                           </div>
                           {(feature.requires.length > 0 || feature.requiredBy.length > 0) && (
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500">
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500">
                               {feature.requires.length > 0 && (
                                 <span className="inline-flex items-center gap-1">
                                   <ArrowDownRight className="h-3 w-3 text-brand-400" /> Needs {feature.requires.map(nameOf).join(', ')}

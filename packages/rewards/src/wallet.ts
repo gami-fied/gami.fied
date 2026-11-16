@@ -160,6 +160,21 @@ export async function walletBalance(
   return row?.total ?? 0;
 }
 
+/** What a player can spend in every currency, by currency ID, in one query. Currencies with nothing are left out. */
+export async function walletBalances(
+  handle: Pick<RewardTransaction, 'select'>,
+  projectId: string,
+  userId: string,
+  now: Date = new Date()
+): Promise<Map<string, number>> {
+  const rows = await handle
+    .select({ currencyId: walletLots.currencyId, total: sql<number>`COALESCE(SUM(${walletLots.remaining}), 0)::int` })
+    .from(walletLots)
+    .where(and(eq(walletLots.projectId, projectId), eq(walletLots.userId, userId), or(isNull(walletLots.expiresAt), gt(walletLots.expiresAt, now))))
+    .groupBy(walletLots.currencyId);
+  return new Map(rows.map((row) => [row.currencyId, row.total]));
+}
+
 /** Writes off points whose time is up, and records each write-off. Returns how many lots were closed. */
 /**
  * Tells people about points that expire within `days`, once per lot, so nobody loses points

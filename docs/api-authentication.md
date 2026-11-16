@@ -52,7 +52,15 @@ curl -X POST https://api.example.com/v1/end-user-tokens \
   -d '{ "userId": "user_123", "expiresInSeconds": 900 }'
 ```
 
-This needs a key with the `users:write` scope. The frontend then sends the token as `Authorization: Bearer <token>` to `/v1/me`, `/v1/me/achievements`, `/v1/me/challenges`, `/v1/me/notifications` and `/v1/me/rank`. A token can only read that one user's data, and lasts 15 minutes by default, up to one hour.
+This needs a key with the `users:write` scope. The frontend then sends the token as `Authorization: Bearer <token>` to `/v1/me`, `/v1/me/achievements`, `/v1/me/challenges`, `/v1/me/notifications` and `/v1/me/rank`. A token acts for that one user only, and lasts 15 minutes by default, up to one hour.
+
+A token only reads unless you ask for more. Add `"access": "write"` when you create it to also let the user buy rewards, add friends, give kudos, use an invite code and register a device. Every `/v1/me` request that is not a `GET` needs a write token; a read-only one gets `403 TOKEN_READ_ONLY`. Give out write tokens only on screens that need them.
+
+A token stops working as soon as its user is deactivated or erased, even if it has not expired. To end a user's tokens yourself, for example when they sign out, call `POST /v1/users/:userId/tokens/revoke` (`gami.endUserTokens.revoke(userId)`). Tokens made afterwards work as usual.
+
+One player's tokens may make 300 requests a minute, and one API key 600 outside event ingestion. Past that the answer is `429` with a `Retry-After` header.
+
+See [Player token security](./player-token-security.md) for what a token holder can and cannot do.
 
 To limit which sites can use tokens, set `allowedOrigins` on the project under **Settings**.
 

@@ -5,22 +5,121 @@
 [![Release](https://img.shields.io/github/v/release/gami-fied/gami.fied)](https://github.com/gami-fied/gami.fied/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![SDK licence](https://img.shields.io/badge/SDK-MIT-blue.svg)](packages/sdk/LICENSE)
+[![npm](https://img.shields.io/npm/v/@gami.fied/sdk)](https://www.npmjs.com/package/@gami.fied/sdk)
 
-**Gami.Fied** is a self-hosted gamification engine. Your app sends it events, and rules you configure turn them into **XP**, **levels**, **achievements**, **challenges** and **leaderboards**, with notifications and webhooks included. Your users' data stays on your own server.
+**Gami.Fied** is a self-hosted, open-source gamification engine. Your app sends it events, and rules you set up turn them into **XP**, **levels**, **streaks**, **badges**, **leaderboards** and **rewards**. Your players' data stays on your own server.
+
+Website and docs: [gami.fied.cc](https://gami.fied.cc). Try the rules in your browser in the [playground](https://gami.fied.cc/playground/).
 
 Built with Fastify, Next.js, PostgreSQL, Redis and TypeScript.
 
 ---
 
-## Key features
+## What it does
 
-- ⚡ **Rules engine**: Turn events into XP and achievements, with conditions, a simulator and a trace of why a rule fired.
-- 🏆 **Gamification core**: XP history, levels, achievements, challenges, and all-time, daily, weekly and monthly leaderboards.
-- 🔔 **Delivery**: In-app notifications, email, signed webhooks with retries and replay, and Discord.
-- 💻 **Dashboard**: Analytics, CSV exports, audit logs, delivery health, and owner, admin and member roles.
-- 🛡️ **Security**: Organization and project isolation, scoped API keys, end-user tokens for browsers, and encrypted secrets.
-- 🧩 **Developer API**: A stable `/v1` API with a full reference in the dashboard, and a TypeScript SDK.
-- 🗄️ **Self-hosting**: Prebuilt Docker images, backups, data export and import, and user erasure for privacy requests.
+- ⚡ **Rules engine**: turn events into XP, badges and currency, with conditions, drafts, a backtest against past events, and a trace of why a rule fired.
+- 📈 **Progression**: levels, achievements with tiers, daily and weekly streaks with freezes, challenges with steps, journeys that chain challenges, and a season pass.
+- 🪙 **Economy**: currencies and wallets with expiry, a reward store with stock and codes, mystery boxes with published odds, cosmetics, and boosts and limits against farming.
+- 🏆 **Competition**: leaderboards by day, week and month with prizes for the top places, boards for segments, and leagues with promotion and relegation.
+- 🤝 **Community**: teams and shared goals, friends, kudos, an activity feed, share cards and invite codes.
+- 🔔 **Reaching players**: an in-app inbox, email, push for iPhone, Android and browsers, live updates, signed webhooks, Slack, Teams and Discord, and translations into each player's language.
+- 💻 **Dashboard**: every feature has a page, with analytics, audit logs, delivery health, and owner, admin and member roles.
+- 🧩 **For developers**: a stable `/v1` API with a full reference, a TypeScript SDK, React components, and web components for Vue, Svelte and plain pages.
+- 🛡️ **Security**: organization and project isolation, scoped API keys, read-only and write tokens for players, encrypted secrets, and rate limits per address, key and player.
+- 🗄️ **Self-hosting**: prebuilt Docker images, backups, export and import, connectors for Segment, RudderStack, Stripe and GitHub, and erasure for privacy requests.
+
+Where it is weaker than the alternatives is on the [comparison page](https://gami.fied.cc/compare/).
+
+---
+
+## Run it with Docker
+
+Prebuilt images are published for `linux/amd64` and `linux/arm64`, so there is nothing to build.
+
+```bash
+curl -LO https://github.com/gami-fied/gami.fied/releases/latest/download/docker-compose.yml
+curl -LO https://github.com/gami-fied/gami.fied/releases/latest/download/env.example
+cp env.example .env
+```
+
+Fill in the secrets in `.env`, then run `docker compose up -d`. The dashboard is at `http://localhost:3000`.
+
+The ports are published on `127.0.0.1` only. To reach the dashboard from another machine, put it behind a [reverse proxy with TLS](./docs/install/reverse-proxy.md), or set `BIND_ADDRESS=0.0.0.0` in `.env` for a private network.
+
+See [Install with Docker Compose](./docs/install/docker-compose.md), the [production checklist](./docs/install/production-checklist.md) and [Upgrading](./docs/install/upgrading.md).
+
+---
+
+## Use it from your app
+
+### From your server
+
+```bash
+npm install @gami.fied/sdk
+```
+
+```typescript
+import { Gami } from '@gami.fied/sdk';
+
+const gami = new Gami({
+  baseUrl: 'http://localhost:3001',
+  apiKey: 'gami_live_your_project_api_key',
+});
+
+// Send what happened. Rules, streaks and challenges run in the background.
+const event = await gami.events.track({
+  userId: 'user_123',
+  type: 'lesson_completed',
+  properties: { lessonId: 'les_99', score: 100 },
+});
+console.log('Accepted event:', event.id);
+
+// Read the user's progress. This needs a key with the levels:read scope.
+const progress = await gami.levels.getUserProgress({ userId: 'user_123' });
+console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
+```
+
+### In the player's browser
+
+Never put an API key in a page. Your server makes a short-lived token for one player, and the page uses that:
+
+```typescript
+// On your server
+const { token } = await gami.endUserTokens.create({ userId: 'user_123' });
+```
+
+A token only reads unless you ask for `access: 'write'`, which a player needs to buy a reward, open a box or add a friend.
+
+With React:
+
+```bash
+npm install @gami.fied/react @gami.fied/sdk
+```
+
+```tsx
+import { GamiProvider, LevelProgress, Leaderboard, ToastHost } from '@gami.fied/react';
+import '@gami.fied/react/styles.css';
+
+<GamiProvider endUserToken={token} baseUrl="https://gami.example.com">
+  <LevelProgress />
+  <Leaderboard period="weekly" />
+  <ToastHost />
+</GamiProvider>;
+```
+
+Without React, the same components are HTML elements:
+
+```html
+<script src="https://unpkg.com/@gami.fied/elements/dist/gami-elements.js"></script>
+<script>
+  GamiElements.configure({ baseUrl: 'https://gami.example.com', token });
+</script>
+
+<gami-level-progress></gami-level-progress>
+<gami-leaderboard period="weekly"></gami-leaderboard>
+```
+
+See the [SDK guide](./docs/sdk.md), [React components](./docs/react.md) and [web components](./docs/web-components.md).
 
 ---
 
@@ -31,29 +130,34 @@ gami-fied/
 ├── apps/
 │   ├── api/           # Fastify API on port 3001 (@gami/api)
 │   ├── worker/        # Background worker for rules and delivery (@gami/worker)
-│   └── dashboard/     # Next.js dashboard on port 3000 (@gami/dashboard)
+│   ├── dashboard/     # Next.js dashboard on port 3000 (@gami/dashboard)
+│   └── website/       # gami.fied.cc: marketing pages, docs and playground (@gami/website)
 ├── packages/
+│   ├── sdk/           # TypeScript client, on npm as @gami.fied/sdk (MIT)
+│   ├── react/         # React components, on npm as @gami.fied/react (MIT)
+│   ├── elements/      # The same components as HTML elements, @gami.fied/elements (MIT)
 │   ├── database/      # PostgreSQL schema, Drizzle ORM, migrations and auth
-│   ├── sdk/           # TypeScript client (@gami.fied/sdk)
 │   ├── rules/         # Rule evaluation
-│   ├── rewards/       # XP and achievement grants
-│   ├── progression/   # Level calculations
+│   ├── rewards/       # XP, badges, wallets and prizes
+│   ├── progression/   # Levels and streaks
 │   ├── challenges/    # Challenge progress
-│   ├── leaderboards/  # Rankings
+│   ├── leaderboards/  # Rankings, segments and leagues
 │   ├── notifications/ # In-app and email notifications
 │   ├── webhooks/      # Webhook delivery and signing
-│   ├── integrations/  # Discord
+│   ├── integrations/  # Slack, Teams, Discord, HTTP and push
 │   ├── queue/         # Shared queue definitions
+│   ├── ui/            # Interface pieces shared by the dashboard and the website
 │   ├── types/         # Shared TypeScript types
 │   └── config/        # Shared configuration
-└── docs/              # Documentation
+├── deploy/            # One-click deploy files and the status page
+└── docs/              # Documentation, also served at gami.fied.cc/docs
 ```
 
 ---
 
 ## Local development
 
-To run it rather than work on it, see [Self-hosting with Docker](#self-hosting-with-docker).
+To run it rather than work on it, see [Run it with Docker](#run-it-with-docker).
 
 ### Prerequisites
 
@@ -61,7 +165,7 @@ To run it rather than work on it, see [Self-hosting with Docker](#self-hosting-w
 - [pnpm](https://pnpm.io/) 11 or later
 - [Docker & Docker Compose](https://www.docker.com/)
 
-### 1. Clone & Install Dependencies
+### Clone & Install Dependencies
 
 ```bash
 git clone https://github.com/gami-fied/gami.fied.git
@@ -69,7 +173,7 @@ cd gami.fied
 pnpm install
 ```
 
-### 2. Create Your Environment File
+### Create Your Environment File
 
 ```bash
 cp .env.example .env
@@ -77,7 +181,7 @@ cp .env.example .env
 
 The defaults match the local Docker services. For deployments, use `.env.production.example`.
 
-### 3. Start Local Infrastructure (PostgreSQL & Redis)
+### Start Local Infrastructure (PostgreSQL & Redis)
 
 ```bash
 # Spin up PostgreSQL (port 5432) and Redis (port 6379)
@@ -87,13 +191,13 @@ pnpm infra:up
 pnpm infra:status
 ```
 
-### 4. Run Database Migrations
+### Run Database Migrations
 
 ```bash
 pnpm db:migrate:dev
 ```
 
-### 5. Load Demo Data (Optional)
+### Load Demo Data (Optional)
 
 ```bash
 pnpm db:seed
@@ -101,7 +205,7 @@ pnpm db:seed
 
 This prints a demo dashboard login and a fresh API key.
 
-### 6. Start Development Applications
+### Start Development Applications
 
 ```bash
 pnpm dev
@@ -111,57 +215,6 @@ This starts:
 - 🌐 **Dashboard UI**: `http://localhost:3000`
 - ⚙️ **API**: `http://localhost:3001`
 - 🔄 **Worker**: Runs rules and sends deliveries in the background
-
----
-
-## SDK Quickstart
-
-Install `@gami.fied/sdk` in your server code:
-
-```bash
-pnpm add @gami.fied/sdk
-# or npm install @gami.fied/sdk
-```
-
-Initialize the client and record an event:
-
-```typescript
-import { Gami } from '@gami.fied/sdk';
-
-const gami = new Gami({
-  baseUrl: 'http://localhost:3001',
-  apiKey: 'gami_live_your_project_api_key',
-});
-
-// Send a user event. Rules and challenges run in the background.
-const event = await gami.events.track({
-  userId: 'user_123',
-  type: 'lesson_completed',
-  properties: { lessonId: 'les_99', score: 100 },
-});
-
-console.log('Accepted event:', event.id);
-
-// Read the user's progress. This needs a key with the levels:read scope.
-const progress = await gami.levels.getUserProgress({ userId: 'user_123' });
-console.log(`Level ${progress.level.number}, ${progress.totalXp} XP`);
-```
-
----
-
-## Self-hosting with Docker
-
-Prebuilt images are published for `linux/amd64` and `linux/arm64`, so there's nothing to build.
-
-```bash
-curl -LO https://github.com/gami-fied/gami.fied/releases/latest/download/docker-compose.yml
-curl -LO https://github.com/gami-fied/gami.fied/releases/latest/download/env.example
-cp env.example .env
-```
-
-Fill in the secrets in `.env`, then run `docker compose up -d`. The dashboard is at `http://localhost:3000`.
-
-See [Installing from published images](./docs/deployment-and-production.md#installing-from-published-images), and put it behind a [reverse proxy with TLS](./docs/deployment-and-production.md#reverse-proxy-and-tls) in production.
 
 ---
 
@@ -182,20 +235,23 @@ pnpm lint
 
 ## Documentation
 
-Everything is in the [`docs/`](./docs) folder:
+Everything is in the [`docs/`](./docs) folder, and at [gami.fied.cc/docs](https://gami.fied.cc/docs/) with search:
 
-- 🚀 [Getting started](./docs/getting-started.md)
+- 🚀 [Getting started](./docs/getting-started.md) and [installing](./docs/install/docker-compose.md)
 - ⚡ [Quick starts](./docs/quickstarts/rest.md) for REST, Node.js, Python, Next.js and React
 - 🎮 [Gamification mechanics](./docs/gamification-mechanics.md)
 - 🛒 [Economy and store](./docs/economy-and-store.md)
 - 🏆 [Segments, leagues and social](./docs/social-and-competition.md)
+- 🌍 [Translations](./docs/translations.md)
+- 🎁 [Boxes, passes, teams and journeys](./docs/boxes-passes-teams-and-journeys.md)
 - 🔌 [Connectors, environments and plugins](./docs/connectors-environments-and-plugins.md)
 - 🎛️ [Features and organization rules](./docs/platform-administration-features.md)
-- 🛠️ [API reference](./docs/api-reference.md) and [TypeScript SDK](./docs/sdk.md)
+- 🛠️ [API reference](./docs/api-reference.md), [TypeScript SDK](./docs/sdk.md), [React components](./docs/react.md) and [web components](./docs/web-components.md)
 - 🔔 [Notifications, webhooks and integrations](./docs/notifications-and-integrations.md)
 - 🐳 [Deployment and production](./docs/deployment-and-production.md)
 - ⚙️ [Platform administration](./docs/platform-administration.md)
-- 🧭 [Architecture and security](./docs/architecture.md)
+- 🧭 [Architecture](./docs/architecture.md), [security](./docs/authentication-and-security.md) and [player tokens](./docs/player-token-security.md)
+- 💾 [Backups](./docs/backups.md) and [upgrading](./docs/install/upgrading.md)
 
 See the [changelog](./CHANGELOG.md) for what's new.
 
@@ -205,4 +261,4 @@ See the [changelog](./CHANGELOG.md) for what's new.
 
 The server, worker and dashboard are distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [LICENSE](LICENSE) for details.
 
-The SDK in `packages/sdk` is distributed under the **MIT License**, so you can use it in closed-source apps. See its [LICENSE](packages/sdk/LICENSE).
+The SDK, the React components and the web components (`packages/sdk`, `packages/react` and `packages/elements`) are distributed under the **MIT License**, so you can use them in closed-source apps. See the [SDK's LICENSE](packages/sdk/LICENSE).

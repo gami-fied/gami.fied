@@ -6,7 +6,7 @@
  * Mark anything worth counting with `data-track="<event>"`, or call `track()` from an island.
  */
 
-/** The events Phase 9 counts. Keep names stable: dashboards and goals are built on them. */
+/** The events the site counts. Keep names stable: dashboards and goals are built on them. */
 export const EVENTS = {
   installStarted: 'install_started',
   playgroundRun: 'playground_run',

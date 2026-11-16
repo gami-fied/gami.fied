@@ -14,6 +14,17 @@ import {
   segments,
   referralPrograms,
   referralCodes,
+  cosmetics,
+  integrations,
+  journeys,
+  notifications,
+  leaderboardPrizes,
+  lootBoxes,
+  seasonPasses,
+  sharedGoals,
+  teamMembers,
+  teams,
+  userCosmetics,
 } from '@gami/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -121,6 +132,11 @@ describe('API docs contract', () => {
     levelId: `lvl_doc_${suffix}`,
     segmentId: 'docs_segment',
     friendId: 'user_789',
+    boxKey: 'daily_chest',
+    passKey: 'season_1',
+    cosmeticKey: 'night_owl',
+    teamId: 'red',
+    notificationId: `ntf_doc_${suffix}`,
   };
 
   beforeAll(async () => {
@@ -168,6 +184,44 @@ describe('API docs contract', () => {
     await db.insert(referralPrograms).values({ projectId, enabled: true, qualifyingEvent: 'first_purchase' });
     await db.insert(referralCodes).values({ id: `rfc_doc_${suffix}`, projectId, userId: friendId, code: 'DOCSCODE' });
 
+    // One of each newer mechanic, free to use, so their examples have something to act on.
+    await db.insert(lootBoxes).values({
+      id: `box_doc_${suffix}`,
+      projectId,
+      key: 'daily_chest',
+      name: 'Daily chest',
+      guaranteeAfter: 10,
+      dailyLimit: 5,
+      items: [
+        { id: 'itm_common', name: '50 XP', weight: 39, rare: false, prizes: [{ type: 'xp', amount: 50 }] },
+        { id: 'itm_rare', name: '500 XP', weight: 1, rare: true, prizes: [{ type: 'xp', amount: 500 }] },
+      ],
+    });
+    await db.insert(seasonPasses).values({
+      id: `pass_doc_${suffix}`,
+      projectId,
+      key: 'season_1',
+      name: 'Season 1',
+      startAt: new Date(Date.now() - 86_400_000),
+      endAt: new Date(Date.now() + 30 * 86_400_000),
+      tiers: [
+        { xp: 0, free: [{ type: 'xp', amount: 10 }], premium: [{ type: 'xp', amount: 20 }] },
+        { xp: 100_000, free: [{ type: 'xp', amount: 50 }], premium: [] },
+      ],
+    });
+    await db.insert(cosmetics).values({ id: `cos_doc_${suffix}`, projectId, key: 'night_owl', name: 'Night owl', kind: 'title', achievementId });
+    await db.insert(userCosmetics).values({ id: `ucos_doc_${suffix}`, projectId, userId, cosmeticId: `cos_doc_${suffix}`, source: 'grant', equipped: true });
+    await db.insert(teams).values({ id: `team_doc_${suffix}`, projectId, key: 'red', name: 'Red team' });
+    await db.insert(teamMembers).values({ id: `tm_doc_${suffix}`, projectId, teamId: `team_doc_${suffix}`, userId });
+    await db.insert(sharedGoals).values({ id: `goal_doc_${suffix}`, projectId, key: 'million_lessons', name: 'A million lessons', trigger: 'lesson_completed', target: 1_000_000, rewards: [{ type: 'xp', amount: 100 }] });
+    await db.insert(challenges).values({ id: `chl2_doc_${suffix}`, projectId, key: 'twenty', name: 'Twenty', trigger: 'order_completed', target: 20, rewards: [] });
+    await db.insert(journeys).values({ id: `jrn_doc_${suffix}`, projectId, key: 'onboarding', name: 'Getting started', steps: ['ten', 'twenty'], rewards: [{ type: 'xp', amount: 200 }] });
+    await db.insert(leaderboardPrizes).values({ id: `lbp_doc_${suffix}`, projectId, name: 'Weekly top 3', period: 'weekly', fromRank: 1, toRank: 3, rewards: [{ type: 'xp', amount: 100 }] });
+
+    // A web push integration, so the key browsers subscribe with can be read.
+    await db.insert(integrations).values({ id: `intg_doc_${suffix}`, projectId, provider: 'webpush', name: 'Browsers', status: 'active', enabled: true, config: { vapidPublicKey: 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8' } });
+    await db.insert(notifications).values({ id: `ntf_doc_${suffix}`, projectId, userId, type: 'level_up', title: 'Level 2', message: 'You are now an Explorer.', data: {}, sourceType: 'docs', sourceId: suffix });
+
     apiKey = (await createApiKey(projectId, 'Docs', ['*'])).rawSecret;
   });
 
@@ -193,8 +247,11 @@ describe('API docs contract', () => {
       }
       const success = Object.keys(operation.responses).find((code) => code.startsWith('2'));
       expect(success, name).toBeDefined();
-      expect(operation.responses[success as string]?.content, name).toBeDefined();
-      const example = operation.requestBody?.content['application/json']?.example;
+      // A 204 has no body to describe.
+      if (success !== '204') expect(operation.responses[success as string]?.content, name).toBeDefined();
+      const documented = operation.requestBody?.content['application/json']?.example;
+      // The documented token only reads. The routes that change things are tried with a write token.
+      const example = path === '/v1/end-user-tokens' ? { ...(documented as object), access: 'write' } : documented;
       if (operation.requestBody) expect(example, `${name} example`).toBeDefined();
     }
   });
@@ -235,8 +292,17 @@ describe('API docs contract', () => {
       if (path === '/v1/me/stream') continue;
       // Buying needs points and stock, which the documented example user does not have.
       if (path.endsWith('/redeem')) continue;
+      // The same for buying a cosmetic or the premium lane with points (mechanics.test.ts covers them).
+      if (path.endsWith('/buy') || path === '/v1/me/passes/{passKey}/premium') continue;
+      // These need a second player or an earned badge, and have their own tests (player-api.test.ts).
+      if (/^\/v1\/me\/(friends|kudos|referral)/.test(path) && method !== 'get') continue;
+      if (path.endsWith('/share')) continue;
+      // Ending a user's tokens would end the one the rest of this test uses.
+      if (path.endsWith('/tokens/revoke')) continue;
       const url = path.replace(/\{(\w+)\}/g, (_, name: keyof typeof pathValues) => pathValues[name]);
-      const example = operation.requestBody?.content['application/json']?.example;
+      const documented = operation.requestBody?.content['application/json']?.example;
+      // The documented token only reads. The routes that change things are tried with a write token.
+      const example = path === '/v1/end-user-tokens' ? { ...(documented as object), access: 'write' } : documented;
       const res = await app.inject({
         method: method.toUpperCase() as 'GET',
         url,
@@ -253,6 +319,8 @@ describe('API docs contract', () => {
         continue;
       }
 
+      // A 204 has no body to compare.
+      if (success === '204') continue;
       const schema = operation.responses[success]?.content?.['application/json']?.schema as Schema;
       problems.push(...mismatches(schema, res.json(), name));
       if (path === '/v1/end-user-tokens') endUserToken = res.json().token;

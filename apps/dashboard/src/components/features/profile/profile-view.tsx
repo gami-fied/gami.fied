@@ -210,6 +210,7 @@ export function ProfileView() {
                   <div className="relative">
                     <Input
                       type="email"
+                      aria-label="Email address"
                       disabled
                       value={profile?.email || session?.user?.email || ''}
                       className="opacity-70 bg-zinc-950"
@@ -282,10 +283,10 @@ export function ProfileView() {
               <div className="p-3 bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2">
                 <Lock className="w-4 h-4 text-info-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <span className="font-bold text-white text-[11px] block">
+                  <span className="font-bold text-white text-xs block">
                     Mandatory Security Guarantee
                   </span>
-                  <p className="text-[11px] leading-relaxed text-zinc-400">
+                  <p className="text-xs leading-relaxed text-zinc-400">
                     Email OTP Verification codes and security alert emails are critical
                     transactional security events. They are{' '}
                     <span className="text-info-400 font-bold">mandatory</span> and will NEVER be

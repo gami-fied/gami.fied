@@ -17,11 +17,13 @@ NEXT_PUBLIC_APP_URL=https://app.example.com
 TRUST_PROXY=true
 ```
 
-Set `TRUST_PROXY=true` only behind a proxy that overwrites the `X-Forwarded-*` headers. Without one, clients could fake their IP address and get around rate limits.
+Set `TRUST_PROXY=true` only behind a proxy that overwrites the `X-Forwarded-*` headers. Without one, clients could fake their IP address and get around rate limits. A narrower setting is safer where you can use it: `TRUST_PROXY=1` trusts exactly one proxy in front of the API, and `TRUST_PROXY=10.0.0.5` (or a range such as `10.0.0.0/8`) trusts only that proxy's address.
 
 Browsers may call the API from `NEXT_PUBLIC_APP_URL`. To let your own site call it too, for example with the React components, add it to `TRUSTED_ORIGINS`, separated by commas.
 
-Once the proxy is in front, remove the published `ports` for `api` and `dashboard` in `docker-compose.yml`, so they are reached only through the proxy.
+The API and dashboard ports are published on `127.0.0.1` only, so a proxy on the same machine can reach them and nobody else can go around it. That matters with `TRUST_PROXY=true`: a client that reached the API directly could send its own `X-Forwarded-For` and get past rate limits and API key address allowlists.
+
+If your proxy runs on another machine, set `BIND_ADDRESS=0.0.0.0` in `.env` and restrict the ports to that machine with a firewall. If the proxy runs in the same Compose network, as Caddy does below, you can remove the published `ports` altogether.
 
 ## Caddy
 

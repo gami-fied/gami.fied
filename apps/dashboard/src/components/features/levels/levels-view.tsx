@@ -21,6 +21,8 @@ import { useToast } from '@/components/ui/toast';
 import { TrendingUp, Plus, Award, Layers, Search, ArrowRight, ShieldCheck } from 'lucide-react';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { TrendingUp as EmptyLevelsIcon } from 'lucide-react';
 
 export function LevelsView() {
   const { selectedProject } = useDashboard();
@@ -201,7 +203,7 @@ export function LevelsView() {
             <div className="text-2xl font-black text-warning-400">
               L1 → L{summary?.maxConfiguredLevel || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">
+            <p className="text-xs text-zinc-400 mt-1">
               {summary?.configuredLevelCount || 0} total active levels
             </p>
           </CardContent>
@@ -218,7 +220,7 @@ export function LevelsView() {
             <div className="text-2xl font-black text-success-400">
               {summary?.usersAtMaxLevel || 0}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Highest level achieved</p>
+            <p className="text-xs text-zinc-400 mt-1">Highest level achieved</p>
           </CardContent>
         </Card>
 
@@ -231,7 +233,7 @@ export function LevelsView() {
             <div className="text-2xl font-black text-brand-400">
               {summary?.totalProjectXp?.toLocaleString() || 0} XP
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">Across all project users</p>
+            <p className="text-xs text-zinc-400 mt-1">Across all project users</p>
           </CardContent>
         </Card>
       </div>
@@ -248,7 +250,7 @@ export function LevelsView() {
               Sequential XP milestones required to advance between level tiers.
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto pb-4">
+          <CardContent tabIndex={0} role="region" aria-label="Level path" className="overflow-x-auto pb-4">
             <div className="flex items-center gap-3 min-w-[650px] pt-1">
               {sortedLevels.map((lvl, index) => {
                 const prevLevel = index > 0 ? sortedLevels[index - 1] : undefined;
@@ -281,7 +283,7 @@ export function LevelsView() {
                         </Badge>
                       </div>
                       <div className="text-xs font-bold text-zinc-100 truncate">{lvl.name}</div>
-                      <div className="text-[11px] text-brand-400 font-black">
+                      <div className="text-xs text-brand-400 font-black">
                         {lvl.requiredXp.toLocaleString()} XP
                       </div>
                     </div>
@@ -420,7 +422,7 @@ export function LevelsView() {
               {levels.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-6 text-center text-zinc-400 text-xs">
-                    No levels yet. Add one to give users something to climb.
+                    <EmptyState icon={EmptyLevelsIcon} title="No levels yet" description="Add one to give users something to climb." />
                   </TableCell>
                 </TableRow>
               )}
@@ -447,7 +449,7 @@ export function LevelsView() {
                       <div key={d.level} className="flex items-center gap-4">
                         <div className="w-20 shrink-0 text-right">
                           <span className="text-xs font-bold text-warning-400">L{d.level}</span>
-                          <span className="text-[11px] text-zinc-400 block truncate">{d.name}</span>
+                          <span className="text-xs text-zinc-400 block truncate">{d.name}</span>
                         </div>
                         <div className="flex-1 bg-zinc-950 rounded-none h-2.5 overflow-hidden border border-zinc-800 p-0.5">
                           <div

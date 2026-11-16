@@ -26,4 +26,4 @@ This document provides a practical disaster recovery playbook for operators self
 3. Create the organization again if needed, and open **Team > Data** (`/dashboard/organization/data`).
 4. Choose **Validate & Import Data** to bring back its projects, users, XP history, achievements, challenges and rules.
 
-Imported data gets new IDs, and imported external IDs and keys gain an `_imp_` suffix. See [Data import](./data-import.md).
+Imported rows get new internal IDs, while player external IDs and keys are kept as they are. See [Data import](./data-import.md).

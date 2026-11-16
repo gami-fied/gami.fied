@@ -121,7 +121,7 @@ export async function createToken(userId: string) {
 export const serverClient = gami;
 ```
 
-Then use that token in the browser. It can only read that user's own data, and it expires after 15 minutes unless you set `expiresInSeconds`, up to one hour.
+Then use that token in the browser. By default it can only read that user's own data. Pass `access: 'write'` when you create it to also let the user buy rewards, add friends, give kudos, use an invite code and register a device. It expires after 15 minutes unless you set `expiresInSeconds`, up to one hour.
 
 ```ts
 import { Gami } from '@gami.fied/sdk';

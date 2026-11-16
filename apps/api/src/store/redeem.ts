@@ -26,6 +26,7 @@ export class StoreError extends Error {
       | 'LIMIT_REACHED'
       | 'INSUFFICIENT_POINTS'
       | 'USER_NOT_FOUND'
+      | 'IDEMPOTENCY_KEY_IN_USE'
       | 'NOT_FOUND'
       | 'WRONG_STATE',
     message: string,
@@ -69,6 +70,10 @@ export async function redeemReward(input: RedeemInput): Promise<{ redemption: Re
           .select()
           .from(redemptions)
           .where(and(eq(redemptions.projectId, projectId), eq(redemptions.idempotencyKey, input.idempotencyKey)));
+        // A key only repeats its own player's purchase. Someone else's key never shows their purchase or its code.
+        if (existing && existing.userId !== user.id) {
+          throw new StoreError('IDEMPOTENCY_KEY_IN_USE', 'That idempotency key has already been used. Send a new one.');
+        }
         if (existing) return { redemption: existing, duplicate: true };
       }
 

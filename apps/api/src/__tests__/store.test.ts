@@ -278,7 +278,7 @@ describe('wallets and the reward store', () => {
 
   describe('for players and servers', () => {
     const tokenFor = async (userId: string) =>
-      JSON.parse((await app.inject({ method: 'POST', url: '/v1/end-user-tokens', headers: { 'x-api-key': apiKey }, payload: { userId } })).payload).token as string;
+      JSON.parse((await app.inject({ method: 'POST', url: '/v1/end-user-tokens', headers: { 'x-api-key': apiKey }, payload: { userId, access: 'write' } })).payload).token as string;
 
     it('shows a player their balance and a store that says what they can afford', async () => {
       const user = await makeUser('player');

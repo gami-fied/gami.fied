@@ -106,7 +106,7 @@ export function Checklist<T extends string | number = string>({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full border border-zinc-800 bg-zinc-950 pl-7 pr-2 py-1 text-[11px] text-zinc-200 focus:border-brand-500 focus:outline-none placeholder:text-zinc-400 rounded-none"
+                className="w-full border border-zinc-800 bg-zinc-950 pl-7 pr-2 py-1 text-xs text-zinc-200 focus:border-brand-500 focus:outline-none placeholder:text-zinc-400 rounded-none"
               />
             </div>
           )}
@@ -119,7 +119,7 @@ export function Checklist<T extends string | number = string>({
         style={{ maxHeight }}
       >
         {filteredItems.length === 0 ? (
-          <div className="p-4 text-center text-zinc-400 text-[11px]">
+          <div className="p-4 text-center text-zinc-400 text-xs">
             No matching items found.
           </div>
         ) : (

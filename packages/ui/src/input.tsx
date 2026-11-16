@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef } from 'react';
+import React, { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef, useId } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -10,12 +10,22 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: React.ReactNode;
 }
 
+/** The rest of the props, without the key handler that the number guard already calls. */
+function withoutKeyDown<T extends { onKeyDown?: unknown }>(props: T): Omit<T, 'onKeyDown'> {
+  const { onKeyDown: _handled, ...rest } = props;
+  void _handled;
+  return rest;
+}
+
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     { className, label, error, helperText, type = 'text', id, leftIcon, rightIcon, ...props },
     ref
   ) => {
-    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    // A generated ID, so two fields with the same label on one page never share one.
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const messageId = error || helperText ? `${inputId}-message` : undefined;
 
     return (
       <div className="space-y-1.5 w-full">
@@ -49,15 +59,37 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 className
               )
             )}
-            {...props}
+            {...withoutKeyDown(props)}
+            // A field with no visible label is still named for screen readers.
+            aria-label={props['aria-label'] ?? (label ? undefined : props.placeholder)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={messageId ?? props['aria-describedby']}
+            // Scrolling the page over a number field must not change its value.
+            onWheel={type === 'number' ? (event) => event.currentTarget.blur() : undefined}
+            // Browsers accept "e" and "+" in a number field, and "-" even where the smallest value is 0.
+            onKeyDown={
+              type === 'number'
+                ? (event) => {
+                    const blocked = ['e', 'E', '+'].includes(event.key) || (event.key === '-' && Number(props.min) >= 0);
+                    if (blocked) event.preventDefault();
+                    props.onKeyDown?.(event);
+                  }
+                : props.onKeyDown
+            }
           />
           {rightIcon && (
             <div className="absolute right-3.5 flex items-center text-zinc-400">{rightIcon}</div>
           )}
         </div>
-        {error && <p className="text-xs text-danger-400 font-medium tracking-tight mt-1">{error}</p>}
+        {error && (
+          <p id={messageId} className="text-xs text-danger-400 font-medium tracking-tight mt-1">
+            {error}
+          </p>
+        )}
         {helperText && !error && (
-          <p className="text-xs text-zinc-400 tracking-tight mt-1">{helperText}</p>
+          <p id={messageId} className="text-xs text-zinc-400 tracking-tight mt-1">
+            {helperText}
+          </p>
         )}
       </div>
     );
@@ -73,7 +105,9 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, helperText, id, rows = 3, ...props }, ref) => {
-    const textareaId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const generatedId = useId();
+    const textareaId = id || generatedId;
+    const messageId = error || helperText ? `${textareaId}-message` : undefined;
 
     return (
       <div className="space-y-1.5 w-full">
@@ -89,6 +123,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={textareaId}
           rows={rows}
+          aria-label={label ? undefined : (props['aria-label'] ?? props.placeholder)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={messageId}
           className={twMerge(
             clsx(
               'w-full bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-400 leading-relaxed shadow-none outline-none resize-y',
@@ -101,9 +138,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           )}
           {...props}
         />
-        {error && <p className="text-xs text-danger-400 font-medium tracking-tight mt-1">{error}</p>}
+        {error && (
+          <p id={messageId} className="text-xs text-danger-400 font-medium tracking-tight mt-1">
+            {error}
+          </p>
+        )}
         {helperText && !error && (
-          <p className="text-xs text-zinc-400 tracking-tight mt-1">{helperText}</p>
+          <p id={messageId} className="text-xs text-zinc-400 tracking-tight mt-1">
+            {helperText}
+          </p>
         )}
       </div>
     );

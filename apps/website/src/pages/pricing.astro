@@ -2,6 +2,8 @@
 import { Check } from '@lucide/astro';
 import Button from '../components/Button.astro';
 import Section from '../components/Section.astro';
+import CostComparison from '../components/pricing/CostComparison.astro';
+import WaitlistForm from '../components/pricing/WaitlistForm.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { EVENTS } from '../lib/analytics';
 import { SITE } from '../lib/site';
@@ -86,7 +88,16 @@ const faq = [
 ];
 ---
 
-<SiteLayout title="Pricing" description="Gami.Fied Community is free and open source forever. Cloud and Enterprise editions are coming." og="pricing">
+<SiteLayout
+  title="Pricing"
+  description="Gami.Fied Community is free and open source forever. Cloud and Enterprise editions are coming."
+  og="pricing"
+  jsonLd={{
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map((item) => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
+  }}
+>
   <Section eyebrow="Pricing" title="Free to run yourself. Hosted when you want it." intro="Community has the whole engine and always will. Cloud and Enterprise are on the way." center reveal={false} as="h1" class="pt-24">
     <div class="grid gap-4 lg:grid-cols-3" data-reveal-group>
       {
@@ -117,6 +128,8 @@ const faq = [
                 <Button href="/docs/" class="w-full" track={EVENTS.installStarted} trackSource="pricing">
                   Install Community
                 </Button>
+              ) : SITE.waitlistEndpoint ? (
+                <WaitlistForm plan={plan.name} />
               ) : SITE.waitlistUrl ? (
                 <Button href={SITE.waitlistUrl} variant="secondary" external class="w-full" track="waitlist_opened" trackSource={plan.name.toLowerCase()}>
                   Join the waitlist
@@ -131,6 +144,10 @@ const faq = [
         ))
       }
     </div>
+  </Section>
+
+  <Section eyebrow="What it costs" title="Work out your own numbers" intro="Running it yourself costs a server and some of your time. Put in your own figures; nothing here is sent anywhere.">
+    <CostComparison />
   </Section>
 
   <Section eyebrow="Questions" title="Frequently asked" class="pb-24">

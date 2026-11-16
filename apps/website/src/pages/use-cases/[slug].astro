@@ -1,0 +1,117 @@
+---
+import { Code } from 'astro:components';
+import { TriangleAlert } from '@lucide/astro';
+import Button from '../../components/Button.astro';
+import Section from '../../components/Section.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { codeTheme } from '../../lib/code-theme';
+import { USE_CASES, type UseCase } from '../../lib/use-cases';
+
+export function getStaticPaths() {
+  return USE_CASES.map((item) => ({ params: { slug: item.slug }, props: { item } }));
+}
+
+interface Props {
+  item: UseCase;
+}
+
+const { item } = Astro.props;
+const others = USE_CASES.filter((other) => other.slug !== item.slug);
+const rule = JSON.stringify(item.rule, null, 2);
+---
+
+<SiteLayout
+  title={item.name}
+  description={`${item.tagline} ${item.summary}`}
+  og={`use-cases/${item.slug}`}
+  breadcrumbs={[
+    { name: 'Home', href: '/' },
+    { name: 'Use cases', href: '/use-cases/' },
+    { name: item.name, href: `/use-cases/${item.slug}/` },
+  ]}
+>
+  <section class="mx-auto max-w-6xl px-6 pb-8 pt-16 sm:pt-20">
+    <nav aria-label="Breadcrumb">
+      <ol class="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <li><a href="/" class="transition-colors hover:text-zinc-200">Home</a></li>
+        <li aria-hidden="true">/</li>
+        <li><a href="/use-cases/" class="transition-colors hover:text-zinc-200">Use cases</a></li>
+        <li aria-hidden="true">/</li>
+        <li aria-current="page" class="text-zinc-300">{item.name}</li>
+      </ol>
+    </nav>
+    <h1 class="mt-8 text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">{item.name}</h1>
+    <p class="mt-3 text-lg font-medium text-zinc-300">{item.tagline}</p>
+    <p class="mt-4 max-w-2xl text-pretty leading-relaxed text-zinc-400">{item.summary}</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <Button href="/playground/">Try the rules in your browser</Button>
+      <Button href="/docs/install/docker-compose/" variant="secondary">Install it</Button>
+    </div>
+  </section>
+
+  <Section eyebrow="Step 1" title="Send what already happens in your app" intro="Events are plain facts your app already knows. You do not send points; the rules decide what each one is worth.">
+    <div class="grid items-start gap-8 lg:grid-cols-2">
+      <dl class="space-y-4">
+        {
+          item.events.map((event) => (
+            <div class="border border-zinc-800 bg-zinc-900/30 p-4">
+              <dt class="font-mono text-sm text-brand-300">{event.name}</dt>
+              <dd class="mt-1 text-sm text-zinc-400">{event.when}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <div>
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">A rule to start from</p>
+        <div class="overflow-x-auto border border-zinc-800 text-sm" tabindex="0" role="region" aria-label="Example rule">
+          <Code code={rule} lang="json" theme={codeTheme} />
+        </div>
+        <p class="mt-3 text-xs text-zinc-500">Rules are made in the dashboard, with no code change in your app. This is what one looks like when saved.</p>
+      </div>
+    </div>
+  </Section>
+
+  <Section eyebrow="Step 2" title="Pick the mechanics that fit">
+    <ul class="grid gap-4 md:grid-cols-2" data-reveal-group>
+      {
+        item.mechanics.map((mechanic) => (
+          <li class="border border-zinc-800 bg-zinc-900/30 p-6">
+            <h3 class="font-semibold text-zinc-100">{mechanic.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-zinc-400">{mechanic.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="mt-6 flex gap-3 border border-warning-500/40 bg-warning-500/5 p-5">
+      <TriangleAlert size={20} class="mt-0.5 shrink-0 text-warning-400" aria-hidden="true" />
+      <p class="text-sm leading-relaxed text-zinc-300"><strong class="text-zinc-100">A word of caution.</strong> {item.caution}</p>
+    </div>
+  </Section>
+
+  <Section eyebrow="Go further" title="Guides for this" class="pb-24">
+    <ul class="flex flex-wrap gap-3">
+      {
+        item.guides.map((guide) => (
+          <li>
+            <a href={guide.href} class="inline-flex border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500">
+              {guide.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="mt-10 text-sm text-zinc-400">
+      Building something else?
+      {
+        others.map((other, index) => (
+          <>
+            <a href={`/use-cases/${other.slug}/`} class="text-zinc-200 underline underline-offset-4 hover:text-zinc-50">
+              {other.name}
+            </a>
+            {index < others.length - 1 ? ', ' : '.'}
+          </>
+        ))
+      }
+    </p>
+  </Section>
+</SiteLayout>

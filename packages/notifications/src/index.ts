@@ -1,3 +1,4 @@
+export * from './localize.js';
 export * from './types.js';
 export * from './templates.js';
 export * from './service.js';

@@ -1,5 +1,5 @@
 /**
- * One small live demo per feature page (WEB-40), playing over the still pictures in
+ * One small live demo per feature page, playing over the still pictures in
  * FeatureVisual.astro. Each loops, plays only while on screen and the tab is visible, and with
  * reduced motion the still picture is what stays. Only transforms and opacity move.
  */

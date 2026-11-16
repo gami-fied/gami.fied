@@ -113,7 +113,7 @@ export default function AdminAuditLogsPage() {
         </div>
       ) : (
         <div className="border border-zinc-800 bg-zinc-950 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 font-bold text-xs">
                 <tr>

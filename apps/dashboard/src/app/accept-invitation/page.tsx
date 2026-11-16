@@ -183,7 +183,7 @@ function AcceptInvitationContent() {
               <span className="text-xs text-zinc-400 block">Organization</span>
               <h2 className="text-lg font-bold text-brand-400">{invitation.organizationName}</h2>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800 text-xs">
                 <div>
                   <span className="text-zinc-400 block">Invited Email</span>
                   <span className="text-zinc-200 font-bold">{invitation.email}</span>
@@ -197,7 +197,7 @@ function AcceptInvitationContent() {
 
             {showRegister ? (
               <form onSubmit={handleRegisterAndAccept} className="space-y-3 p-4 bg-zinc-950 border border-zinc-800">
-                <p className="text-zinc-300 text-[11px]">
+                <p className="text-zinc-300 text-xs">
                   Create your Gami account to accept invitation for <span className="text-brand-400">{invitation.email}</span>:
                 </p>
                 <Input

@@ -2,7 +2,9 @@
  * The Open Graph images built for the site, one per entry, at `/og/<key>.png`. Pages point at
  * theirs through the `og` prop of the layout. Add an entry whenever a page is added.
  */
+import { ALTERNATIVES } from './alternatives';
 import { FEATURES } from './features';
+import { USE_CASES } from './use-cases';
 
 export interface OgPage {
   title: string;
@@ -34,6 +36,18 @@ export const OG_PAGES: Record<string, OgPage> = {
     title: 'Playground',
     description: 'Write gamification rules and watch a player earn XP, streaks and badges, in your browser with the real engine.',
   },
+  components: {
+    title: 'React components',
+    description: 'Level progress, streaks, badges, challenges, a leaderboard and notifications, live with sample data.',
+  },
+  'use-cases': {
+    title: 'Use cases',
+    description: 'Learning apps, fitness, communities and SaaS onboarding, each with the events, rules and mechanics that fit.',
+  },
+  ...Object.fromEntries(USE_CASES.map((item) => [`use-cases/${item.slug}`, { title: item.name, description: item.tagline }])),
+  ...Object.fromEntries(
+    ALTERNATIVES.map((item) => [`alternatives/${item.slug}`, { title: `An open-source alternative to ${item.product}`, description: 'Side by side, from their own public page, and when each one fits.' }])
+  ),
   pricing: {
     title: 'Pricing',
     description: 'Community is free and open source forever. Cloud and Enterprise editions are coming.',

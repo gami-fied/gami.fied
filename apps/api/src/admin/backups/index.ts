@@ -4,6 +4,7 @@ import {
   createPlatformBackup,
   deletePlatformBackup,
   listPlatformBackups,
+  PartialBackupError,
   restorePlatformBackup,
   verifyPlatformBackup,
 } from './backup-service.js';
@@ -90,17 +91,33 @@ export async function adminBackupRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const result = await restorePlatformBackup({
-      backupId: request.params.backupId,
-      actorId: adminAuth.session.user.id,
-      confirmRestore: request.body.confirmRestore,
-    });
+    let result;
+    try {
+      result = await restorePlatformBackup({
+        backupId: request.params.backupId,
+        actorId: adminAuth.session.user.id,
+        confirmRestore: request.body.confirmRestore,
+      });
+    } catch (err) {
+      // An older backup would empty the tables it never held, so that takes a deliberate step on the server.
+      if (err instanceof PartialBackupError) {
+        return reply.status(409).send({
+          error: { code: 'BACKUP_INCOMPLETE', message: err.message },
+          message: err.message,
+          code: 'BACKUP_INCOMPLETE',
+          missingTables: err.missingTables,
+        });
+      }
+      throw err;
+    }
 
     return reply.send({
       success: true,
       message: 'Platform database restoration completed successfully',
       safetyBackupId: result.safetyBackupId,
       restoredBackupId: result.restoredBackupId,
+      restoredTables: result.restoredTables,
+      restoredRows: result.restoredRows,
     });
   };
 

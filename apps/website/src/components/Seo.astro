@@ -15,14 +15,29 @@ interface Props {
   /** Keep this page out of search results, even in production. */
   noindex?: boolean;
   type?: 'website' | 'article';
+  /** Structured data for search engines: one schema.org object, or several. */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** The trail to this page, home first. Written as structured data; the page shows its own. */
+  breadcrumbs?: { name: string; href: string }[];
 }
 
-const { title, description = SITE.description, og = 'index', noindex = false, type = 'website' } = Astro.props;
+const { title, description = SITE.description, og = 'index', noindex = false, type = 'website', jsonLd, breadcrumbs } = Astro.props;
 const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name}: ${SITE.tagline}`;
 const site = Astro.site ?? new URL(SITE.url);
 const canonical = new URL(Astro.url.pathname, site).href;
 const image = new URL(ogImagePath(og), site).href;
 const robots = noindex || SITE.noindex ? 'noindex, nofollow' : 'index, follow';
+
+const structured: Record<string, unknown>[] = [jsonLd ?? []].flat();
+if (breadcrumbs?.length) {
+  structured.push({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbs.map((crumb, index) => ({ '@type': 'ListItem', position: index + 1, name: crumb.name, item: new URL(crumb.href, site).href })),
+  });
+}
+// "<" is escaped so that text in the data can never close the script tag.
+const asJson = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c');
 ---
 
 <title>{fullTitle}</title>
@@ -46,3 +61,4 @@ const robots = noindex || SITE.noindex ? 'noindex, nofollow' : 'index, follow';
 <meta name="twitter:image" content={image} />
 
 <link rel="sitemap" href="/sitemap-index.xml" />
+{structured.map((data) => <script type="application/ld+json" is:inline set:html={asJson(data)} />)}

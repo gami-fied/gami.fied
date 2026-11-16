@@ -1,9 +1,19 @@
+import crypto from 'crypto';
 import { db, users } from '@gami/database';
 import { count, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../../audit-logs/index.js';
 import { requireAuth } from '../../authorization/index.js';
+import { consumeRateLimit } from '../../middleware/rate-limiter.js';
+
+const BOOTSTRAP_ATTEMPTS_PER_HOUR = 5;
+
+/** Compares two secrets without the time taken giving away how much of a guess was right. */
+function sameSecret(given: string, expected: string): boolean {
+  const digest = (value: string) => crypto.createHash('sha256').update(value).digest();
+  return crypto.timingSafeEqual(digest(given), digest(expected));
+}
 
 const bootstrapPayloadSchema = z.object({
   bootstrapSecret: z.string().min(1),
@@ -52,6 +62,19 @@ export async function adminBootstrapRoutes(fastify: FastifyInstance) {
 
     const { bootstrapSecret } = parseResult.data;
 
+    // A few tries an hour for each address and each account, so the secret cannot be guessed at speed.
+    const hour = Math.floor(Date.now() / 3_600_000);
+    const withinLimit =
+      (await consumeRateLimit(`bootstrap:ip:${request.ip}:${hour}`, BOOTSTRAP_ATTEMPTS_PER_HOUR, 3600)) &&
+      (await consumeRateLimit(`bootstrap:user:${session.user.id}:${hour}`, BOOTSTRAP_ATTEMPTS_PER_HOUR, 3600));
+    if (!withinLimit) {
+      return reply.status(429).send({
+        error: 'Too Many Requests',
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Too many attempts. Try again in an hour.',
+      });
+    }
+
     // Execute atomic claim inside database transaction
     try {
       const result = await db.transaction(async (tx) => {
@@ -70,7 +93,7 @@ export async function adminBootstrapRoutes(fastify: FastifyInstance) {
           };
         }
 
-        if (bootstrapSecret !== configuredSecret) {
+        if (!sameSecret(bootstrapSecret, configuredSecret)) {
           return {
             status: 401,
             payload: {

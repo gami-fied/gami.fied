@@ -57,6 +57,12 @@ const USER_SUB_RESOURCES: Record<string, ScopeResource> = {
   wallets: 'wallets',
   redemptions: 'rewards',
   rewards: 'rewards',
+  boxes: 'rewards',
+  passes: 'rewards',
+  cosmetics: 'rewards',
+  team: 'social',
+  goals: 'challenges',
+  journeys: 'challenges',
   friends: 'social',
   kudos: 'social',
   feed: 'social',
@@ -75,6 +81,14 @@ const RESOURCE_ALIASES: Record<string, ScopeResource> = {
   onboarding: 'system',
   'email-deliveries': 'notifications',
   'referral-program': 'referrals',
+  boxes: 'rewards',
+  passes: 'rewards',
+  cosmetics: 'rewards',
+  teams: 'social',
+  goals: 'challenges',
+  journeys: 'challenges',
+  'leaderboard-prizes': 'leaderboard',
+  translations: 'project',
 };
 
 /** Credentials and team access. A leaked key must never be able to widen its own reach. */

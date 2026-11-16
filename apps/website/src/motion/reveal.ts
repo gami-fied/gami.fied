@@ -1,5 +1,5 @@
 /**
- * The site's one reveal style (WEB-34): sections and cards fade in while rising 16 px, once, as
+ * The site's one reveal style: sections and cards fade in while rising 16 px, once, as
  * they scroll into view. `data-reveal` reveals an element; `data-reveal-group` reveals its children
  * one after another.
  *

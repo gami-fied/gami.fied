@@ -4,7 +4,7 @@ How people and apps sign in, what each role can do, and how secrets are stored.
 
 ---
 
-## 1. Authentication & Session Management
+## Authentication & Session Management
 
 - **Dashboard sign-in**: Managed by **Better Auth** with session cookies.
 - **Session Lifetimes**: Sessions last `maxSessionLifetimeHours` from sign-in and are not extended by activity.
@@ -12,7 +12,7 @@ How people and apps sign in, what each role can do, and how secrets are stored.
 
 ---
 
-## 2. Role-Based Access Control (RBAC)
+## Role-Based Access Control (RBAC)
 
 | Role | Scope | Permissions |
 | :--- | :--- | :--- |
@@ -25,7 +25,7 @@ See the full [authorization matrix](./security-audit.md#authorization-matrix).
 
 ---
 
-## 3. Project API Keys & Header Format
+## Project API Keys & Header Format
 
 Your server authenticates with a project API key. See [API authentication](./api-authentication.md).
 
@@ -43,7 +43,7 @@ x-api-key: gami_live_xxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-## 4. Email OTP Verification
+## Email OTP Verification
 
 Platform Admins can enforce platform-wide **Email OTP Verification** upon new user registration:
 
@@ -57,7 +57,7 @@ Users can reset a forgotten password from `/forgot-password`. This needs working
 
 ---
 
-## 5. Secret Encryption at Rest (AES-256-GCM)
+## Secret Encryption at Rest (AES-256-GCM)
 
 Stored secrets, including SMTP passwords and webhook signing secrets, are encrypted at rest with **AES-256-GCM**.
 
@@ -66,6 +66,6 @@ Stored secrets, including SMTP passwords and webhook signing secrets, are encryp
 
 ---
 
-## 6. Platform admins
+## Platform admins
 
-Claim the first admin at `/admin` with `PLATFORM_BOOTSTRAP_SECRET`, which works only while no platform admin exists. Further admins are added with a server command. See [Platform administration](./platform-administration.md#1-becoming-a-platform-admin).
+Claim the first admin at `/admin` with `PLATFORM_BOOTSTRAP_SECRET`, which works only while no platform admin exists. Further admins are added with a server command. See [Platform administration](./platform-administration.md#becoming-a-platform-admin).

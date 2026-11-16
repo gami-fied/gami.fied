@@ -3,6 +3,8 @@ import { BlockList, isIP } from 'net';
 import { featureDisabledBody, featureForProjectRoute } from './features.js';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { checkCallerRateLimit } from '../middleware/rate-limiter.js';
+import { internalCallAuth } from '../public/internal-call.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { ServerConfigService } from '../services/server-config.service.js';
 import { hasScope, resolveProjectPermission } from './permissions.js';
@@ -256,7 +258,7 @@ async function resolveProjectAccess(
   // 1. Check API Key Header (x-api-key)
   const rawApiKey = request.headers['x-api-key'] as string | undefined;
   if (rawApiKey) {
-    const authResult = await authenticateApiKey(rawApiKey);
+    const authResult = internalCallAuth(request) ?? (await authenticateApiKey(rawApiKey));
     if (!authResult || authResult.project.id !== projectId) {
       sendAuthError(request, reply, 401, 'UNAUTHORIZED', 'Invalid or unauthorized API key for this project');
       return null;
@@ -276,6 +278,8 @@ async function resolveProjectAccess(
       sendAuthError(request, reply, 403, 'FORBIDDEN', `API key lacks required scope "${permission.scope}"`);
       return null;
     }
+
+    if (!(await checkCallerRateLimit(reply, 'key', authResult.key.id))) return null;
 
     return {
       session: null,

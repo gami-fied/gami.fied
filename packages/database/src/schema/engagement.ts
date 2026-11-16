@@ -117,6 +117,28 @@ export const friendships = pgTable(
   (table) => [uniqueIndex('friendships_pair_unique').on(table.projectId, table.userId, table.friendId)]
 );
 
+/** A player asking another to be friends. It becomes a friendship when the other player accepts. */
+export const friendRequests = pgTable(
+  'friend_requests',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    fromUserId: text('from_user_id')
+      .notNull()
+      .references(() => endUsers.id, { onDelete: 'cascade' }),
+    toUserId: text('to_user_id')
+      .notNull()
+      .references(() => endUsers.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('friend_requests_pair_unique').on(table.projectId, table.fromUserId, table.toUserId),
+    index('friend_requests_to_idx').on(table.projectId, table.toUserId, table.createdAt),
+  ]
+);
+
 /** A small thank-you or well-done from one player to another. */
 export const kudos = pgTable(
   'kudos',

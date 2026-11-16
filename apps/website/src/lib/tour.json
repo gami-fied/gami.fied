@@ -1,0 +1,53 @@
+[
+  {
+    "path": "/dashboard",
+    "seconds": 14,
+    "caption": "A language app with 36 players and a month of activity. Everything here runs on Gami.Fied."
+  },
+  {
+    "path": "/dashboard",
+    "seconds": 12,
+    "caption": "Send traffic, and events arrive the way your app would send them.",
+    "action": "traffic"
+  },
+  {
+    "path": "/dashboard/rules",
+    "seconds": 16,
+    "caption": "Rules decide what an event is worth: XP, badges and gems."
+  },
+  {
+    "path": "/dashboard/achievements",
+    "seconds": 13,
+    "caption": "Badges unlock from rules, with how many players have each one."
+  },
+  {
+    "path": "/dashboard/streaks",
+    "seconds": 13,
+    "caption": "Daily streaks, with freezes that save a missed day."
+  },
+  {
+    "path": "/dashboard/leaderboard",
+    "seconds": 13,
+    "caption": "Leaderboards by period, updated as XP lands."
+  },
+  {
+    "path": "/dashboard/leagues",
+    "seconds": 12,
+    "caption": "Weekly leagues with promotion and relegation."
+  },
+  {
+    "path": "/dashboard/store",
+    "seconds": 13,
+    "caption": "Players spend gems in a reward store, with stock and limits."
+  },
+  {
+    "path": "/dashboard/users",
+    "seconds": 12,
+    "caption": "Every player, with their level, streak and history."
+  },
+  {
+    "path": "/dashboard",
+    "seconds": 8,
+    "caption": "Self-hosted and open source. Your players and their data stay on your servers."
+  }
+]

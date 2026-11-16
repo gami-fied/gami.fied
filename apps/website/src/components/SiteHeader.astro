@@ -1,10 +1,13 @@
 ---
-import { Menu, X } from '@lucide/astro';
+import { Menu, Moon, Sun, X } from '@lucide/astro';
 import GithubIcon from './icons/GithubIcon.astro';
+import { compactCount, githubStars } from '../lib/github';
 import { NAV, SITE } from '../lib/site';
 
 const path = Astro.url.pathname;
 const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+// Read once per build. Null until the project has enough stars for the number to mean something.
+const stars = await githubStars();
 ---
 
 <header class="site-header sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur" transition:persist>
@@ -31,15 +34,26 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
     </ul>
 
     <div class="flex items-center gap-2">
-      <a href={SITE.github} target="_blank" rel="noopener" class="hidden p-2 text-zinc-400 transition-colors hover:text-zinc-100 sm:block" aria-label="Gami.Fied on GitHub">
+      <a
+        href={SITE.github}
+        target="_blank"
+        rel="noopener"
+        class="hidden items-center gap-1.5 p-2 text-zinc-400 transition-colors hover:text-zinc-100 sm:inline-flex"
+        aria-label={stars ? `Gami.Fied on GitHub, ${stars.toLocaleString('en-US')} stars` : 'Gami.Fied on GitHub'}
+      >
         <GithubIcon size={18} />
+        {stars && <span class="text-xs font-medium tabular-nums">{compactCount(stars)}</span>}
       </a>
+      <button type="button" class="theme-toggle inline-flex min-h-11 min-w-11 items-center justify-center p-2 text-zinc-400 transition-colors hover:text-zinc-100" aria-label="Switch between the dark and light theme" data-theme-toggle>
+        <Moon size={18} class="theme-moon" aria-hidden="true" />
+        <Sun size={18} class="theme-sun" aria-hidden="true" />
+      </button>
       <a href="/docs/" class="hidden bg-brand-500 px-3.5 py-2 text-sm font-semibold text-on-accent transition duration-150 hover:bg-brand-400 sm:inline-block">
         Get started
       </a>
       <button
         type="button"
-        class="p-2 text-zinc-300 lg:hidden"
+        class="inline-flex min-h-11 min-w-11 items-center justify-center p-2 text-zinc-300 lg:hidden"
         aria-expanded="false"
         aria-controls="mobile-menu"
         aria-label="Open the menu"

@@ -1,0 +1,73 @@
+---
+/**
+ * Takes an email address for news about a plan that is not out yet, on the page itself. It only
+ * appears when `PUBLIC_WAITLIST_ENDPOINT` is set, because a static site has nowhere to keep an
+ * address by itself.
+ */
+import { SITE } from '../../lib/site';
+
+interface Props {
+  plan: string;
+}
+
+const { plan } = Astro.props;
+const id = `waitlist-${plan.toLowerCase()}`;
+---
+
+<form class="space-y-2" data-waitlist data-endpoint={SITE.waitlistEndpoint} data-plan={plan} novalidate>
+  <label for={id} class="block text-xs font-medium text-zinc-300">Tell me when {plan} is ready</label>
+  <div class="flex gap-2">
+    <input
+      id={id}
+      type="email"
+      name="email"
+      required
+      autocomplete="email"
+      placeholder="you@example.com"
+      class="min-w-0 flex-1 border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-brand-500 focus:outline-none"
+    />
+    <button type="submit" class="shrink-0 border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-900/60 disabled:opacity-50">
+      Notify me
+    </button>
+  </div>
+  <p class="text-xs text-zinc-500" data-waitlist-message aria-live="polite">One email when it launches. Nothing else.</p>
+</form>
+
+<script>
+  // One listener for every form on the page, which also survives page transitions.
+  document.addEventListener('submit', async (event) => {
+    const form = (event.target as Element | null)?.closest<HTMLFormElement>('[data-waitlist]');
+    if (!form) return;
+    event.preventDefault();
+
+    const input = form.querySelector<HTMLInputElement>('input[type="email"]')!;
+    const button = form.querySelector<HTMLButtonElement>('button')!;
+    const message = form.querySelector<HTMLElement>('[data-waitlist-message]')!;
+    const say = (text: string, tone: 'ok' | 'bad') => {
+      message.textContent = text;
+      message.className = `text-xs ${tone === 'ok' ? 'text-success-400' : 'text-danger-400'}`;
+    };
+
+    if (!input.checkValidity()) {
+      say('Enter a valid email address.', 'bad');
+      input.focus();
+      return;
+    }
+
+    button.disabled = true;
+    try {
+      const response = await fetch(form.dataset.endpoint!, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ email: input.value.trim(), plan: form.dataset.plan }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      say("You're on the list. We'll email you once, when it launches.", 'ok');
+      input.value = '';
+    } catch {
+      say("That didn't go through. Try again in a moment.", 'bad');
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>

@@ -1,0 +1,19 @@
+---
+/**
+ * The way back from the docs to the rest of the site. Starlight's header has only the logo, the
+ * search and GitHub, so without this a reader in the docs cannot reach the features or pricing.
+ * It sits where Starlight puts its social icons, and keeps them.
+ */
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+
+const links = [
+  { label: 'Features', href: '/features/' },
+  { label: 'Playground', href: '/playground/' },
+  { label: 'Pricing', href: '/pricing/' },
+];
+---
+
+<nav class="docs-site-links" aria-label="Site">
+  {links.map((link) => <a href={link.href}>{link.label}</a>)}
+</nav>
+<Default><slot /></Default>

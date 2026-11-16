@@ -129,12 +129,12 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
               Initial Assigned Projects ({selectedProjectIds.length}/{projects.length})
             </label>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             Select initial projects this member will have access to. If none selected, the member will initially have access to no projects.
           </p>
 
           {projectChecklistItems.length === 0 ? (
-            <div className="p-3 bg-zinc-900 border border-zinc-800 text-zinc-400 text-center text-[11px]">
+            <div className="p-3 bg-zinc-900 border border-zinc-800 text-zinc-400 text-center text-xs">
               No projects created in this organization yet.
             </div>
           ) : (

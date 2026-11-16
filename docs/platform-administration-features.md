@@ -28,13 +28,14 @@ Settings are cached for up to 30 seconds in each API and worker process, so a ch
 | `events`, `users` | Base |
 | `rules` | Base, needs `events` |
 | `xp` | Base, needs `users` |
-| `levels`, `leaderboards`, `referrals` | `xp` |
+| `levels`, `leaderboards`, `referrals`, `season_pass` | `xp` |
 | `achievements`, `environments`, `expressions`, `plugins` | `rules` |
-| `streaks`, `webhooks`, `integrations`, `connectors`, `analytics` | `events` |
+| `streaks`, `webhooks`, `integrations`, `connectors`, `analytics`, `teams` | `events` |
 | `challenges` | `events`, `xp` |
 | `boosts_limits` | `rules`, `xp` |
-| `segments`, `wallets`, `social`, `campaigns`, `realtime`, `push` | `users` |
-| `leagues` | `leaderboards` |
+| `segments`, `wallets`, `social`, `campaigns`, `realtime`, `push`, `translations`, `loot_boxes`, `cosmetics` | `users` |
+| `leagues`, `leaderboard_prizes` | `leaderboards` |
+| `journeys` | `challenges` |
 | `store` | `wallets` |
 
 ## Organization rules

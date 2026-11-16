@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Included Capabilities
+## Included Capabilities
 
 ### Core Gamification Engine
 - **Event Ingestion**: Async event ingestion with client idempotency and 64KB payload caps.
@@ -24,7 +24,7 @@
 
 ---
 
-## 2. Architectural Boundaries & Self-Hosting Standards
+## Architectural Boundaries & Self-Hosting Standards
 
 - **100% Self-Hostable**: Runs completely on standard PostgreSQL and Redis infrastructure.
 - **Zero Cloud Lock-In**: Requires no proprietary cloud services or external SaaS subscriptions.

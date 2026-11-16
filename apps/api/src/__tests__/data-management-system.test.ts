@@ -114,7 +114,7 @@ describe('Milestone 25 — Data Management, Backup, Import/Export & Disaster Rec
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.format).toBe('gami-organization-export');
-    expect(body.version).toBe(1);
+    expect(body.version).toBe(2);
     expect(body.manifest.organizationId).toBe(orgIdA);
 
     // Verify secret shield

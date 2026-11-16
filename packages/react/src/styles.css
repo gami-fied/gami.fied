@@ -1,9 +1,12 @@
 /*
  * Default look for @gami.fied/react. Every colour and size is a variable, so restyle by setting
  * them on a parent element, or ignore this file and style the `gami-*` class names yourself.
+ *
+ * The defaults sit on the page root (and on the host of a web component), not on the cards, so a
+ * value set on any element in between wins.
  */
-.gami-card,
-.gami-toasts {
+:root,
+:host {
   --gami-bg: #ffffff;
   --gami-fg: #18181b;
   --gami-muted: #52525b;
@@ -15,13 +18,17 @@
   --gami-warn: #b45309;
   --gami-radius: 8px;
   --gami-gap: 12px;
+}
+
+.gami-card,
+.gami-toasts {
   font-family: inherit;
   color: var(--gami-fg);
 }
 
 @media (prefers-color-scheme: dark) {
-  .gami-card,
-  .gami-toasts {
+  :root,
+  :host {
     --gami-bg: #18181b;
     --gami-fg: #f4f4f5;
     --gami-muted: #a1a1aa;
@@ -305,4 +312,144 @@
   .gami-toast {
     animation: none;
   }
+}
+
+/* Buttons in the components that act: opening a box, claiming a reward, wearing a cosmetic */
+.gami-button {
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  padding: 6px 12px;
+  min-height: 32px;
+  color: var(--gami-accent-fg);
+  background: var(--gami-accent);
+  border: 1px solid var(--gami-accent);
+  border-radius: var(--gami-radius);
+  cursor: pointer;
+}
+.gami-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.gami-button:focus-visible {
+  outline: 2px solid var(--gami-fg);
+  outline-offset: 2px;
+}
+.gami-title {
+  margin-left: 6px;
+  color: var(--gami-accent);
+  border-color: var(--gami-accent);
+}
+
+/* Mystery boxes */
+.gami-box {
+  display: grid;
+  gap: 6px;
+}
+.gami-result {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--gami-good);
+  border-radius: var(--gami-radius);
+}
+.gami-odds summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--gami-muted);
+}
+.gami-odds table {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.gami-odds th {
+  text-align: left;
+  font-weight: 600;
+}
+.gami-odds th .gami-pill {
+  margin-left: 6px;
+}
+.gami-odds td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.gami-odds th,
+.gami-odds td {
+  padding: 3px 0;
+  border-top: 1px solid var(--gami-border);
+}
+
+/* Season pass and journeys */
+.gami-tiers,
+.gami-path {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.gami-tier {
+  display: grid;
+  grid-template-columns: 2rem 1fr 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: 4px;
+  opacity: 0.6;
+}
+.gami-tier-open {
+  opacity: 1;
+  background: color-mix(in srgb, var(--gami-accent) 8%, transparent);
+}
+.gami-premium {
+  color: var(--gami-warn);
+}
+.gami-path-step {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+}
+.gami-cosmetic-image {
+  border-radius: 4px;
+  object-fit: cover;
+  align-self: center;
+}
+
+/* Inbox */
+.gami-unread {
+  border-left: 3px solid var(--gami-accent);
+  padding-left: 8px;
+}
+.gami-count {
+  color: var(--gami-accent);
+  border-color: var(--gami-accent);
+}
+.gami-link,
+.gami-note-button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.gami-link {
+  color: var(--gami-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.gami-note-button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+.gami-link:focus-visible,
+.gami-note-button:focus-visible {
+  outline: 2px solid var(--gami-accent);
+  outline-offset: 2px;
 }

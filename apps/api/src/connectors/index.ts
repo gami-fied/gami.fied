@@ -1,11 +1,14 @@
 import crypto from 'crypto';
-import { connectors, db, endUsers } from '@gami/database';
+import { connectors, db, endUsers, featuresFor, organizations, policyFor, projects } from '@gami/database';
 import { decryptSecret, encryptSecret } from '@gami/webhooks';
 import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { createAuditLog } from '../audit-logs/index.js';
 import { requireProjectAccess } from '../authorization/index.js';
-import { ingestEvent } from '../services/event-ingestion.js';
+import { featureDisabledBody } from '../authorization/features.js';
+import { checkPolicyRateLimit, checkRateLimit } from '../middleware/rate-limiter.js';
+import { ingestEvents } from '../services/event-ingestion.js';
 import { CONNECTOR_TYPES, mapConnectorPayload, verifyConnectorRequest, type ConnectorSettings, type ConnectorType } from './mappers.js';
 
 const settingsSchema = z
@@ -30,6 +33,22 @@ const shape = (row: typeof connectors.$inferSelect) => {
   return { ...rest, path: `/v1/connectors/${row.id}` };
 };
 
+type Access = NonNullable<Awaited<ReturnType<typeof requireProjectAccess>>>;
+
+/** Connectors hold shared secrets, so every change to one is recorded. */
+const audit = (access: Access, projectId: string, action: string, connector: { id: string; type: string; name: string }, metadata: Record<string, unknown> = {}) =>
+  createAuditLog(db, {
+    organizationId: access.project.organizationId,
+    projectId,
+    actorType: 'user',
+    actorId: access.membership.userId,
+    action,
+    severity: action === 'connector.deleted' || action === 'connector.secret_rotated' ? 'warning' : 'info',
+    resourceType: 'connector',
+    resourceId: connector.id,
+    metadata: { type: connector.type, name: connector.name, ...metadata },
+  });
+
 export async function connectorRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: { projectId: string } }>('/api/projects/:projectId/connectors', async (request, reply) => {
     const { projectId } = request.params;
@@ -40,7 +59,8 @@ export async function connectorRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Params: { projectId: string } }>('/api/projects/:projectId/connectors', async (request, reply) => {
     const { projectId } = request.params;
-    if (!(await requireProjectAccess(request, reply, projectId))) return;
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access) return;
     const parsed = createSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'Bad Request', message: parsed.error.issues[0]?.message ?? 'Invalid connector' });
     const signs = parsed.data.type === 'stripe' || parsed.data.type === 'github';
@@ -52,13 +72,15 @@ export async function connectorRoutes(fastify: FastifyInstance) {
       .insert(connectors)
       .values({ id: `con_${crypto.randomUUID()}`, projectId, type: parsed.data.type, name: parsed.data.name, secretEncrypted: encryptSecret(secret), settings: parsed.data.settings })
       .returning();
+    await audit(access, projectId, 'connector.created', created!);
     // The secret is shown once. Afterwards only a new one can be made.
     return reply.status(201).send({ ...shape(created!), secret: signs ? undefined : secret });
   });
 
   fastify.patch<{ Params: { projectId: string; connectorId: string } }>('/api/projects/:projectId/connectors/:connectorId', async (request, reply) => {
     const { projectId, connectorId } = request.params;
-    if (!(await requireProjectAccess(request, reply, projectId))) return;
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access) return;
     const parsed = z.object({ name: z.string().min(1).max(128), enabled: z.boolean(), settings: settingsSchema, secret: z.string().min(8).max(256) }).partial().safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'Bad Request', message: parsed.error.issues[0]?.message ?? 'Invalid connector' });
     const { secret, ...rest } = parsed.data;
@@ -68,26 +90,34 @@ export async function connectorRoutes(fastify: FastifyInstance) {
       .where(and(eq(connectors.id, connectorId), eq(connectors.projectId, projectId)))
       .returning();
     if (!updated) return reply.status(404).send({ error: 'Not Found', message: 'Connector not found' });
+    await audit(access, projectId, secret ? 'connector.secret_rotated' : 'connector.updated', updated, { changed: Object.keys(rest), secretReplaced: Boolean(secret) });
     return reply.send(shape(updated));
   });
 
   // Makes a new shared secret for Segment or RudderStack. The old one stops working at once.
   fastify.post<{ Params: { projectId: string; connectorId: string } }>('/api/projects/:projectId/connectors/:connectorId/rotate', async (request, reply) => {
     const { projectId, connectorId } = request.params;
-    if (!(await requireProjectAccess(request, reply, projectId))) return;
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access) return;
     const [row] = await db.select().from(connectors).where(and(eq(connectors.id, connectorId), eq(connectors.projectId, projectId)));
     if (!row) return reply.status(404).send({ error: 'Not Found', message: 'Connector not found' });
     if (row.type === 'stripe' || row.type === 'github') return reply.status(400).send({ error: 'Bad Request', message: 'Make a new secret in that service, then paste it here' });
     const secret = `gcs_${crypto.randomBytes(24).toString('hex')}`;
     await db.update(connectors).set({ secretEncrypted: encryptSecret(secret), updatedAt: new Date() }).where(eq(connectors.id, row.id));
+    await audit(access, projectId, 'connector.secret_rotated', row);
     return reply.send({ secret });
   });
 
   fastify.delete<{ Params: { projectId: string; connectorId: string } }>('/api/projects/:projectId/connectors/:connectorId', async (request, reply) => {
     const { projectId, connectorId } = request.params;
-    if (!(await requireProjectAccess(request, reply, projectId))) return;
-    const [gone] = await db.delete(connectors).where(and(eq(connectors.id, connectorId), eq(connectors.projectId, projectId))).returning({ id: connectors.id });
+    const access = await requireProjectAccess(request, reply, projectId);
+    if (!access) return;
+    const [gone] = await db
+      .delete(connectors)
+      .where(and(eq(connectors.id, connectorId), eq(connectors.projectId, projectId)))
+      .returning({ id: connectors.id, type: connectors.type, name: connectors.name });
     if (!gone) return reply.status(404).send({ error: 'Not Found', message: 'Connector not found' });
+    await audit(access, projectId, 'connector.deleted', gone);
     return reply.status(204).send();
   });
 
@@ -99,6 +129,18 @@ export async function connectorRoutes(fastify: FastifyInstance) {
     scope.post<{ Params: { connectorId: string } }>('/v1/connectors/:connectorId', async (request, reply) => {
       const [connector] = await db.select().from(connectors).where(eq(connectors.id, request.params.connectorId));
       if (!connector || !connector.enabled) return reply.status(404).send({ code: 'NOT_FOUND', message: 'Unknown connector' });
+
+      // The same gate as POST /v1/events: an active organization, the feature switched on, and both event limits.
+      const [owner] = await db
+        .select({ organizationId: organizations.id, status: organizations.status })
+        .from(projects)
+        .innerJoin(organizations, eq(organizations.id, projects.organizationId))
+        .where(eq(projects.id, connector.projectId));
+      if (!owner || owner.status === 'suspended') return reply.status(403).send({ code: 'FORBIDDEN', message: 'Organization account is suspended' });
+      if (!(await featuresFor(owner.organizationId)).connectors) return reply.status(403).send(featureDisabledBody('connectors'));
+      const policy = await policyFor(owner.organizationId);
+      if (!(await checkPolicyRateLimit(request, reply, connector.projectId, policy.eventsPerMinute))) return reply;
+      if (!(await checkRateLimit(request, reply, connector.projectId))) return reply;
 
       const raw = typeof request.body === 'string' ? request.body : '';
       let secret: string;
@@ -122,26 +164,21 @@ export async function connectorRoutes(fastify: FastifyInstance) {
       }
 
       const { items, skipped } = mapConnectorPayload(connector.type, body, request.headers, connector.settings as ConnectorSettings);
-      let accepted = 0;
-      let duplicates = 0;
+      // Profiles first, then every event of the batch in one transaction.
       for (const item of items) {
-        if (item.kind === 'identify') {
-          await identify(connector.projectId, item.userId, item.name, item.email, item.traits);
-          continue;
-        }
-        const result = await ingestEvent({
-          projectId: connector.projectId,
-          eventType: item.type,
-          externalUserId: item.userId,
-          payload: item.payload,
-          occurredAt: item.occurredAt,
-          idempotencyKey: item.idempotencyKey,
-        });
-        if (result.outcome === 'accepted') {
-          if (result.duplicate) duplicates += 1;
-          else accepted += 1;
-        }
+        if (item.kind === 'identify') await identify(connector.projectId, item.userId, item.name, item.email, item.traits);
       }
+      const results = await ingestEvents(
+        items.flatMap((item) =>
+          item.kind === 'identify'
+            ? []
+            : [{ projectId: connector.projectId, eventType: item.type, externalUserId: item.userId, payload: item.payload, occurredAt: item.occurredAt, idempotencyKey: item.idempotencyKey }]
+        )
+      );
+      const failed = results.find((result) => result.outcome === 'failed');
+      if (failed && failed.outcome === 'failed') throw failed.error;
+      const accepted = results.filter((result) => result.outcome === 'accepted' && !result.duplicate).length;
+      const duplicates = results.filter((result) => result.outcome === 'accepted' && result.duplicate).length;
 
       await db
         .update(connectors)

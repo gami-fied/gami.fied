@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { ArrowLeft, ArrowRight, BookOpen } from '@lucide/astro';
+import { ArrowRight, BookOpen } from '@lucide/astro';
 import Button from '../../components/Button.astro';
 import FeatureIcon from '../../components/FeatureIcon.astro';
 import FeatureVisual from '../../components/FeatureVisual.astro';
@@ -25,11 +25,17 @@ const { feature, next } = Astro.props;
 const screenshot = screenshotFor(feature.slug);
 ---
 
-<SiteLayout title={feature.name} description={`${feature.tagline} ${feature.summary}`} og={`features/${feature.slug}`}>
+<SiteLayout title={feature.name} description={`${feature.tagline} ${feature.summary}`} og={`features/${feature.slug}`} breadcrumbs={[{ name: 'Home', href: '/' }, { name: 'Features', href: '/features/' }, { name: feature.name, href: `/features/${feature.slug}/` }]}>
   <section class="mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pt-20">
-    <a href="/features/" class="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-200">
-      <ArrowLeft size={14} aria-hidden="true" /> All features
-    </a>
+    <nav aria-label="Breadcrumb">
+      <ol class="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <li><a href="/" class="transition-colors hover:text-zinc-200">Home</a></li>
+        <li aria-hidden="true">/</li>
+        <li><a href="/features/" class="transition-colors hover:text-zinc-200">Features</a></li>
+        <li aria-hidden="true">/</li>
+        <li aria-current="page" class="text-zinc-300">{feature.name}</li>
+      </ol>
+    </nav>
     <div class="mt-8 grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
       <div>
         <span class="flex h-12 w-12 items-center justify-center border border-zinc-800 bg-zinc-950 text-brand-400" transition:name={`feature-icon-${feature.slug}`}>

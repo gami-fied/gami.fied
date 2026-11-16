@@ -1,0 +1,46 @@
+{
+  "name": "@gami.fied/elements",
+  "version": "1.3.0",
+  "description": "Gami.Fied as HTML elements, for Vue, Svelte and plain pages: level bar, badges, streaks, leaderboard, inbox and more in one script.",
+  "keywords": ["gamification", "web-components", "custom-elements", "vue", "svelte", "leaderboard", "badges"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gami-fied/gami.fied.git",
+    "directory": "packages/elements"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/gami-elements.js",
+  "jsdelivr": "./dist/gami-elements.js",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
+    "./gami-elements.js": "./dist/gami-elements.js"
+  },
+  "scripts": {
+    "build": "tsc && node build.mjs",
+    "prepublishOnly": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && pnpm build && pnpm test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check:browser": "node scripts/check-browser.mjs"
+  },
+  "dependencies": {
+    "@gami.fied/react": "workspace:*",
+    "@gami.fied/sdk": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.65.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}

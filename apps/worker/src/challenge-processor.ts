@@ -19,7 +19,7 @@ import {
   createNotificationIntent,
   generateChallengeCompletionSourceId,
 } from '@gami/notifications';
-import { awardXp, grantAchievement, type RewardTransaction } from '@gami/rewards';
+import { awardXp, completeFinishedJourneys, grantAchievement, lockedChallengeIds, type RewardTransaction } from '@gami/rewards';
 import { createWebhookDelivery } from '@gami/webhooks';
 import { evaluateConditionTree, type Condition, type EventData } from '@gami/rules';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
@@ -153,7 +153,7 @@ export async function dispatchPendingChallengeRewards(
  */
 export async function processChallengesForEvent(
   eventData: EventData,
-  options?: { skipImmediateRewardDispatch?: boolean }
+  options?: { skipImmediateRewardDispatch?: boolean; journeys?: boolean }
 ): Promise<{ processedChallengesCount: number; completedChallengesCount: number }> {
   if (!eventData.userId) {
     return { processedChallengesCount: 0, completedChallengesCount: 0 };
@@ -185,6 +185,9 @@ export async function processChallengesForEvent(
   const passes = (filters: ChallengeFilter[]) =>
     evaluateConditionTree({ all: filters as Condition[] }, eventData);
 
+  // A step of a journey does not move until the steps before it are finished.
+  const locked = options?.journeys === false ? new Set<string>() : await lockedChallengeIds(projectId, userId);
+
   let processedCount = 0;
   let newlyCompletedCount = 0;
 
@@ -192,6 +195,7 @@ export async function processChallengesForEvent(
     // Check challenge timeline (startAt / endAt)
     if (challenge.startAt && challenge.startAt > now) continue;
     if (challenge.endAt && challenge.endAt < now) continue;
+    if (locked.has(challenge.id)) continue;
 
     const period = periodKey(challenge.recurrence as ChallengeRecurrence | null, occurredAt);
     const progressRow = and(
@@ -332,6 +336,8 @@ export async function processChallengesForEvent(
 
       if (newlyCompleted) {
         newlyCompletedCount++;
+        // Finishing the last step of a journey pays its prizes.
+        if (options?.journeys !== false) await completeFinishedJourneys(projectId, userId);
       }
 
       // Step e: Immediate post-commit dispatching unless skipped (e.g. for crash simulation tests)

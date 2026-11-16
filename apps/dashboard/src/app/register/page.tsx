@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
 import { LogoMark } from '@gami/ui';
+import { ServerUnreachableNotice } from '@/components/ui/server-unreachable-notice';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -74,6 +75,8 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Create your account</h1>
           <p className="text-xs text-zinc-400">Set up your gamification control center</p>
         </div>
+
+        <ServerUnreachableNotice />
 
         <Card className="bg-zinc-900/90 border-zinc-800 shadow-xl">
           <CardHeader>

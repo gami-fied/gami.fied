@@ -7,7 +7,7 @@ These set up Gami.Fied on a hosting platform with a few clicks: the dashboard, t
 
 On every platform, only the **dashboard** is public. It forwards `/api` and `/v1` to the API over the platform's private network, so your app, the SDK and the React components all use the dashboard's address.
 
-After any of them, [claim the first platform admin](../platform-administration.md#1-becoming-a-platform-admin) with `PLATFORM_BOOTSTRAP_SECRET`, and keep a copy of `ENCRYPTION_MASTER_KEY` somewhere safe: backups cannot be restored without it.
+After any of them, [claim the first platform admin](../platform-administration.md#becoming-a-platform-admin) with `PLATFORM_BOOTSTRAP_SECRET`, and keep a copy of `ENCRYPTION_MASTER_KEY` somewhere safe: backups cannot be restored without it.
 
 ## Render
 
@@ -64,4 +64,4 @@ Railway templates are made in Railway's own dashboard, so this is a list of step
 
 ## Upgrading
 
-Every platform here runs the `latest` images, so redeploying picks up a new release. To stay on one version, change `latest` to a version such as `1.2.0` in the file or the service settings, then follow [Upgrading](./upgrading.md) when you move on. Read the release notes first.
+Every platform here runs the `latest` images, so redeploying picks up a new release. To stay on one version, change `latest` to a version such as `1.3.0` in the file or the service settings, then follow [Upgrading](./upgrading.md) when you move on. Read the release notes first.

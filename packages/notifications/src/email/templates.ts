@@ -119,6 +119,20 @@ export function renderEmailTemplate(
       const textBody = `[${appName}] ${subject}\n\n${amount} ${currencyName} expire on ${when}. Spend them before then so they are not lost.\n\nSent by ${appName} Gamification Engine.`;
       return { subject, htmlBody, textBody };
     }
+    case 'prize_won': {
+      const title = (data['title'] as string) || 'You won a prize';
+      const prizes = (data['prizes'] as string) || 'a prize';
+      const subject = title;
+      const htmlBody = renderBaseHtmlLayout(
+        subject,
+        `<div class="badge">🎁 PRIZE</div>
+         <div class="title">${title}</div>
+         <div class="body-content">You won <strong>${prizes}</strong>.</div>`,
+        appName
+      );
+      const textBody = `[${appName}] ${subject}\n\nYou won ${prizes}.\n\nSent by ${appName} Gamification Engine.`;
+      return { subject, htmlBody, textBody };
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 /**
- * "How it works" as a scroll story (WEB-38). On wide screens with motion, the section pins while
+ * "How it works" as a scroll story. On wide screens with motion, the section pins while
  * the reader scrolls through the three steps, and a phone beside them shows each result as it
  * happens: the event arriving, the rule lighting up, then the XP bar filling and the badge toast.
  * Scrolling scrubs the timeline, so the reader sets the pace. On phones and with reduced motion

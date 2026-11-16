@@ -3,10 +3,11 @@ import { Check, Minus, X } from '@lucide/astro';
 import Button from '../components/Button.astro';
 import Section from '../components/Section.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
+import { ALTERNATIVES } from '../lib/alternatives';
 
 /**
  * An honest comparison. Facts about other products come from their public pages, linked below,
- * as checked for PLAN.md's assessment. Update the date when you re-check them.
+ * as checked on the date below. Update the date when you re-check them.
  */
 const checkedOn = 'November 2026';
 
@@ -62,7 +63,7 @@ const weaker = [
   { title: 'No single sign-on yet', text: 'SAML, OIDC and SCIM are planned for Enterprise. Today the dashboard uses email and password accounts.' },
   { title: 'Push not yet proven on real accounts', text: 'Apple and Google push are tested against stand-ins, not real developer accounts.' },
   { title: 'No impact analytics yet', text: 'A/B tests of mechanics and retention reports, which prove the effect of gamification, are planned.' },
-  { title: 'React components need browser testing', text: 'They are tested by rendering on the server, not yet in real browsers, and are not on npm yet.' },
+  { title: 'React components need browser testing', text: 'They are tested by rendering on the server. Only the web components are checked in a real browser so far.' },
 ];
 
 const icon = { yes: Check, no: X, partly: Minus } as const;
@@ -78,12 +79,13 @@ const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
     intro="An honest look at the options, including where Gami.Fied is not the best choice yet."
     class="pt-24"
   >
-    <div class="relative overflow-x-auto border border-zinc-800">
+    <p class="mb-3 text-xs text-zinc-500 md:hidden">Swipe sideways to see every column.</p>
+    <div class="scroll-table relative overflow-x-auto border border-zinc-800" tabindex="0" role="region" aria-label="Comparison table">
       <table class="w-full min-w-[820px] border-collapse text-left text-sm">
         <caption class="sr-only">Gami.Fied compared with other options</caption>
         <thead>
           <tr class="border-b border-zinc-800 bg-zinc-900/60">
-            <th scope="col" class="w-56 px-4 py-4 font-medium text-zinc-500"><span class="sr-only">Feature</span></th>
+            <th scope="col" class="w-56 max-md:w-32 px-4 py-4 font-medium text-zinc-500"><span class="sr-only">Feature</span></th>
             {
               columns.map((column, index) => (
                 <th scope="col" class:list={['px-4 py-4 font-semibold', index === 0 ? 'bg-brand-500/10 text-brand-200' : 'text-zinc-200']}>
@@ -97,7 +99,7 @@ const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
           {
             rows.map((row) => (
               <tr class="border-b border-zinc-800/70 last:border-0">
-                <th scope="row" class="px-4 py-4 font-medium text-zinc-300">{row.label}</th>
+                <th scope="row" class="px-4 py-4 font-medium text-zinc-300 max-md:max-w-32 max-md:text-xs">{row.label}</th>
                 {row.cells.map((cell, index) => {
                   const Icon = icon[cell.mark];
                   return (
@@ -130,9 +132,22 @@ const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
       }
       {' '}Checked against their public pages in {checkedOn}. Something out of date? <a href="https://github.com/gami-fied/gami.fied/issues" target="_blank" rel="noopener" class="underline-offset-2 hover:text-zinc-300 hover:underline">Tell us</a>.
     </p>
+    <p class="mt-3 text-sm text-zinc-400">
+      Side by side with one product:
+      {
+        ALTERNATIVES.map((item, index) => (
+          <>
+            <a href={`/alternatives/${item.slug}/`} class="text-zinc-200 underline underline-offset-4 hover:text-zinc-50">
+              {item.product}
+            </a>
+            {index < ALTERNATIVES.length - 1 ? ', ' : '.'}
+          </>
+        ))
+      }
+    </p>
   </Section>
 
-  <Section eyebrow="Being honest" title="Where Gami.Fied is weaker today" intro="These are real gaps. Most are on the plan, but if one matters to you now, another option may suit you better.">
+  <Section eyebrow="Being honest" title="Where Gami.Fied is weaker today" intro="These are real gaps. Most are planned, but if one matters to you now, another option may suit you better.">
     <ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-reveal-group>
       {
         weaker.map((item) => (

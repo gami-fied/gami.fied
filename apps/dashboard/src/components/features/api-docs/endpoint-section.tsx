@@ -30,7 +30,7 @@ const METHOD_STYLES: Record<string, string> = {
 export function MethodBadge({ method }: { method: string }) {
   return (
     <span
-      className={`inline-block w-12 shrink-0 border py-0.5 text-center text-[10px] font-bold uppercase ${METHOD_STYLES[method] ?? ''}`}
+      className={`inline-block w-12 shrink-0 border py-0.5 text-center text-xs font-bold uppercase ${METHOD_STYLES[method] ?? ''}`}
     >
       {method === 'delete' ? 'DEL' : method}
     </span>
@@ -47,10 +47,10 @@ function FieldTable({ title, rows, showRequired = true }: { title: string; rows:
           <div key={row.name} className="py-2" style={{ paddingLeft: row.depth * 16 }}>
             <dt className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <code className="text-xs font-bold text-zinc-100">{row.name.split('.').pop()}</code>
-              <span className="text-[11px] text-zinc-400">{row.type}</span>
+              <span className="text-xs text-zinc-400">{row.type}</span>
               {showRequired && (
                 <span
-                  className={`text-[11px] font-semibold ${row.required ? 'text-danger-400' : 'text-zinc-400'}`}
+                  className={`text-xs font-semibold ${row.required ? 'text-danger-400' : 'text-zinc-400'}`}
                 >
                   {row.required ? 'Required' : 'Optional'}
                 </span>
@@ -169,12 +169,25 @@ export function EndpointSection({ spec, endpoint, baseUrl, language, onLanguageC
             code={codeSample(endpoint, baseUrl, language)}
             label={
               <div role="tablist" aria-label="Code language" className="flex gap-3">
-                {SAMPLE_LANGUAGES.map((option) => (
+                {SAMPLE_LANGUAGES.map((option, index) => (
                   <button
                     key={option.id}
+                    type="button"
                     role="tab"
                     aria-selected={language === option.id}
+                    tabIndex={language === option.id ? 0 : -1}
                     onClick={() => onLanguageChange(option.id)}
+                    onKeyDown={(event) => {
+                      // Arrow keys move between languages, as they do on every other set of tabs.
+                      const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+                      if (!step) return;
+                      event.preventDefault();
+                      const next = SAMPLE_LANGUAGES[(index + step + SAMPLE_LANGUAGES.length) % SAMPLE_LANGUAGES.length];
+                      if (!next) return;
+                      onLanguageChange(next.id);
+                      const tabs = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+                      tabs?.[(index + step + SAMPLE_LANGUAGES.length) % SAMPLE_LANGUAGES.length]?.focus();
+                    }}
                     className={`transition-colors ${
                       language === option.id ? 'text-brand-400' : 'hover:text-zinc-100'
                     }`}

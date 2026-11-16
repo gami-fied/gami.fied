@@ -12,9 +12,13 @@ Documentation for **Gami.Fied Community Edition**, a self-hosted gamification en
 | 🛠️ [**Developer API Platform**](./api-reference.md) | Complete REST API Reference, [Authentication](./api-authentication.md), [Errors](./api-errors.md), [Request Tracing](./request-ids.md), [Idempotency](./idempotency.md), [API Versioning](./api-versioning.md), and [`@gami.fied/sdk`](./sdk.md). |
 | ⚡ [**Quick Start Guides**](./quickstarts/rest.md) | Step-by-step integration guides for [REST / cURL](./quickstarts/rest.md), [Node.js](./quickstarts/node.md), [Python](./quickstarts/python.md), [Next.js](./quickstarts/nextjs.md), and [React](./quickstarts/react.md). |
 | 🔒 [**Authentication & Security**](./authentication-and-security.md) | Sessions, roles, API keys, email verification and secret encryption. |
+| 🪪 [**Player token security**](./player-token-security.md) | What someone holding a player token can and cannot do, and what is left to you. |
 | 🔐 [**Route permissions**](./permissions.md) | Generated table of the role and API key scope each project route needs. |
 | 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Events, rules, XP, levels, achievements, challenges and leaderboards. |
 | 🛒 [**Economy and Store**](./economy-and-store.md) | Boosts, limits, backtests, rule drafts, currencies, wallets and the reward store. |
+| 🎁 [**Boxes, Passes, Teams and Journeys**](./boxes-passes-teams-and-journeys.md) | Random rewards with published odds, season passes, teams, shared goals, cosmetics, leaderboard prizes and journeys. |
+| 🌍 [**Translations**](./translations.md) | Names, descriptions and notifications in each player's language, with fallback. |
+| 🧩 [**Web Components**](./web-components.md) | The components as HTML elements, for Vue, Svelte and plain pages. |
 | 🏆 [**Segments, Leagues and Social**](./social-and-competition.md) | Segments, team and country boards, leagues, friends, kudos, the feed, share cards and invites. |
 | 🎛️ [**Features and Organization Rules**](./platform-administration-features.md) | Turning features on and off for the instance or one organization, limits and security rules, and emergency access controls. |
 | 🔌 [**Connectors, Environments and Plugins**](./connectors-environments-and-plugins.md) | Segment, RudderStack, Stripe and GitHub, staging and promotion, expression conditions and plugin actions. |

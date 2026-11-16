@@ -46,6 +46,10 @@ export function generateNotificationText<T extends NotificationType>(
         message: `${payload.amount} ${payload.currencyName} expire on ${payload.expiresAt.slice(0, 10)}. Spend them before then!`,
       };
     }
+    case 'prize_won': {
+      const payload = data as NotificationPayloadMap['prize_won'];
+      return { title: payload.title, message: `You won ${payload.prizes}.` };
+    }
     default: {
       return {
         title: 'Notification',

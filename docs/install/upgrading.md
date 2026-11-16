@@ -15,7 +15,7 @@ Every release is listed on [GitHub releases](https://github.com/gami-fied/gami.f
 In the folder with your `docker-compose.yml`, set the version you want in `.env`:
 
 ```bash
-GAMI_VERSION=1.2.0
+GAMI_VERSION=1.3.0
 ```
 
 Then pull the images and restart:
@@ -36,7 +36,7 @@ docker compose ps
 curl http://localhost:3001/ready
 ```
 
-Open the dashboard and send a test event. The [smoke test](../deployment-and-production.md#5-production-smoke-testing) lists what to check.
+Open the dashboard and send a test event. The [smoke test](../deployment-and-production.md#production-smoke-testing) lists what to check.
 
 ## Going back
 

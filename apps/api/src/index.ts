@@ -18,6 +18,15 @@ import { lifecycleRoutes } from './lifecycle/index.js';
 import { ruleVersionRoutes } from './rules/versions.js';
 import { xpPolicyRoutes } from './xp-policy/index.js';
 import { storeRoutes } from './store/index.js';
+import { boxRoutes } from './mechanics/boxes.js';
+import { passRoutes } from './mechanics/passes.js';
+import { teamRoutes } from './mechanics/teams.js';
+import { cosmeticRoutes } from './mechanics/cosmetics.js';
+import { leaderboardPrizeRoutes } from './mechanics/leaderboard-prizes.js';
+import { journeyRoutes } from './mechanics/journeys.js';
+import { endUserMechanicRoutes } from './public/end-user-mechanics.js';
+import { localizePlayerResponse } from './public/localize.js';
+import { translationRoutes } from './translations/index.js';
 import { loadPlugins } from '@gami/rules/node';
 import { segmentRoutes } from './segments/index.js';
 import { leagueRoutes } from './engagement/leagues.js';
@@ -73,13 +82,35 @@ import { xpRoutes } from './xp/index.js';
 const log = createLogger('API');
 
 import fs from 'fs';
+import { isIP } from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { analyticsRoutes } from './analytics/index.js';
 import { demoRoutes } from './demo/index.js';
 import { globalErrorHandler } from './middleware/error-handler.js';
 import { ipRateLimitHook } from './middleware/rate-limiter.js';
-import { requestTracingHook } from './middleware/request-tracing.js';
+import { redactUrl, requestTracingHook } from './middleware/request-tracing.js';
+
+/**
+ * Reads `TRUST_PROXY`. `true` trusts every proxy in the chain, a number trusts that many proxies
+ * in front of the API, and a list of addresses or ranges trusts only those. Anything else trusts none.
+ */
+export function trustProxySetting(value: string | undefined): boolean | number | string {
+  const setting = (value ?? '').trim();
+  if (setting === '' || setting.toLowerCase() === 'false') return false;
+  if (setting.toLowerCase() === 'true') return true;
+  if (/^\d+$/.test(setting)) return Number(setting);
+  const entries = setting.split(',').map((entry) => entry.trim()).filter(Boolean);
+  const valid = entries.every((entry) => {
+    const [address, bits] = entry.split('/');
+    return isIP(address ?? '') !== 0 && (bits === undefined || /^\d{1,3}$/.test(bits));
+  });
+  if (!valid) {
+    log.warn(`TRUST_PROXY "${setting}" is not true, false, a number or a list of addresses, so no proxy is trusted`);
+    return false;
+  }
+  return entries.join(',');
+}
 
 /** Routes registered by the most recent `buildServer` calls, used to generate documentation. */
 export const registeredRoutes: { method: string; url: string }[] = [];
@@ -90,10 +121,20 @@ export async function buildServer() {
   const fastify = Fastify({
     logger: {
       level: process.env.NODE_ENV === 'test' ? 'silent' : 'info',
+      // Player streams and unsubscribe links carry a token in the address, which must not reach the logs.
+      serializers: {
+        req: (request) => ({
+          method: request.method,
+          url: redactUrl(request.url),
+          host: request.host,
+          remoteAddress: request.ip,
+        }),
+      },
     },
     bodyLimit: 65536, // Enforce 64KB max request body limit across API
     // Only honour X-Forwarded-* when a trusted reverse proxy sets them.
-    trustProxy: process.env.TRUST_PROXY === 'true',
+    // The cast only picks Fastify's plain-HTTP overload; a number and a list are valid values too.
+    trustProxy: trustProxySetting(process.env.TRUST_PROXY) as boolean,
   });
 
   // Remember every route so documentation can be generated from what is actually registered
@@ -127,6 +168,8 @@ export async function buildServer() {
   // Both apply to routes registered below.
   fastify.addHook('onRoute', addUserResolution);
   fastify.addHook('onSend', errorFormatHook);
+  // Player answers go out in the player's language, when the project has text in it.
+  fastify.addHook('preSerialization', localizePlayerResponse);
 
   // Register CORS for Dashboard and external clients
   const dashboardCors = {
@@ -144,7 +187,8 @@ export async function buildServer() {
   };
   // End-user tokens are made for customers' sites. A preflight carries no token, so the site is
   // checked against the project's allowlist on the real request.
-  const endUserCors = { origin: true, credentials: false, methods: ['GET', 'OPTIONS'] };
+  // Players also redeem rewards, add friends and register devices, so the write methods are allowed too.
+  const endUserCors = { origin: true, credentials: false, methods: ['GET', 'POST', 'DELETE', 'OPTIONS'] };
 
   await fastify.register(
     cors,
@@ -265,6 +309,13 @@ export async function buildServer() {
   await fastify.register(xpPolicyRoutes);
   await fastify.register(abuseRoutes);
   await fastify.register(storeRoutes);
+  await fastify.register(boxRoutes);
+  await fastify.register(passRoutes);
+  await fastify.register(teamRoutes);
+  await fastify.register(cosmeticRoutes);
+  await fastify.register(leaderboardPrizeRoutes);
+  await fastify.register(journeyRoutes);
+  await fastify.register(translationRoutes);
   await fastify.register(segmentRoutes);
   await fastify.register(leagueRoutes);
   await fastify.register(socialRoutes);
@@ -334,6 +385,7 @@ export async function buildServer() {
   await fastify.register(publicApiRoutes);
   await fastify.register(endUserRoutes);
   await fastify.register(endUserSocialRoutes);
+  await fastify.register(endUserMechanicRoutes);
 
   // Register Project Analytics & Reporting endpoints (/api/projects/:projectId/analytics/*)
   await fastify.register(analyticsRoutes);

@@ -13,6 +13,8 @@ export const SITE = {
   issues: 'https://github.com/gami-fied/gami.fied/issues',
   /** Where the "Join the waitlist" buttons go, such as a form. Without it they are hidden. */
   waitlistUrl: import.meta.env.PUBLIC_WAITLIST_URL || '',
+  /** Where the waitlist form posts an email address, such as `/api/waitlist` (functions/api/waitlist.ts) or a form service. */
+  waitlistEndpoint: import.meta.env.PUBLIC_WAITLIST_ENDPOINT || '',
   /** A contact address for the legal pages. Without it they point to GitHub. */
   contactEmail: import.meta.env.PUBLIC_CONTACT_EMAIL || '',
   /** The demo dashboard. "Try the dashboard" buttons appear only when it is set. */
@@ -25,7 +27,7 @@ export const SITE = {
   noindex: import.meta.env.PUBLIC_NOINDEX === 'true',
 } as const;
 
-/** A link to a file in the repository, so pages can point at guides until WEB-12 moves them here. */
+/** A link to a file in the repository, so pages can point at guides until they are served here. */
 export const repoFile = (path: string) => `${SITE.github}/blob/master/${path}`;
 
 export interface NavLink {
@@ -49,6 +51,8 @@ export const FOOTER: { title: string; links: NavLink[] }[] = [
     title: 'Product',
     links: [
       { label: 'Features', href: '/features/' },
+      { label: 'Use cases', href: '/use-cases/' },
+      { label: 'React components', href: '/components/' },
       { label: 'Playground', href: '/playground/' },
       { label: 'Compare', href: '/compare/' },
       { label: 'Pricing', href: '/pricing/' },

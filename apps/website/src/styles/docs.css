@@ -45,3 +45,18 @@
   --sl-color-hairline: var(--color-border);
   --sl-color-hairline-shade: var(--color-border);
 }
+
+/* The way back to the rest of the site, in the docs header (HeaderLinks.astro). */
+.docs-site-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: var(--sl-text-sm);
+}
+.docs-site-links a {
+  color: var(--sl-color-gray-2);
+  text-decoration: none;
+}
+.docs-site-links a:hover {
+  color: var(--sl-color-white);
+}

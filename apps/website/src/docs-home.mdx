@@ -1,0 +1,49 @@
+---
+title: Gami.Fied documentation
+description: Install Gami.Fied, send your first event, and build streaks, achievements, leagues and a reward store.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Gami.Fied turns what people do in your app into XP, levels, streaks, badges, leaderboards and rewards. You run it yourself, and your players' data stays in your own database.
+
+New here? Start with one of these.
+
+<CardGrid>
+  <LinkCard title="Install it" description="Run the whole stack with Docker Compose, from the release files." href="/docs/install/docker-compose/" />
+  <LinkCard title="Send your first event" description="A quickstart for REST, Node.js, Python, Next.js or React." href="/docs/quickstarts/rest/" />
+  <LinkCard title="Learn the ideas" description="Events, rules, XP, levels, achievements and challenges, and how they fit together." href="/docs/gamification-mechanics/" />
+  <LinkCard title="Look up the API" description="Every endpoint, with a request you can try." href="/docs/api/" />
+</CardGrid>
+
+## Build with it
+
+<CardGrid>
+  <LinkCard title="TypeScript SDK" description="Typed calls for your server, with retries and clear errors." href="/docs/sdk/" />
+  <LinkCard title="React components" description="Level progress, badges, streaks and a leaderboard, ready to drop in." href="/docs/react/" />
+  <LinkCard title="Economy and store" description="Currencies, wallets, boosts, limits and a reward store." href="/docs/economy-and-store/" />
+  <LinkCard title="Boxes, passes, teams and journeys" description="Random rewards, season passes, shared goals, cosmetics and leaderboard prizes." href="/docs/boxes-passes-teams-and-journeys/" />
+  <LinkCard title="Translations" description="Names, descriptions and notifications in each player's language." href="/docs/translations/" />
+  <LinkCard title="Web components" description="The components as HTML elements, for Vue, Svelte and plain pages." href="/docs/web-components/" />
+  <LinkCard title="Segments, leagues and social" description="Boards by group, weekly leagues, friends, kudos and invites." href="/docs/social-and-competition/" />
+</CardGrid>
+
+## Run it
+
+<CardGrid>
+  <LinkCard title="Reverse proxy and HTTPS" description="Put Caddy or nginx in front, with the settings that keep it safe." href="/docs/install/reverse-proxy/" />
+  <LinkCard title="Backups" description="What a backup holds, and how to restore one." href="/docs/backups/" />
+  <LinkCard title="Production checklist" description="One page to go through before you go live." href="/docs/install/production-checklist/" />
+  <LinkCard title="Operations" description="Metrics, alerts, logging and a runbook." href="/docs/operations/" />
+</CardGrid>
+
+## Understand it
+
+<CardGrid>
+  <LinkCard title="Architecture" description="The processes, and how tenants and secrets are protected." href="/docs/architecture/" />
+  <LinkCard title="Player token security" description="What someone holding a player token can and cannot do." href="/docs/player-token-security/" />
+  <LinkCard title="Security status" description="What has been checked, and what has not yet." href="/docs/security-audit/" />
+  <LinkCard title="Community Edition" description="What is in the free, open-source edition." href="/docs/community-edition/" />
+</CardGrid>
+
+Prefer to try before you install? The [playground](/playground/) runs the real rules engine in your browser.

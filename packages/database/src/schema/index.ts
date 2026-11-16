@@ -28,4 +28,6 @@ export * from './push-devices.js';
 export * from './xp-policy.js';
 export * from './store.js';
 export * from './engagement.js';
+export * from './mechanics.js';
+export * from './translations.js';
 export * from './platform-controls.js';

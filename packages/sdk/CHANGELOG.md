@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.0
+
+For Gami.Fied 1.3.0. Upgrade the server first: several calls below use routes that only 1.3.0 has.
+
+### Added
+
+- `gami.mechanics` for boxes, season passes, teams, shared goals, cosmetics, journeys and leaderboard prizes, from your server.
+- For players: `gami.me.boxes()`, `openBox()`, `passes()`, `claimPass()`, `buyPassPremium()`, `team()`, `teams()`, `joinTeam()`, `leaveTeam()`, `goals()`, `cosmetics()`, `buyCosmetic()`, `equipCosmetic()`, `unequipCosmetic()`, `journeys()` and `leaderboardPrizes()`.
+- An inbox: `gami.me.notifications()` returns `read`, `readAt`, `unreadCount` and `hasMore`, and takes `unread`, `limit` and `before`. New: `unreadCount()`, `markNotificationRead()` and `markAllNotificationsRead()`.
+- Translations: a `locale` option on the client, and `gami.me.setLocale()`.
+- Web push: `gami.me.enableWebPush()`, `disableWebPush()`, `webPushKey()` and `registerWebPush()`, and `push-worker.js`, a service worker to copy to your site.
+- `gami.endUserTokens.create()` takes `access: 'read' | 'write'`, and `gami.endUserTokens.revoke(userId)` ends a player's tokens.
+- Friend requests: `gami.me.friendRequests()`, `acceptFriend()` and `declineFriend()`.
+- The `box.opened`, `goal.completed`, `journey.completed` and `leaderboard.prize_paid` webhook types.
+
+### Changed
+
+- **Player tokens are read-only unless you ask for `access: 'write'`.** Calls that change something need a write token.
+- `gami.me.addFriend(code)` sends a request. The players become friends when the other accepts.
+- `gami.me.unregisterDevice(token)` sends the token in the body, so long tokens and browser addresses work. `gami.me.deleteDevice(token)` keeps the old form.
+- `gami.me.get()` includes `locale` and `cosmetics`. Leaderboard rows include `title` and `frameUrl`, and challenges include `locked`.
+
 ## 1.1.0
 
 For Gami.Fied 1.1.0. Everything is additive.

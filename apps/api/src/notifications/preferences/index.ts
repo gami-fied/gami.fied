@@ -13,6 +13,7 @@ const preferenceItemSchema = z.object({
     'level_up',
     'challenge_completed',
     'points_expiring',
+    'prize_won',
   ]),
   enabled: z.boolean(),
 });
@@ -27,6 +28,7 @@ const ALL_TYPES = [
   'level_up',
   'challenge_completed',
   'points_expiring',
+  'prize_won',
 ] as const;
 
 export async function notificationPreferenceRoutes(fastify: FastifyInstance) {

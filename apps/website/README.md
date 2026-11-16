@@ -1,6 +1,6 @@
 # Gami.Fied website
 
-The public site at `gami.fied.cc`: marketing pages, the docs, and later the playground and the live demo (PLAN.md, Phase 9). It is built with [Astro](https://astro.build) and [Starlight](https://starlight.astro.build), and it shares its colours and fonts with the dashboard through `@gami/ui`.
+The public site at `gami.fied.cc`: marketing pages, the docs, and later the playground and the live demo. It is built with [Astro](https://astro.build) and [Starlight](https://starlight.astro.build), and it shares its colours and fonts with the dashboard through `@gami/ui`.
 
 ## Work on it
 
@@ -49,9 +49,20 @@ All optional. Copy `.env.example` to `.env` to change them locally; in CI they c
 | `PUBLIC_ANALYTICS_SCRIPT` | none | The provider's script address |
 | `PUBLIC_ANALYTICS_SITE` | none | The Plausible domain, or the Umami website ID |
 | `PUBLIC_WAITLIST_URL` | none | Where the pricing page's waitlist buttons go. Without it they link to GitHub |
+| `PUBLIC_WAITLIST_ENDPOINT` | none | Where the pricing page's email form posts. With it set, the form replaces the waitlist buttons |
 | `PUBLIC_CONTACT_EMAIL` | none | Contact address on the legal pages. Without it they point to GitHub issues |
 
 Analytics is cookie-free, so the site needs no consent banner. Count a click by adding `data-track="<event>"` to an element; the event names are in `src/lib/analytics.ts`.
+
+## The waitlist form
+
+The pricing page can take an email address itself. `functions/api/waitlist.ts` is a Cloudflare Pages Function that keeps each address in a KV namespace, and it is deployed with the site. To switch it on:
+
+1. In Cloudflare, create a KV namespace, for example `gami-waitlist`.
+2. In the Pages project, under Settings > Functions > KV namespace bindings, bind it as `WAITLIST` for production (and for previews if you want to try it there).
+3. In the GitHub repository, set the variable `WAITLIST_ENDPOINT` to `/api/waitlist` and run the website workflow again.
+
+Read the list with `wrangler kv key list --namespace-id <id>`. The function's behaviour is covered by `src/lib/__tests__/waitlist.test.ts`; it has not yet run on Cloudflare itself, so send one address on a preview deployment first. Any other service that accepts a JSON post of `{ email, plan }` works as the endpoint too.
 
 ## Search and social cards
 
@@ -63,4 +74,4 @@ Analytics is cookie-free, so the site needs no consent banner. Count a click by 
 
 The site is static, so any CDN works. `.github/workflows/website.yml` builds it on every change and deploys it to Cloudflare Pages once these are set in the repository: secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and optionally variables `CLOUDFLARE_PAGES_PROJECT` and `WEBSITE_URL`. Pushes to `master` go to production; every pull request gets a preview, linked in a comment.
 
-To serve it at `gami.fied.cc`, add the domain to the Pages project in Cloudflare, which sets up HTTPS. The live demo will run separately at `demo.gami.fied.cc` (WEB-25).
+To serve it at `gami.fied.cc`, add the domain to the Pages project in Cloudflare, which sets up HTTPS. The live demo will run separately at `demo.gami.fied.cc`.

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import {
   Activity,
+  Award,
   BarChart3,
   Blocks,
   Code2,
@@ -9,17 +10,23 @@ import {
   Gauge,
   GitCompareArrows,
   FileText,
+  Flag,
+  Gift,
   HeartPulse,
   History,
   KeyRound,
+  Languages,
   LayoutDashboard,
   Mail,
   Medal,
   Plug,
+  Route,
   Settings,
   Shield,
   ShoppingBag,
+  Sparkles,
   Target,
+  Ticket,
   Trophy,
   TrendingUp,
   Users,
@@ -45,11 +52,16 @@ export interface NavItem {
 }
 
 export interface NavGroup {
+  /** Remembers whether the group is open in the sidebar. Groups without one are always shown. */
+  id?: string;
   label?: string;
   items: NavItem[];
 }
 
-/** The one list of dashboard pages (store included). The sidebar, route guard and search all read from it. */
+/**
+ * The one list of dashboard pages (store included), grouped by what someone is doing. The sidebar,
+ * route guard and search all read from it.
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
     items: [
@@ -57,32 +69,54 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Build',
+    id: 'progression',
+    label: 'Progression',
     items: [
       { name: 'Rules', href: '/dashboard/rules', icon: Zap },
-      { name: 'Achievements', href: '/dashboard/achievements', feature: 'achievements', icon: Trophy, keywords: 'badges' },
-      { name: 'Streaks', href: '/dashboard/streaks', feature: 'streaks', icon: Flame, keywords: 'daily habit consecutive' },
-      { name: 'Boosts & limits', href: '/dashboard/boosts', feature: 'boosts_limits', icon: Gauge, keywords: 'multiplier double xp cap cooldown abuse' },
-      { name: 'Store', href: '/dashboard/store', feature: 'wallets', icon: ShoppingBag, keywords: 'rewards currency coins wallet redeem coupons purchases' },
       { name: 'Levels', href: '/dashboard/levels', feature: 'levels', icon: TrendingUp, keywords: 'progression' },
-      { name: 'Leagues', href: '/dashboard/leagues', feature: 'leagues', icon: Shield, keywords: 'tiers promotion relegation divisions bronze silver gold weekly' },
-      { name: 'Invites', href: '/dashboard/invites', feature: 'referrals', icon: UserPlus, keywords: 'referral refer a friend invite code friends kudos social' },
+      { name: 'Achievements', href: '/dashboard/achievements', feature: 'achievements', icon: Trophy, keywords: 'badges' },
       { name: 'Challenges', href: '/dashboard/challenges', feature: 'challenges', icon: Target, keywords: 'quests' },
+      { name: 'Journeys', href: '/dashboard/journeys', feature: 'journeys', icon: Route, keywords: 'quest chain onboarding flow story chapters steps unlock' },
+      { name: 'Streaks', href: '/dashboard/streaks', feature: 'streaks', icon: Flame, keywords: 'daily habit consecutive' },
+      { name: 'Season pass', href: '/dashboard/passes', feature: 'season_pass', icon: Ticket, keywords: 'battle pass tiers premium free lane track season' },
+    ],
+  },
+  {
+    id: 'economy',
+    label: 'Economy',
+    items: [
+      { name: 'Store', href: '/dashboard/store', feature: 'wallets', icon: ShoppingBag, keywords: 'rewards currency coins wallet redeem coupons purchases' },
+      { name: 'Mystery boxes', href: '/dashboard/boxes', feature: 'loot_boxes', icon: Gift, keywords: 'loot box wheel spin random reward odds drop table gacha chest' },
+      { name: 'Cosmetics', href: '/dashboard/cosmetics', feature: 'cosmetics', icon: Sparkles, keywords: 'titles avatar frames profile items skins wear' },
+      { name: 'Boosts & limits', href: '/dashboard/boosts', feature: 'boosts_limits', icon: Gauge, keywords: 'multiplier double xp cap cooldown abuse' },
+    ],
+  },
+  {
+    id: 'players',
+    label: 'Players',
+    items: [
+      { name: 'Users', href: '/dashboard/users', icon: Users, keywords: 'players' },
+      { name: 'Leaderboard', href: '/dashboard/leaderboard', feature: 'leaderboards', icon: Medal, keywords: 'rankings team country groups' },
+      { name: 'Leaderboard prizes', href: '/dashboard/leaderboard-prizes', feature: 'leaderboard_prizes', icon: Award, keywords: 'payout top places winners weekly daily monthly reward' },
+      { name: 'Leagues', href: '/dashboard/leagues', feature: 'leagues', icon: Shield, keywords: 'tiers promotion relegation divisions bronze silver gold weekly' },
+      { name: 'Segments', href: '/dashboard/segments', feature: 'segments', icon: UsersRound, keywords: 'cohort audience group filter country plan' },
+      { name: 'Teams & goals', href: '/dashboard/teams', feature: 'teams', icon: Flag, keywords: 'team guild clan community goal shared target together' },
+      { name: 'Invites', href: '/dashboard/invites', feature: 'referrals', icon: UserPlus, keywords: 'referral refer a friend invite code friends kudos social' },
+      { name: 'Translations', href: '/dashboard/translations', feature: 'translations', icon: Languages, keywords: 'language locale i18n localization localisation french spanish' },
       { name: 'Campaigns', href: '/dashboard/campaigns', feature: 'campaigns', icon: Mail, adminOnly: true, keywords: 'email reminders recap winback' },
     ],
   },
   {
+    id: 'activity',
     label: 'Activity',
     items: [
-      { name: 'Users', href: '/dashboard/users', icon: Users, keywords: 'players' },
       { name: 'Events', href: '/dashboard/events', icon: Activity, keywords: 'logs' },
       { name: 'XP History', href: '/dashboard/xp', icon: Coins, keywords: 'points ledger' },
-      { name: 'Leaderboard', href: '/dashboard/leaderboard', feature: 'leaderboards', icon: Medal, keywords: 'rankings team country groups' },
-      { name: 'Segments', href: '/dashboard/segments', feature: 'segments', icon: UsersRound, keywords: 'cohort audience group filter country plan' },
       { name: 'Analytics', href: '/dashboard/analytics', feature: 'analytics', icon: BarChart3, keywords: 'reports' },
     ],
   },
   {
+    id: 'connect',
     label: 'Connect',
     items: [
       { name: 'API Keys', href: '/dashboard/api-keys', icon: KeyRound, adminOnly: true },
@@ -113,6 +147,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: 'manage',
     label: 'Manage',
     items: [
       {
@@ -168,4 +203,20 @@ export function findFeatureRoute(pathname: string): NavItem | undefined {
 export function findAdminOnlyRoute(pathname: string): { name: string; href: string } | undefined {
   const adminItems = NAV_GROUPS.flatMap((group) => group.items).filter((item) => item.adminOnly);
   return [...adminItems, ...ADMIN_TABS].find((item) => isUnder(pathname, item.href));
+}
+
+const PAGES_OUTSIDE_THE_SIDEBAR = [...ADMIN_TABS, { name: 'Your profile', href: '/dashboard/profile' }];
+
+/** The name of the page at this address, for the browser tab. The deepest match wins. */
+export function pageName(pathname: string): string | undefined {
+  const pages = [...NAV_GROUPS.flatMap((group) => group.items), ...PAGES_OUTSIDE_THE_SIDEBAR];
+  if (pathname.startsWith('/dashboard/users/')) return 'User';
+  return pages
+    .filter((page) => (page.href === '/dashboard' ? pathname === page.href : isUnder(pathname, page.href)))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.name;
+}
+
+/** What the browser tab says: the page, then the project when there is one. */
+export function documentTitle(pathname: string, projectName?: string | null): string {
+  return [pageName(pathname), projectName, 'Gami.Fied'].filter(Boolean).join(' · ');
 }

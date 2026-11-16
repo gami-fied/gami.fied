@@ -17,6 +17,7 @@ export * from './providers/push/types.js';
 export * from './providers/push/jwt.js';
 export * from './providers/push/fcm.js';
 export * from './providers/push/apns.js';
+export * from './providers/push/webpush.js';
 export * from './providers/push/register.js';
 
 // Auto-register Discord provider in integration registry

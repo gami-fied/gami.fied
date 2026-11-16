@@ -11,7 +11,7 @@
 // It drives a browser that is already installed (Chrome by default, or CHROME_PATH), so nothing
 // is downloaded. Add --screenshots or --video to do only one of the two.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -41,19 +41,8 @@ const SCREENSHOTS = [
   { feature: 'administration', path: '/dashboard/rules' },
 ];
 
-/** The tour: about two minutes, one caption per scene. */
-const TOUR = [
-  { path: '/dashboard', seconds: 14, caption: 'A language app with 36 players and a month of activity. Everything here runs on Gami.Fied.' },
-  { path: '/dashboard', seconds: 12, caption: 'Send traffic, and events arrive the way your app would send them.', action: 'traffic' },
-  { path: '/dashboard/rules', seconds: 16, caption: 'Rules decide what an event is worth: XP, badges and gems.' },
-  { path: '/dashboard/achievements', seconds: 13, caption: 'Badges unlock from rules, with how many players have each one.' },
-  { path: '/dashboard/streaks', seconds: 13, caption: 'Daily streaks, with freezes that save a missed day.' },
-  { path: '/dashboard/leaderboard', seconds: 13, caption: 'Leaderboards by period, updated as XP lands.' },
-  { path: '/dashboard/leagues', seconds: 12, caption: 'Weekly leagues with promotion and relegation.' },
-  { path: '/dashboard/store', seconds: 13, caption: 'Players spend gems in a reward store, with stock and limits.' },
-  { path: '/dashboard/users', seconds: 12, caption: 'Every player, with their level, streak and history.' },
-  { path: '/dashboard', seconds: 8, caption: 'Self-hosted and open source. Your players and their data stay on your servers.' },
-];
+/** The tour: about two minutes, one caption per scene. The home page prints the same captions as a transcript. */
+const TOUR = JSON.parse(readFileSync(join(root, 'src/lib/tour.json'), 'utf8'));
 
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -124,12 +113,16 @@ async function tour(browser, storageState) {
   mkdirSync(raw, { recursive: true });
   const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: COLOR_SCHEME, storageState, recordVideo: { dir: raw, size: VIEWPORT } });
   const page = await context.newPage();
+  // When each caption went up, so the same text can be offered as a caption track with exact times.
+  const startedAt = Date.now();
+  const cues = [];
   for (const scene of TOUR) {
     if (new URL(page.url() || 'about:blank', demoUrl).pathname !== scene.path) {
       await page.goto(`${demoUrl}${scene.path}`);
       await settle(page);
     }
     await caption(page, scene.caption);
+    cues.push({ at: Date.now() - startedAt, text: scene.caption });
     if (scene.action === 'traffic') {
       await wait(1500);
       await page.getByRole('button', { name: 'Send traffic' }).click().catch(() => {});
@@ -141,6 +134,12 @@ async function tour(browser, storageState) {
       await wait(500);
     }
   }
+  const endedAt = Date.now() - startedAt;
+  const stamp = (ms) => new Date(ms).toISOString().slice(11, 23);
+  const vtt = ['WEBVTT', '', ...cues.flatMap((cue, index) => [`${stamp(cue.at)} --> ${stamp(cues[index + 1]?.at ?? endedAt)}`, cue.text, ''])].join('\n');
+  writeFileSync(join(dir, 'tour.vtt'), vtt);
+  console.log('Saved the caption track: public/video/tour.vtt');
+
   const video = page.video();
   await context.close();
   const webm = join(dir, 'tour.webm');

@@ -1,0 +1,103 @@
+---
+import { Check } from '@lucide/astro';
+import Button from '../../components/Button.astro';
+import Section from '../../components/Section.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { ALTERNATIVES, CHECKED_ON, type Alternative } from '../../lib/alternatives';
+
+export function getStaticPaths() {
+  return ALTERNATIVES.map((item) => ({ params: { slug: item.slug }, props: { item } }));
+}
+
+interface Props {
+  item: Alternative;
+}
+
+const { item } = Astro.props;
+const title = `An open-source alternative to ${item.product}`;
+---
+
+<SiteLayout
+  title={title}
+  description={item.summary}
+  og={`alternatives/${item.slug}`}
+  breadcrumbs={[
+    { name: 'Home', href: '/' },
+    { name: 'Compare', href: '/compare/' },
+    { name: item.product, href: `/alternatives/${item.slug}/` },
+  ]}
+>
+  <section class="mx-auto max-w-6xl px-6 pb-8 pt-16 sm:pt-20">
+    <nav aria-label="Breadcrumb">
+      <ol class="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <li><a href="/" class="transition-colors hover:text-zinc-200">Home</a></li>
+        <li aria-hidden="true">/</li>
+        <li><a href="/compare/" class="transition-colors hover:text-zinc-200">Compare</a></li>
+        <li aria-hidden="true">/</li>
+        <li aria-current="page" class="text-zinc-300">{item.product}</li>
+      </ol>
+    </nav>
+    <h1 class="mt-8 text-balance text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl">{title}</h1>
+    <p class="mt-4 max-w-2xl text-pretty leading-relaxed text-zinc-400">{item.summary}</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <Button href="/docs/install/docker-compose/">Install Gami.Fied</Button>
+      <Button href="/playground/" variant="secondary">Try it in your browser</Button>
+    </div>
+  </section>
+
+  <Section eyebrow="Side by side" title={`${item.product} and Gami.Fied`} intro={`${item.product} is ${item.kind}. Each line on the left is from its own public page.`}>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="border border-zinc-800 bg-zinc-900/30 p-6">
+        <h3 class="font-semibold text-zinc-100">{item.product}</h3>
+        <ul class="mt-4 space-y-3 text-sm leading-relaxed text-zinc-400">
+          {item.theirs.map((point) => <li>{point}</li>)}
+        </ul>
+      </div>
+      <div class="border border-brand-500/40 bg-brand-500/5 p-6">
+        <h3 class="font-semibold text-zinc-100">Gami.Fied</h3>
+        <ul class="mt-4 space-y-3 text-sm leading-relaxed text-zinc-300">
+          {item.ours.map((point) => <li>{point}</li>)}
+        </ul>
+      </div>
+    </div>
+    <p class="mt-4 text-xs text-zinc-500">
+      Read from <a href={item.source} target="_blank" rel="noopener nofollow" class="underline underline-offset-2 hover:text-zinc-300">{item.product}’s own page</a> on {CHECKED_ON}. Products change, so check there before you
+      decide. Something out of date? <a href="https://github.com/gami-fied/gami.fied/issues" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-zinc-300">Tell us</a>. {item.product} is a trade mark of its owner, and this
+      page is not connected with them.
+    </p>
+  </Section>
+
+  <Section eyebrow="Being honest" title="Which one fits you" class="pb-24">
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="border border-zinc-800 bg-zinc-900/30 p-6">
+        <h3 class="font-semibold text-zinc-100">Choose {item.product} when</h3>
+        <ul class="mt-4 space-y-3 text-sm text-zinc-300">
+          {
+            item.chooseThem.map((point) => (
+              <li class="flex gap-3">
+                <Check size={16} class="mt-0.5 shrink-0 text-zinc-500" aria-hidden="true" />
+                {point}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <div class="border border-zinc-800 bg-zinc-900/30 p-6">
+        <h3 class="font-semibold text-zinc-100">Choose Gami.Fied when</h3>
+        <ul class="mt-4 space-y-3 text-sm text-zinc-300">
+          {
+            item.chooseUs.map((point) => (
+              <li class="flex gap-3">
+                <Check size={16} class="mt-0.5 shrink-0 text-success-400" aria-hidden="true" />
+                {point}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+    <p class="mt-8 text-sm text-zinc-400">
+      See <a href="/compare/" class="text-zinc-200 underline underline-offset-4 hover:text-zinc-50">the full comparison</a>, including where Gami.Fied is weaker today.
+    </p>
+  </Section>
+</SiteLayout>

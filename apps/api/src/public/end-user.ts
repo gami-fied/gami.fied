@@ -13,6 +13,7 @@ import {
   currencies,
   projects,
   pushDevices,
+  integrations,
   redemptions,
   rewards,
   streakDefinitions,
@@ -22,19 +23,25 @@ import {
   userXpBalances,
 } from '@gami/database';
 import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
-import { walletBalance } from '@gami/rewards';
+import { walletBalances } from '@gami/rewards';
+import { localeFromHeader, normalizeLocale } from '@gami/database';
+import { publishRealtime } from '@gami/queue';
+import { isPushEndpoint } from '@gami/integrations';
 import { getLeaderboard, getUserRank, isSegmentField, segmentWhere, usersWhere, type LeaderboardPeriod } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
-import { and, desc, eq, or, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, lt, or, type SQL } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
 import { featureDisabledBody, featureForPlayerPath } from '../authorization/features.js';
 import { ipAllowed } from '../authorization/index.js';
+import { checkCallerRateLimit } from '../middleware/rate-limiter.js';
 import { authenticateApiKey } from '../services/api-key.service.js';
 import { loadAchievementProgress } from '../achievements/progress.js';
 import { redeemReward, StoreError } from '../store/redeem.js';
 import { friendCircle } from '../leaderboards/index.js';
+import { NOTHING_WORN, wornBy } from '../mechanics/cosmetics.js';
+import { lockedChallengeIds } from '@gami/rewards';
 import { loadSegmentFilter } from '../segments/index.js';
 import { MAX_STREAMS_PER_PROCESS, MAX_STREAMS_PER_USER, realtimeHub, startPlayerStream } from '../realtime/index.js';
 
@@ -45,19 +52,27 @@ const MAX_TOKEN_SECONDS = 3600;
 interface EndUserContext {
   projectId: string;
   userId: string;
+  /** Whether the token may change things for its player, such as buying a reward or adding a friend. */
+  canWrite: boolean;
+  /** The player's token version when the token was made. */
+  tokenVersion: number;
 }
+
+export type EndUserAccess = 'read' | 'write';
 
 const createTokenSchema = z.object({
   userId: z.string().min(1).max(128),
   expiresInSeconds: z.number().int().min(60).max(MAX_TOKEN_SECONDS).default(DEFAULT_TOKEN_SECONDS),
+  /** `read` only reads the player's data. `write` also lets the player spend points, add friends and register a device. */
+  access: z.enum(['read', 'write']).default('read'),
 });
 
 function sign(payload: string): string {
   return createHmac('sha256', getAuthSecret()).update(`end-user:${payload}`).digest('base64url');
 }
 
-export function createEndUserToken(context: EndUserContext, expiresAt: Date): string {
-  const claims = [context.projectId, context.userId, Math.floor(expiresAt.getTime() / 1000)];
+export function createEndUserToken(context: { projectId: string; userId: string; access?: EndUserAccess; tokenVersion?: number }, expiresAt: Date): string {
+  const claims = [context.projectId, context.userId, Math.floor(expiresAt.getTime() / 1000), context.access === 'write' ? 'w' : 'r', context.tokenVersion ?? 0];
   const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
   return `${TOKEN_PREFIX}${payload}.${sign(payload)}`;
 }
@@ -72,16 +87,22 @@ export function verifyEndUserToken(token: string): EndUserContext | null {
   const actual = Buffer.from(signature);
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
 
-  const [projectId, userId, expiry] = JSON.parse(
+  // Tokens made before the access claim existed have three parts, and only read.
+  const [projectId, userId, expiry, access, tokenVersion] = JSON.parse(
     Buffer.from(payload, 'base64url').toString()
-  ) as [string, string, number];
-  return expiry * 1000 > Date.now() ? { projectId, userId } : null;
+  ) as [string, string, number, string?, number?];
+  return expiry * 1000 > Date.now() ? { projectId, userId, canWrite: access === 'w', tokenVersion: tokenVersion ?? 0 } : null;
 }
 
-/** Tokens only read one user's data. A project's allowlist also limits which sites can use them. */
+/**
+ * A token acts for one player only. It reads their data, and changes things for them only when
+ * it was created with `access: "write"`. A project's allowlist also limits which sites can use it.
+ */
 export async function authenticateEndUser(
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
+  /** `allowReadToken` lets a read-only token through on a route that changes nothing of value, such as marking a notification read. */
+  options: { allowReadToken?: boolean } = {}
 ): Promise<EndUserContext | null> {
   const header = request.headers.authorization ?? '';
   const context = header.startsWith('Bearer ') ? verifyEndUserToken(header.slice(7)) : null;
@@ -122,6 +143,42 @@ export async function authenticateEndUser(
     return null;
   }
 
+  if (request.method !== 'GET' && request.method !== 'HEAD' && !context.canWrite && !options.allowReadToken) {
+    await reply.status(403).send({
+      code: 'TOKEN_READ_ONLY',
+      message: 'This token can only read. Create it with access "write" to let the player make changes.',
+    });
+    return null;
+  }
+
+  // A token is good for up to an hour, so the player is checked on every call, not only when it was made.
+  const [player] = await db
+    .select({ active: endUsers.active, tokenVersion: endUsers.tokenVersion, locale: endUsers.locale })
+    .from(endUsers)
+    .where(and(eq(endUsers.id, context.userId), eq(endUsers.projectId, context.projectId)));
+  if (!player) {
+    await reply.status(404).send({ code: 'NOT_FOUND', message: 'User not found' });
+    return null;
+  }
+  if (!player.active) {
+    await reply.status(403).send({ code: 'USER_DEACTIVATED', message: 'This user is deactivated' });
+    return null;
+  }
+  // Your server ended this player's tokens, for example when they signed out.
+  if (player.tokenVersion !== context.tokenVersion) {
+    await reply.status(401).send({ code: 'TOKEN_REVOKED', message: 'This token has been ended. Create a new one.' });
+    return null;
+  }
+  if (!(await checkCallerRateLimit(reply, 'player', context.userId))) return null;
+
+  // The language for this answer: asked for in the address, saved on the player, or the browser's own.
+  const asked = (request.query as { locale?: unknown } | undefined)?.locale;
+  request.playerLocale = {
+    projectId: context.projectId,
+    organizationId: project.organizationId,
+    locale: normalizeLocale(asked) ?? player.locale ?? localeFromHeader(request.headers['accept-language']),
+  };
+
   return context;
 }
 
@@ -151,9 +208,9 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { userId, expiresInSeconds } = parsed.data;
+    const { userId, expiresInSeconds, access } = parsed.data;
     const [user] = await db
-      .select({ id: endUsers.id, active: endUsers.active })
+      .select({ id: endUsers.id, active: endUsers.active, tokenVersion: endUsers.tokenVersion })
       .from(endUsers)
       .where(
         and(
@@ -166,8 +223,8 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     }
 
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
-    const token = createEndUserToken({ projectId: auth.project.id, userId: user.id }, expiresAt);
-    return reply.status(201).send({ token, expiresAt });
+    const token = createEndUserToken({ projectId: auth.project.id, userId: user.id, access, tokenVersion: user.tokenVersion }, expiresAt);
+    return reply.status(201).send({ token, expiresAt, access });
   });
 
   fastify.get('/v1/me', async (request, reply) => {
@@ -177,7 +234,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
 
     const [[user], [balance], projectLevels] = await Promise.all([
       db
-        .select({ externalId: endUsers.externalId, name: endUsers.name })
+        .select({ externalId: endUsers.externalId, name: endUsers.name, locale: endUsers.locale })
         .from(endUsers)
         .where(and(eq(endUsers.id, userId), eq(endUsers.projectId, projectId))),
       db
@@ -193,14 +250,30 @@ export async function endUserRoutes(fastify: FastifyInstance) {
 
     const totalXp = balance?.totalXp ?? 0;
     const level = projectLevels.length > 0 ? calculateLevel(totalXp, projectLevels) : null;
+    const worn = (await wornBy(projectId, [userId])).get(userId) ?? NOTHING_WORN;
     return reply.send({
       externalId: user.externalId,
       name: user.name,
+      locale: user.locale,
+      cosmetics: worn,
       totalXp,
       level: level && { number: level.level, name: level.name },
       xpToNextLevel: level?.xpToNextLevel ?? null,
       progressPercent: level?.progressPercent ?? null,
     });
+  });
+
+  // The player's language, for the text they read and the notifications and emails they are sent.
+  fastify.post<{ Body: { locale?: unknown } }>('/v1/me/locale', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply, { allowReadToken: true });
+    if (!context) return;
+    const raw = request.body?.locale;
+    const locale = raw === null || raw === '' ? null : normalizeLocale(raw);
+    if (raw !== null && raw !== '' && !locale) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a language tag such as fr or pt-BR, or null to clear it' });
+    }
+    await db.update(endUsers).set({ locale, updatedAt: new Date() }).where(and(eq(endUsers.id, context.userId), eq(endUsers.projectId, context.projectId)));
+    return reply.send({ locale });
   });
 
   fastify.get('/v1/me/achievements', async (request, reply) => {
@@ -247,14 +320,13 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
     const list = await db.select().from(currencies).where(and(eq(currencies.projectId, context.projectId), eq(currencies.enabled, true))).orderBy(currencies.createdAt);
-    const data = await Promise.all(
-      list.map(async (currency) => ({
-        currency: currency.key,
-        name: currency.name,
-        symbol: currency.symbol,
-        balance: await walletBalance(db, context.projectId, context.userId, currency.id),
-      }))
-    );
+    const balances = await walletBalances(db, context.projectId, context.userId);
+    const data = list.map((currency) => ({
+      currency: currency.key,
+      name: currency.name,
+      symbol: currency.symbol,
+      balance: balances.get(currency.id) ?? 0,
+    }));
     return reply.send({ data });
   });
 
@@ -268,10 +340,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       .innerJoin(currencies, eq(currencies.id, rewards.currencyId))
       .where(and(eq(rewards.projectId, context.projectId), eq(rewards.enabled, true), eq(currencies.enabled, true)))
       .orderBy(rewards.cost, rewards.id);
-    const balances = new Map<string, number>();
-    for (const row of list) {
-      if (!balances.has(row.reward.currencyId)) balances.set(row.reward.currencyId, await walletBalance(db, context.projectId, context.userId, row.reward.currencyId));
-    }
+    const balances = await walletBalances(db, context.projectId, context.userId);
     const data = list.map(({ reward, currencyKey, currencyName, symbol }) => ({
       key: reward.key,
       name: reward.name,
@@ -316,48 +385,75 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     return reply.send({ data });
   });
 
-  // Phones register themselves here so the server can send them push notifications.
-  fastify.post<{ Body: { token?: string; platform?: string } }>('/v1/me/devices', async (request, reply) => {
+  // The key a browser subscribes with. It is the public half of the project's key pair, so it is safe to hand out.
+  fastify.get('/v1/me/push/web-key', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const rows = await db
+      .select({ config: integrations.config })
+      .from(integrations)
+      .where(and(eq(integrations.projectId, context.projectId), eq(integrations.provider, 'webpush'), eq(integrations.enabled, true)));
+    const publicKey = rows.map((row) => (row.config as Record<string, unknown> | null)?.['vapidPublicKey']).find((key): key is string => typeof key === 'string');
+    if (!publicKey) return reply.status(404).send({ code: 'WEB_PUSH_NOT_SET_UP', message: 'This project has no web push integration' });
+    return reply.send({ publicKey });
+  });
+
+  // Phones and browsers register themselves here so the server can send them push notifications.
+  const deviceSchema = z.union([
+    z.object({ token: z.string().min(16).max(4096), platform: z.enum(['ios', 'android']) }),
+    z.object({
+      platform: z.literal('web'),
+      // What `PushSubscription.toJSON()` gives in a browser.
+      subscription: z.object({ endpoint: z.string().url().max(2048), keys: z.object({ p256dh: z.string().min(80).max(100), auth: z.string().min(16).max(40) }) }),
+    }),
+  ]);
+
+  fastify.post('/v1/me/devices', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
 
-    const parsed = z
-      .object({ token: z.string().min(16).max(4096), platform: z.enum(['ios', 'android']) })
-      .safeParse(request.body);
+    const parsed = deviceSchema.safeParse(request.body);
     if (!parsed.success) {
-      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a device token and a platform of ios or android' });
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a device token and a platform of ios or android, or a browser subscription with platform web' });
     }
+    const device = parsed.data;
+    // The server sends requests to a browser's push address, so it must be a real push service.
+    if (device.platform === 'web' && !isPushEndpoint(device.subscription.endpoint)) {
+      return reply.status(400).send({ code: 'PUSH_ENDPOINT_NOT_ALLOWED', message: 'That subscription does not point at a browser push service' });
+    }
+    const token = device.platform === 'web' ? device.subscription.endpoint : device.token;
+    const keys = device.platform === 'web' ? device.subscription.keys : null;
 
-    // A token belongs to one player. If the phone changed hands, it follows the new signed-in player.
+    // A device belongs to one player. If it changed hands, it follows the new signed-in player.
     await db
       .insert(pushDevices)
-      .values({
-        id: `pdv_${crypto.randomUUID()}`,
-        projectId: context.projectId,
-        userId: context.userId,
-        platform: parsed.data.platform,
-        token: parsed.data.token,
-      })
+      .values({ id: `pdv_${crypto.randomUUID()}`, projectId: context.projectId, userId: context.userId, platform: device.platform, token, keys })
       .onConflictDoUpdate({
         target: [pushDevices.projectId, pushDevices.token],
-        set: { userId: context.userId, platform: parsed.data.platform, active: true, lastSeenAt: new Date() },
+        set: { userId: context.userId, platform: device.platform, keys, active: true, lastSeenAt: new Date() },
       });
     return reply.status(201).send({ registered: true });
   });
 
+  const removeDevice = (context: EndUserContext, token: string) =>
+    db.delete(pushDevices).where(and(eq(pushDevices.projectId, context.projectId), eq(pushDevices.userId, context.userId), eq(pushDevices.token, token)));
+
   fastify.delete<{ Params: { token: string } }>('/v1/me/devices/:token', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
+    await removeDevice(context, request.params.token);
+    return reply.send({ removed: true });
+  });
 
-    await db
-      .delete(pushDevices)
-      .where(
-        and(
-          eq(pushDevices.projectId, context.projectId),
-          eq(pushDevices.userId, context.userId),
-          eq(pushDevices.token, request.params.token)
-        )
-      );
+  // The same, with the token in the body. A browser's push address, and many phone tokens, are too long for a path.
+  fastify.post<{ Body: { token?: unknown } }>('/v1/me/devices/remove', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const token = request.body?.token;
+    if (typeof token !== 'string' || token.length < 16 || token.length > 4096) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send the device token, or the browser subscription\'s endpoint, as { "token": "..." }' });
+    }
+    await removeDevice(context, token);
     return reply.send({ removed: true });
   });
 
@@ -441,7 +537,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
 
     // Open challenges, started or not, so a daily quest shows up before the player begins it.
     const now = new Date();
-    const [open, rows] = await Promise.all([
+    const [open, rows, locked] = await Promise.all([
       db
         .select()
         .from(challenges)
@@ -456,6 +552,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
             eq(userChallengeProgress.userId, context.userId)
           )
         ),
+      lockedChallengeIds(context.projectId, context.userId),
     ]);
 
     const data = open
@@ -476,6 +573,8 @@ export async function endUserRoutes(fastify: FastifyInstance) {
           target: challenge.target,
           progress,
           completed: current?.completed ?? false,
+          /** True for a step of a journey whose earlier steps are not finished. Events do not count yet. */
+          locked: locked.has(challenge.id),
           periodEndsAt: recurrence ? periodEnd(recurrence, now) : challenge.endAt,
           steps: steps?.map((step, index) => ({ name: step.name, done: index < progress })) ?? null,
         };
@@ -483,28 +582,80 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     return reply.send({ data });
   });
 
-  fastify.get('/v1/me/notifications', async (request, reply) => {
+  // The player's inbox: newest first, with what is unread. `before` pages back through older ones.
+  fastify.get<{ Querystring: { unread?: string; limit?: string; before?: string } }>('/v1/me/notifications', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
 
-    const data = await db
-      .select({
-        id: notifications.id,
-        type: notifications.type,
-        title: notifications.title,
-        message: notifications.message,
-        createdAt: notifications.createdAt,
-      })
+    const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 50));
+    const before = request.query.before ? new Date(request.query.before) : null;
+    if (before && Number.isNaN(before.getTime())) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: '`before` must be a date, such as the createdAt of the last notification you have' });
+    }
+    const mine = and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId));
+
+    const [rows, [unread]] = await Promise.all([
+      db
+        .select({
+          id: notifications.id,
+          type: notifications.type,
+          title: notifications.title,
+          message: notifications.message,
+          readAt: notifications.readAt,
+          createdAt: notifications.createdAt,
+        })
+        .from(notifications)
+        .where(and(mine, request.query.unread === 'true' ? isNull(notifications.readAt) : undefined, before ? lt(notifications.createdAt, before) : undefined))
+        .orderBy(desc(notifications.createdAt), desc(notifications.id))
+        .limit(limit + 1),
+      db.select({ total: count() }).from(notifications).where(and(mine, isNull(notifications.readAt))),
+    ]);
+    const data = rows.slice(0, limit).map((row) => ({ ...row, read: row.readAt !== null }));
+    return reply.send({ data, unreadCount: unread?.total ?? 0, hasMore: rows.length > limit });
+  });
+
+  fastify.get('/v1/me/notifications/unread-count', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const [unread] = await db
+      .select({ total: count() })
       .from(notifications)
-      .where(
-        and(
-          eq(notifications.projectId, context.projectId),
-          eq(notifications.userId, context.userId)
-        )
-      )
-      .orderBy(desc(notifications.createdAt))
-      .limit(50);
-    return reply.send({ data });
+      .where(and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId), isNull(notifications.readAt)));
+    return reply.send({ unreadCount: unread?.total ?? 0 });
+  });
+
+  // Reading a notification changes nothing of value, so a read-only token may do it.
+  const markRead = async (context: EndUserContext, only?: string) => {
+    const changed = await db
+      .update(notifications)
+      .set({ readAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId), isNull(notifications.readAt), only ? eq(notifications.id, only) : undefined))
+      .returning({ id: notifications.id });
+    const [unread] = await db
+      .select({ total: count() })
+      .from(notifications)
+      .where(and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId), isNull(notifications.readAt)));
+    // The player's other tabs and devices hear about it, so their unread counts follow.
+    if (changed.length > 0) void publishRealtime({ projectId: context.projectId, userId: context.userId });
+    return { marked: changed.length, unreadCount: unread?.total ?? 0 };
+  };
+
+  fastify.post('/v1/me/notifications/read-all', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply, { allowReadToken: true });
+    if (!context) return;
+    return reply.send(await markRead(context));
+  });
+
+  fastify.post<{ Params: { notificationId: string } }>('/v1/me/notifications/:notificationId/read', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply, { allowReadToken: true });
+    if (!context) return;
+    const [exists] = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(and(eq(notifications.id, request.params.notificationId), eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId)));
+    // Someone else's notification answers the same as one that does not exist.
+    if (!exists) return reply.status(404).send({ code: 'NOT_FOUND', message: 'Notification not found' });
+    return reply.send(await markRead(context, exists.id));
   });
 
   // A board a player can be shown. It leaves out the project's own IDs and any email address.
@@ -547,10 +698,13 @@ export async function endUserRoutes(fastify: FastifyInstance) {
       getUserRank(context.projectId, context.userId, { period, filter }),
     ]);
 
+    const worn = await wornBy(context.projectId, [...board.entries.map((entry) => entry.userId), ...(mine.entry ? [mine.entry.userId] : [])]);
     const shape = (entry: { rank: number; name: string | null; avatarUrl: string | null; xp: number; levelName?: string; userId: string }) => ({
       rank: entry.rank,
       name: entry.name,
       avatarUrl: entry.avatarUrl,
+      title: worn.get(entry.userId)?.title?.name ?? null,
+      frameUrl: worn.get(entry.userId)?.frame?.imageUrl ?? null,
       xp: entry.xp,
       levelName: entry.levelName ?? null,
       isMe: entry.userId === context.userId,

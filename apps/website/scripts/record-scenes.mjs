@@ -1,6 +1,6 @@
 /* global document, window, scrollY -- the page.evaluate callbacks run in the browser. */
 // Records a short clip of every animated scene, with motion and with reduced motion, so changes to
-// them can be reviewed in a pull request (WEB-44). Clips go to motion-recordings/, which git ignores.
+// them can be reviewed in a pull request. Clips go to motion-recordings/, which git ignores.
 //
 //   pnpm --filter @gami/website preview   (in another terminal)
 //   SITE_URL=http://localhost:4321 node scripts/record-scenes.mjs

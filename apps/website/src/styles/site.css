@@ -123,7 +123,7 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
   }
 }
 
-/* ---------- How it works (WEB-38) ---------- */
+/* ---------- How it works ---------- */
 
 /* The key line of each code sample, in every layout. */
 .how-code[data-highlight='1'] code > .line:nth-of-type(1),
@@ -200,14 +200,14 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
   color: var(--color-success-300);
 }
 
-/* The final call to action's glow follows the pointer (WEB-39). */
+/* The final call to action's glow follows the pointer. */
 .cta-glow {
   background: radial-gradient(420px circle at var(--glow-x, 50%) var(--glow-y, 50%), color-mix(in oklab, var(--color-brand-500) 18%, transparent), transparent 70%);
   opacity: var(--glow-opacity, 0);
   transition: opacity var(--motion-enter) var(--motion-ease-out);
 }
 
-/* ---------- Quiet pages (WEB-43) ---------- */
+/* ---------- Quiet pages ---------- */
 
 /* The recommended plan has a slow gradient border. Only a custom property moves, with no layout. */
 @property --plan-angle {
@@ -270,4 +270,160 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
   .prose-site img {
     transition: opacity var(--motion-enter) var(--motion-ease-out);
   }
+}
+
+/*
+ * On touch screens and narrow windows, links and buttons that stand on their own are at least
+ * 44px tall. Links inside a sentence are left alone, or the line would grow.
+ */
+@media (pointer: coarse), (max-width: 767px) {
+  /* Anything with a hidden state is left alone (`hidden`, `lg:hidden`, the attribute), or these
+     rules would win over it and show the control. */
+  :is(header nav a, header button, footer li a, main button, main [role='tab'], main summary):not([class*='hidden'], [hidden]) {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  :is(header nav a[aria-label], header button):not([class*='hidden'], [hidden]) {
+    min-width: 44px;
+    justify-content: center;
+  }
+  main button:not([class*='hidden'], [hidden]) {
+    justify-content: center;
+  }
+}
+
+/* A table wider than the screen keeps its first column in view and shows which way it scrolls. */
+.scroll-table {
+  background:
+    linear-gradient(to right, var(--color-zinc-950) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--color-zinc-950) 30%, transparent) right center / 40px 100% no-repeat local,
+    linear-gradient(to right, rgb(0 0 0 / 0.55), transparent) left center / 14px 100% no-repeat scroll,
+    linear-gradient(to left, rgb(0 0 0 / 0.55), transparent) right center / 14px 100% no-repeat scroll;
+}
+.scroll-table th[scope='row'],
+.scroll-table thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--color-zinc-950);
+}
+
+/*
+ * The light theme. The pages are built on dark-first scales, so reversing them gives the
+ * light theme, the same way the dashboard does it. It is on only when the reader chose it, here or
+ * in the docs: both keep the choice under the same key.
+ */
+html[data-theme='light'] {
+  color-scheme: light;
+  --light-brand-50: oklch(98% 0.016 73.684);
+  --light-brand-100: oklch(95.4% 0.038 75.164);
+  --light-brand-200: oklch(90.1% 0.076 70.697);
+  --light-brand-300: oklch(83.7% 0.128 66.29);
+  --light-brand-700: oklch(55.3% 0.195 38.402);
+  --light-brand-800: oklch(47% 0.157 37.304);
+  --light-brand-900: oklch(40.8% 0.123 38.172);
+  --light-brand-950: oklch(26.6% 0.079 36.259);
+  --light-success-50: oklch(97.9% 0.021 166.113);
+  --light-success-100: oklch(95% 0.052 163.051);
+  --light-success-200: oklch(90.5% 0.093 164.15);
+  --light-success-300: oklch(84.5% 0.143 164.978);
+  --light-success-700: oklch(50.8% 0.118 165.612);
+  --light-success-800: oklch(43.2% 0.095 166.913);
+  --light-success-900: oklch(37.8% 0.077 168.94);
+  --light-success-950: oklch(26.2% 0.051 172.552);
+  --light-danger-50: oklch(96.9% 0.015 12.422);
+  --light-danger-100: oklch(94.1% 0.03 12.58);
+  --light-danger-200: oklch(89.2% 0.058 10.001);
+  --light-danger-300: oklch(81% 0.117 11.638);
+  --light-danger-700: oklch(51.4% 0.222 16.935);
+  --light-danger-800: oklch(45.5% 0.188 13.697);
+  --light-danger-900: oklch(41% 0.159 10.272);
+  --light-danger-950: oklch(27.1% 0.105 12.094);
+  --light-warning-50: oklch(98.7% 0.022 95.277);
+  --light-warning-100: oklch(96.2% 0.059 95.617);
+  --light-warning-200: oklch(92.4% 0.12 95.746);
+  --light-warning-300: oklch(87.9% 0.169 91.605);
+  --light-warning-700: oklch(55.5% 0.163 48.998);
+  --light-warning-800: oklch(47.3% 0.137 46.201);
+  --light-warning-900: oklch(41.4% 0.112 45.904);
+  --light-warning-950: oklch(27.9% 0.077 45.635);
+  --light-info-50: oklch(98.4% 0.019 200.873);
+  --light-info-100: oklch(95.6% 0.045 203.388);
+  --light-info-200: oklch(91.7% 0.08 205.041);
+  --light-info-300: oklch(86.5% 0.127 207.078);
+  --light-info-700: oklch(52% 0.105 223.128);
+  --light-info-800: oklch(45% 0.085 224.283);
+  --light-info-900: oklch(39.8% 0.07 227.392);
+  --light-info-950: oklch(30.2% 0.056 229.695);
+  --color-brand-100: var(--light-brand-950);
+  --color-brand-200: var(--light-brand-900);
+  --color-brand-300: var(--light-brand-800);
+  --color-brand-400: var(--light-brand-700);
+  --color-brand-700: var(--light-brand-300);
+  --color-brand-800: var(--light-brand-200);
+  --color-brand-900: var(--light-brand-100);
+  --color-brand-950: var(--light-brand-50);
+  --color-success-100: var(--light-success-950);
+  --color-success-200: var(--light-success-900);
+  --color-success-300: var(--light-success-800);
+  --color-success-400: var(--light-success-700);
+  --color-success-700: var(--light-success-300);
+  --color-success-800: var(--light-success-200);
+  --color-success-900: var(--light-success-100);
+  --color-success-950: var(--light-success-50);
+  --color-danger-100: var(--light-danger-950);
+  --color-danger-200: var(--light-danger-900);
+  --color-danger-300: var(--light-danger-800);
+  --color-danger-400: var(--light-danger-700);
+  --color-danger-700: var(--light-danger-300);
+  --color-danger-800: var(--light-danger-200);
+  --color-danger-900: var(--light-danger-100);
+  --color-danger-950: var(--light-danger-50);
+  --color-warning-100: var(--light-warning-950);
+  --color-warning-200: var(--light-warning-900);
+  --color-warning-300: var(--light-warning-800);
+  --color-warning-400: var(--light-warning-700);
+  --color-warning-700: var(--light-warning-300);
+  --color-warning-800: var(--light-warning-200);
+  --color-warning-900: var(--light-warning-100);
+  --color-warning-950: var(--light-warning-50);
+  --color-info-100: var(--light-info-950);
+  --color-info-200: var(--light-info-900);
+  --color-info-300: var(--light-info-800);
+  --color-info-400: var(--light-info-700);
+  --color-info-700: var(--light-info-300);
+  --color-info-800: var(--light-info-200);
+  --color-info-900: var(--light-info-100);
+  --color-info-950: var(--light-info-50);
+  --color-bg: #ffffff;
+  --color-card: #fafafa;
+  --color-border: #e4e4e7;
+  --color-white: #09090b;
+  --color-zinc-50: #09090b;
+  --color-zinc-100: #18181b;
+  --color-zinc-200: #27272a;
+  --color-zinc-300: #3f3f46;
+  --color-zinc-400: #52525b;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #a1a1aa;
+  --color-zinc-700: #d4d4d8;
+  --color-zinc-800: #e4e4e7;
+  --color-zinc-900: #f4f4f5;
+  --color-zinc-950: #ffffff;
+}
+
+html[data-theme='light'] body {
+  color: #18181b;
+}
+/* Screenshots, the tour and code samples stay dark, so they keep a frame in the light theme. */
+html[data-theme='light'] .site-header {
+  box-shadow: 0 1px 0 var(--color-zinc-800);
+}
+.theme-toggle .theme-sun,
+html[data-theme='light'] .theme-toggle .theme-moon {
+  display: none;
+}
+html[data-theme='light'] .theme-toggle .theme-sun {
+  display: block;
 }

@@ -107,7 +107,7 @@ export function SmtpSettingsView() {
               )}
             </div>
             {status?.updatedAt && (
-              <div className="text-[11px] text-zinc-400">
+              <div className="text-xs text-zinc-400">
                 Last updated: {formatRelativeTime(status.updatedAt)}
               </div>
             )}

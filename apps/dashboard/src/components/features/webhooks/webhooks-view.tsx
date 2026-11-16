@@ -14,6 +14,8 @@ import type {
 } from '@gami.fied/sdk';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Webhook as EmptyWebhookIcon } from 'lucide-react';
 
 const WEBHOOK_EVENT_ITEMS: ChecklistItem<SdkWebhookEventType>[] = [
   {
@@ -54,6 +56,30 @@ const WEBHOOK_EVENT_ITEMS: ChecklistItem<SdkWebhookEventType>[] = [
     badge: 'Store',
   },
   {
+    value: 'box.opened',
+    label: 'box.opened',
+    description: 'When someone opens a mystery box or spins a wheel, with what it gave.',
+    badge: 'Boxes',
+  },
+  {
+    value: 'goal.completed',
+    label: 'goal.completed',
+    description: 'When a shared goal reaches its target, for everyone or for one team.',
+    badge: 'Goals',
+  },
+  {
+    value: 'journey.completed',
+    label: 'journey.completed',
+    description: 'When someone finishes the last step of a journey.',
+    badge: 'Journeys',
+  },
+  {
+    value: 'leaderboard.prize_paid',
+    label: 'leaderboard.prize_paid',
+    description: 'When a place on a board that closed is paid its prize.',
+    badge: 'Leaderboard',
+  },
+  {
     value: 'referral.completed',
     label: 'referral.completed',
     description: 'When an invited friend qualifies and the invite is rewarded.',
@@ -82,6 +108,10 @@ const EVENT_COLOR: Record<string, string> = {
   'reward.redeemed': 'bg-brand-950/60 text-brand-300 border-brand-800/60',
   'reward.cancelled': 'bg-zinc-800 text-zinc-400 border-zinc-700',
   'referral.completed': 'bg-success-950/60 text-success-300 border-success-800/60',
+  'box.opened': 'bg-brand-950/60 text-brand-300 border-brand-800/60',
+  'goal.completed': 'bg-info-950/60 text-info-300 border-info-800/60',
+  'journey.completed': 'bg-info-950/60 text-info-300 border-info-800/60',
+  'leaderboard.prize_paid': 'bg-warning-950/60 text-warning-300 border-warning-800/60',
   'user.created': 'bg-success-950/60 text-success-300 border-success-800/60',
   'user.deactivated': 'bg-zinc-800 text-zinc-400 border-zinc-700',
 };
@@ -458,7 +488,7 @@ export function WebhooksView() {
       )}
 
       {/* Main Table */}
-      <div className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
+      <div tabIndex={0} role="region" aria-label="Table" className="border border-zinc-800 bg-zinc-950 overflow-x-auto">
         <table className="w-full text-left text-xs" style={{ tableLayout: 'fixed' }}>
           <colgroup>
             {/* Name/URL: flexible */}
@@ -496,10 +526,7 @@ export function WebhooksView() {
             ) : endpoints.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
-                  <p>No webhooks yet.</p>
-                  <p className="text-[11px] text-zinc-400 mt-1">
-                    Add one to tell your own systems when something happens.
-                  </p>
+                  <EmptyState icon={EmptyWebhookIcon} title="No webhooks yet" description="Add one to tell your own systems when something happens." />
                 </td>
               </tr>
             ) : (
@@ -508,7 +535,7 @@ export function WebhooksView() {
                   {/* Name + URL */}
                   <td className="px-4 py-3">
                     <div className="font-semibold text-white text-xs">{ep.name}</div>
-                    <div className="text-zinc-400 text-[11px] truncate mt-0.5" title={ep.url}>
+                    <div className="text-zinc-400 text-xs truncate mt-0.5" title={ep.url}>
                       {ep.url}
                     </div>
                     {ep.description && (
@@ -549,7 +576,7 @@ export function WebhooksView() {
                   </td>
 
                   {/* Last Delivery */}
-                  <td className="px-4 py-3 text-zinc-400 text-[11px]">
+                  <td className="px-4 py-3 text-zinc-400 text-xs">
                     {ep.lastDeliveryAt ? (
                       <span title={formatDateTime(ep.lastDeliveryAt)}>
                         {formatRelativeTime(ep.lastDeliveryAt)}
@@ -757,7 +784,7 @@ export function WebhooksView() {
           description={`${selectedEndpointForDeliveries.name}: ${selectedEndpointForDeliveries.url}`}
           maxWidth="5xl"
         >
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
             <table
               className="w-full min-w-[48rem] text-left text-xs"
               style={{ tableLayout: 'fixed' }}
@@ -823,7 +850,7 @@ export function WebhooksView() {
                       </td>
                       <td className="px-4 py-2.5 text-zinc-300">{del.attempts}</td>
                       <td
-                        className="px-4 py-2.5 text-danger-400 text-[11px] truncate"
+                        className="px-4 py-2.5 text-danger-400 text-xs truncate"
                         title={del.lastError || ''}
                       >
                         {del.lastError || <span className="text-zinc-400">—</span>}
@@ -831,7 +858,7 @@ export function WebhooksView() {
                       <td className="px-4 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <span
-                            className="text-zinc-400 text-[11px] whitespace-nowrap"
+                            className="text-zinc-400 text-xs whitespace-nowrap"
                             title={
                               del.deliveredAt
                                 ? formatDateTime(del.deliveredAt)

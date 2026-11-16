@@ -34,6 +34,11 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/boosts` | Admin | Signed-in user only |
 | `DELETE` | `/boosts/:boostId` | Admin | Signed-in user only |
 | `PATCH` | `/boosts/:boostId` | Admin | Signed-in user only |
+| `GET` | `/boxes` | Member | API key with `rewards:read` |
+| `POST` | `/boxes` | Admin | API key with `rewards:write` |
+| `DELETE` | `/boxes/:boxId` | Admin | API key with `rewards:write` |
+| `PATCH` | `/boxes/:boxId` | Admin | API key with `rewards:write` |
+| `GET` | `/boxes/:boxId/opens` | Member | API key with `rewards:read` |
 | `GET` | `/campaigns` | Admin | Signed-in user only |
 | `POST` | `/campaigns` | Admin | Signed-in user only |
 | `DELETE` | `/campaigns/:campaignId` | Admin | Signed-in user only |
@@ -52,6 +57,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/connectors/:connectorId` | Admin | Signed-in user only |
 | `PATCH` | `/connectors/:connectorId` | Admin | Signed-in user only |
 | `POST` | `/connectors/:connectorId/rotate` | Admin | Signed-in user only |
+| `GET` | `/cosmetics` | Member | API key with `rewards:read` |
+| `POST` | `/cosmetics` | Admin | API key with `rewards:write` |
+| `DELETE` | `/cosmetics/:cosmeticId` | Admin | API key with `rewards:write` |
+| `PATCH` | `/cosmetics/:cosmeticId` | Admin | API key with `rewards:write` |
 | `GET` | `/currencies` | Member | Signed-in user only |
 | `POST` | `/currencies` | Admin | Signed-in user only |
 | `PATCH` | `/currencies/:currencyId` | Admin | Signed-in user only |
@@ -65,6 +74,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/events/dead-letter` | Member | API key with `events:read` |
 | `POST` | `/events/test` | Member | API key with `events:write` |
 | `GET` | `/features` | Member | Signed-in user only |
+| `GET` | `/goals` | Member | API key with `challenges:read` |
+| `POST` | `/goals` | Admin | API key with `challenges:write` |
+| `DELETE` | `/goals/:goalId` | Admin | API key with `challenges:write` |
+| `PATCH` | `/goals/:goalId` | Admin | API key with `challenges:write` |
 | `GET` | `/integrations` | Member | API key with `integrations:read` |
 | `POST` | `/integrations` | Admin | API key with `integrations:write` |
 | `DELETE` | `/integrations/:integrationId` | Admin | API key with `integrations:write` |
@@ -80,7 +93,16 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/integrations/:integrationId/templates/reset` | Admin | API key with `integrations:write` |
 | `POST` | `/integrations/:integrationId/test` | Admin | API key with `integrations:write` |
 | `POST` | `/integrations/discord/connect` | Admin | API key with `integrations:write` |
+| `GET` | `/journeys` | Member | API key with `challenges:read` |
+| `POST` | `/journeys` | Admin | API key with `challenges:write` |
+| `DELETE` | `/journeys/:journeyId` | Admin | API key with `challenges:write` |
+| `PATCH` | `/journeys/:journeyId` | Admin | API key with `challenges:write` |
 | `GET` | `/leaderboard` | Member | API key with `leaderboard:read` |
+| `GET` | `/leaderboard-prizes` | Member | API key with `leaderboard:read` |
+| `POST` | `/leaderboard-prizes` | Admin | API key with `leaderboard:write` |
+| `DELETE` | `/leaderboard-prizes/:prizeId` | Admin | API key with `leaderboard:write` |
+| `PATCH` | `/leaderboard-prizes/:prizeId` | Admin | API key with `leaderboard:write` |
+| `GET` | `/leaderboard-prizes/payouts` | Member | API key with `leaderboard:read` |
 | `GET` | `/leaderboard/:userId` | Member | API key with `leaderboard:read` |
 | `GET` | `/leagues` | Member | API key with `leagues:read` |
 | `POST` | `/leagues` | Admin | API key with `leagues:write` |
@@ -104,6 +126,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/metrics` | Member | API key with `system:read` |
 | `GET` | `/onboarding` | Member | API key with `system:read` |
 | `GET` | `/overview` | Member | Signed-in user only |
+| `GET` | `/passes` | Member | API key with `rewards:read` |
+| `POST` | `/passes` | Admin | API key with `rewards:write` |
+| `DELETE` | `/passes/:passId` | Admin | API key with `rewards:write` |
+| `PATCH` | `/passes/:passId` | Admin | API key with `rewards:write` |
 | `GET` | `/progression/summary` | Member | API key with `levels:read` |
 | `GET` | `/promotion` | Member | Signed-in user only |
 | `POST` | `/promotion` | Admin | Signed-in user only |
@@ -144,6 +170,14 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/streaks/:streakId/leaders` | Member | API key with `streaks:read` |
 | `GET` | `/stream` | Member | Signed-in user only |
 | `GET` | `/system/metrics` | Member | API key with `system:read` |
+| `GET` | `/teams` | Member | API key with `social:read` |
+| `POST` | `/teams` | Admin | API key with `social:write` |
+| `DELETE` | `/teams/:teamId` | Admin | API key with `social:write` |
+| `PATCH` | `/teams/:teamId` | Admin | API key with `social:write` |
+| `GET` | `/teams/:teamId/members` | Member | API key with `social:read` |
+| `GET` | `/translations` | Member | API key with `project:read` |
+| `PUT` | `/translations` | Admin | API key with `project:write` |
+| `DELETE` | `/translations/:locale` | Admin | API key with `project:write` |
 | `GET` | `/users` | Member | API key with `users:read` |
 | `POST` | `/users` | Admin | API key with `users:write` |
 | `DELETE` | `/users/:userId` | Admin | API key with `users:write` |
@@ -152,13 +186,19 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `GET` | `/users/:userId/achievements` | Member | API key with `achievements:read` |
 | `GET` | `/users/:userId/achievements/:achievementId` | Member | API key with `achievements:read` |
 | `GET` | `/users/:userId/achievements/progress` | Member | API key with `achievements:read` |
+| `GET` | `/users/:userId/boxes` | Member | API key with `rewards:read` |
+| `POST` | `/users/:userId/boxes/:boxKey/open` | Admin | API key with `rewards:write` |
 | `GET` | `/users/:userId/challenges` | Member | API key with `challenges:read` |
 | `GET` | `/users/:userId/challenges/:challengeId` | Member | API key with `challenges:read` |
+| `GET` | `/users/:userId/cosmetics` | Member | API key with `rewards:read` |
+| `POST` | `/users/:userId/cosmetics` | Admin | API key with `rewards:write` |
 | `POST` | `/users/:userId/erase` | Admin | API key with `users:write` |
 | `GET` | `/users/:userId/feed` | Member | API key with `social:read` |
 | `GET` | `/users/:userId/friends` | Member | API key with `social:read` |
 | `POST` | `/users/:userId/friends` | Admin | API key with `social:write` |
 | `DELETE` | `/users/:userId/friends/:friendId` | Admin | API key with `social:write` |
+| `GET` | `/users/:userId/goals` | Member | API key with `challenges:read` |
+| `GET` | `/users/:userId/journeys` | Member | API key with `challenges:read` |
 | `POST` | `/users/:userId/kudos` | Admin | API key with `social:write` |
 | `GET` | `/users/:userId/leagues` | Member | API key with `leagues:read` |
 | `GET` | `/users/:userId/notification-preferences` | Member | API key with `notifications:read` |
@@ -167,6 +207,10 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `PATCH` | `/users/:userId/notifications/:notificationId/read` | Member | API key with `notifications:write` |
 | `POST` | `/users/:userId/notifications/read-all` | Member | API key with `notifications:write` |
 | `GET` | `/users/:userId/notifications/unread-count` | Member | API key with `notifications:read` |
+| `GET` | `/users/:userId/passes` | Member | API key with `rewards:read` |
+| `POST` | `/users/:userId/passes/:passKey/claim` | Admin | API key with `rewards:write` |
+| `POST` | `/users/:userId/passes/:passKey/premium` | Admin | API key with `rewards:write` |
+| `POST` | `/users/:userId/preview-token` | Admin | API key with `users:write` |
 | `GET` | `/users/:userId/progress` | Member | API key with `levels:read` |
 | `POST` | `/users/:userId/ranking` | Admin | API key with `users:write` |
 | `GET` | `/users/:userId/redemptions` | Member | API key with `rewards:read` |
@@ -175,7 +219,11 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `POST` | `/users/:userId/rewards/:rewardKey/redeem` | Admin | API key with `rewards:write` |
 | `GET` | `/users/:userId/streaks` | Member | API key with `streaks:read` |
 | `GET` | `/users/:userId/streaks/history` | Member | API key with `streaks:read` |
+| `DELETE` | `/users/:userId/team` | Admin | API key with `social:write` |
+| `GET` | `/users/:userId/team` | Member | API key with `social:read` |
+| `POST` | `/users/:userId/team` | Admin | API key with `social:write` |
 | `GET` | `/users/:userId/timeline` | Member | API key with `users:read` |
+| `POST` | `/users/:userId/tokens/revoke` | Admin | API key with `users:write` |
 | `GET` | `/users/:userId/wallets` | Member | API key with `wallets:read` |
 | `POST` | `/users/:userId/wallets/:currencyKey/adjust` | Admin | API key with `wallets:write` |
 | `GET` | `/users/:userId/wallets/:currencyKey/ledger` | Member | API key with `wallets:read` |

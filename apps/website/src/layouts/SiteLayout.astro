@@ -22,6 +22,9 @@ interface Props {
   description?: string;
   og?: string;
   noindex?: boolean;
+  type?: 'website' | 'article';
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  breadcrumbs?: { name: string; href: string }[];
   /** Full-screen tools such as the API explorer leave the footer out. */
   footer?: boolean;
 }
@@ -36,6 +39,36 @@ const { footer = true, ...props } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#09090b" />
     <meta name="generator" content={Astro.generator} />
+    <script is:inline>
+      // The reader's theme, shared with the docs (Starlight keeps it under this key). Dark unless
+      // they chose light. Runs before the first paint, and again after each page transition.
+      (() => {
+        const apply = () => {
+          let light = false;
+          try {
+            light = localStorage.getItem('starlight-theme') === 'light';
+          } catch {
+            // Storage is blocked: stay dark.
+          }
+          if (light) document.documentElement.dataset.theme = 'light';
+          else delete document.documentElement.dataset.theme;
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#ffffff' : '#09090b');
+        };
+        apply();
+        document.addEventListener('astro:after-swap', apply);
+        document.addEventListener('click', (event) => {
+          if (!event.target.closest?.('[data-theme-toggle]')) return;
+          const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+          try {
+            localStorage.setItem('starlight-theme', next);
+          } catch {
+            // The choice then lasts for this page only.
+          }
+          if (next === 'light') document.documentElement.dataset.theme = 'light';
+          else delete document.documentElement.dataset.theme;
+        });
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" as="font" type="font/woff2" href={groteskRegular} crossorigin />
     <link rel="preload" as="font" type="font/woff2" href={groteskBold} crossorigin />

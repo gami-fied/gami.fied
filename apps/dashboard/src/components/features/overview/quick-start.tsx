@@ -133,7 +133,7 @@ export function QuickStart({ projectId, onDone }: { projectId: string; onDone: (
               {template.achievement.name} badge. Here&apos;s your API key, shown only once, in a
               sample request.
             </p>
-            <pre className="overflow-x-auto bg-zinc-950 border border-zinc-800 p-3 text-xs text-zinc-200">
+            <pre tabIndex={0} className="overflow-x-auto bg-zinc-950 border border-zinc-800 p-3 text-xs text-zinc-200">
               <code>{curl}</code>
             </pre>
 

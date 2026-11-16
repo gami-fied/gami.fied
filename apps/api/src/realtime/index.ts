@@ -3,13 +3,19 @@ import { createLogger } from '@gami/config';
 import { db, notifications, userXpBalances } from '@gami/database';
 import { subscribeRealtime, type RealtimeMessage } from '@gami/queue';
 import { and, asc, eq, sql } from 'drizzle-orm';
-import { requireProjectAccess } from '../authorization/index.js';
+import { checkUserProjectAccess, getSession, requireProjectAccess } from '../authorization/index.js';
 
 const log = createLogger('Realtime');
 
 const HEARTBEAT_MS = 25_000;
-/** Streams also catch up on a timer, so a missed nudge costs a few seconds and nothing is lost. */
-const CATCH_UP_MS = 15_000;
+/**
+ * Streams also catch up on a timer, so a missed nudge is never lost. Nudges do the real work, so this
+ * is slow, and it only reads notifications: with thousands of streams open and nobody doing
+ * anything, it is the whole cost of keeping them open.
+ */
+const CATCH_UP_MS = 120_000;
+/** How often an open staff stream checks that its user may still see the project. */
+const STAFF_RECHECK_MS = 60_000;
 /** Nudges for one stream are batched into one lookup. */
 const COALESCE_MS = 250;
 export const MAX_STREAMS_PER_USER = 5;
@@ -169,8 +175,10 @@ export function startPlayerStream(request: FastifyRequest, reply: FastifyReply, 
     realtimeHub.remove(stream);
   });
 
-  async function flush(): Promise<void> {
+  let balanceDue = true;
+  async function flush(withBalance = true): Promise<void> {
     if (out.isClosed()) return;
+    balanceDue ||= withBalance;
     if (busy) {
       again = true;
       return;
@@ -202,15 +210,19 @@ export function startPlayerStream(request: FastifyRequest, reply: FastifyReply, 
           );
         }
 
-        const [balance] = await db
-          .select({ totalXp: userXpBalances.totalXp })
-          .from(userXpBalances)
-          .where(and(eq(userXpBalances.projectId, context.projectId), eq(userXpBalances.userId, context.userId)));
-        const totalXp = balance?.totalXp ?? 0;
-        if (totalXp !== lastBalance) {
-          // The first reading only sets the baseline, so opening a stream is not announced as a change.
-          if (lastBalance !== null) out.write('xp', { totalXp });
-          lastBalance = totalXp;
+        // The balance is read after a nudge or new notifications, not on every quiet catch-up.
+        if (balanceDue || rows.length > 0) {
+          balanceDue = false;
+          const [balance] = await db
+            .select({ totalXp: userXpBalances.totalXp })
+            .from(userXpBalances)
+            .where(and(eq(userXpBalances.projectId, context.projectId), eq(userXpBalances.userId, context.userId)));
+          const totalXp = balance?.totalXp ?? 0;
+          if (totalXp !== lastBalance) {
+            // The first reading only sets the baseline, so opening a stream is not announced as a change.
+            if (lastBalance !== null) out.write('xp', { totalXp });
+            lastBalance = totalXp;
+          }
         }
 
         if (rows.length === 50) again = true;
@@ -224,14 +236,14 @@ export function startPlayerStream(request: FastifyRequest, reply: FastifyReply, 
 
   realtimeHub.add(stream);
   timers.heartbeat = setInterval(() => out.comment('ping'), HEARTBEAT_MS);
-  timers.catchUp = setInterval(() => void flush(), CATCH_UP_MS);
+  timers.catchUp = setInterval(() => void flush(false), CATCH_UP_MS);
   out.write('ready', { userId: context.userId });
   void flush();
 }
 
 /** A staff stream carries only nudges, so a page knows when to refetch its own data. */
-export function startProjectStream(request: FastifyRequest, reply: FastifyReply, projectId: string): void {
-  const timers: { heartbeat?: NodeJS.Timeout; nudge?: NodeJS.Timeout } = {};
+export function startProjectStream(request: FastifyRequest, reply: FastifyReply, projectId: string, stillAllowed?: () => Promise<boolean>): void {
+  const timers: { heartbeat?: NodeJS.Timeout; nudge?: NodeJS.Timeout; recheck?: NodeJS.Timeout } = {};
 
   const stream: Stream = {
     projectId,
@@ -250,12 +262,25 @@ export function startProjectStream(request: FastifyRequest, reply: FastifyReply,
 
   const out = openStream(request, reply, () => {
     clearInterval(timers.heartbeat);
+    clearInterval(timers.recheck);
     clearTimeout(timers.nudge);
     realtimeHub.remove(stream);
   });
 
   realtimeHub.add(stream);
   timers.heartbeat = setInterval(() => out.comment('ping'), HEARTBEAT_MS);
+  if (stillAllowed) {
+    // A stream can stay open for hours, so a signed-out or removed user is dropped within a minute.
+    timers.recheck = setInterval(() => {
+      void stillAllowed()
+        .catch(() => true)
+        .then((allowed) => {
+          if (allowed) return;
+          out.write('close', { reason: 'access_ended' });
+          out.close();
+        });
+    }, STAFF_RECHECK_MS);
+  }
   out.write('ready', { projectId });
 }
 
@@ -269,7 +294,12 @@ export async function realtimeRoutes(fastify: FastifyInstance) {
     if (realtimeHub.count() >= MAX_STREAMS_PER_PROCESS) {
       return reply.status(503).send({ error: 'Unavailable', message: 'Too many live connections. Try again shortly.' });
     }
-    startProjectStream(request, reply, projectId);
+    const userId = access.session?.user.id;
+    startProjectStream(request, reply, projectId, async () => {
+      const session = await getSession(request);
+      if (!session || !userId || session.user.id !== userId) return false;
+      return (await checkUserProjectAccess(userId, projectId)).allowed;
+    });
   });
 
   fastify.addHook('onClose', async () => {

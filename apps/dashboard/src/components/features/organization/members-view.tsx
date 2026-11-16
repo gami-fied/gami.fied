@@ -29,6 +29,11 @@ import type { OrganizationMemberRecord } from '@/lib/organization-types';
 import { usePermissions } from '@/hooks/use-permissions';
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
+import { TablePagination } from '@/components/ui/table';
+import { useOpenOnParam } from '@/hooks/use-open-on-param';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SearchX as EmptyMembersIcon } from 'lucide-react';
+import { useUrlState } from '@/hooks/use-url-state';
 
 export function MembersView() {
   const { isAdminOrOwner } = usePermissions();
@@ -40,13 +45,15 @@ export function MembersView() {
   const [error, setError] = useState<string | null>(null);
 
   // Search, Filter & Pagination
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
-  const [page, setPage] = useState(1);
+  // Kept in the address, so a search can be refreshed or shared as it is.
+  const [searchQuery, setSearchQuery] = useUrlState<string>('search', '');
+  const [roleFilter, setRoleFilter] = useUrlState<string>('role', '');
+  const [page, setPage] = useUrlState<number>('page', 1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Modal States
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  useOpenOnParam(() => setIsInviteOpen(true));
   const [selectedDrawerMember, setSelectedDrawerMember] = useState<OrganizationMemberRecord | null>(
     null
   );
@@ -255,6 +262,8 @@ export function MembersView() {
             variant="secondary"
             size="sm"
             onClick={fetchMembers}
+            aria-label="Refresh the list"
+            title="Refresh the list"
             className="h-9 border-zinc-800 text-zinc-400"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -271,10 +280,10 @@ export function MembersView() {
           </div>
         ) : members.length === 0 ? (
           <div className="py-12 text-center text-xs text-zinc-400">
-            No organization members found matching your search.
+            <EmptyState icon={EmptyMembersIcon} title="Nobody matches that search" description="Try another name or email, or clear the role filter." />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Table" className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 text-xs">
@@ -328,7 +337,7 @@ export function MembersView() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-zinc-400">{mem.email}</div>
+                            <div className="text-xs text-zinc-400">{mem.email}</div>
                           </div>
                         </div>
                       </td>
@@ -360,7 +369,7 @@ export function MembersView() {
                             variant="secondary"
                             size="sm"
                             onClick={() => setSelectedDrawerMember(mem)}
-                            className="h-7 px-2 border-zinc-800 hover:bg-zinc-900 text-zinc-300 text-[11px]"
+                            className="h-7 px-2 border-zinc-800 hover:bg-zinc-900 text-zinc-300 text-xs"
                           >
                             <Eye className="w-3 h-3 mr-1 text-info-400" /> Profile
                           </Button>
@@ -376,7 +385,7 @@ export function MembersView() {
                               setRoleChangeMember(mem);
                               setNewRole(mem.role === 'admin' ? 'member' : 'admin');
                             }}
-                            className={`h-7 px-2 border-zinc-800 text-[11px] ${
+                            className={`h-7 px-2 border-zinc-800 text-xs ${
                               canEditRole
                                 ? 'hover:bg-zinc-900 text-zinc-300'
                                 : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
@@ -400,7 +409,7 @@ export function MembersView() {
                                 if (!canTransfer) return;
                                 setTransferMember(mem);
                               }}
-                              className={`h-7 px-2 text-[11px] ${
+                              className={`h-7 px-2 text-xs ${
                                 canTransfer
                                   ? 'border-warning-900/80 hover:bg-warning-950/40 text-warning-400'
                                   : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
@@ -422,7 +431,7 @@ export function MembersView() {
                               if (!canRemove) return;
                               handleRemoveMember(mem);
                             }}
-                            className={`h-7 px-2 text-[11px] ${
+                            className={`h-7 px-2 text-xs ${
                               canRemove
                                 ? 'border-danger-950 hover:bg-danger-950/40 text-danger-400'
                                 : 'opacity-40 cursor-not-allowed text-zinc-400 border-zinc-900'
@@ -440,34 +449,7 @@ export function MembersView() {
           </div>
         )}
 
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="p-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-            <span>
-              Page {page} of {totalPages}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-7 px-2 border-zinc-800 text-zinc-400"
-              >
-                Previous
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-7 px-2 border-zinc-800 text-zinc-400"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+        {totalPages > 1 && <TablePagination page={page} totalPages={totalPages} onPageChange={(next) => setPage(next)} />}
       </Card>
 
       {/* Modals & Drawers */}
