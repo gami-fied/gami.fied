@@ -56,7 +56,9 @@ async function checkPage(page, path, { desktop, reducedMotion }) {
         if (pinned !== (desktop && !reducedMotion)) problems.push(`story ${pinned ? 'pinned' : 'not pinned'} when it should ${pinned ? 'not' : ''} be`);
       }
       const toggle = document.querySelector('[data-engine-toggle]');
-      if (toggle && toggle.hidden !== reducedMotion) problems.push(`engine pause control ${toggle.hidden ? 'missing' : 'shown with reduced motion'}`);
+      // Phones get the stacked diagram, which does not move, so there is nothing to pause.
+      const still = reducedMotion || !desktop;
+      if (toggle && toggle.hidden !== still) problems.push(`engine pause control ${toggle.hidden ? 'missing' : 'shown when nothing moves'}`);
       return problems;
     },
     { desktop, reducedMotion }
@@ -105,6 +107,9 @@ for (const browser of BROWSERS) {
       // The playground answers a sent event with a badge toast.
       await page.goto(`${site}/playground/`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(500);
+      // Below 1280 px the playground is in two tabs, and sending is on the second.
+      const sendTab = page.getByRole('tab', { name: 'Send and results' });
+      if (await sendTab.isVisible()) await sendTab.click();
       await page.getByRole('button', { name: 'Send event' }).click();
       const toast = await page.locator('[role=status]:has-text("Badge unlocked")').waitFor({ timeout: 4000 }).then(() => true, () => false);
       if (!toast) found.push('/playground/: no badge toast after sending an event');

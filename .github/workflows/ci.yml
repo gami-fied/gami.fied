@@ -87,6 +87,8 @@ jobs:
             echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
             echo "ENCRYPTION_MASTER_KEY=$(openssl rand -hex 32)"
             echo "PLATFORM_BOOTSTRAP_SECRET=$(openssl rand -hex 32)"
+            # The page walk opens 150 pages from one address in a few minutes, far more than a person would.
+            echo "RATE_LIMIT_IP_MAX=100000"
           } > .env
       - run: docker compose $COMPOSE_FILES build
       - run: docker compose $COMPOSE_FILES up -d --no-build --wait --wait-timeout 180
