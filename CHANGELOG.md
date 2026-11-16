@@ -70,6 +70,8 @@ Fill in `.env`, then run `docker compose up -d`. Images are published for `linux
 
 ### Fixed
 
+- **The dashboard no longer goes blank for ten seconds under steady use.** The sign-in library limited session checks to about 100 from one address before a ten-second block, and with the default compose file everyone's requests reach the API from the dashboard's one address. Pages showed only a loading skeleton until the block ended. Session checks are no longer counted by that limit; sign-in, sign-up and password routes still are.
+
 - Editing a challenge or an XP boost no longer moves its start and end times. The form showed them in UTC but saved them as local time, so every save shifted them by your time-zone offset.
 
 - **Browsers on another site can call the player routes that change things.** CORS for `/v1/me` allowed only `GET`, so buying a reward or adding a friend from a customer's site failed before it was sent.

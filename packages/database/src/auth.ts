@@ -41,6 +41,14 @@ export const auth = betterAuth({
   secret: getAuthSecret(),
   baseURL: process.env['BETTER_AUTH_URL'] || 'http://localhost:3001',
   trustedOrigins,
+  rateLimit: {
+    // Every dashboard page checks the session, and with the default compose file everyone's
+    // requests reach the API from the dashboard's one address. The library's own limit (100
+    // requests, then a 10 second block) therefore blanked the dashboard for busy teams. Reading a
+    // session is not worth limiting here: the API's limit per address still covers it, and
+    // sign-in, sign-up and password routes keep the library's limits and the lockout in policy.ts.
+    customRules: { '/get-session': false },
+  },
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {

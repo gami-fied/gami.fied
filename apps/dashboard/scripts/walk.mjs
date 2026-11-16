@@ -263,12 +263,17 @@ async function walk(browser, { label, pages, viewport, colorScheme, projectId, w
   const notes = [];
   let pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  // Requests that were refused, kept to explain a page that did not draw.
+  let blocked = [];
   page.on('response', (response) => {
     if (response.status() >= 500) pageErrors.push(`${response.status()} from ${new URL(response.url()).pathname}`);
+    else if (response.status() >= 400) blocked.push(`${response.status()} from ${new URL(response.url()).pathname}`);
   });
+  page.on('requestfailed', (request) => blocked.push(`${request.failure()?.errorText ?? 'failed'} for ${new URL(request.url()).pathname}`));
 
   for (const path of pages) {
     pageErrors = [];
+    blocked = [];
     const url = path.startsWith('/dashboard') ? `${path}?project=${projectId}` : path;
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
@@ -283,7 +288,7 @@ async function walk(browser, { label, pages, viewport, colorScheme, projectId, w
     await page.screenshot({ path: join(out, `${label}${path.replace(/\//g, '_')}.png`) });
 
     if (pageErrors.length) problems.push(`${name}: ${[...new Set(pageErrors)].join('; ')}`);
-    if (!found.heading) problems.push(`${name}: no page heading`);
+    if (!found.heading) problems.push(`${name}: no page heading${blocked.length ? ` (${[...new Set(blocked)].slice(0, 5).join('; ')})` : ''}`);
     if (found.title === 'Gami.Fied Dashboard') problems.push(`${name}: the browser tab has no page title`);
     if (found.overflow > 1) problems.push(`${name}: scrolls sideways by ${found.overflow}px`);
     if (found.tiny > 0) problems.push(`${name}: ${found.tiny} pieces of text under 12px`);
