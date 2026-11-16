@@ -1,5 +1,5 @@
 /**
- * Phase 13.1: random rewards, season passes, teams and shared goals, cosmetics, leaderboard prizes
+ * Random rewards, season passes, teams and shared goals, cosmetics, leaderboard prizes
  * and journeys. Each is tried through the API a dashboard or a player would use, and the parts the
  * worker does are run directly.
  */
@@ -32,7 +32,7 @@ import { buildServer } from '../index.js';
 import { dropTable, openBox, pickItem } from '../mechanics/boxes.js';
 import { createApiKey } from '../services/api-key.service.js';
 
-describe('mechanics (Phase 13.1)', () => {
+describe('mechanics', () => {
   let app: Awaited<ReturnType<typeof buildServer>>;
   let cookie: string;
   let apiKey: string;
@@ -430,7 +430,7 @@ describe('mechanics (Phase 13.1)', () => {
       for (const [index, user] of users.entries()) await earnedAt(user!, 1_000_000 - index * 100_000, week.inside);
       const before = await Promise.all(users.map((user) => xpOf(user!)));
 
-      // ADD-05's check: with no prize set up, a board that closes pays nothing.
+      // Checked first: with no prize set up, a board that closes pays nothing.
       expect(await payLeaderboardPrizes(now)).toBe(0);
       expect(await db.select().from(leaderboardPayouts).where(eq(leaderboardPayouts.projectId, projectId))).toHaveLength(0);
 

@@ -1,4 +1,4 @@
-/** Proxy trust, limits per key and player, ending tokens, and batches (SUG-01, SUG-03, SUG-04, SUG-10). */
+/** Proxy trust, limits per key and player, ending tokens, and batches. */
 import { randomUUID } from 'crypto';
 import { db, endUsers, events, organizations, projects, runMigrations } from '@gami/database';
 import { and, eq } from 'drizzle-orm';
@@ -51,7 +51,6 @@ describe('hardening', () => {
     await app.close();
   });
 
-  // ---------- SUG-01 ----------
 
   it('reads TRUST_PROXY as off, on, a number of proxies, or a list of addresses', () => {
     expect(trustProxySetting(undefined)).toBe(false);
@@ -96,7 +95,6 @@ describe('hardening', () => {
     }
   }, 120_000);
 
-  // ---------- SUG-03 ----------
 
   it('limits how fast one API key can call, apart from other keys', async () => {
     const first = (await createApiKey(projectId, 'One', ['users:read'])).rawSecret;
@@ -129,7 +127,6 @@ describe('hardening', () => {
     expect((await me(calm)).statusCode).toBe(200);
   });
 
-  // ---------- SUG-04 ----------
 
   it("ends a player's tokens when the server asks, and lets new ones work", async () => {
     const serverKey = (await createApiKey(projectId, 'Revoke', ['users:write'])).rawSecret;
@@ -158,7 +155,6 @@ describe('hardening', () => {
     expect(JSON.parse(user.payload)).not.toHaveProperty('tokenVersion');
   });
 
-  // ---------- SUG-10 ----------
 
   it('takes a batch in one go, and still answers for each event', async () => {
     const eventsKey = (await createApiKey(projectId, 'Events', ['events:write'])).rawSecret;

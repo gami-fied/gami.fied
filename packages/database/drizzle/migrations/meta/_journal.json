@@ -309,6 +309,13 @@
       "when": 1794720913277,
       "tag": "0043_mechanics",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794741109214,
+      "tag": "0044_translations_locale_and_web_push",
+      "breakpoints": true
     }
   ]
 }

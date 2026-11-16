@@ -13,6 +13,7 @@ import {
   currencies,
   projects,
   pushDevices,
+  integrations,
   redemptions,
   rewards,
   streakDefinitions,
@@ -23,9 +24,12 @@ import {
 } from '@gami/database';
 import { periodEnd, periodKey, type ChallengeRecurrence, type ChallengeStep } from '@gami/challenges';
 import { walletBalances } from '@gami/rewards';
+import { localeFromHeader, normalizeLocale } from '@gami/database';
+import { publishRealtime } from '@gami/queue';
+import { isPushEndpoint } from '@gami/integrations';
 import { getLeaderboard, getUserRank, isSegmentField, segmentWhere, usersWhere, type LeaderboardPeriod } from '@gami/leaderboards';
 import { calculateLevel, streakStatus, type StreakCadence } from '@gami/progression';
-import { and, desc, eq, or, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, lt, or, type SQL } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { hasScope } from '../authorization/permissions.js';
@@ -96,7 +100,9 @@ export function verifyEndUserToken(token: string): EndUserContext | null {
  */
 export async function authenticateEndUser(
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
+  /** `allowReadToken` lets a read-only token through on a route that changes nothing of value, such as marking a notification read. */
+  options: { allowReadToken?: boolean } = {}
 ): Promise<EndUserContext | null> {
   const header = request.headers.authorization ?? '';
   const context = header.startsWith('Bearer ') ? verifyEndUserToken(header.slice(7)) : null;
@@ -137,7 +143,7 @@ export async function authenticateEndUser(
     return null;
   }
 
-  if (request.method !== 'GET' && request.method !== 'HEAD' && !context.canWrite) {
+  if (request.method !== 'GET' && request.method !== 'HEAD' && !context.canWrite && !options.allowReadToken) {
     await reply.status(403).send({
       code: 'TOKEN_READ_ONLY',
       message: 'This token can only read. Create it with access "write" to let the player make changes.',
@@ -147,7 +153,7 @@ export async function authenticateEndUser(
 
   // A token is good for up to an hour, so the player is checked on every call, not only when it was made.
   const [player] = await db
-    .select({ active: endUsers.active, tokenVersion: endUsers.tokenVersion })
+    .select({ active: endUsers.active, tokenVersion: endUsers.tokenVersion, locale: endUsers.locale })
     .from(endUsers)
     .where(and(eq(endUsers.id, context.userId), eq(endUsers.projectId, context.projectId)));
   if (!player) {
@@ -164,6 +170,14 @@ export async function authenticateEndUser(
     return null;
   }
   if (!(await checkCallerRateLimit(reply, 'player', context.userId))) return null;
+
+  // The language for this answer: asked for in the address, saved on the player, or the browser's own.
+  const asked = (request.query as { locale?: unknown } | undefined)?.locale;
+  request.playerLocale = {
+    projectId: context.projectId,
+    organizationId: project.organizationId,
+    locale: normalizeLocale(asked) ?? player.locale ?? localeFromHeader(request.headers['accept-language']),
+  };
 
   return context;
 }
@@ -220,7 +234,7 @@ export async function endUserRoutes(fastify: FastifyInstance) {
 
     const [[user], [balance], projectLevels] = await Promise.all([
       db
-        .select({ externalId: endUsers.externalId, name: endUsers.name })
+        .select({ externalId: endUsers.externalId, name: endUsers.name, locale: endUsers.locale })
         .from(endUsers)
         .where(and(eq(endUsers.id, userId), eq(endUsers.projectId, projectId))),
       db
@@ -240,12 +254,26 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     return reply.send({
       externalId: user.externalId,
       name: user.name,
+      locale: user.locale,
       cosmetics: worn,
       totalXp,
       level: level && { number: level.level, name: level.name },
       xpToNextLevel: level?.xpToNextLevel ?? null,
       progressPercent: level?.progressPercent ?? null,
     });
+  });
+
+  // The player's language, for the text they read and the notifications and emails they are sent.
+  fastify.post<{ Body: { locale?: unknown } }>('/v1/me/locale', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply, { allowReadToken: true });
+    if (!context) return;
+    const raw = request.body?.locale;
+    const locale = raw === null || raw === '' ? null : normalizeLocale(raw);
+    if (raw !== null && raw !== '' && !locale) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a language tag such as fr or pt-BR, or null to clear it' });
+    }
+    await db.update(endUsers).set({ locale, updatedAt: new Date() }).where(and(eq(endUsers.id, context.userId), eq(endUsers.projectId, context.projectId)));
+    return reply.send({ locale });
   });
 
   fastify.get('/v1/me/achievements', async (request, reply) => {
@@ -357,48 +385,75 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     return reply.send({ data });
   });
 
-  // Phones register themselves here so the server can send them push notifications.
-  fastify.post<{ Body: { token?: string; platform?: string } }>('/v1/me/devices', async (request, reply) => {
+  // The key a browser subscribes with. It is the public half of the project's key pair, so it is safe to hand out.
+  fastify.get('/v1/me/push/web-key', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const rows = await db
+      .select({ config: integrations.config })
+      .from(integrations)
+      .where(and(eq(integrations.projectId, context.projectId), eq(integrations.provider, 'webpush'), eq(integrations.enabled, true)));
+    const publicKey = rows.map((row) => (row.config as Record<string, unknown> | null)?.['vapidPublicKey']).find((key): key is string => typeof key === 'string');
+    if (!publicKey) return reply.status(404).send({ code: 'WEB_PUSH_NOT_SET_UP', message: 'This project has no web push integration' });
+    return reply.send({ publicKey });
+  });
+
+  // Phones and browsers register themselves here so the server can send them push notifications.
+  const deviceSchema = z.union([
+    z.object({ token: z.string().min(16).max(4096), platform: z.enum(['ios', 'android']) }),
+    z.object({
+      platform: z.literal('web'),
+      // What `PushSubscription.toJSON()` gives in a browser.
+      subscription: z.object({ endpoint: z.string().url().max(2048), keys: z.object({ p256dh: z.string().min(80).max(100), auth: z.string().min(16).max(40) }) }),
+    }),
+  ]);
+
+  fastify.post('/v1/me/devices', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
 
-    const parsed = z
-      .object({ token: z.string().min(16).max(4096), platform: z.enum(['ios', 'android']) })
-      .safeParse(request.body);
+    const parsed = deviceSchema.safeParse(request.body);
     if (!parsed.success) {
-      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a device token and a platform of ios or android' });
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send a device token and a platform of ios or android, or a browser subscription with platform web' });
     }
+    const device = parsed.data;
+    // The server sends requests to a browser's push address, so it must be a real push service.
+    if (device.platform === 'web' && !isPushEndpoint(device.subscription.endpoint)) {
+      return reply.status(400).send({ code: 'PUSH_ENDPOINT_NOT_ALLOWED', message: 'That subscription does not point at a browser push service' });
+    }
+    const token = device.platform === 'web' ? device.subscription.endpoint : device.token;
+    const keys = device.platform === 'web' ? device.subscription.keys : null;
 
-    // A token belongs to one player. If the phone changed hands, it follows the new signed-in player.
+    // A device belongs to one player. If it changed hands, it follows the new signed-in player.
     await db
       .insert(pushDevices)
-      .values({
-        id: `pdv_${crypto.randomUUID()}`,
-        projectId: context.projectId,
-        userId: context.userId,
-        platform: parsed.data.platform,
-        token: parsed.data.token,
-      })
+      .values({ id: `pdv_${crypto.randomUUID()}`, projectId: context.projectId, userId: context.userId, platform: device.platform, token, keys })
       .onConflictDoUpdate({
         target: [pushDevices.projectId, pushDevices.token],
-        set: { userId: context.userId, platform: parsed.data.platform, active: true, lastSeenAt: new Date() },
+        set: { userId: context.userId, platform: device.platform, keys, active: true, lastSeenAt: new Date() },
       });
     return reply.status(201).send({ registered: true });
   });
 
+  const removeDevice = (context: EndUserContext, token: string) =>
+    db.delete(pushDevices).where(and(eq(pushDevices.projectId, context.projectId), eq(pushDevices.userId, context.userId), eq(pushDevices.token, token)));
+
   fastify.delete<{ Params: { token: string } }>('/v1/me/devices/:token', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
+    await removeDevice(context, request.params.token);
+    return reply.send({ removed: true });
+  });
 
-    await db
-      .delete(pushDevices)
-      .where(
-        and(
-          eq(pushDevices.projectId, context.projectId),
-          eq(pushDevices.userId, context.userId),
-          eq(pushDevices.token, request.params.token)
-        )
-      );
+  // The same, with the token in the body. A browser's push address, and many phone tokens, are too long for a path.
+  fastify.post<{ Body: { token?: unknown } }>('/v1/me/devices/remove', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const token = request.body?.token;
+    if (typeof token !== 'string' || token.length < 16 || token.length > 4096) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: 'Send the device token, or the browser subscription\'s endpoint, as { "token": "..." }' });
+    }
+    await removeDevice(context, token);
     return reply.send({ removed: true });
   });
 
@@ -527,28 +582,80 @@ export async function endUserRoutes(fastify: FastifyInstance) {
     return reply.send({ data });
   });
 
-  fastify.get('/v1/me/notifications', async (request, reply) => {
+  // The player's inbox: newest first, with what is unread. `before` pages back through older ones.
+  fastify.get<{ Querystring: { unread?: string; limit?: string; before?: string } }>('/v1/me/notifications', async (request, reply) => {
     const context = await authenticateEndUser(request, reply);
     if (!context) return;
 
-    const data = await db
-      .select({
-        id: notifications.id,
-        type: notifications.type,
-        title: notifications.title,
-        message: notifications.message,
-        createdAt: notifications.createdAt,
-      })
+    const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 50));
+    const before = request.query.before ? new Date(request.query.before) : null;
+    if (before && Number.isNaN(before.getTime())) {
+      return reply.status(400).send({ code: 'BAD_REQUEST', message: '`before` must be a date, such as the createdAt of the last notification you have' });
+    }
+    const mine = and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId));
+
+    const [rows, [unread]] = await Promise.all([
+      db
+        .select({
+          id: notifications.id,
+          type: notifications.type,
+          title: notifications.title,
+          message: notifications.message,
+          readAt: notifications.readAt,
+          createdAt: notifications.createdAt,
+        })
+        .from(notifications)
+        .where(and(mine, request.query.unread === 'true' ? isNull(notifications.readAt) : undefined, before ? lt(notifications.createdAt, before) : undefined))
+        .orderBy(desc(notifications.createdAt), desc(notifications.id))
+        .limit(limit + 1),
+      db.select({ total: count() }).from(notifications).where(and(mine, isNull(notifications.readAt))),
+    ]);
+    const data = rows.slice(0, limit).map((row) => ({ ...row, read: row.readAt !== null }));
+    return reply.send({ data, unreadCount: unread?.total ?? 0, hasMore: rows.length > limit });
+  });
+
+  fastify.get('/v1/me/notifications/unread-count', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply);
+    if (!context) return;
+    const [unread] = await db
+      .select({ total: count() })
       .from(notifications)
-      .where(
-        and(
-          eq(notifications.projectId, context.projectId),
-          eq(notifications.userId, context.userId)
-        )
-      )
-      .orderBy(desc(notifications.createdAt))
-      .limit(50);
-    return reply.send({ data });
+      .where(and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId), isNull(notifications.readAt)));
+    return reply.send({ unreadCount: unread?.total ?? 0 });
+  });
+
+  // Reading a notification changes nothing of value, so a read-only token may do it.
+  const markRead = async (context: EndUserContext, only?: string) => {
+    const changed = await db
+      .update(notifications)
+      .set({ readAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId), isNull(notifications.readAt), only ? eq(notifications.id, only) : undefined))
+      .returning({ id: notifications.id });
+    const [unread] = await db
+      .select({ total: count() })
+      .from(notifications)
+      .where(and(eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId), isNull(notifications.readAt)));
+    // The player's other tabs and devices hear about it, so their unread counts follow.
+    if (changed.length > 0) void publishRealtime({ projectId: context.projectId, userId: context.userId });
+    return { marked: changed.length, unreadCount: unread?.total ?? 0 };
+  };
+
+  fastify.post('/v1/me/notifications/read-all', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply, { allowReadToken: true });
+    if (!context) return;
+    return reply.send(await markRead(context));
+  });
+
+  fastify.post<{ Params: { notificationId: string } }>('/v1/me/notifications/:notificationId/read', async (request, reply) => {
+    const context = await authenticateEndUser(request, reply, { allowReadToken: true });
+    if (!context) return;
+    const [exists] = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(and(eq(notifications.id, request.params.notificationId), eq(notifications.projectId, context.projectId), eq(notifications.userId, context.userId)));
+    // Someone else's notification answers the same as one that does not exist.
+    if (!exists) return reply.status(404).send({ code: 'NOT_FOUND', message: 'Notification not found' });
+    return reply.send(await markRead(context, exists.id));
   });
 
   // A board a player can be shown. It leaves out the project's own IDs and any email address.

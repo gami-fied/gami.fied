@@ -88,6 +88,7 @@ const RESOURCE_ALIASES: Record<string, ScopeResource> = {
   goals: 'challenges',
   journeys: 'challenges',
   'leaderboard-prizes': 'leaderboard',
+  translations: 'project',
 };
 
 /** Credentials and team access. A leaked key must never be able to widen its own reach. */

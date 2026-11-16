@@ -1,7 +1,7 @@
 ---
 /**
  * The three steps, each with the code that does it and what the player sees. This stacked layout is
- * what phones and reduced motion get; WEB-38 turns it into a pinned scroll story on wide screens.
+ * what phones and reduced motion get; The scroll story turns it into a pinned scroll story on wide screens.
  */
 import { Code } from 'astro:components';
 import { codeTheme } from '../../lib/code-theme';
@@ -71,7 +71,7 @@ const tones = {
     }
   </ol>
 
-  <!-- The phone in the scroll story (WEB-38), shown only on wide screens with motion. It repeats the
+  <!-- The phone in the scroll story, shown only on wide screens with motion. It repeats the
        results above, so it is hidden from screen readers. -->
   <div class="how-phone" aria-hidden="true" data-story-phone>
     <div class="how-phone-frame">

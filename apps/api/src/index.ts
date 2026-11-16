@@ -25,6 +25,8 @@ import { cosmeticRoutes } from './mechanics/cosmetics.js';
 import { leaderboardPrizeRoutes } from './mechanics/leaderboard-prizes.js';
 import { journeyRoutes } from './mechanics/journeys.js';
 import { endUserMechanicRoutes } from './public/end-user-mechanics.js';
+import { localizePlayerResponse } from './public/localize.js';
+import { translationRoutes } from './translations/index.js';
 import { loadPlugins } from '@gami/rules/node';
 import { segmentRoutes } from './segments/index.js';
 import { leagueRoutes } from './engagement/leagues.js';
@@ -166,6 +168,8 @@ export async function buildServer() {
   // Both apply to routes registered below.
   fastify.addHook('onRoute', addUserResolution);
   fastify.addHook('onSend', errorFormatHook);
+  // Player answers go out in the player's language, when the project has text in it.
+  fastify.addHook('preSerialization', localizePlayerResponse);
 
   // Register CORS for Dashboard and external clients
   const dashboardCors = {
@@ -311,6 +315,7 @@ export async function buildServer() {
   await fastify.register(cosmeticRoutes);
   await fastify.register(leaderboardPrizeRoutes);
   await fastify.register(journeyRoutes);
+  await fastify.register(translationRoutes);
   await fastify.register(segmentRoutes);
   await fastify.register(leagueRoutes);
   await fastify.register(socialRoutes);

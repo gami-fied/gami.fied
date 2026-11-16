@@ -234,7 +234,7 @@ export function ChallengeList({ className }: { className?: string }) {
   );
 }
 
-/** Recent notifications, with new ones appearing as they happen. */
+/** Recent notifications, with new ones appearing as they happen. Unread ones are marked. */
 export function NotificationFeed({ limit = 10, className }: { limit?: number; className?: string }) {
   const { data, loading, error } = useNotifications(limit);
   const items = data ?? [];
@@ -243,9 +243,65 @@ export function NotificationFeed({ limit = 10, className }: { limit?: number; cl
       <Status loading={loading} error={error} empty={items.length === 0 && 'Nothing new yet.'}>
         <ul className="gami-list">
           {items.map((item) => (
-            <li key={item.id} className="gami-note">
-              <div className="gami-note-title">{item.title}</div>
+            <li key={item.id} className={cx('gami-note', !item.read && 'gami-unread')}>
+              <div className="gami-note-title">
+                {item.title}
+                {!item.read && <span className="gami-sr"> (unread)</span>}
+              </div>
               <div className="gami-muted gami-small">{item.message}</div>
+            </li>
+          ))}
+        </ul>
+      </Status>
+    </section>
+  );
+}
+
+export interface NotificationInboxProps {
+  /** How many to show. Defaults to 20. */
+  limit?: number;
+  /** Mark a notification read when the player clicks it. Defaults to on. */
+  markOnClick?: boolean;
+  className?: string;
+}
+
+/**
+ * An inbox: the unread count, each notification with its read state, and "Mark all read". Marking
+ * read works with a read-only token.
+ */
+export function NotificationInbox({ limit = 20, markOnClick = true, className }: NotificationInboxProps) {
+  const { data, loading, error, unreadCount, markRead, markAllRead } = useNotifications(limit);
+  const items = data ?? [];
+  return (
+    <section className={cx('gami-card', className)} aria-label="Inbox">
+      <div className="gami-row">
+        <strong>Inbox</strong>
+        <span className={cx('gami-pill', unreadCount > 0 && 'gami-count')} aria-live="polite">
+          {unreadCount === 0 ? 'All read' : `${unreadCount} unread`}
+        </span>
+        <span className="gami-spacer" />
+        {unreadCount > 0 && (
+          <button type="button" className="gami-link" onClick={() => void markAllRead().catch(() => undefined)}>
+            Mark all read
+          </button>
+        )}
+      </div>
+      <Status loading={loading} error={error} empty={items.length === 0 && 'Nothing here yet.'}>
+        <ul className="gami-list">
+          {items.map((item) => (
+            <li key={item.id} className={cx('gami-note', !item.read && 'gami-unread')}>
+              {markOnClick && !item.read ? (
+                <button type="button" className="gami-note-button" onClick={() => void markRead(item.id).catch(() => undefined)}>
+                  <span className="gami-note-title">{item.title}</span>
+                  <span className="gami-sr"> (unread, select to mark as read)</span>
+                  <span className="gami-muted gami-small">{item.message}</span>
+                </button>
+              ) : (
+                <>
+                  <div className="gami-note-title">{item.title}</div>
+                  <div className="gami-muted gami-small">{item.message}</div>
+                </>
+              )}
             </li>
           ))}
         </ul>

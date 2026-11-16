@@ -53,6 +53,7 @@ export const FEATURES = [
 
   { key: 'campaigns', name: 'Campaigns', category: 'Messaging', requires: ['users'], description: 'Streak reminders, weekly recaps and win-back emails.' },
   { key: 'realtime', name: 'Live updates', category: 'Messaging', requires: ['users'], description: 'Instant toasts and live boards over a stream.' },
+  { key: 'translations', name: 'Translations', category: 'Messaging', requires: ['users'], description: 'Names, descriptions and notification text in the language of each player.' },
   { key: 'push', name: 'Push notifications', category: 'Messaging', requires: ['users'], description: 'Phones registered for Apple and Google push.' },
 
   { key: 'webhooks', name: 'Webhooks', category: 'Integrations', requires: ['events'], description: 'Signed callbacks to your servers.' },

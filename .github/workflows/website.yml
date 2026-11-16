@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          # Release tags, so docs for earlier versions are built (WEB-18).
+          # Release tags, so docs for earlier versions are built.
           fetch-depth: 0
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -78,7 +78,7 @@ jobs:
       - name: Check links
         run: pnpm --filter @gami/website check:links
 
-      # The animation budget (WEB-35): at most 60 KB of animation code on the home page, none on docs.
+      # The animation budget: at most 60 KB of animation code on the home page, none on docs.
       - name: Check the animation budget
         run: pnpm --filter @gami/website check:motion
 
@@ -93,7 +93,7 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
 
       # Every animated page in Chrome, Firefox and WebKit, at desktop and phone sizes, with and without
-      # reduced motion (WEB-44). The preview from the step above is still running.
+      # reduced motion. The preview from the step above is still running.
       - name: Check motion in three browsers
         run: |
           pnpm --filter @gami/website exec playwright-core install --with-deps firefox webkit

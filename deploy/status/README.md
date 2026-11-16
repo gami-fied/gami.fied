@@ -19,4 +19,4 @@ The first checks run within five minutes, and the page is built after them.
 
 Edit `.upptimerc.yml` here, then copy it into the status repository. Each site needs a `name` and a `url`. A check fails on any status other than 2xx, or when the response contains `__dangerous__body_down`.
 
-When the Cloud edition launches (Phase 10), uncomment its checks.
+When the Cloud edition launches, uncomment its checks.

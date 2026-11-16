@@ -9,6 +9,7 @@ import {
   userAchievements,
   webhookOutbox,
   xpLedger,
+  normalizeLocale,
 } from '@gami/database';
 import { createWebhookDelivery } from '@gami/webhooks';
 import { asc, and, count, desc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
@@ -18,12 +19,22 @@ import { createAuditLog } from '../audit-logs/index.js';
 import { canViewPersonalData, requireProjectAccess } from '../authorization/index.js';
 import { createEndUserToken } from '../public/end-user.js';
 
+/** A language tag such as `fr` or `pt-BR`, tidied. Null or an empty string clears it. */
+const localeField = z
+  .string()
+  .max(35)
+  .nullable()
+  .optional()
+  .refine((value) => value === undefined || value === null || value === '' || normalizeLocale(value) !== null, { message: 'locale must be a language tag such as fr or pt-BR' })
+  .transform((value) => (value === undefined ? undefined : value ? normalizeLocale(value) : null));
+
 const createUserSchema = z.object({
   externalId: z.string().min(1).max(128),
   name: z.string().max(128).optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal('')),
   avatarUrl: z.string().url().max(512).optional().nullable().or(z.literal('')),
   metadata: z.record(z.string(), z.unknown()).optional().default({}),
+  locale: localeField,
 });
 
 const updateUserSchema = z.object({
@@ -31,6 +42,7 @@ const updateUserSchema = z.object({
   email: z.string().email().optional().nullable().or(z.literal('')),
   avatarUrl: z.string().url().max(512).optional().nullable().or(z.literal('')),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  locale: localeField,
   active: z.boolean().optional(),
 });
 
@@ -155,7 +167,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { externalId, name, email, avatarUrl, metadata } = parseResult.data;
+    const { externalId, name, email, avatarUrl, metadata, locale } = parseResult.data;
 
     // Check unique externalId constraint
     const [existing] = await db
@@ -182,6 +194,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: email || null,
         avatarUrl: avatarUrl || null,
         metadata: metadata || {},
+        locale: locale ?? null,
         active: true,
       })
       .returning();
@@ -234,7 +247,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { name, email, avatarUrl, metadata, active } = parseResult.data;
+    const { name, email, avatarUrl, metadata, active, locale } = parseResult.data;
 
     const updateData: Partial<typeof endUsers.$inferInsert> = {
       updatedAt: new Date(),
@@ -244,6 +257,7 @@ export async function userRoutes(fastify: FastifyInstance) {
     if (email !== undefined) updateData.email = email || null;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null;
     if (metadata !== undefined) updateData.metadata = metadata;
+    if (locale !== undefined) updateData.locale = locale;
     if (active !== undefined) updateData.active = active;
 
     const [updatedUser] = await db

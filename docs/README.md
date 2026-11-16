@@ -17,6 +17,8 @@ Documentation for **Gami.Fied Community Edition**, a self-hosted gamification en
 | 🎮 [**Gamification Mechanics**](./gamification-mechanics.md) | Events, rules, XP, levels, achievements, challenges and leaderboards. |
 | 🛒 [**Economy and Store**](./economy-and-store.md) | Boosts, limits, backtests, rule drafts, currencies, wallets and the reward store. |
 | 🎁 [**Boxes, Passes, Teams and Journeys**](./boxes-passes-teams-and-journeys.md) | Random rewards with published odds, season passes, teams, shared goals, cosmetics, leaderboard prizes and journeys. |
+| 🌍 [**Translations**](./translations.md) | Names, descriptions and notifications in each player's language, with fallback. |
+| 🧩 [**Web Components**](./web-components.md) | The components as HTML elements, for Vue, Svelte and plain pages. |
 | 🏆 [**Segments, Leagues and Social**](./social-and-competition.md) | Segments, team and country boards, leagues, friends, kudos, the feed, share cards and invites. |
 | 🎛️ [**Features and Organization Rules**](./platform-administration-features.md) | Turning features on and off for the instance or one organization, limits and security rules, and emergency access controls. |
 | 🔌 [**Connectors, Environments and Plugins**](./connectors-environments-and-plugins.md) | Segment, RudderStack, Stripe and GitHub, staging and promotion, expression conditions and plugin actions. |

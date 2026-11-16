@@ -7,7 +7,7 @@ import { ALTERNATIVES } from '../lib/alternatives';
 
 /**
  * An honest comparison. Facts about other products come from their public pages, linked below,
- * as checked for PLAN.md's assessment. Update the date when you re-check them.
+ * as checked on the date below. Update the date when you re-check them.
  */
 const checkedOn = 'November 2026';
 
@@ -63,7 +63,7 @@ const weaker = [
   { title: 'No single sign-on yet', text: 'SAML, OIDC and SCIM are planned for Enterprise. Today the dashboard uses email and password accounts.' },
   { title: 'Push not yet proven on real accounts', text: 'Apple and Google push are tested against stand-ins, not real developer accounts.' },
   { title: 'No impact analytics yet', text: 'A/B tests of mechanics and retention reports, which prove the effect of gamification, are planned.' },
-  { title: 'React components need browser testing', text: 'They are tested by rendering on the server, not yet in real browsers, and are not on npm yet.' },
+  { title: 'React components need browser testing', text: 'They are tested by rendering on the server. Only the web components are checked in a real browser so far.' },
 ];
 
 const icon = { yes: Check, no: X, partly: Minus } as const;
@@ -147,7 +147,7 @@ const label = { yes: 'Yes', no: 'No', partly: 'Partly' } as const;
     </p>
   </Section>
 
-  <Section eyebrow="Being honest" title="Where Gami.Fied is weaker today" intro="These are real gaps. Most are on the plan, but if one matters to you now, another option may suit you better.">
+  <Section eyebrow="Being honest" title="Where Gami.Fied is weaker today" intro="These are real gaps. Most are planned, but if one matters to you now, another option may suit you better.">
     <ul class="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-reveal-group>
       {
         weaker.map((item) => (

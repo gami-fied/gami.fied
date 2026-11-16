@@ -20,7 +20,7 @@ function motionFileName(chunk) {
   return ids.some((id) => ANIMATION_MODULE.test(id.replace(/\\/g, '/'))) ? `_astro/motion-${name}.[hash].js` : `_astro/${name}.[hash].js`;
 }
 
-// Docs for earlier releases, read from their git tags (WEB-18).
+// Docs for earlier releases, read from their git tags.
 const olderVersions = olderDocVersions();
 
 const docsImage = new URL('/og/docs.png', site).href;
@@ -110,6 +110,7 @@ export default defineConfig({
             { label: 'Economy and store', slug: 'docs/economy-and-store' },
             { label: 'Segments, leagues and social', slug: 'docs/social-and-competition' },
             { label: 'Boxes, passes, teams and journeys', slug: 'docs/boxes-passes-teams-and-journeys' },
+            { label: 'Translations', slug: 'docs/translations' },
             { label: 'Community Edition', slug: 'docs/community-edition' },
           ],
         },
@@ -118,6 +119,7 @@ export default defineConfig({
           items: [
             { label: 'TypeScript SDK', slug: 'docs/sdk' },
             { label: 'React components', slug: 'docs/react' },
+            { label: 'Web components', slug: 'docs/web-components' },
             { label: 'Player token security', slug: 'docs/player-token-security' },
             { label: 'Notifications and webhooks', slug: 'docs/notifications-and-integrations' },
             { label: 'Connectors and plugins', slug: 'docs/connectors-environments-and-plugins' },
@@ -174,7 +176,7 @@ export default defineConfig({
   markdown: { shikiConfig: { theme: 'github-dark' } },
   vite: {
     plugins: [tailwindcss()],
-    // Browser files only: animation code gets a "motion-" prefix, so the budget check (WEB-35) can weigh it.
+    // Browser files only: animation code gets a "motion-" prefix, so the budget check can weigh it.
     environments: {
       client: { build: { rolldownOptions: { output: { entryFileNames: motionFileName, chunkFileNames: motionFileName } } } },
     },

@@ -33,7 +33,7 @@ Settings are cached for up to 30 seconds in each API and worker process, so a ch
 | `streaks`, `webhooks`, `integrations`, `connectors`, `analytics`, `teams` | `events` |
 | `challenges` | `events`, `xp` |
 | `boosts_limits` | `rules`, `xp` |
-| `segments`, `wallets`, `social`, `campaigns`, `realtime`, `push`, `loot_boxes`, `cosmetics` | `users` |
+| `segments`, `wallets`, `social`, `campaigns`, `realtime`, `push`, `translations`, `loot_boxes`, `cosmetics` | `users` |
 | `leagues`, `leaderboard_prizes` | `leaderboards` |
 | `journeys` | `challenges` |
 | `store` | `wallets` |

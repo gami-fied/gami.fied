@@ -18,7 +18,7 @@ sites:
     expectedStatusCodes:
       - 200
     __dangerous__body_down: '"enabled":false'
-  # Uncomment once the Cloud edition exists (Phase 10).
+  # Uncomment once the Cloud edition exists.
   # - name: Cloud API
   #   url: https://api.gami.fied.cloud/health
 

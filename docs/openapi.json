@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gami.Fied API",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "description": "The stable public API. The API key identifies the project, so paths never include a project ID."
   },
   "tags": [
@@ -531,6 +531,7 @@
                   "required": [
                     "externalId",
                     "name",
+                    "locale",
                     "totalXp",
                     "level",
                     "xpToNextLevel",
@@ -550,6 +551,14 @@
                       ],
                       "description": "Display name.",
                       "example": "Ada Lovelace"
+                    },
+                    "locale": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The language saved for the player, or null.",
+                      "example": null
                     },
                     "totalXp": {
                       "type": "integer",
@@ -740,14 +749,14 @@
         }
       }
     },
-    "/v1/me/devices": {
+    "/v1/me/locale": {
       "post": {
-        "operationId": "postMeDevices",
+        "operationId": "postV1MeLocale",
         "tags": [
           "Current user"
         ],
-        "summary": "Register the current user's phone for push notifications",
-        "description": "Needs a token created with `access: \"write\"`. Call this from your mobile app with the token the phone's push service gave it, each time the app starts. A token belongs to one player, so if the phone is later used by someone else it moves to them. Needs a push integration (Apple or Firebase) set up in the dashboard.'",
+        "summary": "Set the current user's language",
+        "description": "Saves the player's language as a tag such as `fr` or `pt-BR`, or clears it with null. Notifications and emails are then written in it, and `/v1/me` answers use it, where the project has translations. A read-only token is enough.",
         "security": [
           {
             "endUserToken": []
@@ -760,7 +769,179 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "token",
+                  "locale"
+                ],
+                "properties": {
+                  "locale": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "A language tag, or null to clear it.",
+                    "example": "pt-BR"
+                  }
+                }
+              },
+              "example": {
+                "locale": "pt-BR"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Set the current user's language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "locale"
+                  ],
+                  "properties": {
+                    "locale": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The language saved, tidied.",
+                      "example": "pt-BR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/push/web-key": {
+      "get": {
+        "operationId": "getV1MePushWebKey",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Get the key a browser subscribes with",
+        "description": "Returns the public key of the project's web push integration, to pass to `pushManager.subscribe` as `applicationServerKey`. It is not a secret. Returns 404 `WEB_PUSH_NOT_SET_UP` when the project has no web push integration.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get the key a browser subscribes with",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "publicKey"
+                  ],
+                  "properties": {
+                    "publicKey": {
+                      "type": "string",
+                      "description": "The key, base64url.",
+                      "example": "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/devices": {
+      "post": {
+        "operationId": "postMeDevices",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Register the current user's phone or browser for push notifications",
+        "description": "Needs a token created with `access: \"write\"`. From a mobile app, send the token the phone's push service gave it, each time the app starts. From a website, send `platform: \"web\"` and the browser's `subscription`; its address must be a browser push service, or the answer is 400 `PUSH_ENDPOINT_NOT_ALLOWED`. A device belongs to one player, so if it is later used by someone else it moves to them. Needs a push integration (Apple, Firebase or web push) set up in the dashboard.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
                   "platform"
                 ],
                 "properties": {
@@ -768,17 +949,43 @@
                     "type": "string",
                     "minLength": 16,
                     "maxLength": 4096,
-                    "description": "The APNs device token, or the FCM registration token.",
+                    "description": "For a phone: the APNs device token, or the FCM registration token.",
                     "example": "fMyDeviceTokenFromFirebase1234567890"
                   },
                   "platform": {
                     "type": "string",
                     "enum": [
                       "ios",
-                      "android"
+                      "android",
+                      "web"
                     ],
-                    "description": "Which push service the token is for.",
+                    "description": "Which push service it is for.",
                     "example": "android"
+                  },
+                  "subscription": {
+                    "type": "object",
+                    "description": "For a browser: what `PushSubscription.toJSON()` gives.",
+                    "properties": {
+                      "endpoint": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "The push address."
+                      },
+                      "keys": {
+                        "type": "object",
+                        "description": "The browser's keys.",
+                        "properties": {
+                          "p256dh": {
+                            "type": "string",
+                            "description": "Its public key."
+                          },
+                          "auth": {
+                            "type": "string",
+                            "description": "Its shared secret."
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -791,7 +998,7 @@
         },
         "responses": {
           "201": {
-            "description": "The phone is registered.",
+            "description": "The device is registered.",
             "content": {
               "application/json": {
                 "schema": {
@@ -842,6 +1049,98 @@
           },
           "429": {
             "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/devices/remove": {
+      "post": {
+        "operationId": "postV1MeDevicesRemove",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Remove the current user's phone or browser",
+        "description": "Stops notifications to a device, for example when the player signs out. Send the device token, or for a browser the subscription's `endpoint`. Use this rather than the `DELETE` form when the token is long. Only removes a device registered to the token holder. Needs a token created with `access: \"write\"`; a read-only token gets 403 `TOKEN_READ_ONLY`.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 4096,
+                    "description": "The device token, or a browser subscription's endpoint.",
+                    "example": "fMyDeviceTokenFromFirebase1234567890"
+                  }
+                }
+              },
+              "example": {
+                "token": "fMyDeviceTokenFromFirebase1234567890"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Remove the current user's phone or browser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "removed"
+                  ],
+                  "properties": {
+                    "removed": {
+                      "type": "boolean",
+                      "description": "Always true.",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid. `error.details` says which fields failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3683,7 +3982,7 @@
           "Current user"
         ],
         "summary": "List the current user's notifications",
-        "description": "Lists the token holder's 50 most recent notifications, newest first.",
+        "description": "The player's inbox, newest first, with which are unread and how many unread there are in all. Use `unread=true` for unread ones only, and `before` with the `createdAt` of the last one you have to page back.",
         "security": [
           {
             "endUserToken": []
@@ -3697,12 +3996,14 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "data"
+                    "data",
+                    "unreadCount",
+                    "hasMore"
                   ],
                   "properties": {
                     "data": {
                       "type": "array",
-                      "description": "The results.",
+                      "description": "The notifications.",
                       "items": {
                         "type": "object",
                         "required": [
@@ -3710,6 +4011,8 @@
                           "type",
                           "title",
                           "message",
+                          "readAt",
+                          "read",
                           "createdAt"
                         ],
                         "properties": {
@@ -3733,6 +4036,20 @@
                             "description": "Full text.",
                             "example": "You earned First order"
                           },
+                          "readAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time",
+                            "description": "When the player read it, or null.",
+                            "example": null
+                          },
+                          "read": {
+                            "type": "boolean",
+                            "description": "Whether the player has read it.",
+                            "example": false
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -3741,6 +4058,16 @@
                           }
                         }
                       }
+                    },
+                    "unreadCount": {
+                      "type": "integer",
+                      "description": "How many of the player's notifications are unread, in all.",
+                      "example": 3
+                    },
+                    "hasMore": {
+                      "type": "boolean",
+                      "description": "Whether there are older ones to page to.",
+                      "example": false
                     }
                   }
                 }
@@ -3779,6 +4106,265 @@
           },
           "429": {
             "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "unread",
+            "in": "query",
+            "required": false,
+            "description": "Send `true` for unread notifications only.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "How many, up to 100.",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "Only notifications older than this time.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/me/notifications/unread-count": {
+      "get": {
+        "operationId": "getV1MeNotificationsUnreadCount",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Count the current user's unread notifications",
+        "description": "A cheap call for a badge on a bell.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Count the current user's unread notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "unreadCount"
+                  ],
+                  "properties": {
+                    "unreadCount": {
+                      "type": "integer",
+                      "description": "Unread notifications.",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Wait for the number of seconds in `Retry-After`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/notifications/read-all": {
+      "post": {
+        "operationId": "postV1MeNotificationsReadAll",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Mark every notification read",
+        "description": "Marks all of the player's unread notifications as read. A read-only token is enough.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mark every notification read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "marked",
+                    "unreadCount"
+                  ],
+                  "properties": {
+                    "marked": {
+                      "type": "integer",
+                      "description": "How many were marked by this call.",
+                      "example": 3
+                    },
+                    "unreadCount": {
+                      "type": "integer",
+                      "description": "Unread notifications left.",
+                      "example": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/notifications/{notificationId}/read": {
+      "post": {
+        "operationId": "postV1MeNotificationsNotificationIdRead",
+        "tags": [
+          "Current user"
+        ],
+        "summary": "Mark one notification read",
+        "description": "Marks one of the player's notifications as read. Doing it again changes nothing. A read-only token is enough.",
+        "security": [
+          {
+            "endUserToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "description": "The notification's ID.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mark one notification read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "marked",
+                    "unreadCount"
+                  ],
+                  "properties": {
+                    "marked": {
+                      "type": "integer",
+                      "description": "1 if it was unread, 0 if it was already read.",
+                      "example": 1
+                    },
+                    "unreadCount": {
+                      "type": "integer",
+                      "description": "Unread notifications left.",
+                      "example": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API key or token is missing, invalid or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the required scope, or the organization is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "It doesn't exist in this project.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6846,6 +7432,15 @@
                     "description": "Your ID for this user. Unique in the project.",
                     "example": "user_456"
                   },
+                  "locale": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 35,
+                    "description": "The user's language as a tag such as `fr` or `pt-BR`. Null clears it.",
+                    "example": "pt-BR"
+                  },
                   "name": {
                     "type": [
                       "string",
@@ -7133,6 +7728,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "locale": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 35,
+                    "description": "The user's language as a tag such as `fr` or `pt-BR`. Null clears it.",
+                    "example": "pt-BR"
+                  },
                   "name": {
                     "type": [
                       "string",
@@ -15069,6 +15673,7 @@
           "name",
           "email",
           "avatarUrl",
+          "locale",
           "rankingHidden",
           "metadata",
           "active",
@@ -15114,6 +15719,14 @@
             ],
             "description": "Link to a profile picture.",
             "example": "https://example.com/ada.png"
+          },
+          "locale": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The user's language, such as `pt-BR`, for notifications and translated text. Null uses the project's own text.",
+            "example": null
           },
           "rankingHidden": {
             "type": "boolean",

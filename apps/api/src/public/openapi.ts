@@ -58,6 +58,7 @@ const SCHEMAS: Record<string, Schema> = {
     name: optionalText('Display name.', 'Ada Lovelace'),
     email: optionalText('Email address.', 'ada@example.com'),
     avatarUrl: optionalText('Link to a profile picture.', 'https://example.com/ada.png'),
+    locale: optionalText('The user\'s language, such as `pt-BR`, for notifications and translated text. Null uses the project\'s own text.', null),
     rankingHidden: flag('Left out of every leaderboard (a shadow ban). The user is not told.', false),
     metadata: metadata('Anything you stored on the user.'),
     active: flag('False once the user is deactivated. Their events are then refused.', true),
@@ -662,6 +663,7 @@ interface Doc {
 }
 
 const USER_BODY_PROPERTIES = {
+  locale: { ...nullable('string'), maxLength: 35, description: 'The user\'s language as a tag such as `fr` or `pt-BR`. Null clears it.', example: 'pt-BR' },
   name: { ...nullable('string'), maxLength: 128, description: 'Display name.', example: 'Ada Lovelace' },
   email: { ...nullable('string'), format: 'email', description: 'Email address. Send an empty string to clear it.', example: 'ada@example.com' },
   avatarUrl: { ...nullable('string'), format: 'uri', maxLength: 512, description: 'Link to a profile picture. Send an empty string to clear it.', example: 'https://example.com/ada.png' },
@@ -1593,13 +1595,13 @@ function meOperation(path: string, summaryText: string, description: string, res
 }
 
 /** A `/v1/me` request that changes something, which needs a token created with `access: "write"`. */
-function meWrite(method: 'post' | 'delete', path: string, summaryText: string, description: string, options: { parameters?: unknown[]; body?: unknown; success: number; response?: Schema; errors: number[] }) {
+function meWrite(method: 'post' | 'delete', path: string, summaryText: string, description: string, options: { parameters?: unknown[]; body?: unknown; success: number; response?: Schema; errors: number[]; readToken?: boolean }) {
   const failures = Object.fromEntries(options.errors.map((code) => [code, errorResponse(code)]));
   return {
     operationId: operationId(method, path),
     tags: ['Current user'],
     summary: summaryText,
-    description: `${description} Needs a token created with \`access: "write"\`; a read-only token gets 403 \`TOKEN_READ_ONLY\`.`,
+    description: options.readToken ? `${description} A read-only token is enough.` : `${description} Needs a token created with \`access: "write"\`; a read-only token gets 403 \`TOKEN_READ_ONLY\`.`,
     security: [{ endUserToken: [] }],
     ...(options.parameters ? { parameters: options.parameters } : {}),
     ...(options.body ? { requestBody: options.body } : {}),
@@ -1713,6 +1715,7 @@ export function buildOpenApiDocument() {
       get: meOperation('/v1/me', 'Get the current user', 'Gets the token holder\'s name, XP and level. Safe to call from a browser.', object({
         externalId: text('Your ID for this user.', 'user_123'),
         name: optionalText('Display name.', 'Ada Lovelace'),
+        locale: optionalText('The language saved for the player, or null.', null),
         totalXp: count('Total XP.', 750),
         level: { ...nullable('object'), description: 'Current level. Null if the project has no levels.', required: ['number', 'name'], properties: { number: count('Level number.', 2), name: text('Level name.', 'Explorer') } },
         xpToNextLevel: { ...nullable('integer'), description: 'XP still needed. Null at the top level.', example: 250 },
@@ -1724,26 +1727,51 @@ export function buildOpenApiDocument() {
         }),
       })),
     },
+    '/v1/me/locale': {
+      post: meWrite('post', '/v1/me/locale', "Set the current user's language", 'Saves the player\'s language as a tag such as `fr` or `pt-BR`, or clears it with null. Notifications and emails are then written in it, and `/v1/me` answers use it, where the project has translations.', {
+        body: jsonBody({ type: 'object', required: ['locale'], properties: { locale: { ...nullable('string'), description: 'A language tag, or null to clear it.', example: 'pt-BR' } } }, { locale: 'pt-BR' }),
+        success: 200,
+        response: object({ locale: optionalText('The language saved, tidied.', 'pt-BR') }),
+        errors: [400, 401, 403],
+        readToken: true,
+      }),
+    },
+    '/v1/me/push/web-key': {
+      get: meOperation('/v1/me/push/web-key', 'Get the key a browser subscribes with', 'Returns the public key of the project\'s web push integration, to pass to `pushManager.subscribe` as `applicationServerKey`. It is not a secret. Returns 404 `WEB_PUSH_NOT_SET_UP` when the project has no web push integration.', object({ publicKey: text('The key, base64url.', 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8') })),
+    },
     '/v1/me/devices': {
       post: {
         operationId: 'postMeDevices',
         tags: ['Current user'],
-        summary: "Register the current user's phone for push notifications",
-        description: "Needs a token created with `access: \"write\"`. Call this from your mobile app with the token the phone's push service gave it, each time the app starts. A token belongs to one player, so if the phone is later used by someone else it moves to them. Needs a push integration (Apple or Firebase) set up in the dashboard.'",
+        summary: "Register the current user's phone or browser for push notifications",
+        description: "Needs a token created with `access: \"write\"`. From a mobile app, send the token the phone's push service gave it, each time the app starts. From a website, send `platform: \"web\"` and the browser's `subscription`; its address must be a browser push service, or the answer is 400 `PUSH_ENDPOINT_NOT_ALLOWED`. A device belongs to one player, so if it is later used by someone else it moves to them. Needs a push integration (Apple, Firebase or web push) set up in the dashboard.",
         security: [{ endUserToken: [] }],
         requestBody: jsonBody(
           {
             type: 'object',
-            required: ['token', 'platform'],
+            required: ['platform'],
             properties: {
-              token: { type: 'string', minLength: 16, maxLength: 4096, description: 'The APNs device token, or the FCM registration token.', example: 'fMyDeviceTokenFromFirebase1234567890' },
-              platform: { type: 'string', enum: ['ios', 'android'], description: 'Which push service the token is for.', example: 'android' },
+              token: { type: 'string', minLength: 16, maxLength: 4096, description: 'For a phone: the APNs device token, or the FCM registration token.', example: 'fMyDeviceTokenFromFirebase1234567890' },
+              platform: { type: 'string', enum: ['ios', 'android', 'web'], description: 'Which push service it is for.', example: 'android' },
+              subscription: {
+                type: 'object',
+                description: 'For a browser: what `PushSubscription.toJSON()` gives.',
+                properties: { endpoint: { type: 'string', format: 'uri', description: 'The push address.' }, keys: { type: 'object', description: 'The browser\'s keys.', properties: { p256dh: { type: 'string', description: 'Its public key.' }, auth: { type: 'string', description: 'Its shared secret.' } } } },
+              },
             },
           },
           { token: 'fMyDeviceTokenFromFirebase1234567890', platform: 'android' }
         ),
-        responses: responses(201, 'The phone is registered.', object({ registered: flag('Always true.', true) }), [400, 401, 403, 429]),
+        responses: responses(201, 'The device is registered.', object({ registered: flag('Always true.', true) }), [400, 401, 403, 429]),
       },
+    },
+    '/v1/me/devices/remove': {
+      post: meWrite('post', '/v1/me/devices/remove', "Remove the current user's phone or browser", 'Stops notifications to a device, for example when the player signs out. Send the device token, or for a browser the subscription\'s `endpoint`. Use this rather than the `DELETE` form when the token is long. Only removes a device registered to the token holder.', {
+        body: jsonBody({ type: 'object', required: ['token'], properties: { token: { type: 'string', minLength: 16, maxLength: 4096, description: 'The device token, or a browser subscription\'s endpoint.', example: 'fMyDeviceTokenFromFirebase1234567890' } } }, { token: 'fMyDeviceTokenFromFirebase1234567890' }),
+        success: 200,
+        response: object({ removed: flag('Always true.', true) }),
+        errors: [400, 401, 403],
+      }),
     },
     '/v1/me/devices/{token}': {
       delete: {
@@ -2004,13 +2032,50 @@ export function buildOpenApiDocument() {
       })),
     },
     '/v1/me/notifications': {
-      get: meOperation('/v1/me/notifications', "List the current user's notifications", 'Lists the token holder\'s 50 most recent notifications, newest first.', meItems({
-        id: id('The notification\'s ID.', 'ntf_1762421400000_h6g5f'),
-        type: text('What kind of notification it is.', 'achievement_unlocked'),
-        title: text('Short heading.', 'Achievement unlocked'),
-        message: text('Full text.', 'You earned First order'),
-        createdAt: date('When it was sent.'),
-      })),
+      get: {
+        ...meOperation('/v1/me/notifications', "List the current user's notifications", 'The player\'s inbox, newest first, with which are unread and how many unread there are in all. Use `unread=true` for unread ones only, and `before` with the `createdAt` of the last one you have to page back.', object({
+          data: {
+            type: 'array',
+            description: 'The notifications.',
+            items: object({
+              id: id('The notification\'s ID.', 'ntf_1762421400000_h6g5f'),
+              type: text('What kind of notification it is.', 'achievement_unlocked'),
+              title: text('Short heading.', 'Achievement unlocked'),
+              message: text('Full text.', 'You earned First order'),
+              readAt: optionalDate('When the player read it, or null.'),
+              read: flag('Whether the player has read it.', false),
+              createdAt: date('When it was sent.'),
+            }),
+          },
+          unreadCount: count('How many of the player\'s notifications are unread, in all.', 3),
+          hasMore: flag('Whether there are older ones to page to.', false),
+        })),
+        parameters: [
+          { name: 'unread', in: 'query', required: false, description: 'Send `true` for unread notifications only.', schema: { type: 'string', enum: ['true', 'false'] } },
+          { name: 'limit', in: 'query', required: false, description: 'How many, up to 100.', schema: { type: 'integer', default: 50 } },
+          { name: 'before', in: 'query', required: false, description: 'Only notifications older than this time.', schema: { type: 'string', format: 'date-time' } },
+        ],
+      },
+    },
+    '/v1/me/notifications/unread-count': {
+      get: meOperation('/v1/me/notifications/unread-count', "Count the current user's unread notifications", 'A cheap call for a badge on a bell.', object({ unreadCount: count('Unread notifications.', 3) })),
+    },
+    '/v1/me/notifications/read-all': {
+      post: meWrite('post', '/v1/me/notifications/read-all', 'Mark every notification read', 'Marks all of the player\'s unread notifications as read.', {
+        success: 200,
+        response: object({ marked: count('How many were marked by this call.', 3), unreadCount: count('Unread notifications left.', 0) }),
+        errors: [401, 403],
+        readToken: true,
+      }),
+    },
+    '/v1/me/notifications/{notificationId}/read': {
+      post: meWrite('post', '/v1/me/notifications/{notificationId}/read', 'Mark one notification read', 'Marks one of the player\'s notifications as read. Doing it again changes nothing.', {
+        parameters: [{ name: 'notificationId', in: 'path', required: true, description: "The notification's ID.", schema: { type: 'string' } }],
+        success: 200,
+        response: object({ marked: count('1 if it was unread, 0 if it was already read.', 1), unreadCount: count('Unread notifications left.', 2) }),
+        errors: [401, 403, 404],
+        readToken: true,
+      }),
     },
     '/v1/me/boxes': {
       get: meOperation('/v1/me/boxes', 'List the boxes the current user can open', 'Lists the mystery boxes and wheels, each with its drop table (every item and its chance), what a try costs, how many tries are left today, and how far the player is from the guarantee. Show the drop table to players: published odds are what makes random rewards fair.', meItems(PLAYER_BOX)),
@@ -2134,7 +2199,7 @@ export function buildOpenApiDocument() {
     openapi: '3.1.0',
     info: {
       title: 'Gami.Fied API',
-      version: '1.2.0',
+      version: '1.3.0',
       description: 'The stable public API. The API key identifies the project, so paths never include a project ID.',
     },
     tags: ['Events', 'Users', 'XP', 'Levels', 'Achievements', 'Streaks', 'Store', 'Challenges', 'Leaderboard', 'Segments', 'Leagues', 'Social', 'Current user'].map(

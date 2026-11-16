@@ -1,5 +1,5 @@
 /**
- * The hero "live engine" (WEB-37), the home page's one big moment. Events leave the app, travel
+ * The hero "live engine", the home page's one big moment. Events leave the app, travel
  * along the paths into the engine, light up a rule, and come out as rewards: the XP bar fills, a
  * badge pops in, and the player climbs the leaderboard. It loops every 6 seconds, pauses when off
  * screen, in a background tab or when the reader presses pause, and with reduced motion it stays

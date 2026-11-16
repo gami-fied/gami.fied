@@ -15,7 +15,9 @@ import {
   referralPrograms,
   referralCodes,
   cosmetics,
+  integrations,
   journeys,
+  notifications,
   leaderboardPrizes,
   lootBoxes,
   seasonPasses,
@@ -134,6 +136,7 @@ describe('API docs contract', () => {
     passKey: 'season_1',
     cosmeticKey: 'night_owl',
     teamId: 'red',
+    notificationId: `ntf_doc_${suffix}`,
   };
 
   beforeAll(async () => {
@@ -214,6 +217,10 @@ describe('API docs contract', () => {
     await db.insert(challenges).values({ id: `chl2_doc_${suffix}`, projectId, key: 'twenty', name: 'Twenty', trigger: 'order_completed', target: 20, rewards: [] });
     await db.insert(journeys).values({ id: `jrn_doc_${suffix}`, projectId, key: 'onboarding', name: 'Getting started', steps: ['ten', 'twenty'], rewards: [{ type: 'xp', amount: 200 }] });
     await db.insert(leaderboardPrizes).values({ id: `lbp_doc_${suffix}`, projectId, name: 'Weekly top 3', period: 'weekly', fromRank: 1, toRank: 3, rewards: [{ type: 'xp', amount: 100 }] });
+
+    // A web push integration, so the key browsers subscribe with can be read.
+    await db.insert(integrations).values({ id: `intg_doc_${suffix}`, projectId, provider: 'webpush', name: 'Browsers', status: 'active', enabled: true, config: { vapidPublicKey: 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8' } });
+    await db.insert(notifications).values({ id: `ntf_doc_${suffix}`, projectId, userId, type: 'level_up', title: 'Level 2', message: 'You are now an Explorer.', data: {}, sourceType: 'docs', sourceId: suffix });
 
     apiKey = (await createApiKey(projectId, 'Docs', ['*'])).rawSecret;
   });

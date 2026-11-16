@@ -1,5 +1,5 @@
 /**
- * The home page's smaller touches (WEB-39). With reduced motion none of them run, and everything
+ * The home page's smaller touches. With reduced motion none of them run, and everything
  * is shown in its final state.
  */
 import { inView } from 'motion';

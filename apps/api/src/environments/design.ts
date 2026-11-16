@@ -1,5 +1,5 @@
 /**
- * Design files (WEB-30): a project's game design, without any player data, saved as a file and
+ * Design files: a project's game design, without any player data, saved as a file and
  * imported into another project on this install or another one. The live demo's "Keep this
  * setup" button downloads one.
  *

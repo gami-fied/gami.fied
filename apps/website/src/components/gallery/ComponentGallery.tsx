@@ -62,7 +62,7 @@ const sampleClient = {
     streaks: async () => ({ data: SAMPLE.streaks }),
     achievementProgress: async () => ({ data: SAMPLE.achievements }),
     challenges: async () => ({ data: SAMPLE.challenges }),
-    notifications: async () => ({ data: SAMPLE.notifications }),
+    notifications: async () => ({ data: SAMPLE.notifications.map((item, index) => ({ ...item, read: index > 0, readAt: index > 0 ? item.createdAt : null })), unreadCount: 1, hasMore: false }),
     leaderboard: async ({ period = 'all_time', limit = 10 }: { period?: string; limit?: number } = {}) => ({
       period,
       total: 36,

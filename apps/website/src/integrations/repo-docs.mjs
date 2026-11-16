@@ -47,7 +47,7 @@ const slugOf = (/** @type {string} */ rel) => rel.replace(/(^|\/)README\.md$/, '
 
 /**
  * Which docs are being written: the current ones at `/docs/`, or an older release's at
- * `/docs/v1.0/`, read from its git tag (WEB-18).
+ * `/docs/v1.0/`, read from its git tag.
  * @typedef {{ base: string; ref: string; version: string | null }} DocsVersion
  */
 
@@ -190,7 +190,7 @@ export function transform(markdown, rel, repository, docs = CURRENT) {
 const git = (/** @type {string[]} */ args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 
 /**
- * The older releases whose docs are kept (WEB-18): the newest stable tag of each earlier minor
+ * The older releases whose docs are kept: the newest stable tag of each earlier minor
  * version, such as v1.0.3 for 1.0. The current version's docs are the ones in the working tree.
  * Without git or tags (a shallow clone), there are none, and only the current docs are built.
  * @returns {{ version: string; tag: string }[]}

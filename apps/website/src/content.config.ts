@@ -5,7 +5,7 @@ import { docsLoader } from '@astrojs/starlight/loaders';
 import { docsSchema } from '@astrojs/starlight/schema';
 
 export const collections = {
-  // Served by Starlight under /docs. WEB-12 points this at the repository's own docs/ folder.
+  // Served by Starlight under /docs. The repo-docs integration points this at the repository's own docs/ folder.
   docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
 
   blog: defineCollection({

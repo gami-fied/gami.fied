@@ -20,6 +20,11 @@ export interface GamiConfig {
   timeout?: number;
   /** Retry configuration for transient failures */
   retry?: RetryConfig;
+  /**
+   * The language to ask for, such as `pt-BR`, sent as `Accept-Language`. A browser sends its own
+   * language without this. Use it on a server, or to follow your app's language picker.
+   */
+  locale?: string;
   /** Custom HTTP headers to include on every request */
   headers?: Record<string, string>;
 }
@@ -779,6 +784,8 @@ export interface IntegrationRecord {
     configured: boolean;
     /** For the generic webhook provider: whether requests are signed. */
     signed?: boolean;
+    /** For web push: the key browsers subscribe with. */
+    vapidPublicKey?: string | null;
   };
 }
 

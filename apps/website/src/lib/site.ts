@@ -27,7 +27,7 @@ export const SITE = {
   noindex: import.meta.env.PUBLIC_NOINDEX === 'true',
 } as const;
 
-/** A link to a file in the repository, so pages can point at guides until WEB-12 moves them here. */
+/** A link to a file in the repository, so pages can point at guides until they are served here. */
 export const repoFile = (path: string) => `${SITE.github}/blob/master/${path}`;
 
 export interface NavLink {

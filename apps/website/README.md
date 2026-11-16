@@ -1,6 +1,6 @@
 # Gami.Fied website
 
-The public site at `gami.fied.cc`: marketing pages, the docs, and later the playground and the live demo (PLAN.md, Phase 9). It is built with [Astro](https://astro.build) and [Starlight](https://starlight.astro.build), and it shares its colours and fonts with the dashboard through `@gami/ui`.
+The public site at `gami.fied.cc`: marketing pages, the docs, and later the playground and the live demo. It is built with [Astro](https://astro.build) and [Starlight](https://starlight.astro.build), and it shares its colours and fonts with the dashboard through `@gami/ui`.
 
 ## Work on it
 
@@ -74,4 +74,4 @@ Read the list with `wrangler kv key list --namespace-id <id>`. The function's be
 
 The site is static, so any CDN works. `.github/workflows/website.yml` builds it on every change and deploys it to Cloudflare Pages once these are set in the repository: secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and optionally variables `CLOUDFLARE_PAGES_PROJECT` and `WEBSITE_URL`. Pushes to `master` go to production; every pull request gets a preview, linked in a comment.
 
-To serve it at `gami.fied.cc`, add the domain to the Pages project in Cloudflare, which sets up HTTPS. The live demo will run separately at `demo.gami.fied.cc` (WEB-25).
+To serve it at `gami.fied.cc`, add the domain to the Pages project in Cloudflare, which sets up HTTPS. The live demo will run separately at `demo.gami.fied.cc`.

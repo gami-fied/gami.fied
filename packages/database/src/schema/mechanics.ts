@@ -5,7 +5,7 @@ import { projects } from './projects.js';
 import { currencies } from './store.js';
 
 /*
- * Mechanics added in Phase 13.1: random rewards, season passes, teams and shared goals, cosmetics,
+ * Random rewards, season passes, teams and shared goals, cosmetics,
  * leaderboard prizes and journeys.
  *
  * Prizes are kept as JSON and name what they give by key (`{ type: 'currency', currency: 'gems' }`),
@@ -25,7 +25,7 @@ const at = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' 
 const createdAt = () => at('created_at').defaultNow().notNull();
 const updatedAt = () => at('updated_at').defaultNow().notNull();
 
-// ---------- Random rewards (ADD-01) ----------
+// ---------- Random rewards ----------
 
 /** A mystery box or a wheel: one try gives one of its items, picked by weight. */
 export const lootBoxes = pgTable(
@@ -82,7 +82,7 @@ export const lootBoxOpens = pgTable(
   ]
 );
 
-// ---------- Season pass (ADD-02) ----------
+// ---------- Season pass ----------
 
 /** A track of rewards for one season. Players climb it with the XP they earn while it runs. */
 export const seasonPasses = pgTable(
@@ -129,7 +129,7 @@ export const seasonPassProgress = pgTable(
   ]
 );
 
-// ---------- Teams and shared goals (ADD-03) ----------
+// ---------- Teams and shared goals ----------
 
 export const teams = pgTable(
   'teams',
@@ -252,7 +252,7 @@ export const sharedGoalEvents = pgTable(
   (table) => [uniqueIndex('shared_goal_events_goal_event_unique').on(table.goalId, table.eventId)]
 );
 
-// ---------- Cosmetics (ADD-04) ----------
+// ---------- Cosmetics ----------
 
 /** A title, an avatar frame or a profile item. It is unlocked by an achievement, bought, or given as a prize. */
 export const cosmetics = pgTable(
@@ -299,7 +299,7 @@ export const userCosmetics = pgTable(
   ]
 );
 
-// ---------- Leaderboard prizes (ADD-05) ----------
+// ---------- Leaderboard prizes ----------
 
 /** Prizes for a range of places on the daily, weekly or monthly board, paid when the period ends. */
 export const leaderboardPrizes = pgTable(
@@ -346,7 +346,7 @@ export const leaderboardPayouts = pgTable(
   ]
 );
 
-// ---------- Journeys (ADD-06) ----------
+// ---------- Journeys ----------
 
 /** A chain of challenges. Each one opens when the one before it is finished. */
 export const journeys = pgTable(

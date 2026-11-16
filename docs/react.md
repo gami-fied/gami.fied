@@ -57,6 +57,7 @@ Tokens last up to an hour. Create a new one when the page loads or the old one e
 | `TeamCard` | The player's team, its place and its members | |
 | `JourneyPath` | Each journey's steps in order, with locks on the ones not open yet | `journey` |
 | `CosmeticLocker` | Titles, frames and items: owned, worn, and how to get the rest | |
+| `NotificationInbox` | The unread count, each notification with its read state, and "Mark all read" | `limit`, `markOnClick` |
 | `ToastHost` | A toast for each new notification | `duration`, `position`, `renderToast` |
 | `ProgressBar` | A labelled bar, for your own screens | `fraction`, `label`, `detail` |
 

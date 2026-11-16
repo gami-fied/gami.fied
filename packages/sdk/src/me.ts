@@ -5,12 +5,26 @@ import { connectLive, type LiveConnection, type LiveHandlers } from './stream.js
 export interface MeResponse {
   externalId: string;
   name: string | null;
+  /** The language saved for the player, such as `pt-BR`, or null. */
+  locale: string | null;
   totalXp: number;
   level: { number: number; name: string } | null;
   xpToNextLevel: number | null;
   progressPercent: number | null;
   /** The title, frame and items the player is wearing. */
   cosmetics: WornCosmetics;
+}
+
+/** The parts of a browser's service worker registration this file uses, so it compiles without the DOM types. */
+interface BrowserSubscription {
+  toJSON: () => { endpoint?: string; keys?: Record<string, string> };
+  unsubscribe: () => Promise<boolean>;
+}
+interface BrowserRegistration {
+  pushManager: {
+    getSubscription: () => Promise<BrowserSubscription | null>;
+    subscribe: (options: { userVisibleOnly: boolean; applicationServerKey: string }) => Promise<BrowserSubscription>;
+  };
 }
 
 /** The signed-in end user's own data. Use with an `endUserToken`, which is safe in a browser. */
@@ -98,10 +112,31 @@ export class MeResource {
     }>({ method: 'GET', path: '/v1/me/challenges' });
   }
 
-  public notifications() {
+  /**
+   * The player's inbox, newest first, with which are unread and how many unread there are in all.
+   * `before` takes the `createdAt` of the last notification you have, to page back.
+   */
+  public notifications(options: { unread?: boolean; limit?: number; before?: string } = {}) {
     return this.http.request<{
-      data: { id: string; type: string; title: string; message: string; createdAt: string }[];
-    }>({ method: 'GET', path: '/v1/me/notifications' });
+      data: { id: string; type: string; title: string; message: string; readAt: string | null; read: boolean; createdAt: string }[];
+      unreadCount: number;
+      hasMore: boolean;
+    }>({ method: 'GET', path: '/v1/me/notifications', query: { unread: options.unread ? 'true' : undefined, limit: options.limit, before: options.before } });
+  }
+
+  /** How many notifications the player has not read. A cheap call for a badge on a bell. */
+  public unreadCount() {
+    return this.http.request<{ unreadCount: number }>({ method: 'GET', path: '/v1/me/notifications/unread-count' });
+  }
+
+  /** Marks one notification read. A read-only token is enough. */
+  public markNotificationRead(notificationId: string) {
+    return this.http.request<{ marked: number; unreadCount: number }>({ method: 'POST', path: `/v1/me/notifications/${encodeURIComponent(notificationId)}/read` });
+  }
+
+  /** Marks every notification read. A read-only token is enough. */
+  public markAllNotificationsRead() {
+    return this.http.request<{ marked: number; unreadCount: number }>({ method: 'POST', path: '/v1/me/notifications/read-all' });
   }
 
   /** The top players for a period and the player's own place. Names and XP only, so it is safe to show. */
@@ -126,9 +161,74 @@ export class MeResource {
     return this.http.request<{ registered: boolean }>({ method: 'POST', path: '/v1/me/devices', body: device });
   }
 
-  /** Stops push notifications to this phone, for example when the player signs out. */
+  /**
+   * Stops push notifications to a phone or a browser, for example when the player signs out. Pass
+   * the device token, or a browser subscription's `endpoint`.
+   */
   public unregisterDevice(token: string) {
+    return this.http.request<{ removed: boolean }>({ method: 'POST', path: '/v1/me/devices/remove', body: { token } });
+  }
+
+  /** As `unregisterDevice`, with the token in the address. Only for short tokens. */
+  public deleteDevice(token: string) {
     return this.http.request<{ removed: boolean }>({ method: 'DELETE', path: `/v1/me/devices/${encodeURIComponent(token)}` });
+  }
+
+  /** The key a browser subscribes with. It is the public half of the project's key pair. */
+  public webPushKey() {
+    return this.http.request<{ publicKey: string }>({ method: 'GET', path: '/v1/me/push/web-key' });
+  }
+
+  /** Registers a browser's push subscription: pass `subscription.toJSON()`. */
+  public registerWebPush(subscription: { endpoint?: string; keys?: Record<string, string> }) {
+    return this.http.request<{ registered: boolean }>({ method: 'POST', path: '/v1/me/devices', body: { platform: 'web', subscription } });
+  }
+
+  /**
+   * Turns on notifications in this browser: asks the player for permission, subscribes through
+   * your service worker, and registers the subscription. Call it from a click, because browsers
+   * only ask for permission after one. Returns why it did not happen when it did not.
+   *
+   * ```ts
+   * const result = await gami.me.enableWebPush({ serviceWorker: '/gami-push-worker.js' });
+   * if (!result.enabled) console.log(result.reason);
+   * ```
+   */
+  public async enableWebPush(options: { serviceWorker: string }): Promise<{ enabled: true; endpoint: string } | { enabled: false; reason: 'unsupported' | 'denied' | 'not_set_up' }> {
+    const scope = globalThis as unknown as {
+      navigator?: { serviceWorker?: { register: (url: string) => Promise<unknown>; ready: Promise<BrowserRegistration> } };
+      Notification?: { requestPermission: () => Promise<string> };
+      PushManager?: unknown;
+    };
+    if (!scope.navigator?.serviceWorker || !scope.Notification || !scope.PushManager) return { enabled: false, reason: 'unsupported' };
+
+    let publicKey: string;
+    try {
+      publicKey = (await this.webPushKey()).publicKey;
+    } catch {
+      return { enabled: false, reason: 'not_set_up' };
+    }
+    if ((await scope.Notification.requestPermission()) !== 'granted') return { enabled: false, reason: 'denied' };
+
+    await scope.navigator.serviceWorker.register(options.serviceWorker);
+    const registration = await scope.navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    const subscription = existing ?? (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: publicKey }));
+    const json = subscription.toJSON();
+    await this.registerWebPush(json);
+    return { enabled: true, endpoint: json.endpoint ?? '' };
+  }
+
+  /** Turns notifications off in this browser and forgets its subscription. */
+  public async disableWebPush(): Promise<boolean> {
+    const scope = globalThis as unknown as { navigator?: { serviceWorker?: { getRegistration: () => Promise<BrowserRegistration | undefined> } } };
+    const registration = await scope.navigator?.serviceWorker?.getRegistration();
+    const subscription = await registration?.pushManager.getSubscription();
+    if (!subscription) return false;
+    const endpoint = subscription.toJSON().endpoint;
+    await subscription.unsubscribe();
+    if (endpoint) await this.unregisterDevice(endpoint);
+    return true;
   }
 
   /** What the player can spend, one balance per currency. Expired points are not counted. */
@@ -247,6 +347,14 @@ export class MeResource {
       method: 'GET',
       path: '/v1/me/rank',
     });
+  }
+
+  /**
+   * Saves the player's language, such as `pt-BR`, or clears it with null. Notifications and emails
+   * are then written in it where the project has translations. A read-only token is enough.
+   */
+  public setLocale(locale: string | null) {
+    return this.http.request<{ locale: string | null }>({ method: 'POST', path: '/v1/me/locale', body: { locale } });
   }
 
   /** The boxes and wheels the player can open, each with its drop table, cost and guarantee. */

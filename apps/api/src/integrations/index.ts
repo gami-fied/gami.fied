@@ -5,7 +5,10 @@ import {
   DEFAULT_DISCORD_TEMPLATES,
   DiscordEmbedTemplate,
   EVENT_PLACEHOLDERS,
+  generateVapidKeys,
   registry,
+  validVapidKeys,
+  type VapidKeys,
   validateDiscordEmbedTemplate,
 } from '@gami/integrations';
 import { encryptSecret, validateWebhookUrl } from '@gami/webhooks';
@@ -98,6 +101,8 @@ export function redactIntegrationRecord(intg: IntegrationRecord) {
       configured: Boolean(cfg.encryptedWebhookUrl || cfg.encryptedToken || cfg.webhookUrl || cfg.encryptedCredentials),
       signed: Boolean(cfg.encryptedSigningSecret),
       sandbox: cfg.sandbox === true,
+      // The public half of a web push key pair. Browsers subscribe with it, so it is not a secret.
+      vapidPublicKey: typeof cfg.vapidPublicKey === 'string' ? cfg.vapidPublicKey : null,
     },
   };
 }
@@ -164,7 +169,7 @@ export async function integrationRoutes(fastify: FastifyInstance) {
       }
 
       const { name, provider, webhookUrl, signingSecret, credentials, sandbox, enabledEvents, config } = parseResult.data;
-      const isPush = provider === 'fcm' || provider === 'apns';
+      const isPush = provider === 'fcm' || provider === 'apns' || provider === 'webpush';
 
       // Check global provider setting
       const integrationsConfig = await ServerConfigService.getIntegrationsConfig();
@@ -230,18 +235,37 @@ export async function integrationRoutes(fastify: FastifyInstance) {
         finalConfig.encryptedSigningSecret = encryptSecret(signingSecret);
       }
       if (isPush) {
-        if (!credentials) {
-          return reply.status(400).send({ error: 'Bad Request', message: 'Push credentials are required.' });
+        let secret: string;
+        if (provider === 'webpush') {
+          // A project needs one key pair for browsers. It is made here unless you bring your own.
+          const given = (typeof credentials === 'object' && credentials !== null ? credentials : {}) as Partial<VapidKeys>;
+          if (typeof given.subject !== 'string' || !/^(mailto:[^\s@]+@[^\s@]+|https:\/\/\S+)$/.test(given.subject)) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Give a contact for the push services: mailto:you@example.com or an https address.' });
+          }
+          const keys = given.publicKey || given.privateKey ? given : generateVapidKeys(given.subject);
+          if (!validVapidKeys(keys)) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Those keys are not a matching P-256 pair. Leave them out to have a pair made for you.' });
+          }
+          secret = JSON.stringify(keys);
+          // The public half is what browsers subscribe with, so it is kept readable.
+          finalConfig.vapidPublicKey = keys.publicKey;
+        } else {
+          if (!credentials) {
+            return reply.status(400).send({ error: 'Bad Request', message: 'Push credentials are required.' });
+          }
+          secret = typeof credentials === 'string' ? credentials : JSON.stringify(credentials);
         }
         // Stored encrypted and never returned. Devices are looked up by project, so that is saved too.
-        finalConfig.encryptedCredentials = encryptSecret(typeof credentials === 'string' ? credentials : JSON.stringify(credentials));
+        finalConfig.encryptedCredentials = encryptSecret(secret);
         finalConfig.projectId = projectId;
         if (sandbox !== undefined) finalConfig.sandbox = sandbox;
         if (!(await implementation.validateConfig(finalConfig))) {
           return reply.status(400).send({
             error: 'Bad Request',
             message:
-              provider === 'fcm'
+              provider === 'webpush'
+                ? 'Those web push keys could not be saved.'
+                : provider === 'fcm'
                 ? 'That is not a Firebase service account key. Download the JSON from Firebase project settings, Service accounts.'
                 : 'Those Apple credentials are not valid. Check the .p8 key, key ID, team ID and bundle ID.',
           });

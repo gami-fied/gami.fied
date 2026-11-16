@@ -53,6 +53,7 @@ const PROJECT_PAGES = [
   'teams',
   'segments',
   'invites',
+  'translations',
   'campaigns',
   'events',
   'xp',
@@ -73,7 +74,7 @@ const PROJECT_PAGES = [
 ].map((page) => `/dashboard${page ? `/${page}` : ''}`);
 
 /** What a plain member can open. The rest is for owners and admins, and is checked to be refused. */
-const MEMBER_PAGES = ['', 'rules', 'levels', 'achievements', 'challenges', 'streaks', 'journeys', 'passes', 'store', 'boxes', 'cosmetics', 'boosts', 'users', 'leaderboard', 'leaderboard-prizes', 'leagues', 'teams', 'segments', 'invites', 'events', 'xp', 'analytics', 'organization/members', 'profile'].map(
+const MEMBER_PAGES = ['', 'rules', 'levels', 'achievements', 'challenges', 'streaks', 'journeys', 'passes', 'store', 'boxes', 'cosmetics', 'boosts', 'users', 'leaderboard', 'leaderboard-prizes', 'leagues', 'teams', 'segments', 'invites', 'translations', 'events', 'xp', 'analytics', 'organization/members', 'profile'].map(
   (page) => `/dashboard${page ? `/${page}` : ''}`
 );
 const ADMIN_ONLY_PAGES = ['/dashboard/api-keys', '/dashboard/settings', '/dashboard/audit-logs'];

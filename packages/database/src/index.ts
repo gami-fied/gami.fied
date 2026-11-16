@@ -11,3 +11,4 @@ export * from './features.js';
 export * from './demo.js';
 export { DEMO_LOCKED_FEATURES, DEMO_POLICY, DEMO_APP_NAME } from './demo-data.js';
 export * from './tables.js';
+export * from './translations.js';

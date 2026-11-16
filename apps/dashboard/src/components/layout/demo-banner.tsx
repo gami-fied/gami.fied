@@ -67,7 +67,7 @@ export function DemoBanner() {
             {state.kind === 'sending' ? 'Sending…' : 'Send traffic'}
           </button>
           {selectedProject && (
-            // The demo's design as a file, to import into your own install (WEB-30).
+            // The demo's design as a file, to import into your own install.
             <a
               href={`/api/projects/${selectedProject.id}/design`}
               download

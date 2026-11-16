@@ -1,9 +1,12 @@
 /*
  * Default look for @gami.fied/react. Every colour and size is a variable, so restyle by setting
  * them on a parent element, or ignore this file and style the `gami-*` class names yourself.
+ *
+ * The defaults sit on the page root (and on the host of a web component), not on the cards, so a
+ * value set on any element in between wins.
  */
-.gami-card,
-.gami-toasts {
+:root,
+:host {
   --gami-bg: #ffffff;
   --gami-fg: #18181b;
   --gami-muted: #52525b;
@@ -15,13 +18,17 @@
   --gami-warn: #b45309;
   --gami-radius: 8px;
   --gami-gap: 12px;
+}
+
+.gami-card,
+.gami-toasts {
   font-family: inherit;
   color: var(--gami-fg);
 }
 
 @media (prefers-color-scheme: dark) {
-  .gami-card,
-  .gami-toasts {
+  :root,
+  :host {
     --gami-bg: #18181b;
     --gami-fg: #f4f4f5;
     --gami-muted: #a1a1aa;
@@ -314,7 +321,7 @@
   font-size: 0.8125rem;
   padding: 6px 12px;
   min-height: 32px;
-  color: #fff;
+  color: var(--gami-accent-fg);
   background: var(--gami-accent);
   border: 1px solid var(--gami-accent);
   border-radius: var(--gami-radius);
@@ -409,4 +416,40 @@
   border-radius: 4px;
   object-fit: cover;
   align-self: center;
+}
+
+/* Inbox */
+.gami-unread {
+  border-left: 3px solid var(--gami-accent);
+  padding-left: 8px;
+}
+.gami-count {
+  color: var(--gami-accent);
+  border-color: var(--gami-accent);
+}
+.gami-link,
+.gami-note-button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.gami-link {
+  color: var(--gami-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.gami-note-button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+.gami-link:focus-visible,
+.gami-note-button:focus-visible {
+  outline: 2px solid var(--gami-accent);
+  outline-offset: 2px;
 }

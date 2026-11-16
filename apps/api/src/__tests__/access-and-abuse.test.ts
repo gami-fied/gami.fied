@@ -1,4 +1,4 @@
-/** Connectors, rate-limit counting, sign-in lockout, the bootstrap secret and unsubscribe links (FIX-13 to FIX-20). */
+/** Connectors, rate-limit counting, sign-in lockout, the bootstrap secret and unsubscribe links. */
 import { randomUUID } from 'crypto';
 import {
   auditLogs,
@@ -72,7 +72,6 @@ describe('access, abuse and limits', () => {
     await app.close();
   });
 
-  // ---------- FIX-13 and FIX-17 ----------
 
   describe('connectors', () => {
     const event = (id: string) =>
@@ -200,7 +199,6 @@ describe('access, abuse and limits', () => {
     }, 120_000);
   });
 
-  // ---------- FIX-14 ----------
 
   it('authenticates and counts a /v1 call once, though it is served by an inner call', async () => {
     const apiKey = (await createApiKey(projectId, 'Server', ['users:read'])).rawSecret;
@@ -234,7 +232,6 @@ describe('access, abuse and limits', () => {
     expect(forged.statusCode).toBe(401);
   });
 
-  // ---------- FIX-19 ----------
 
   it('never leaves a rate-limit counter without an expiry', async () => {
     const redis = getRedisConnection();
@@ -247,7 +244,6 @@ describe('access, abuse and limits', () => {
     await redis.del(key);
   });
 
-  // ---------- FIX-15 ----------
 
   it('locks out the address that guessed wrong, not the owner of the account', async () => {
     const email = `lock_${randomUUID()}@example.com`;
@@ -277,7 +273,6 @@ describe('access, abuse and limits', () => {
     expect((await signIn('Password123!', '198.51.100.9')).statusCode).toBe(200);
   }, 120_000);
 
-  // ---------- FIX-16 ----------
 
   it('allows only a few guesses at the bootstrap secret', async () => {
     const before = process.env['PLATFORM_BOOTSTRAP_SECRET'];
@@ -303,7 +298,6 @@ describe('access, abuse and limits', () => {
     }
   }, 120_000);
 
-  // ---------- FIX-20 ----------
 
   it('asks before unsubscribing, and accepts the form a mail client posts', async () => {
     const userId = `usr_unsub_${suffix}`;
@@ -340,7 +334,6 @@ describe('access, abuse and limits', () => {
 
     expect((await app.inject({ method: 'GET', url: `${url}x` })).statusCode).toBe(400);
   });
-  // ---------- DASH-15 ----------
 
   it('gives signed-in staff a read-only token to preview one player, and nobody else', async () => {
     const userId = `usr_preview_${suffix}`;

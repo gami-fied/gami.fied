@@ -94,6 +94,7 @@ export const ORG_EXPORT_TABLES = [
   'leaderboardPayouts',
   'journeys',
   'journeyCompletions',
+  'translations',
 ] as const;
 
 const STAFF = 'Staff accounts and their access belong to the server, not to the data being moved.';

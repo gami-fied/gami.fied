@@ -14,13 +14,14 @@ export {
   useNotifications,
   useStreaks,
 } from './hooks.js';
-export type { LeaderboardPeriod, Resource } from './hooks.js';
+export type { InboxNotification, LeaderboardPeriod, NotificationsResource, Resource } from './hooks.js';
 export {
   BadgeGrid,
   ChallengeList,
   Leaderboard,
   LevelProgress,
   NotificationFeed,
+  NotificationInbox,
   ProgressBar,
   StreakCalendar,
   ToastHost,
@@ -28,6 +29,7 @@ export {
 export type {
   BadgeGridProps,
   LeaderboardProps,
+  NotificationInboxProps,
   ProgressBarProps,
   StreakCalendarProps,
   ToastHostProps,

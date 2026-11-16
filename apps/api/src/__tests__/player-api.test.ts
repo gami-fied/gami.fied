@@ -1,4 +1,4 @@
-/** Player tokens and the `/v1/me` routes (FIX-06 to FIX-12). */
+/** Player tokens and the `/v1/me` routes. */
 import { randomUUID } from 'crypto';
 import {
   achievements,
@@ -71,7 +71,6 @@ describe('player tokens and the player API', () => {
     await app.close();
   });
 
-  // ---------- FIX-06 ----------
 
   it('lets a browser on another site send the requests that change things', async () => {
     for (const method of ['POST', 'DELETE']) {
@@ -90,7 +89,6 @@ describe('player tokens and the player API', () => {
     }
   });
 
-  // ---------- FIX-07 ----------
 
   it('makes read-only tokens unless write is asked for', async () => {
     const ada = await makeUser('ada');
@@ -116,7 +114,6 @@ describe('player tokens and the player API', () => {
     expect((await writer('POST', '/v1/me/friends', { code: 'ABCD2345' })).status).toBe(404);
   });
 
-  // ---------- FIX-08 ----------
 
   it("never shows one player another player's purchase through its idempotency key", async () => {
     const buyer = await makeUser('buyer');
@@ -163,7 +160,6 @@ describe('player tokens and the player API', () => {
     expect(JSON.stringify(stolen.body)).not.toContain(bought.body.code);
   }, 120_000);
 
-  // ---------- FIX-09 and FIX-12 ----------
 
   it('makes two players friends only after the second one accepts', async () => {
     const max = await makeUser('max');
@@ -226,7 +222,6 @@ describe('player tokens and the player API', () => {
     });
   }, 120_000);
 
-  // ---------- FIX-10 ----------
 
   it('stops a token working once its player is deactivated or erased', async () => {
     const tom = await makeUser('tom');
@@ -255,7 +250,6 @@ describe('player tokens and the player API', () => {
     expect(redactUrl('/v1/users?limit=5')).toBe('/v1/users?limit=5');
   });
 
-  // ---------- FIX-11 ----------
 
   it("builds share links from the server's own address, not from the request", async () => {
     const zed = await makeUser('zed');

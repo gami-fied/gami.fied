@@ -148,7 +148,7 @@ function changedFields(a: Record<string, unknown>, b: Record<string, unknown>): 
 /**
  * A project's design as a file: every promotable item in its portable form, with project IDs
  * replaced by keys. It carries no player data. Another project, on this install or another, can
- * import it (WEB-30), and promotion between environments uses it too.
+ * import it, and promotion between environments uses it too.
  */
 export interface DesignDocument {
   format: typeof DESIGN_FORMAT;

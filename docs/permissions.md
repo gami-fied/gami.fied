@@ -175,6 +175,9 @@ Every route under `/api/projects/:projectId` and the lowest organization role an
 | `DELETE` | `/teams/:teamId` | Admin | API key with `social:write` |
 | `PATCH` | `/teams/:teamId` | Admin | API key with `social:write` |
 | `GET` | `/teams/:teamId/members` | Member | API key with `social:read` |
+| `GET` | `/translations` | Member | API key with `project:read` |
+| `PUT` | `/translations` | Admin | API key with `project:write` |
+| `DELETE` | `/translations/:locale` | Admin | API key with `project:write` |
 | `GET` | `/users` | Member | API key with `users:read` |
 | `POST` | `/users` | Admin | API key with `users:write` |
 | `DELETE` | `/users/:userId` | Admin | API key with `users:write` |

@@ -1,4 +1,4 @@
-// The page-speed half of the animation budget (WEB-35): Lighthouse on a simulated mid-range phone.
+// The page-speed half of the animation budget: Lighthouse on a simulated mid-range phone.
 // Run it against the built site, served by `pnpm preview`:
 //
 //   SITE_URL=http://localhost:4321 node scripts/check-lighthouse.mjs

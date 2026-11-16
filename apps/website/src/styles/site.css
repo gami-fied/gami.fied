@@ -123,7 +123,7 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
   }
 }
 
-/* ---------- How it works (WEB-38) ---------- */
+/* ---------- How it works ---------- */
 
 /* The key line of each code sample, in every layout. */
 .how-code[data-highlight='1'] code > .line:nth-of-type(1),
@@ -200,14 +200,14 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
   color: var(--color-success-300);
 }
 
-/* The final call to action's glow follows the pointer (WEB-39). */
+/* The final call to action's glow follows the pointer. */
 .cta-glow {
   background: radial-gradient(420px circle at var(--glow-x, 50%) var(--glow-y, 50%), color-mix(in oklab, var(--color-brand-500) 18%, transparent), transparent 70%);
   opacity: var(--glow-opacity, 0);
   transition: opacity var(--motion-enter) var(--motion-ease-out);
 }
 
-/* ---------- Quiet pages (WEB-43) ---------- */
+/* ---------- Quiet pages ---------- */
 
 /* The recommended plan has a slow gradient border. Only a custom property moves, with no layout. */
 @property --plan-angle {
@@ -310,7 +310,7 @@ html[data-motion] [data-reveal-group]:not([data-revealed]) > * {
 }
 
 /*
- * The light theme (SITE-05). The pages are built on dark-first scales, so reversing them gives the
+ * The light theme. The pages are built on dark-first scales, so reversing them gives the
  * light theme, the same way the dashboard does it. It is on only when the reader chose it, here or
  * in the docs: both keep the choice under the same key.
  */

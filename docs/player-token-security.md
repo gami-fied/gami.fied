@@ -36,6 +36,8 @@ It can also read what a player is meant to see about others:
 - **Teams**: every team's name, size and XP, and the names, pictures and XP of up to 50 members of the player's own team. Never IDs or emails.
 - **Shared goals**: the total for everyone, or for the player's own team. Not other teams' totals, and not who contributed.
 
+It can also mark the player's own notifications as read and save the player's language. These are the only changes a read token can make, and neither is worth anything to someone else.
+
 It cannot read another player's wallet, purchases, notifications or friends, look anyone up by ID or email, or see secret achievements before they are earned.
 
 ## What a write token adds
@@ -46,7 +48,7 @@ It cannot read another player's wallet, purchases, notifications or friends, loo
 | Ask someone to be friends | The other player must accept. 500 friends and 100 waiting requests at most |
 | Give kudos | To a player whose invite code they have. One per person per day, 30 a day in all, 280 characters |
 | Use an invite code | Once, in the player's first 30 days, never their own |
-| Register a phone for push | That phone then gets this player's notifications |
+| Register a phone or a browser for push | That device then gets this player's notifications. A browser's push address must be a real browser push service, because the server sends requests to it |
 | Open a box | Only with the player's own points, within the daily limit. The draw is made on the server. A player's tries at one box take turns |
 | Claim season pass rewards, or buy the premium lane | Only for tiers their own season XP has reached. Each reward is given once |
 | Buy, wear or take off a cosmetic | Only cosmetics they own or can pay for |
@@ -74,6 +76,6 @@ A write token cannot grant XP, points, achievements or levels directly. Those co
 
 ## Reviewed
 
-Every `/v1/me` route was checked against this page on 14 November 2026, and the routes for boxes, passes, teams, goals, cosmetics, leaderboard prizes and journeys on 15 November 2026. A test (`player-api-contract.test.ts`) fails when a new player route is added without being documented and added to the SDK, which is the prompt to check it against this page too.
+Every `/v1/me` route was checked against this page on 14 November 2026, and the routes for boxes, passes, teams, goals, cosmetics, leaderboard prizes, journeys, the inbox, the player's language and web push on 15 November 2026. A test (`player-api-contract.test.ts`) fails when a new player route is added without being documented and added to the SDK, which is the prompt to check it against this page too.
 
 Not yet done: an independent security review (see [Security status](./security-audit.md)).

@@ -1,4 +1,4 @@
-// The animation budget (WEB-35), checked on the built site. For each page it follows every script
+// The animation budget, checked on the built site. For each page it follows every script
 // the page can load, including lazy imports, and adds up the compressed size of animation code:
 // files the build names "motion-" (GSAP, Motion and src/motion; see astro.config.mjs).
 //

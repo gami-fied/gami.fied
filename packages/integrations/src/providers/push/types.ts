@@ -1,10 +1,13 @@
 import type { IntegrationMessage } from '../../types.js';
 
-export type DevicePlatform = 'ios' | 'android';
+export type DevicePlatform = 'ios' | 'android' | 'web';
 
 export interface PushDevice {
+  /** The device token, or for a browser the address of its push subscription. */
   token: string;
   platform: DevicePlatform;
+  /** A browser's keys, which its messages are encrypted with. */
+  keys?: { p256dh: string; auth: string } | null;
 }
 
 /** Where a push provider finds a user's devices and forgets the ones a service says are gone. */

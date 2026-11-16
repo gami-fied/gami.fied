@@ -6,8 +6,33 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-15
+
+Six new mechanics (mystery boxes, a season pass, teams and shared goals, cosmetics, leaderboard prizes and journeys), a notification inbox, translations, web push for browsers, and web components for sites that do not use React. This release also fixes a serious bug in backups and tightens player tokens, the Docker setup and rate limits. **Read "Upgrading from 1.2.0" below before you upgrade: four changes may need action from you.**
+
+### Run it
+
+```bash
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.3.0/docker-compose.yml
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.3.0/env.example
+cp env.example .env
+```
+
+Fill in `.env`, then run `docker compose up -d`. Images are published for `linux/amd64` and `linux/arm64`.
+
+### Packages
+
+- `@gami.fied/sdk` 1.3.0, for your server and for player pages.
+- `@gami.fied/react` 1.3.0, published to npm for the first time.
+- `@gami.fied/elements` 1.3.0, new: the same components as HTML elements.
+
 ### Added
 
+- **Web components.** `@gami.fied/elements` gives every component as an HTML element, such as `<gami-leaderboard period="weekly">`, for Vue, Svelte and plain pages. One script, one shared connection, and the same `--gami-*` variables for theming. See [the guide](docs/web-components.md).
+- **A notification inbox for players.** `GET /v1/me/notifications` now returns `read`, `readAt`, the total `unreadCount` and `hasMore`, and takes `unread`, `limit` and `before`. New: `GET /v1/me/notifications/unread-count`, `POST /v1/me/notifications/:id/read` and `POST /v1/me/notifications/read-all`, which work with a read-only token. `NotificationInbox` in the React package.
+- **Translations.** Names, descriptions and notification text in each player's language, with `pt-BR` falling back to `pt` and then to the original. A new **Translations** page, a `locale` on users, `POST /v1/me/locale`, and a `locale` option on the SDK client. See [the guide](docs/translations.md).
+- **Web push for browsers.** Connect **Browser push (web)** under Integrations and call `gami.me.enableWebPush()`. Messages are encrypted for the one browser and signed with a key pair made for your project, with no other service in between.
+- `POST /v1/me/devices/remove` removes a device with its token in the body, for tokens too long for a path.
 - **Mystery boxes and wheels.** Random rewards with weighted items, odds that players can read, an optional cost, a daily limit, and a guaranteed rare item after a run of bad luck. A new **Mystery boxes** page, `GET /v1/me/boxes` and `POST /v1/me/boxes/:boxKey/open`.
 - **Season pass.** A track of tiers that players climb with the XP they earn during a season, with a free lane and a premium lane bought with a currency or given by your server.
 - **Teams and shared goals.** Players join a team, teams are ranked by XP, and a goal sets one target for everyone or for each team. Everyone who contributed is paid when it is reached.
@@ -29,7 +54,9 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ### Changed
 
-- `GET /v1/me` now includes `cosmetics`, each row of `GET /v1/me/leaderboard` includes `title` and `frameUrl`, and each row of `GET /v1/me/challenges` includes `locked`. Run the migration `0043_mechanics` when you upgrade; it only adds tables.
+- The React stylesheet now sets its default variables on the page root instead of on each card. Until now a `--gami-*` value set on a parent element was overridden by the card itself and had no effect; now it applies. If you worked around that by targeting `.gami-card`, your rule still works.
+- `gami.me.unregisterDevice(token)` now sends the token in the body. `gami.me.deleteDevice(token)` keeps the old form.
+- `GET /v1/me` now includes `cosmetics`, each row of `GET /v1/me/leaderboard` includes `title` and `frameUrl`, and each row of `GET /v1/me/challenges` includes `locked`.
 - **Player tokens are read-only unless you ask for more.** `POST /v1/end-user-tokens` takes `access: "read"` (the default) or `"write"`, and every `/v1/me` request that is not a `GET` now needs a write token; a read-only one gets `403 TOKEN_READ_ONLY`. **If your app lets players buy rewards, add friends, give kudos, use an invite code or register a device with a token, create that token with `access: "write"`** (`gami.endUserTokens.create({ userId, access: 'write' })`). Tokens were documented as read-only before, but were not.
 - **Containers are locked down.** The API, worker and dashboard run with a read-only file system, no Linux capabilities and no way to gain privileges. Only the backups volume and `/tmp` can be written. If you added your own volume mounts or write files elsewhere, check them after upgrading.
 - The release's `env.example` now names the release instead of `latest`, which had overridden the pinned version in the compose file. GitHub Actions are pinned to commits.
@@ -61,6 +88,23 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - **Imports respect the organization's limits.** An import is counted against the project limit, is refused for demo organizations, and leaves out rules, challenges, levels and segments that the dashboard would not accept, listing each one. A file can no longer refer to rows outside itself.
 
 - On hosts that also put the dashboard on a shared network, such as Dokploy and Coolify, the dashboard could reach another app's container called `api` instead of Gami.Fied's, and every API call failed. The compose files now give the API, Postgres and Redis names no other app uses (`gami-api`, `gami-postgres`, `gami-redis`), and connect through those.
+
+### Upgrading from 1.2.0
+
+Take a backup first, then set `GAMI_VERSION=1.3.0` and run `docker compose pull` and `docker compose up -d`. Four migrations run by themselves (`0041` to `0044`). They add tables and columns and change no existing data.
+
+Check these four things:
+
+1. **Player tokens are read-only by default.** If players buy rewards, add friends, give kudos, use an invite code or register a phone from your app, create their token with `access: "write"`. Otherwise those calls answer `403 TOKEN_READ_ONLY`.
+2. **Ports are published on `127.0.0.1` only.** If you open the dashboard at `http://your-server:3000` with no reverse proxy, set `BIND_ADDRESS=0.0.0.0` in `.env`, or put a proxy in front.
+3. **Containers have a read-only file system.** If you added your own volume mounts, or something of yours writes inside a container, check it after upgrading.
+4. **Adding a friend sends a request.** `gami.me.addFriend(code)` no longer makes two players friends at once; the other player accepts with `gami.me.acceptFriend(code)`.
+
+Also worth knowing:
+
+- **Make a new backup after upgrading.** Backups made by 1.2.0 and earlier hold only 22 tables. See [Backups](docs/backups.md#backups-made-by-120-and-earlier).
+- The new mechanics, translations and web push are on by default and do nothing until you set them up. The platform administrator can turn each off under **Features**.
+- With SDK 1.3.0, `gami.me.unregisterDevice(token)` calls a route that only 1.3.0 servers have. Upgrade the server before the SDK.
 
 ## [1.2.0] - 2026-11-13
 
@@ -265,6 +309,7 @@ Second release candidate. Added prebuilt Docker images, the release workflow, an
 
 First release candidate.
 
+[1.3.0]: https://github.com/gami-fied/gami.fied/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/gami-fied/gami.fied/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/gami-fied/gami.fied/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/gami-fied/gami.fied/compare/v1.0.0-rc.2...v1.0.0

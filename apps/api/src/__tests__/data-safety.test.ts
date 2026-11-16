@@ -1,5 +1,5 @@
 /**
- * Backups, organization export and import, and erasing a player (FIX-01 to FIX-05).
+ * Backups, organization export and import, and erasing a player.
  *
  * These tests put a row in every table of the schema, so a table added later is covered by them
  * without anyone remembering to add it.
@@ -194,7 +194,6 @@ describe('with a row in every table', () => {
     await app?.close();
   });
 
-  // ---------- FIX-01 ----------
 
   it('restores every table a backup covers, including the ones added after 1.0', async () => {
     const backup = await createPlatformBackup({ actorId: 'data_safety_test' });
@@ -257,7 +256,6 @@ describe('with a row in every table', () => {
     ).toBe(true);
   }, 120_000);
 
-  // ---------- FIX-02 ----------
 
   it('exports every table on the list, and nothing from the tables left out', async () => {
     const res = await exportOf(seed.organizationId);
@@ -291,7 +289,6 @@ describe('with a row in every table', () => {
     }
   });
 
-  // ---------- FIX-03 ----------
 
   it('imports every exported table into another organization, keeping keys and player IDs', async () => {
     const target = await newOrganization('b');
@@ -399,7 +396,6 @@ describe('with a row in every table', () => {
     expect(balance?.totalXp).toBe(40);
   });
 
-  // ---------- FIX-04 ----------
 
   it('counts imported projects against the organization limit', async () => {
     const target = await newOrganization('limit');
@@ -512,7 +508,6 @@ describe('with a row in every table', () => {
     );
   });
 
-  // ---------- FIX-05 ----------
 
   it('erases a player from every table', async () => {
     const res = await app.inject({

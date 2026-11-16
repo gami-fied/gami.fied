@@ -1,5 +1,5 @@
 /**
- * The hero headline (WEB-36). It is in the page and readable from the first paint. If the fonts
+ * The hero headline. It is in the page and readable from the first paint. If the fonts
  * arrive quickly, before anyone could have started reading, each word lifts from behind a mask,
  * 40 ms apart, and the text under it fades in just after. Otherwise, and with reduced motion, it
  * stays exactly as it is. However slow the page, everything is fully shown within 1.5 seconds.

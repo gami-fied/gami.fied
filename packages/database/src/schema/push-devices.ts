@@ -1,8 +1,8 @@
-import { boolean, foreignKey, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, foreignKey, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { endUsers } from './end-users.js';
 import { projects } from './projects.js';
 
-/** A phone that can receive push notifications for one player. */
+/** A phone or a browser that can receive push notifications for one player. */
 export const pushDevices = pgTable(
   'push_devices',
   {
@@ -13,10 +13,15 @@ export const pushDevices = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => endUsers.id, { onDelete: 'cascade' }),
-    /** `ios` or `android`. */
+    /** `ios`, `android` or `web`. */
     platform: text('platform').notNull(),
-    /** The APNs device token or FCM registration token the app got from the phone's system. */
+    /**
+     * The APNs device token or FCM registration token the app got from the phone's system. For
+     * `web` it is the address of the browser's push subscription.
+     */
     token: text('token').notNull(),
+    /** For `web`: the browser's keys, `{ p256dh, auth }`, which its messages are encrypted with. */
+    keys: jsonb('keys'),
     active: boolean('active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),

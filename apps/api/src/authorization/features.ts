@@ -33,6 +33,7 @@ const PROJECT_SEGMENTS: Record<string, FeatureKey> = {
   goals: 'teams',
   journeys: 'journeys',
   'leaderboard-prizes': 'leaderboard_prizes',
+  translations: 'translations',
 };
 
 /** Second segment under `/users/:userId/`. */
@@ -84,6 +85,7 @@ const PLAYER_SEGMENTS: Record<string, FeatureKey> = {
   referral: 'referrals',
   stream: 'realtime',
   devices: 'push',
+  push: 'push',
   boxes: 'loot_boxes',
   passes: 'season_pass',
   cosmetics: 'cosmetics',

@@ -56,6 +56,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   http: 'your webhook',
   fcm: 'Android devices',
   apns: 'iPhone devices',
+  webpush: 'browsers',
 };
 
 export function IntegrationsView() {
@@ -547,6 +548,12 @@ export function IntegrationsView() {
                           </span>
                         </div>
                       )}
+                      {intg.provider === 'webpush' && intg.config?.vapidPublicKey && (
+                        <div className="text-zinc-400">
+                          <span>Public key, for browsers to subscribe with:</span>
+                          <code className="mt-1 block break-all border border-zinc-800 bg-zinc-900 p-2 font-mono text-xs text-zinc-200">{intg.config.vapidPublicKey}</code>
+                        </div>
+                      )}
                       {intg.provider === 'http' && (
                         <div className="flex items-center justify-between text-zinc-400">
                           <span>Requests signed:</span>
@@ -649,7 +656,7 @@ export function IntegrationsView() {
             </Card>
           ))}
 
-          {(['fcm', 'apns'] as PushProvider[]).map((key) => (
+          {(['fcm', 'apns', 'webpush'] as PushProvider[]).map((key) => (
             <Card key={key} className="p-4 bg-zinc-950 border-zinc-800 flex flex-col justify-between space-y-4">
               <div>
                 <div className="flex items-center gap-3">
@@ -664,7 +671,7 @@ export function IntegrationsView() {
                 <p className="text-xs text-zinc-400 mt-3 leading-relaxed">{PUSH_INFO[key].blurb}</p>
               </div>
               <Button variant="secondary" size="sm" onClick={() => setConnectingPush(key)} className="w-full text-xs">
-                <Plus className="w-3.5 h-3.5 mr-1" /> Connect {key === 'fcm' ? 'Firebase' : 'Apple push'}
+                <Plus className="w-3.5 h-3.5 mr-1" /> Connect {key === 'fcm' ? 'Firebase' : key === 'apns' ? 'Apple push' : 'web push'}
               </Button>
             </Card>
           ))}

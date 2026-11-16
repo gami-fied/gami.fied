@@ -14,6 +14,8 @@ export const endUsers = pgTable(
     email: text('email'),
     avatarUrl: text('avatar_url'),
     metadata: jsonb('metadata'),
+    /** The player's language, such as `pt-BR`, for notifications and emails. Null uses the project's own text. */
+    locale: text('locale'),
     active: boolean('active').default(true).notNull(),
     /** Shadow ban: the user keeps playing and earning, but is left out of every leaderboard. */
     rankingHidden: boolean('ranking_hidden').default(false).notNull(),

@@ -13,7 +13,7 @@ import {
 } from '@gami/database';
 import { and, eq } from 'drizzle-orm';
 import { renderEmailTemplate } from './email/templates.js';
-import { generateNotificationText } from './templates.js';
+import { localizeNotification, renderLocalizedEmail } from './localize.js';
 import { CreateNotificationIntentParams, NotificationType } from './types.js';
 import { createLogger } from '@gami/config';
 
@@ -59,7 +59,9 @@ export async function createNotificationIntent<T extends NotificationType>(
   if (!settings.enabled) return { status: 'skipped' };
 
   // 3. Generate title and message via centralized template
-  const { title, message } = generateNotificationText(params.type, params.data);
+  // In the player's language when they have one and the project translated it.
+  const localized = await localizeNotification(tx, params.projectId, params.userId, params.type, params.data as unknown as Record<string, unknown>);
+  const { title, message } = localized;
 
   const notificationId = `notif_${randomUUID()}`;
   const outboxId = `nob_${randomUUID()}`;
@@ -132,10 +134,9 @@ export async function createNotificationIntent<T extends NotificationType>(
         .where(and(eq(endUsers.projectId, params.projectId), eq(endUsers.id, params.userId)));
 
       if (userRow && userRow.email && userRow.email.includes('@')) {
-        const { subject, htmlBody, textBody } = renderEmailTemplate(
-          params.type,
-          params.data as unknown as Record<string, unknown>
-        );
+        const { subject, htmlBody, textBody } = localized.custom
+          ? renderLocalizedEmail(title, message)
+          : renderEmailTemplate(params.type, localized.data);
 
         const emailOutboxId = `eob_${randomUUID()}`;
         await tx

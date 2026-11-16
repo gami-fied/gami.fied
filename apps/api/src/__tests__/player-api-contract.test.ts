@@ -1,5 +1,5 @@
 /**
- * Every `/v1/me` route must be reachable from a browser, documented and in the SDK (SUG-11).
+ * Every `/v1/me` route must be reachable from a browser, documented and in the SDK.
  * The routes are read from the server itself, so a new one fails here until all three are done.
  */
 import fs from 'fs';
