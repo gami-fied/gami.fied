@@ -180,7 +180,12 @@ describe('mechanics', () => {
       expect(first.status).toBe(201);
       expect(again.status).toBe(200);
       expect(again.body).toMatchObject({ id: first.body.id, duplicate: true });
-      expect(await balance(user)).toBe(80);
+      // Charged once. The draw is random here, so whatever it paid in gems counts too: a 1 in 10
+      // Jackpot (500 gems) made this fail now and then when it expected 80 flat.
+      const won = (first.body.prizes as { type: string; currency?: string; amount?: number }[])
+        .filter((prize) => prize.type === 'currency' && prize.currency === 'gems')
+        .reduce((sum, prize) => sum + (prize.amount ?? 0), 0);
+      expect(await balance(user)).toBe(100 - 20 + won);
       expect((await call('POST', `/users/${other}/boxes/chest/open`, { idempotencyKey: `k-${suffix}` })).body.code).toBe('IDEMPOTENCY_KEY_IN_USE');
     });
 
