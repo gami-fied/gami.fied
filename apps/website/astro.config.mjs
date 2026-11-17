@@ -35,21 +35,21 @@ const analyticsSite = process.env.PUBLIC_ANALYTICS_SITE;
 const analyticsProvider = process.env.PUBLIC_ANALYTICS_PROVIDER;
 const docsAnalytics =
   analyticsScript &&
-    analyticsSite &&
-    process.env.PUBLIC_NOINDEX !== 'true' &&
-    (analyticsProvider === 'umami' || analyticsProvider === 'plausible')
+  analyticsSite &&
+  process.env.PUBLIC_NOINDEX !== 'true' &&
+  (analyticsProvider === 'umami' || analyticsProvider === 'plausible')
     ? [
-      {
-        tag: /** @type {const} */ ('script'),
-        attrs: {
-          defer: true,
-          src: analyticsScript,
-          ...(analyticsProvider === 'umami'
-            ? { 'data-website-id': analyticsSite }
-            : { 'data-domain': analyticsSite }),
+        {
+          tag: /** @type {const} */ ('script'),
+          attrs: {
+            defer: true,
+            src: analyticsScript,
+            ...(analyticsProvider === 'umami'
+              ? { 'data-website-id': analyticsSite }
+              : { 'data-domain': analyticsSite }),
+          },
         },
-      },
-    ]
+      ]
     : [];
 
 export default defineConfig({
@@ -87,11 +87,11 @@ export default defineConfig({
         { tag: 'meta', attrs: { name: 'twitter:image', content: docsImage } },
         ...(process.env.PUBLIC_NOINDEX === 'true'
           ? [
-            {
-              tag: /** @type {const} */ ('meta'),
-              attrs: { name: 'robots', content: 'noindex, nofollow' },
-            },
-          ]
+              {
+                tag: /** @type {const} */ ('meta'),
+                attrs: { name: 'robots', content: 'noindex, nofollow' },
+              },
+            ]
           : []),
         ...docsAnalytics,
       ],
@@ -198,16 +198,16 @@ export default defineConfig({
         },
         ...(olderVersions.length
           ? [
-            {
-              label: 'Older versions',
-              collapsed: true,
-              items: olderVersions.map(({ version }) => ({
-                label: `Gami.Fied ${version}`,
+              {
+                label: 'Older versions',
                 collapsed: true,
-                items: [{ autogenerate: { directory: `docs/v${version}` } }],
-              })),
-            },
-          ]
+                items: olderVersions.map(({ version }) => ({
+                  label: `Gami.Fied ${version}`,
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: `docs/v${version}` } }],
+                })),
+              },
+            ]
           : []),
       ],
     }),
@@ -218,7 +218,6 @@ export default defineConfig({
   // Code samples on marketing pages use the same theme as the docs.
   markdown: { shikiConfig: { theme: 'github-dark' } },
   vite: {
-    // @ts-expect-error: tailwindcss() is not typed as a Vite plugin, but it is one.
     plugins: [tailwindcss()],
     // Browser files only: animation code gets a "motion-" prefix, so the budget check can weigh it.
     environments: {
