@@ -362,7 +362,7 @@ importers:
         version: link:../../packages/webhooks
       bullmq:
         specifier: ^6.7.6
-        version: 6.7.6(ioredis@5.11.1(supports-color@10.2.2))
+        version: 6.7.6(ioredis@6.0.0(supports-color@10.2.2))
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(kysely@0.29.9)(postgres@4.1.1)
@@ -569,13 +569,13 @@ importers:
         version: link:../database
       bullmq:
         specifier: ^6.7.6
-        version: 6.7.6(ioredis@5.11.1(supports-color@10.2.2))
+        version: 6.7.6(ioredis@6.0.0(supports-color@10.2.2))
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(kysely@0.29.9)(postgres@4.1.1)
       ioredis:
-        specifier: ^5.11.1
-        version: 5.11.1(supports-color@10.2.2)
+        specifier: ^6.0.0
+        version: 6.0.0(supports-color@10.2.2)
     devDependencies:
       '@types/ioredis':
         specifier: ^5.0.0
@@ -1998,6 +1998,9 @@ packages:
 
   '@ioredis/commands@1.10.0':
     resolution: {integrity: sha512-UmeW7z4LfctwoQ5wkhVzgq8tXkreED2xZGpX+Bg+zA+WJFZCT6c062AfCK/Dfk81xZnnwdhJCUMkitihRaoC2Q==}
+
+  '@ioredis/commands@2.0.0':
+    resolution: {integrity: sha512-vrx0AE/T0h7cRZwfo1M39Cr+ZhZrkf0V8mQN75wucKCxCLD9l/VX6no3gFvrLqD1IlG/1LtzWovqEw3t0Vr9zg==}
 
   '@isaacs/nonrecursive-glob-match@1.1.0':
     resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
@@ -4435,6 +4438,10 @@ packages:
   ioredis@5.11.1:
     resolution: {integrity: sha512-ehuGcf94bQXhfagULNXrJdfnWO38v070jxSx/qE87Kjzmu2fU7ro5EFAb+OPituLqgfyuQaym5DlrNydW2sJ9A==}
     engines: {node: '>=12.22.0'}
+
+  ioredis@6.0.0:
+    resolution: {integrity: sha512-f+Dtubxfpf6KYFq7WVXJoOLn0bk4TJrMrN9SzeE+jrWrCWj7XX3fA6vkryafhADX+GMymRxgDJDOI33COkJc0w==}
+    engines: {node: '>=20.0.0'}
 
   ipaddr.js@2.5.0:
     resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
@@ -7504,7 +7511,10 @@ snapshots:
     dependencies:
       '@swc/helpers': 0.5.24
 
-  '@ioredis/commands@1.10.0': {}
+  '@ioredis/commands@1.10.0':
+    optional: true
+
+  '@ioredis/commands@2.0.0': {}
 
   '@isaacs/nonrecursive-glob-match@1.1.0': {}
 
@@ -8558,7 +8568,7 @@ snapshots:
 
   '@types/ioredis@5.0.0(supports-color@10.2.2)':
     dependencies:
-      ioredis: 5.11.1(supports-color@10.2.2)
+      ioredis: 6.0.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -9215,7 +9225,7 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
-  bullmq@6.7.6(ioredis@5.11.1(supports-color@10.2.2)):
+  bullmq@6.7.6(ioredis@6.0.0(supports-color@10.2.2)):
     dependencies:
       cron-parser: 5.10.4
       msgpackr: 2.1.4
@@ -9223,7 +9233,7 @@ snapshots:
       semver: 7.8.6
       tslib: 2.9.1
     optionalDependencies:
-      ioredis: 5.11.1(supports-color@10.2.2)
+      ioredis: 6.0.0(supports-color@10.2.2)
 
   bundle-name@4.1.1:
     dependencies:
@@ -10217,6 +10227,18 @@ snapshots:
       denque: 2.1.0
       redis-errors: 1.2.0
       redis-parser: 3.0.0
+      standard-as-callback: 2.1.0
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  ioredis@6.0.0(supports-color@10.2.2):
+    dependencies:
+      '@ioredis/commands': 2.0.0
+      cluster-key-slot: 1.1.1
+      debug: 4.4.3(supports-color@10.2.2)
+      denque: 2.1.0
+      redis-errors: 1.2.0
       standard-as-callback: 2.1.0
     transitivePeerDependencies:
       - supports-color
@@ -11240,6 +11262,7 @@ snapshots:
   redis-parser@3.0.0:
     dependencies:
       redis-errors: 1.2.0
+    optional: true
 
   regex-recursion@6.0.2:
     dependencies:
