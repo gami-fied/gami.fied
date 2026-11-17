@@ -25,6 +25,21 @@ const olderVersions = olderDocVersions();
 
 const docsImage = new URL('/og/docs.png', site).href;
 
+// The same cookie-free analytics as the rest of the site (src/components/Analytics.astro), which
+// the docs pages' own layout would otherwise leave out. Previews never load it.
+const analyticsScript = process.env.PUBLIC_ANALYTICS_SCRIPT;
+const analyticsSite = process.env.PUBLIC_ANALYTICS_SITE;
+const analyticsProvider = process.env.PUBLIC_ANALYTICS_PROVIDER;
+const docsAnalytics =
+  analyticsScript && analyticsSite && process.env.PUBLIC_NOINDEX !== 'true' && (analyticsProvider === 'umami' || analyticsProvider === 'plausible')
+    ? [
+        {
+          tag: /** @type {const} */ ('script'),
+          attrs: { defer: true, src: analyticsScript, ...(analyticsProvider === 'umami' ? { 'data-website-id': analyticsSite } : { 'data-domain': analyticsSite }) },
+        },
+      ]
+    : [];
+
 export default defineConfig({
   site,
   output: 'static',
@@ -61,6 +76,7 @@ export default defineConfig({
         ...(process.env.PUBLIC_NOINDEX === 'true'
           ? [{ tag: /** @type {const} */ ('meta'), attrs: { name: 'robots', content: 'noindex, nofollow' } }]
           : []),
+        ...docsAnalytics,
       ],
       plugins: [
         starlightOpenAPI([
