@@ -24,7 +24,7 @@
     "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "nodemailer": "^10.3.1"
+    "nodemailer": "^10.5.0"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.2",

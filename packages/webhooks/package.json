@@ -24,7 +24,7 @@
     "@gami/database": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "ipaddr.js": "^2.5.0",
-    "undici": "^8.12.3"
+    "undici": "^8.12.4"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -19,7 +19,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fastify/cors": "^11.4.1",
+    "@fastify/cors": "^11.4.3",
     "@fastify/helmet": "^13.2.0",
     "@gami/challenges": "workspace:*",
     "@gami/config": "workspace:*",
