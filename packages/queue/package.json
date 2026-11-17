@@ -19,7 +19,7 @@
     "@gami/database": "workspace:*",
     "bullmq": "^6.7.6",
     "drizzle-orm": "^0.45.4",
-    "ioredis": "^5.11.1"
+    "ioredis": "^6.0.0"
   },
   "devDependencies": {
     "@types/ioredis": "^5.0.0",
