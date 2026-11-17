@@ -61,7 +61,7 @@
     "chrome-launcher": "^1.2.3",
     "lighthouse": "^13.6.0",
     "playwright-core": "^1.65.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vitest": "^5.1.0",
     "wrangler": "^4.162.0"
   }
