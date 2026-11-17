@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -18,7 +18,7 @@ RUN rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/src p
 # runs it in production (migrations use drizzle-orm), so it is left out of the image.
 RUN rm -rf node_modules/.pnpm/esbuild@* node_modules/.pnpm/@esbuild+*
 
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 # Set by the release workflow, so the image reports the tag it was built from.

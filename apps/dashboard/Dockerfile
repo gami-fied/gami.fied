@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -14,7 +14,7 @@ RUN pnpm install --frozen-lockfile --filter "@gami/dashboard..." --filter "{.}"
 ENV NEXT_OUTPUT=standalone
 RUN pnpm exec turbo build --filter=@gami/dashboard...
 
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV API_URL=http://api:3001
