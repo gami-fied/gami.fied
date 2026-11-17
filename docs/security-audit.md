@@ -18,8 +18,17 @@
 
 ## Not covered
 
-- Penetration testing
-- A full script Content-Security-Policy on the dashboard, which is not set yet
+- Penetration testing by an independent reviewer
+
+## Self-review, 17 November 2026
+
+Done by the maintainers against release 1.3.0, before the public launch. It is not a substitute for an independent review.
+
+- **Content-Security-Policy.** The dashboard now sends a full policy with a fresh nonce per page. An injected inline script or event handler is blocked, which was checked in a browser. The page walk opens every dashboard page in both themes, at phone width and as a plain member and a platform admin, and fails if the policy blocks anything a page needs.
+- **Automated scan.** An OWASP ZAP baseline scan of the dashboard and the API found no failures. Of its warnings, one was fixed (the dashboard announced `X-Powered-By: Next.js`), and the rest are by design: badge images may come from any HTTPS address, and inline styles are allowed because components set style attributes.
+- **Images.** A Trivy scan of the published 1.3.0 images found a critical issue in esbuild's bundled Go runtime and high ones in npm's dependencies. Neither runs in production. Both are removed from the images, and CI now scans every image and fails on a fixable critical issue.
+- **Dependencies.** `pnpm audit` finds no known vulnerabilities in production dependencies. CI checks this on every change, and Dependabot proposes updates weekly.
+- **Routes added in 1.3.0.** Boxes, season passes, teams, shared goals, cosmetics, journeys, leaderboard prizes, the inbox, translations and web push were checked against the matrix below. Every player route that changes something needs a write token, except saving a language and marking notifications read, which a read-only token may do on purpose. Dashboard writes need an admin, API keys need the matching scope, and unmapped paths are closed. Concurrent box opens, pass claims and team joins are covered by tests.
 
 ## Authorization matrix
 
@@ -31,6 +40,11 @@
 | **Read end-user email addresses** | Denied | `users:read` | Hidden | Read | Read | Read |
 | **Read project analytics** | Denied | `analytics:read` | Read | Read | Read | Full |
 | **Manage rules, achievements, challenges** | Denied | `*:write` | Read | Full | Full | Full |
+| **Manage boxes, season passes, cosmetics** | Denied | `rewards:write` | Read | Full | Full | Full |
+| **Manage teams** | Denied | `social:write` | Read | Full | Full | Full |
+| **Manage shared goals and journeys** | Denied | `challenges:write` | Read | Full | Full | Full |
+| **Manage leaderboard prizes** | Denied | `leaderboard:write` | Read | Full | Full | Full |
+| **Manage translations** | Denied | `project:write` | Read | Full | Full | Full |
 | **Manage API keys, project members, project settings** | Denied | Denied | Denied | Full | Full | Full |
 | **Manage organization members** | Denied | Denied | Read | Full | Full | Full |
 | **Transfer organization ownership** | Denied | Denied | Denied | Denied | Full | Full |

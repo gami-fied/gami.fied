@@ -9,8 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Check the version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      # Fails when the tag, package.json, the npm packages and the docs do not all name the same
+      # version, or CHANGELOG.md has no section for it. Nothing is published in that case.
+      - run: node scripts/set-version.mjs --check "${{ github.ref_name }}"
+
   verify:
     name: Verify
+    needs: version
     uses: ./.github/workflows/ci.yml
 
   images:
@@ -101,3 +111,80 @@ jobs:
               --verify-tag \
               $prerelease
           fi
+
+  npm:
+    name: Publish npm packages
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Trusted publishing: npm accepts a publish only with GitHub's proof that it comes from this
+      # workflow in this repository, so no npm token is stored anywhere. It also adds provenance.
+      # Each package names this repository and `release.yml` under its trusted publishers on npm.
+      id-token: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later. Node 22 comes with npm 10.
+      - run: npm install --global npm@11.21.1
+      - run: pnpm install --frozen-lockfile --filter "@gami.fied/elements..."
+      - run: pnpm --filter "@gami.fied/elements..." build
+      # In order, because each depends on the one before. `pnpm pack` turns `workspace:*` into the
+      # real version, and `npm publish` does the trusted publishing, which pnpm cannot. A version
+      # that is already on npm is skipped, so moving a tag and pushing it again is safe.
+      - name: Publish
+        run: |
+          version="${TAG#v}"
+          dist_tag="latest"
+          if [[ "$version" == *-* ]]; then dist_tag="next"; fi
+          mkdir -p packs
+          for dir in sdk react elements; do
+            name="$(node -p "require('./packages/${dir}/package.json').name")"
+            if npm view "${name}@${version}" version > /dev/null 2>&1; then
+              echo "${name}@${version} is already published."
+              continue
+            fi
+            (cd "packages/${dir}" && pnpm pack --pack-destination ../../packs)
+            npm publish "packs/$(echo "${name}" | sed 's#^@##; s#/#-#')-${version}.tgz" --access public --tag "$dist_tag"
+          done
+
+  docker-hub:
+    name: Copy images to Docker Hub
+    needs: images
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+      DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - name: Skip when Docker Hub is not set up
+        if: env.DOCKERHUB_USERNAME == '' || env.DOCKERHUB_TOKEN == ''
+        run: echo "::notice::DOCKERHUB_USERNAME (a variable or a secret) or DOCKERHUB_TOKEN (a secret) is not set, so the images were not copied to Docker Hub."
+      - if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Copies the multi-platform images as they are, with no rebuild, under the same tags as GHCR.
+      - name: Copy
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
+        run: |
+          version="${TAG#v}"
+          for app in api worker dashboard; do
+            target="docker.io/${DOCKERHUB_USERNAME}/gami-${app}"
+            tags=(-t "${target}:${version}")
+            if [[ "$version" != *-* ]]; then
+              minor="${version%.*}"
+              tags+=(-t "${target}:${minor}" -t "${target}:${minor%.*}" -t "${target}:latest")
+            fi
+            docker buildx imagetools create "${tags[@]}" "ghcr.io/${GITHUB_REPOSITORY_OWNER}/gami-${app}:${version}"
+          done

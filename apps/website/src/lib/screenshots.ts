@@ -11,9 +11,9 @@ const PAGES: Record<string, string> = {
   progression: 'Achievements',
   economy: 'Store',
   competition: 'Leaderboard',
-  community: 'Users',
-  integrations: 'Developer Hub',
-  administration: 'Rules',
+  community: "player's Community",
+  integrations: 'Player view',
+  administration: 'platform admin Features',
 };
 
 export function screenshotFor(slug: string): { image: ImageMetadata; page: string } | null {

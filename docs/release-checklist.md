@@ -13,10 +13,10 @@ Work through this for each release. Pushing a version tag starts the build, so f
 
 ## Version and changelog
 
-- [ ] `version` is updated in the root `package.json` and in `packages/config/src/product.ts`.
-- [ ] `CHANGELOG.md` has a section for the version. The release notes are taken from it.
+- [ ] `pnpm release:version 1.4.0` (with the new version) sets it everywhere: the root and the three npm packages, `packages/config/src/product.ts`, the OpenAPI document, the docs examples and the supported line in `SECURITY.md`. CI fails if any of them disagree.
+- [ ] `CHANGELOG.md` has a section for the version. The release notes are taken from it, and the release stops if it is missing.
 - [ ] Any database migrations or new settings are explained under upgrading.
-- [ ] If the SDK changed, its version and `packages/sdk/CHANGELOG.md` are updated. `@gami.fied/react` and `@gami.fied/elements` take the same version.
+- [ ] If the SDK changed, `packages/sdk/CHANGELOG.md` is updated.
 
 ## Release
 
@@ -29,7 +29,32 @@ Work through this for each release. Pushing a version tag starts the build, so f
 - [ ] The GitHub release has `docker-compose.yml`, `env.example` and the right notes.
 - [ ] The images pull while signed out of GitHub.
 - [ ] A fresh install from the release files works.
-- [ ] If the SDK, the React components or the web components changed, they are published, in this order, because each depends on the one before:
+- [ ] The npm packages are published. The Release workflow publishes `@gami.fied/sdk`, `@gami.fied/react` and `@gami.fied/elements` through npm's trusted publishing, with provenance, and skips a version that is already there. A pre-release such as `1.4.0-rc.1` goes under the `next` tag, not `latest`.
+- [ ] The images are on Docker Hub, if you publish there. The workflow copies them, both platforms and the same tags, when the `DOCKERHUB_USERNAME` variable and the `DOCKERHUB_TOKEN` secret are set.
+
+### Setting up publishing (once)
+
+**npm** uses trusted publishing, so no npm token is stored anywhere. npm accepts a publish only with GitHub's proof that it comes from `release.yml` in this repository. For each of the three packages, open its **Settings** page on npmjs.com and add a trusted publisher:
+
+- **Organization or user:** `gami-fied`, **Repository:** `gami.fied`, **Workflow filename:** `release.yml`
+- **Environment name:** leave empty
+- **Allow `npm publish`:** ticked. **Allow `npm dist-tag`:** not needed.
+- Then, under **Publishing access**, choose "Require two-factor authentication and disallow bypass 2FA tokens". Trusted publishing still works, and no token can publish.
+
+A trusted publisher can only be added to a package that already exists, so a new package's first version is published by hand (below). Until the trusted publisher is set up, the npm step of a release fails; the images and the GitHub release are not affected.
+
+**Docker Hub** is optional. In the repository's **Settings → Secrets and variables → Actions**:
+
+| Name                 | Kind               | What it is                                            |
+| :------------------- | :----------------- | :---------------------------------------------------- |
+| `DOCKERHUB_USERNAME` | Variable or secret | Your Docker Hub user or organization name.            |
+| `DOCKERHUB_TOKEN`    | Secret             | A Docker Hub access token with read and write access. |
+
+Without them, the release skips Docker Hub and says so.
+
+### Publishing by hand
+
+For a package's first version, or if the workflow could not publish, sign in with `npm login` and publish in this order, because each package depends on the one before:
 
 ```powershell
 pnpm --filter "@gami.fied/sdk" publish --access public

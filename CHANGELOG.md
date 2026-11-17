@@ -6,6 +6,22 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ## [Unreleased]
 
+### Fixed
+
+- Badges given by a rule, a challenge or a prize now appear in a player's achievement progress (`/v1/me/achievements/progress`), so `BadgeGrid` and `<gami-badge-grid>` show them. Before, only badges with automatic criteria appeared, and a player with only rule-given badges saw "No achievements yet".
+
+### Security
+
+- The dashboard now sends a full Content-Security-Policy. Each page gets a fresh nonce, and only scripts carrying it, or loaded by one that does, can run. An injected script or inline event handler does nothing.
+- The Docker images no longer contain build tools the running app never uses: esbuild's binary in the API and worker images, and npm and corepack in all three. Image scanners had flagged a critical issue in esbuild's bundled Go runtime and several in npm's own dependencies.
+
+### Added
+
+- `pnpm release:version <version>` sets the version in every place it is written. CI fails when they disagree, and a release stops if its tag, `package.json` or the changelog do not match.
+- The Release workflow publishes the npm packages through npm's trusted publishing, with provenance and no stored npm token, and copies the images to Docker Hub when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are set.
+- `CONTRIBUTING.md`, `SECURITY.md`, a code of conduct, and issue and pull request templates.
+- Weekly dependency updates, CodeQL analysis, `pnpm audit` in CI, and a scan of each image that fails the build on a fixable critical vulnerability.
+
 ## [1.3.0] - 2026-11-15
 
 Six new mechanics (mystery boxes, a season pass, teams and shared goals, cosmetics, leaderboard prizes and journeys), a notification inbox, translations, web push for browsers, and web components for sites that do not use React. This release also fixes a serious bug in backups and tightens player tokens, the Docker setup and rate limits. **Read "Upgrading from 1.2.0" below before you upgrade: four changes may need action from you.**

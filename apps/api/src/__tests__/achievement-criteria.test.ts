@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import {
+  achievements,
   db,
   endUsers,
   events,
@@ -164,7 +165,19 @@ describe('achievements that measure themselves', () => {
       expect(await keys(false)).toContain('bookworm');
     }, 120_000);
 
-    it('ignores other event types', async () => {
+    it('includes badges given by a rule, earned or not', async () => {
+      const { status } = await create({ key: 'welcome', name: 'Welcome', description: 'Given by a rule.' });
+      expect(status).toBe(201);
+      const [welcome] = await db.select().from(achievements).where(and(eq(achievements.projectId, projectId), eq(achievements.key, 'welcome')));
+      const userId = await makeUser('ruled');
+      const find = async () => (await loadAchievementProgress(projectId, userId, { includeHidden: false })).find((entry) => entry.key === 'welcome');
+
+      expect(await find()).toMatchObject({ earned: false, complete: false, nextTarget: null, tierCount: 1, measures: 'Given by a rule or challenge' });
+      await db.insert(userAchievements).values({ id: `uach_${randomUUID()}`, projectId, userId, achievementId: welcome!.id });
+      expect(await find()).toMatchObject({ earned: true, complete: true, tier: 1, fraction: 1 });
+    }, 60_000);
+
+        it('ignores other event types', async () => {
       const userId = await makeUser('other');
       await processAchievementCriteriaForEvent(await record(userId, 'something_else'));
       const entry = (await loadAchievementProgress(projectId, userId, { includeHidden: true })).find((p) => p.key === 'bookworm');

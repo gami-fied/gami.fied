@@ -1,0 +1,40 @@
+# Weekly update pull requests. Minor and patch updates come grouped in one pull request per
+# ecosystem, so they can be checked and merged together. Major updates come one at a time.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: docker
+    directories:
+      - /apps/api
+      - /apps/worker
+      - /apps/dashboard
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      base-images:
+        patterns: ['*']
+    commit-message:
+      prefix: docker

@@ -8,6 +8,10 @@
 // visits each page. Screenshots go to src/assets/screenshots/<feature>.png. The tour is recorded
 // to public/video/tour.webm, and to tour.mp4 when ffmpeg is available (FFMPEG=path/to/ffmpeg).
 //
+// The Administration screenshot shows the platform admin area. The demo visitor can open it only
+// when PLATFORM_BOOTSTRAP_SECRET is set and the server has no platform admin yet, so run that one
+// against a local demo, not the public one. Without it, that screenshot is skipped and kept as is.
+//
 // It drives a browser that is already installed (Chrome by default, or CHROME_PATH), so nothing
 // is downloaded. Add --screenshots or --video to do only one of the two.
 import { execFileSync } from 'node:child_process';
@@ -31,15 +35,34 @@ const CHROME_PATHS = [
   '/usr/bin/chromium',
 ].filter(Boolean);
 
-/** The page that shows each feature area best, for its feature page on the website. */
+/**
+ * The page that shows each feature area best, for its feature page on the website. `open` is for a
+ * page with no fixed address. `admin` pages need a platform admin, which the demo visitor becomes
+ * only when PLATFORM_BOOTSTRAP_SECRET is set on a server that has no admin yet.
+ */
 const SCREENSHOTS = [
   { feature: 'progression', path: '/dashboard/achievements' },
   { feature: 'economy', path: '/dashboard/store' },
   { feature: 'competition', path: '/dashboard/leaderboard' },
-  { feature: 'community', path: '/dashboard/users' },
-  { feature: 'integrations', path: '/dashboard/developer' },
-  { feature: 'administration', path: '/dashboard/rules' },
+  // One of the regular players, with their friends, invites and league.
+  { feature: 'community', open: (page) => openPlayerTab(page, 'Community') },
+  // The same player through the real @gami.fied/react components, as your app would show them.
+  { feature: 'integrations', open: (page) => openPlayerTab(page, 'Player view') },
+  { feature: 'administration', path: '/admin/features', admin: true },
 ];
+
+async function openPlayerTab(page, tab) {
+  await page.goto(`${demoUrl}/dashboard/users`);
+  await settle(page);
+  // learner_01 is the keenest player in every demo, with friends and invites (demoSocial).
+  await page.getByPlaceholder('Search by name or external ID').fill('learner_01');
+  const link = page.locator('tr', { hasText: 'learner_01' }).locator('a[href^="/dashboard/users/"]').first();
+  await link.waitFor({ timeout: 20_000 });
+  const href = (await link.getAttribute('href')).split('?')[0];
+  await page.goto(`${demoUrl}${href}`);
+  await settle(page);
+  await page.getByRole('tab', { name: tab }).click();
+}
 
 /** The tour: about two minutes, one caption per scene. The home page prints the same captions as a transcript. */
 const TOUR = JSON.parse(readFileSync(join(root, 'src/lib/tour.json'), 'utf8'));
@@ -92,17 +115,35 @@ async function caption(page, text) {
   }, text);
 }
 
+/** Makes the demo visitor a platform admin, when the server allows it. Returns whether it worked. */
+async function claimPlatformAdmin(page) {
+  const secret = process.env.PLATFORM_BOOTSTRAP_SECRET;
+  if (!secret) return false;
+  const response = await page.request.post(`${demoUrl}/api/admin/bootstrap`, { data: { bootstrapSecret: secret } });
+  if (!response.ok()) console.log(`Platform admin was not claimed: ${response.status()} ${(await response.text()).slice(0, 200)}`);
+  return response.ok();
+}
+
 async function screenshots(context, page) {
   const dir = join(root, 'src/assets/screenshots');
   mkdirSync(dir, { recursive: true });
+  // Admin pages come last, and admin is claimed only then, so the other screenshots show the
+  // dashboard as an ordinary owner sees it.
+  let isAdmin = null;
   for (const shot of SCREENSHOTS) {
-    await page.goto(`${demoUrl}${shot.path}`);
+    if (shot.admin && isAdmin === null) isAdmin = await claimPlatformAdmin(page);
+    if (shot.admin && !isAdmin) {
+      console.log(`Skipped ${shot.feature}: it needs a platform admin. Set PLATFORM_BOOTSTRAP_SECRET on a server with no admin yet.`);
+      continue;
+    }
+    if (shot.open) await shot.open(page);
+    else await page.goto(`${demoUrl}${shot.path}`);
     await settle(page);
     // The demo banner is about the demo, not the feature, so screenshots leave it out.
     await page.addStyleTag({ content: '[aria-label="Live demo"] { display: none !important; }' });
     const file = join(dir, `${shot.feature}.png`);
     await page.screenshot({ path: file });
-    console.log(`Saved ${shot.feature}: ${shot.path}`);
+    console.log(`Saved ${shot.feature}: ${new URL(page.url()).pathname}`);
   }
 }
 
@@ -150,7 +191,9 @@ async function tour(browser, storageState) {
   const ffmpeg = process.env.FFMPEG || 'ffmpeg';
   try {
     execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-preset', 'slow', '-crf', '28', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', join(dir, 'tour.mp4')]);
-    execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-ss', '2', '-i', webm, '-frames:v', '1', '-q:v', '3', join(dir, 'tour-poster.jpg')]);
+    // The poster is a frame from the first scene once its page has drawn, not the loading screen.
+    const posterAt = ((cues[0]?.at ?? 0) / 1000 + 3).toFixed(1);
+    execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-ss', posterAt, '-i', webm, '-frames:v', '1', '-q:v', '3', join(dir, 'tour-poster.jpg')]);
     rmSync(webm);
     console.log('Converted it to public/video/tour.mp4, with a poster frame');
   } catch {
@@ -162,8 +205,10 @@ const browser = await chromium.launch({ executablePath: browserPath(), headless:
 try {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1, colorScheme: COLOR_SCHEME });
   const page = await startDemo(context);
-  if (only !== '--video') await screenshots(context, page);
+  // The tour first: the screenshots end by making the visitor a platform admin, which adds an
+  // admin link to the sidebar that the tour should not show.
   if (only !== '--screenshots') await tour(browser, await context.storageState());
+  if (only !== '--video') await screenshots(context, page);
   await context.close();
 } finally {
   await browser.close();

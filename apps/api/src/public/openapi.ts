@@ -1223,7 +1223,7 @@ const DOCS: Record<string, Doc> = {
   },
   'GET /users/:userId/achievements/progress': {
     tag: 'Achievements',
-    description: 'Shows how far a user is toward every achievement that measures itself, with tiers. Secret achievements are included and flagged `hidden`, so keep them out of anything players see. Use `/v1/me/achievements/progress` for a player-facing view.',
+    description: 'Shows how far a user is toward every achievement, with tiers. One given by a rule or challenge is earned or not, with no progress to show. Secret achievements are included and flagged `hidden`, so keep them out of anything players see. Use `/v1/me/achievements/progress` for a player-facing view.',
     status: 200,
     responseDescription: 'Progress for each achievement.',
     response: listOf('AchievementProgress', 'One entry per achievement with criteria.'),
@@ -1964,7 +1964,7 @@ export function buildOpenApiDocument() {
       },
     },
     '/v1/me/achievements/progress': {
-      get: meOperation('/v1/me/achievements/progress', "Show the current user's achievement progress", 'Shows how far the token holder is toward each achievement that measures itself. Secret achievements are left out until they are earned.', meItems({
+      get: meOperation('/v1/me/achievements/progress', "Show the current user's achievement progress", 'Shows how far the token holder is toward each achievement. One given by a rule or challenge is earned or not, with no progress to show. Secret achievements are left out until they are earned.', meItems({
         key: text('The achievement\'s key.', 'bookworm'),
         name: text('Display name.', 'Bookworm'),
         description: optionalText('How to earn it.', 'Finish lessons'),

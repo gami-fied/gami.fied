@@ -23,12 +23,17 @@ import {
   eventOutbox,
   events,
   featureSettings,
+  friendships,
+  kudos,
   leagues,
   levels,
   member,
   organizationPolicies,
   organizations,
   projects,
+  referralCodes,
+  referralPrograms,
+  referrals,
   rewards,
   rules,
   streakDefinitions,
@@ -44,10 +49,12 @@ import {
   DEMO_LEVELS,
   DEMO_LOCKED_FEATURES,
   DEMO_POLICY,
+  DEMO_REFERRAL_PROGRAM,
   DEMO_REWARDS,
   DEMO_RULES,
   DEMO_STREAK,
   demoPlayers,
+  demoSocial,
 } from './demo-data.js';
 
 const DAY_MS = 86_400_000;
@@ -111,6 +118,28 @@ export async function createDemoWorkspace(input: CreateDemoInput): Promise<DemoW
     // Players, their lessons, and the streaks those lessons make.
     const playerRows = players.map((player) => ({ id: newId('usr'), projectId, externalId: player.externalId, name: player.name, metadata: { country: player.country } }));
     for (const rows of batches(playerRows)) await tx.insert(endUsers).values(rows);
+
+    // Friends, invites and kudos. Invites are queued as pending before the events, so the worker
+    // rewards each one at the new player's first lesson, with the real XP and gems.
+    const social = demoSocial(playerRows.length);
+    const idOf = (position: number) => playerRows[position]!.id;
+    const daysAgo = (days: number) => new Date(now.getTime() - days * DAY_MS);
+    await tx.insert(referralPrograms).values({ ...DEMO_REFERRAL_PROGRAM, projectId });
+    if (social.friendships.length) {
+      await tx.insert(friendships).values(
+        social.friendships.flatMap(([a, b], index) => [
+          { id: newId('frd'), projectId, userId: idOf(a), friendId: idOf(b), createdAt: daysAgo(20 - (index % 15)) },
+          { id: newId('frd'), projectId, userId: idOf(b), friendId: idOf(a), createdAt: daysAgo(20 - (index % 15)) },
+        ])
+      );
+    }
+    if (social.codes.length) await tx.insert(referralCodes).values(social.codes.map(({ player, code }) => ({ id: newId('rfc'), projectId, userId: idOf(player), code, createdAt: daysAgo(30) })));
+    if (social.invites.length) {
+      await tx.insert(referrals).values(social.invites.map((invite) => ({ id: newId('ref'), projectId, referrerId: idOf(invite.referrer), refereeId: idOf(invite.referee), status: 'pending' as const, createdAt: daysAgo(invite.daysAgo) })));
+    }
+    if (social.kudos.length) {
+      await tx.insert(kudos).values(social.kudos.map((item) => ({ id: newId('kud'), projectId, fromUserId: idOf(item.from), toUserId: idOf(item.to), message: item.message, createdAt: daysAgo(item.daysAgo) })));
+    }
 
     const settings = { cadence: DEMO_STREAK.cadence, timeZone: DEMO_STREAK.timeZone, freezeEvery: DEMO_STREAK.freezeEvery, maxFreezes: DEMO_STREAK.maxFreezes };
     const eventRows: (typeof events.$inferInsert)[] = [];

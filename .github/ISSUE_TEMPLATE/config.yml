@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/gami-fied/gami.fied/discussions
+    about: Questions, ideas and help with your setup.
+  - name: Report a security problem
+    url: https://github.com/gami-fied/gami.fied/security/advisories/new
+    about: Report it privately. Please do not open a public issue.
+  - name: Documentation
+    url: https://gami.fied.cc/docs/
+    about: Guides, the API reference and how to install.

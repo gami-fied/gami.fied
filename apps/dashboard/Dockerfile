@@ -20,6 +20,11 @@ ENV NODE_ENV=production
 ENV API_URL=http://api:3001
 ENV HOSTNAME=0.0.0.0
 
+# The app runs with node alone. npm and corepack come with the base image but are never used,
+# and they carry their own dependencies for image scanners to flag, so they are removed.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 

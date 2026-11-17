@@ -181,4 +181,6 @@ git tag -a v1.2.3 -m "Gami.Fied 1.2.3"
 git push origin v1.2.3
 ```
 
-A stable tag publishes `1.2.3`, `1.2`, `1` and `latest`. A pre-release such as `v1.2.3-rc.1` only publishes its exact version. The release notes come from that version's section in `CHANGELOG.md`.
+A stable tag publishes `1.2.3`, `1.2`, `1` and `latest`. A pre-release such as `v1.2.3-rc.1` only publishes its exact version. The release notes come from that version's section in `CHANGELOG.md`. The release stops before publishing anything if the tag, `package.json` and the docs name different versions, or the changelog has no section for it.
+
+The same run publishes the npm packages through npm's trusted publishing, and copies the images to Docker Hub when its secrets are set. See [setting up publishing](./release-checklist.md#setting-up-publishing-once).

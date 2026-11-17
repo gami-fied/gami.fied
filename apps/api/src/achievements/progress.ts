@@ -11,7 +11,7 @@ import {
   type AchievementCriteria,
   type AchievementTier,
 } from '@gami/rules';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 export interface AchievementProgressEntry {
   achievementId: string;
@@ -45,7 +45,8 @@ function describe(criteria: AchievementCriteria): string {
 }
 
 /**
- * Every enabled achievement that measures itself, with how far the user has come. Secret
+ * Every enabled achievement, with how far the user has come. One that measures itself shows its
+ * progress and tiers; one given by a rule or challenge is simply earned or not. Secret
  * achievements are left out unless the user has earned them or the caller is staff.
  */
 export async function loadAchievementProgress(
@@ -57,7 +58,7 @@ export async function loadAchievementProgress(
     db
       .select()
       .from(achievements)
-      .where(and(eq(achievements.projectId, projectId), eq(achievements.enabled, true), sql`${achievements.criteria} IS NOT NULL`))
+      .where(and(eq(achievements.projectId, projectId), eq(achievements.enabled, true)))
       .orderBy(achievements.createdAt, achievements.id),
     db
       .select()
@@ -74,15 +75,38 @@ export async function loadAchievementProgress(
   const entries: AchievementProgressEntry[] = [];
 
   for (const definition of definitions) {
+    const awardedAt = awardedById.get(definition.id) ?? null;
+    if (definition.hidden && !awardedAt && !options.includeHidden) continue;
+
+    // A badge given by a rule, a challenge or a prize measures nothing, so it is earned or not.
+    if (definition.criteria === null) {
+      entries.push({
+        achievementId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        description: definition.description,
+        iconUrl: definition.iconUrl,
+        hidden: definition.hidden,
+        earned: Boolean(awardedAt),
+        awardedAt,
+        measures: 'Given by a rule or challenge',
+        tier: awardedAt ? 1 : 0,
+        tierCount: 1,
+        tierName: null,
+        value: awardedAt ? 1 : 0,
+        nextTarget: null,
+        fraction: awardedAt ? 1 : 0,
+        complete: Boolean(awardedAt),
+      });
+      continue;
+    }
+
     let parsed: { criteria: AchievementCriteria; tiers: AchievementTier[] };
     try {
       parsed = validateAchievementCriteria(definition.criteria, definition.tiers ?? []);
     } catch {
       continue;
     }
-
-    const awardedAt = awardedById.get(definition.id) ?? null;
-    if (definition.hidden && !awardedAt && !options.includeHidden) continue;
 
     const row = progressById.get(definition.id);
     const tier = row?.tier ?? 0;

@@ -55,7 +55,7 @@ export class MeResource {
     }>({ method: 'GET', path: '/v1/me/achievements' });
   }
 
-  /** How far the player is toward each achievement that measures itself. Secret ones appear once earned. */
+  /** How far the player is toward each achievement, including ones given by a rule. Secret ones appear once earned. */
   public achievementProgress() {
     return this.http.request<{
       data: {

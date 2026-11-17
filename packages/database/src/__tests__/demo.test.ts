@@ -13,6 +13,7 @@ import {
   DEMO_POLICY,
   DEMO_RULES,
   demoPlayers,
+  demoSocial,
 } from '../demo-data.js';
 import { countLiveDemos, createDemoWorkspace, deleteExpiredDemos, isLiveDemo } from '../demo.js';
 import { featuresFor, policyFor } from '../features.js';
@@ -52,6 +53,35 @@ describe('demo data', () => {
       const days = new Set(player.lessons.map((l) => l.daysAgo));
       for (let day = 0; day < 10; day++) expect(days.has(day)).toBe(true);
     }
+  });
+});
+
+describe('demo community', () => {
+  it('makes friends, invites and kudos between real players, the same every time', () => {
+    const social = demoSocial(36);
+    expect(demoSocial(36)).toEqual(social);
+    expect(social.friendships.length).toBeGreaterThanOrEqual(12);
+    expect(social.invites).toHaveLength(8);
+    // No one befriends or invites themselves, and every position is a real player.
+    for (const [a, b] of social.friendships) expect(a).not.toBe(b);
+    for (const invite of social.invites) expect(invite.referrer).not.toBe(invite.referee);
+    const positions = [...social.friendships.flat(), ...social.invites.flatMap((i) => [i.referrer, i.referee]), ...social.kudos.flatMap((k) => [k.from, k.to])];
+    expect(Math.max(...positions)).toBeLessThan(36);
+    // A new player is invited once, and every inviter has a code in the real alphabet.
+    expect(new Set(social.invites.map((i) => i.referee)).size).toBe(social.invites.length);
+    for (const referrer of new Set(social.invites.map((i) => i.referrer))) {
+      expect(social.codes.find((c) => c.player === referrer)?.code).toMatch(/^[A-HJ-NP-Z2-9]+$/);
+    }
+    // Kudos go between friends only.
+    for (const item of social.kudos) {
+      expect(social.friendships.some(([a, b]) => (a === item.from && b === item.to) || (a === item.to && b === item.from))).toBe(true);
+    }
+  });
+
+  it('fits a demo with fewer players', () => {
+    const social = demoSocial(10);
+    expect(Math.max(...social.friendships.flat())).toBeLessThan(10);
+    expect(social.invites).toHaveLength(0);
   });
 });
 
@@ -110,6 +140,18 @@ describe('demo workspaces', () => {
 
     const rules = await db.select({ id: schema.rules.id }).from(schema.rules).where(eq(schema.rules.projectId, demo.projectId));
     expect(rules).toHaveLength(DEMO_RULES.length);
+
+    // Friends both ways, an invite program, and invites waiting for the worker to reward them.
+    const social = demoSocial(demo.players);
+    const friends = await db.select().from(schema.friendships).where(eq(schema.friendships.projectId, demo.projectId));
+    expect(friends).toHaveLength(social.friendships.length * 2);
+    const [program] = await db.select().from(schema.referralPrograms).where(eq(schema.referralPrograms.projectId, demo.projectId));
+    expect(program).toMatchObject({ enabled: true, qualifyingEvent: 'lesson_completed' });
+    const invites = await db.select().from(schema.referrals).where(eq(schema.referrals.projectId, demo.projectId));
+    expect(invites).toHaveLength(social.invites.length);
+    expect(invites.every((invite) => invite.status === 'pending')).toBe(true);
+    const kudos = await db.select().from(schema.kudos).where(eq(schema.kudos.projectId, demo.projectId));
+    expect(kudos).toHaveLength(social.kudos.length);
   });
 
   it('deletes expired demos with everything in them, and the visitor account', async () => {

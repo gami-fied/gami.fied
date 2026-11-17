@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
   workflow_call:
 
@@ -30,6 +30,9 @@ jobs:
       - run: pnpm build
       - run: node scripts/check-bundle.mjs
       - run: pnpm docs:check
+      - run: node scripts/set-version.mjs --check
+      # Known vulnerabilities in what the images ship. Dev tools are left out.
+      - run: pnpm audit --prod --audit-level high
 
   test:
     name: Tests
@@ -91,6 +94,37 @@ jobs:
             echo "RATE_LIMIT_IP_MAX=100000"
           } > .env
       - run: docker compose $COMPOSE_FILES build
+      # A critical vulnerability that already has a fix fails the build, so it never reaches a release.
+      - name: Scan the api image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/gami-fied/gami-api:ci
+          # Vulnerabilities only. The secret scanner flags example values in the built pages, and
+          # secrets in the repository are caught by GitHub's secret scanning instead.
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan the worker image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/gami-fied/gami-worker:ci
+          # Vulnerabilities only. The secret scanner flags example values in the built pages, and
+          # secrets in the repository are caught by GitHub's secret scanning instead.
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan the dashboard image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/gami-fied/gami-dashboard:ci
+          # Vulnerabilities only. The secret scanner flags example values in the built pages, and
+          # secrets in the repository are caught by GitHub's secret scanning instead.
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
       - run: docker compose $COMPOSE_FILES up -d --no-build --wait --wait-timeout 180
       - run: node scripts/smoke-test.mjs
       # Opens every dashboard page in a browser, in both themes and at phone width, and the admin

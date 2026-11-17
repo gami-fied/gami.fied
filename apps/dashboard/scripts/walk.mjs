@@ -263,6 +263,13 @@ async function walk(browser, { label, pages, viewport, colorScheme, projectId, w
   const notes = [];
   let pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  // Something the Content-Security-Policy blocked: a script, style, image or connection the page
+  // needs. The browser only reports these on the console.
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /Content Security Policy/i.test(message.text())) {
+      pageErrors.push(`blocked by the Content-Security-Policy: ${message.text().slice(0, 200)}`);
+    }
+  });
   // Requests that were refused, kept to explain a page that did not draw.
   let blocked = [];
   page.on('response', (response) => {

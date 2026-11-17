@@ -197,7 +197,7 @@ describe('Milestone 19 — Platform Administration, Security & Configuration Man
         payload: {
           host: 'smtp.mailtrap.io',
           port: 587,
-          fromEmail: 'noreply@gami.io',
+          fromEmail: 'noreply@example.com',
           password: rawSecretPassword,
         },
       },

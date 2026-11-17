@@ -123,6 +123,54 @@ export const DEMO_RULES = [
   },
 ];
 
+/** Inviting a friend earns gems and XP once the friend finishes a first lesson. */
+export const DEMO_REFERRAL_PROGRAM = {
+  enabled: true,
+  qualifyingEvent: 'lesson_completed',
+  referrerXp: 100,
+  refereeXp: 50,
+  currencyKey: DEMO_CURRENCY.key,
+  referrerCurrency: 20,
+  maxRewardsPerReferrer: 5,
+};
+
+const KUDOS_MESSAGES = ['Great streak!', 'Nice work on that lesson.', 'Keep it up!', 'Well done on the perfect score.', 'See you on the board!', null];
+
+export interface DemoSocial {
+  /** Pairs of player positions. Each pair is stored both ways, as friends always are. */
+  friendships: [number, number][];
+  /** Invite codes for the players who invited someone. */
+  codes: { player: number; code: string }[];
+  /** Who invited whom. Each starts pending, and the worker rewards it at the new player's first lesson. */
+  invites: { referrer: number; referee: number; daysAgo: number }[];
+  kudos: { from: number; to: number; daysAgo: number; message: string | null }[];
+}
+
+/**
+ * Friends, invites and kudos between the regular players, so the community pages have something
+ * to show. Fixed rather than random: the same players are always friends in every demo.
+ */
+export function demoSocial(playerCount: number): DemoSocial {
+  const circle = Math.min(12, playerCount);
+  const friendships: [number, number][] = [];
+  for (let a = 0; a < circle; a++) {
+    for (const step of [1, 3]) {
+      const b = (a + step) % circle;
+      if (!friendships.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) friendships.push([a, b]);
+    }
+  }
+  // Four of the keenest players brought in two newer ones each.
+  const invites: DemoSocial['invites'] = [];
+  for (let i = 0; i < 8 && 18 + i < playerCount; i++) invites.push({ referrer: Math.floor(i / 2), referee: 18 + i, daysAgo: 29 - i });
+  // Codes use the same letters as real ones: no 0, O, 1 or I.
+  const codes = [...new Set(invites.map((invite) => invite.referrer))].map((player) => ({ player, code: `LEAP${'ABCDEFGHJKLMNPQRSTUVWXYZ'[player]}${'23456789'[player % 8]}` }));
+  const kudos: DemoSocial['kudos'] = friendships.slice(0, 14).map(([a, b], index) => {
+    const [from, to] = index % 2 === 0 ? [a, b] : [b, a];
+    return { from, to, daysAgo: index % 6, message: KUDOS_MESSAGES[index % KUDOS_MESSAGES.length] ?? null };
+  });
+  return { friendships, codes, invites, kudos };
+}
+
 const FIRST_NAMES = [
   'Amara', 'Bruno', 'Chen', 'Dalia', 'Emil', 'Farah', 'Goran', 'Hana', 'Ibrahim', 'Jonas', 'Keiko', 'Luca',
   'Maya', 'Nikolai', 'Olivia', 'Pedro', 'Quinn', 'Rania', 'Sven', 'Tariq', 'Uma', 'Viktor', 'Wen', 'Ximena',

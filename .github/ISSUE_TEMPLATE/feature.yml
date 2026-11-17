@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest something new or a change to how something works.
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: For an open-ended idea, a [discussion](https://github.com/gami-fied/gami.fied/discussions) may suit better.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what stops you today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+      description: How it could work, from the point of view of you or your players.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do now instead
+      description: Any workaround, or other tools you have looked at.

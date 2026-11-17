@@ -132,7 +132,7 @@ describe('Milestone 18 — Multi-Channel Notifications & Email Delivery System T
         port: 587,
         user: 'test_user',
         password: 'super_secret_smtp_password_123',
-        fromEmail: 'noreply@gami.dev',
+        fromEmail: 'noreply@example.com',
         fromName: 'Gami Engine Test',
         secure: false,
       },

@@ -13,7 +13,7 @@ name: Website
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
     paths:
       - 'apps/website/**'
       - 'packages/ui/**'

@@ -14,6 +14,9 @@ RUN pnpm exec turbo build --filter=@gami/api...
 # versions CI tested. `pnpm deploy` is avoided because it can resolve newer versions.
 RUN rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/src packages/*/src && \
     pnpm install --frozen-lockfile --prod --filter "@gami/api..."
+# better-auth's optional peers (drizzle-kit, vitest) bring esbuild's native binary along. Nothing
+# runs it in production (migrations use drizzle-orm), so it is left out of the image.
+RUN rm -rf node_modules/.pnpm/esbuild@* node_modules/.pnpm/@esbuild+*
 
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -21,6 +24,11 @@ ENV NODE_ENV=production
 # Set by the release workflow, so the image reports the tag it was built from.
 ARG GAMI_VERSION
 ENV GAMI_VERSION=${GAMI_VERSION}
+
+# The app runs with node alone. npm and corepack come with the base image but are never used,
+# and they carry their own dependencies for image scanners to flag, so they are removed.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs

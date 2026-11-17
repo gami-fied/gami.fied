@@ -21,8 +21,13 @@ async function resolveProvider() {
     port: (cfg.port as number) || 587,
     user: (cfg.user as string) || '',
     password: cfg.encryptedPassword ? decryptSecret(cfg.encryptedPassword as string) : '',
-    fromEmail: (cfg.fromEmail as string) || 'noreply@gami.engine',
-    fromName: (cfg.fromName as string) || 'Gami Security',
+    // Without a sender saved here, use the one from the environment, then the SMTP login when it is
+    // an address. With none of them, the environment settings are used as a whole instead.
+    fromEmail:
+      (cfg.fromEmail as string) ||
+      process.env.SMTP_FROM_EMAIL ||
+      (typeof cfg.user === 'string' && cfg.user.includes('@') ? cfg.user : ''),
+    fromName: (cfg.fromName as string) || process.env.SMTP_FROM_NAME || 'Gami.Fied',
     secure: Boolean(cfg.secure),
   });
 }
