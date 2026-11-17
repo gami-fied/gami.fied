@@ -1,7 +1,8 @@
 /**
  * Live demos without an account, on a demo instance only (`GAMI_DEMO_MODE=true`).
  *
- *   GET  /api/demo          whether this instance offers demos, and the challenge's site key
+ *   GET  /api/demo          whether this instance offers demos, the challenge's site key, and the
+ *                           visitor's own live demo when they are still signed in to one
  *   POST /api/demo/start    passes the challenge, creates a visitor account and a seeded demo,
  *                           and signs the visitor in with the usual session cookie
  *   POST /api/demo/traffic  sends a burst of events to the visitor's demo, so boards and toasts move
@@ -16,7 +17,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import { createLogger, demoSettings } from '@gami/config';
 import { auth, countLiveDemos, createDemoWorkspace, db, endUsers, member, organizations, projects, users } from '@gami/database';
 import { getRedisConnection } from '@gami/queue';
-import { requireAuth } from '../authorization/index.js';
+import { getSession, requireAuth } from '../authorization/index.js';
 import { countWithExpiry } from '../middleware/rate-limiter.js';
 import { ingestEvent } from '../services/event-ingestion.js';
 
@@ -89,6 +90,22 @@ async function liveDemoFor(userId: string) {
   return row ?? null;
 }
 
+/**
+ * The live demo the visitor is signed in to, so the demo page can offer to go back to it instead
+ * of starting another. Null for anyone else, and when the session cannot be read.
+ */
+async function currentDemo(request: FastifyRequest): Promise<{ expiresAt: string } | null> {
+  if (!request.headers.cookie) return null;
+  try {
+    const session = await getSession(request);
+    if (!session?.user) return null;
+    const demo = await liveDemoFor(session.user.id);
+    return demo?.expiresAt ? { expiresAt: demo.expiresAt.toISOString() } : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function demoRoutes(fastify: FastifyInstance) {
   const settings = demoSettings();
   if (settings.enabled) {
@@ -96,10 +113,11 @@ export async function demoRoutes(fastify: FastifyInstance) {
     if (!settings.turnstileSecretKey) log.warn('TURNSTILE_SECRET_KEY is not set, so starting a demo needs no challenge. Set it before going public.');
   }
 
-  fastify.get('/api/demo', async () => ({
+  fastify.get('/api/demo', async (request) => ({
     enabled: settings.enabled,
     ttlHours: settings.enabled ? settings.ttlHours : null,
     turnstileSiteKey: settings.enabled ? settings.turnstileSiteKey : null,
+    current: settings.enabled ? await currentDemo(request) : null,
   }));
 
   fastify.post<{ Body: { turnstileToken?: string } }>('/api/demo/start', async (request: FastifyRequest<{ Body: { turnstileToken?: string } }>, reply) => {

@@ -11,13 +11,16 @@ import repoDocs, { olderDocVersions } from './src/integrations/repo-docs.mjs';
 const site = process.env.PUBLIC_SITE_URL || 'https://gami.fied.cc';
 const repository = 'https://github.com/gami-fied/gami.fied';
 /** Code from GSAP, Motion or src/motion is animation code. */
-const ANIMATION_MODULE = /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:gsap|motion|motion-dom|motion-utils)\/|\/src\/motion\//;
+const ANIMATION_MODULE =
+  /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:gsap|motion|motion-dom|motion-utils)\/|\/src\/motion\//;
 /** @param {{ name: string; moduleIds?: string[]; facadeModuleId?: string | null }} chunk */
 function motionFileName(chunk) {
   const ids = [...(chunk.moduleIds ?? []), chunk.facadeModuleId ?? ''];
   // Astro's own naming, with the prefix added for animation code.
   const name = chunk.name.replace(/[^\w.-]+/g, '_');
-  return ids.some((id) => ANIMATION_MODULE.test(id.replace(/\\/g, '/'))) ? `_astro/motion-${name}.[hash].js` : `_astro/${name}.[hash].js`;
+  return ids.some((id) => ANIMATION_MODULE.test(id.replace(/\\/g, '/')))
+    ? `_astro/motion-${name}.[hash].js`
+    : `_astro/${name}.[hash].js`;
 }
 
 // Docs for earlier releases, read from their git tags.
@@ -31,11 +34,20 @@ const analyticsScript = process.env.PUBLIC_ANALYTICS_SCRIPT;
 const analyticsSite = process.env.PUBLIC_ANALYTICS_SITE;
 const analyticsProvider = process.env.PUBLIC_ANALYTICS_PROVIDER;
 const docsAnalytics =
-  analyticsScript && analyticsSite && process.env.PUBLIC_NOINDEX !== 'true' && (analyticsProvider === 'umami' || analyticsProvider === 'plausible')
+  analyticsScript &&
+  analyticsSite &&
+  process.env.PUBLIC_NOINDEX !== 'true' &&
+  (analyticsProvider === 'umami' || analyticsProvider === 'plausible')
     ? [
         {
           tag: /** @type {const} */ ('script'),
-          attrs: { defer: true, src: analyticsScript, ...(analyticsProvider === 'umami' ? { 'data-website-id': analyticsSite } : { 'data-domain': analyticsSite }) },
+          attrs: {
+            defer: true,
+            src: analyticsScript,
+            ...(analyticsProvider === 'umami'
+              ? { 'data-website-id': analyticsSite }
+              : { 'data-domain': analyticsSite }),
+          },
         },
       ]
     : [];
@@ -74,7 +86,12 @@ export default defineConfig({
         { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
         { tag: 'meta', attrs: { name: 'twitter:image', content: docsImage } },
         ...(process.env.PUBLIC_NOINDEX === 'true'
-          ? [{ tag: /** @type {const} */ ('meta'), attrs: { name: 'robots', content: 'noindex, nofollow' } }]
+          ? [
+              {
+                tag: /** @type {const} */ ('meta'),
+                attrs: { name: 'robots', content: 'noindex, nofollow' },
+              },
+            ]
           : []),
         ...docsAnalytics,
       ],
@@ -125,7 +142,10 @@ export default defineConfig({
             { label: 'Events, rules and progression', slug: 'docs/gamification-mechanics' },
             { label: 'Economy and store', slug: 'docs/economy-and-store' },
             { label: 'Segments, leagues and social', slug: 'docs/social-and-competition' },
-            { label: 'Boxes, passes, teams and journeys', slug: 'docs/boxes-passes-teams-and-journeys' },
+            {
+              label: 'Boxes, passes, teams and journeys',
+              slug: 'docs/boxes-passes-teams-and-journeys',
+            },
             { label: 'Translations', slug: 'docs/translations' },
             { label: 'Community Edition', slug: 'docs/community-edition' },
           ],
@@ -143,7 +163,10 @@ export default defineConfig({
             { label: 'Importing data', slug: 'docs/data-import' },
             { label: 'Exporting data', slug: 'docs/data-export' },
             { label: 'Platform administration', slug: 'docs/platform-administration' },
-            { label: 'Features and organization rules', slug: 'docs/platform-administration-features' },
+            {
+              label: 'Features and organization rules',
+              slug: 'docs/platform-administration-features',
+            },
           ],
         },
         {
@@ -178,7 +201,11 @@ export default defineConfig({
               {
                 label: 'Older versions',
                 collapsed: true,
-                items: olderVersions.map(({ version }) => ({ label: `Gami.Fied ${version}`, collapsed: true, items: [{ autogenerate: { directory: `docs/v${version}` } }] })),
+                items: olderVersions.map(({ version }) => ({
+                  label: `Gami.Fied ${version}`,
+                  collapsed: true,
+                  items: [{ autogenerate: { directory: `docs/v${version}` } }],
+                })),
               },
             ]
           : []),
@@ -194,7 +221,13 @@ export default defineConfig({
     plugins: [tailwindcss()],
     // Browser files only: animation code gets a "motion-" prefix, so the budget check can weigh it.
     environments: {
-      client: { build: { rolldownOptions: { output: { entryFileNames: motionFileName, chunkFileNames: motionFileName } } } },
+      client: {
+        build: {
+          rolldownOptions: {
+            output: { entryFileNames: motionFileName, chunkFileNames: motionFileName },
+          },
+        },
+      },
     },
   },
 });

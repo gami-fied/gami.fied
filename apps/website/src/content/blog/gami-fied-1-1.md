@@ -1,40 +1,71 @@
 ---
 title: 'Gami.Fied 1.1: streaks, a reward store, leagues and more'
-description: The biggest release so far adds streaks, a points economy, leagues and social play, inbound connectors, staging environments, plugins and controls for running an instance.
+description: Our biggest update yet. Streaks that keep people coming back, points they can spend in a shop, leagues to climb, and friends to cheer them on.
 date: 2026-11-08
 tags: [release]
 ---
 
-Gami.Fied 1.1 is out. It is the largest release since 1.0, and everything in it is additive: the `/v1` API works as before, and nothing has to change in your app.
+Two days after 1.0, we are back with a **huge** update. Like, "we should probably take a nap now" huge. 😴
 
-## Progression
+The best part: nothing breaks. Your app keeps working exactly as before, and all the new toys are there when you want them.
 
-**Streaks** are now built in, not a rule preset. They count daily or weekly in each player's own time zone, freezes save a missed day, and reminder emails go out before a streak breaks.
+## 🔥 Streaks: the "don't break the chain" feeling
 
-**Achievements earn themselves** from a count, a total, unique values or a streak, with tiers, bonus XP and secret badges. **Challenges** gained ordered steps, conditions on the events that count, and daily or weekly repeats.
+Streaks are now built right in. Count them **daily or weekly**, in each player's own time zone, so nobody loses a streak because of where they live.
 
-Rules got safer to change: save a **draft**, **publish** it when ready, see the **history**, and **roll back**. A **backtest** replays a rule over your past events and shows how much XP it would have given before it goes live. **Boosts** run promotions like double XP weekends, and **limits** keep rewards from being farmed.
+Life happens, so we added **freezes** that save a missed day. And if a streak is about to break, Gami.Fied can send a friendly reminder email first.
 
-## A points economy
+## 🏅 Badges that hand themselves out
 
-**Currencies** are points people can save and spend, separate from XP. They can expire, the soonest-to-expire are spent first, and people are warned three days ahead.
+Achievements can now earn themselves. Tell Gami.Fied "give this badge after 10 lessons", or "after spending 500 coins", or "after a 7-day streak", and it just happens.
 
-The **reward store** sells rewards with stock and a limit per person. Deliver them yourself, hand out codes from a list, or generate a unique coupon for each purchase. Buying is exact: the points, stock and code change together, so nothing is ever oversold.
+You also get **tiers** (bronze, silver, gold…), **bonus XP** for unlocking a badge, and **secret badges** that stay hidden until someone stumbles onto one.
 
-## Competition and community
+## 🎯 Smarter challenges
 
-**Segments** save groups of players by anything you know about them, and any leaderboard can be narrowed to one, to a player's friends, or to the people who share their country. **Team and country boards** rank groups against each other. **Leagues** put players in small groups at their own level, with promotion and relegation each season.
+Challenges can now have **steps in order** ("first do this, then that"), count only the actions that match ("lessons with a score above 80"), and **repeat** every day or week.
 
-Players can add **friends**, give **kudos**, follow an **activity feed**, share **cards** of their achievements, and bring people in with **invite codes** that reward both sides.
+## 🧪 Change rules without fear
 
-## Connecting and running it
+Ever worried a new rule might give away way too much XP? Now you can:
 
-**Connectors** take events straight from Segment, RudderStack, Stripe and GitHub. **Plugins** add rule actions of your own. **Staging projects** use test keys, and promotion copies their design to production with references fixed.
+- save a rule as a **draft**, and **publish** it when you are ready;
+- see its **history**, and **roll back** if you change your mind;
+- **test it against the past** first, to see how much XP it would have handed out before anyone gets a single point.
 
-Platform administrators can now **turn features on or off** for the whole instance or one organization, with dependencies kept consistent, and set **organization rules** such as project limits, allowed email domains, API key lifetimes and address allowlists.
+## 🚀 Boosts and fair play
+
+Run promotions like a **double XP weekend**. And for the people who try to game the game, **limits** stop anyone from farming endless rewards.
+
+## 🪙 Coins, gems and a shop to spend them in
+
+This is the big one. **Currencies** are points people can save up and spend, separate from XP. Call them coins, gems, stars, whatever fits your app.
+
+They can expire if you like, and players get a heads-up three days before they do.
+
+And what good are coins without a shop? The **reward store** sells anything you like: a discount, a free month, a sticker pack. Set how many are in stock and how many each person can buy. Hand rewards out yourself, give out codes from a list, or let Gami.Fied make a unique coupon for each purchase. Two people can never buy the last item at the same time.
+
+## 🏆 Leagues and leaderboards for everyone
+
+Not everyone can be number one on a giant board. So now:
+
+- **Leagues** put players in small groups with people at their level. Do well and you move up; slack off and you drop down. Every season is a fresh start.
+- Leaderboards can be narrowed to **just your friends**, **your country**, or any group you define.
+- **Team and country boards** let groups compete against each other.
+
+## 🤝 Better with friends
+
+Players can now add **friends**, send **kudos**, follow an **activity feed**, share good-looking **cards** of their achievements, and invite people with **invite codes** that reward both sides.
+
+## 🔌 Plays well with others
+
+- **Connectors** pull events straight from Segment, RudderStack, Stripe and GitHub. No extra code.
+- **Plugins** let developers add their own rule actions.
+- **Staging projects** let you try ideas safely, then copy the whole setup to your live project in one go.
+- Whoever runs the server can **switch features on or off** for everyone or for one organization, and set house rules like project limits or allowed email domains.
 
 ## Upgrading
 
-Set `GAMI_VERSION` to the new version and run `docker compose up -d`. The migration step adds the new tables before the API starts; no data changes. Every feature is on after the upgrade.
+Set the version to 1.1 and restart. The database updates itself, and none of your data changes. The [upgrade guide](/docs/install/upgrading/) has the details, and the [changelog](/changelog/) lists every little thing.
 
-The full notes are in the [changelog](/changelog/).
+Now go set up a streak and see how long you can keep it. 🔥

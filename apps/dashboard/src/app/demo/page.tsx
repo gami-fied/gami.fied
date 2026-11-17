@@ -3,7 +3,9 @@
 /**
  * Starts a live demo without an account, on a demo instance. The visitor passes a Cloudflare
  * Turnstile check, the API creates a seeded workspace and signs them in, and they land on the
- * dashboard. On an instance without demos this page says so and points to installing instead.
+ * dashboard. A visitor who is still signed in to a live demo is offered that one first, so a
+ * second click does not leave their first demo behind. On an instance without demos this page
+ * says so and points to installing instead.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -17,6 +19,16 @@ interface DemoConfig {
   unreachable?: boolean;
   ttlHours: number | null;
   turnstileSiteKey: string | null;
+  /** The live demo this visitor is still signed in to, if any. */
+  current?: { expiresAt: string } | null;
+}
+
+/** "about 5 hours" or "about 40 minutes" until the demo is deleted. */
+function timeLeft(expiresAt: string): string {
+  const minutes = Math.max(1, Math.round((new Date(expiresAt).getTime() - Date.now()) / 60_000));
+  if (minutes < 90) return `about ${minutes} minute${minutes === 1 ? '' : 's'}`;
+  const hours = Math.round(minutes / 60);
+  return `about ${hours} hours`;
 }
 
 declare global {
@@ -74,8 +86,12 @@ export default function DemoPage() {
   const [step, setStep] = useState(0);
   const [slow, setSlow] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  /** Set when a visitor with a live demo chooses to start another anyway. */
+  const [startNew, setStartNew] = useState(false);
   const onToken = useCallback((value: string | null) => setToken(value), []);
-  const { container, reset } = useTurnstile(config?.turnstileSiteKey ?? null, onToken);
+  const resume = Boolean(config?.enabled && config.current && !startNew);
+  // The challenge is only drawn once the visitor is going to start a demo.
+  const { container, reset } = useTurnstile(resume ? null : (config?.turnstileSiteKey ?? null), onToken);
 
   useEffect(() => {
     apiFetch('/api/demo')
@@ -146,8 +162,30 @@ export default function DemoPage() {
                 Sign in instead <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </a>
             </div>
+          ) : resume && config.current ? (
+            <div className="space-y-4">
+              <p className="text-sm text-zinc-300">
+                You already have a demo running. Everything you changed is still there, and it is deleted in {timeLeft(config.current.expiresAt)}.
+              </p>
+              <a
+                href="/dashboard"
+                className="flex w-full items-center justify-center gap-2 bg-brand-500 px-4 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-brand-400"
+              >
+                Continue your demo <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+              <button
+                type="button"
+                onClick={() => setStartNew(true)}
+                className="w-full text-center text-xs text-zinc-400 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline"
+              >
+                Start a new demo instead
+              </button>
+            </div>
           ) : (
             <>
+              {config.current && (
+                <p className="text-xs text-zinc-400">A new demo starts from scratch. You will be signed out of the one you have now.</p>
+              )}
               <ul className="space-y-2.5" aria-live="polite">
                 {STEPS.map((label, index) => {
                   const done = phase === 'done' || (phase === 'starting' && index < step);

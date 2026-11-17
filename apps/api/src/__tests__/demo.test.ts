@@ -51,7 +51,7 @@ describe('live demos', () => {
 
   it('says whether demos are offered, with the challenge site key', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/demo' });
-    expect(JSON.parse(res.payload)).toEqual({ enabled: true, ttlHours: 24, turnstileSiteKey: '1x00000000000000000000AA' });
+    expect(JSON.parse(res.payload)).toEqual({ enabled: true, ttlHours: 24, turnstileSiteKey: '1x00000000000000000000AA', current: null });
   });
 
   it('starts a demo, signs the visitor in, and locks the demo down', async () => {
@@ -85,6 +85,10 @@ describe('live demos', () => {
     expect(hook.statusCode).toBeGreaterThanOrEqual(400);
     const second = await app.inject({ method: 'POST', url: '/api/projects', headers, payload: { organizationId: body.organizationId, name: 'Second', slug: `second-${randomUUID().slice(0, 6)}` } });
     expect(second.statusCode).toBeGreaterThanOrEqual(400);
+
+    // Back on the demo page, the visitor is offered the demo they already have.
+    const existing = JSON.parse((await app.inject({ method: 'GET', url: '/api/demo', headers })).payload);
+    expect(existing.current).toEqual({ expiresAt: body.expiresAt });
 
     // Send traffic adds events for real players, and cools down between bursts.
     const traffic = await app.inject({ method: 'POST', url: '/api/demo/traffic', headers });
@@ -127,6 +131,9 @@ describe('live demos', () => {
     const cookie = signUp.headers['set-cookie'] as string;
     const res = await app.inject({ method: 'POST', url: '/api/demo/traffic', headers: { cookie } });
     expect(res.statusCode).toBe(404);
+    // Someone signed in without a demo is not offered one to continue.
+    const offer = JSON.parse((await app.inject({ method: 'GET', url: '/api/demo', headers: { cookie } })).payload);
+    expect(offer.current).toBeNull();
   });
 
   it('sends no email on a demo instance, whatever SMTP says', () => {

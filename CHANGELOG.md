@@ -19,6 +19,7 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 - `pnpm release:version <version>` sets the version in every place it is written. CI fails when they disagree, and a release stops if its tag, `package.json` or the changelog do not match.
 - The Release workflow publishes the npm packages through npm's trusted publishing, with provenance and no stored npm token, and copies the images to Docker Hub when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are set.
+- On a demo instance, a visitor who opens the demo page again while their demo is still live is offered **Continue your demo** first, with the time it has left, and can still start a new one. Before, every visit started a new demo and left the first one unreachable until it expired. `GET /api/demo` now includes the visitor's live demo as `current`.
 - `CONTRIBUTING.md`, `SECURITY.md`, a code of conduct, and issue and pull request templates.
 - Weekly dependency updates, CodeQL analysis, `pnpm audit` in CI, and a scan of each image that fails the build on a fixable critical vulnerability.
 
