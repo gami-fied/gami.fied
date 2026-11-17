@@ -36,5 +36,11 @@ updates:
     groups:
       base-images:
         patterns: ['*']
+    # A new major Node version is planned work, not a weekly update: newer Node no longer includes
+    # corepack, which the Dockerfiles use for pnpm, and CI tests on the version the images use.
+    # Upgrade Node in the Dockerfiles and CI together, by hand.
+    ignore:
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
     commit-message:
       prefix: docker
