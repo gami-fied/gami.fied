@@ -2,10 +2,12 @@ import crypto from 'crypto';
 import {
   achievements,
   challenges,
+  cosmetics,
   currencies,
   db,
   leagues,
   levels,
+  lootBoxes,
   rewards,
   rules,
   segments,
@@ -24,7 +26,22 @@ type Row = Record<string, unknown> & { id: string };
  * Everything that makes up a project's game design, in the order it must be copied: what other
  * things refer to comes first. Player data (users, XP, purchases) is never copied.
  */
-export const PROMOTABLE_KINDS = ['currencies', 'achievements', 'levels', 'streaks', 'segments', 'leagues', 'rules', 'challenges', 'boosts', 'limits', 'rewards'] as const;
+export const PROMOTABLE_KINDS = [
+  'currencies',
+  'achievements',
+  'levels',
+  'streaks',
+  'segments',
+  'leagues',
+  'rules',
+  'challenges',
+  'boosts',
+  'limits',
+  'rewards',
+  // After currencies and achievements, which they refer to. A box's prizes name cosmetics by key.
+  'cosmetics',
+  'boxes',
+] as const;
 export type PromotableKind = (typeof PROMOTABLE_KINDS)[number];
 
 export interface PromotionItem {
@@ -110,6 +127,35 @@ const KINDS: Record<PromotableKind, Kind> = {
       return { ...rest, currency: lookup.currencyKeyById.get(String(currencyId)) ?? null };
     },
     restore: ({ currency, ...rest }, target) => ({ ...rest, currencyId: target.currencyIdByKey.get(String(currency)) }),
+  },
+  cosmetics: {
+    table: cosmetics as never,
+    identity: (row) => String(row['key']),
+    label: (row) => String(row['name']),
+    portable: (row, lookup) => {
+      const { currencyId, achievementId, ...rest } = strip(row);
+      return {
+        ...rest,
+        currency: currencyId ? (lookup.currencyKeyById.get(String(currencyId)) ?? null) : null,
+        achievement: achievementId ? (lookup.achievementKeyById.get(String(achievementId)) ?? null) : null,
+      };
+    },
+    restore: ({ currency, achievement, ...rest }, target) => ({
+      ...rest,
+      currencyId: currency ? (target.currencyIdByKey.get(String(currency)) ?? undefined) : null,
+      achievementId: achievement ? (target.achievementIdByKey.get(String(achievement)) ?? undefined) : null,
+    }),
+  },
+  boxes: {
+    table: lootBoxes as never,
+    identity: (row) => String(row['key']),
+    label: (row) => String(row['name']),
+    portable: (row, lookup) => {
+      // Prizes inside the items already name currencies, badges and cosmetics by key.
+      const { currencyId, ...rest } = strip(row);
+      return { ...rest, currency: currencyId ? (lookup.currencyKeyById.get(String(currencyId)) ?? null) : null };
+    },
+    restore: ({ currency, ...rest }, target) => ({ ...rest, currencyId: currency ? (target.currencyIdByKey.get(String(currency)) ?? undefined) : null }),
   },
 };
 
@@ -251,13 +297,16 @@ export async function applyDesign(
         if (existing && changedFields(portable, spec.portable(existing, targetLookup)).length === 0) continue;
         const values = toColumns(kind, spec.restore ? spec.restore(portable, targetLookup) : portable);
         if (kind === 'rewards' && !values['currencyId']) throw new Error(`The reward "${identity}" needs the currency "${String(portable['currency'])}" in the target. Include it too.`);
+        // A reference that did not resolve is undefined; one that was never set is null.
+        if (values['currencyId'] === undefined && portable['currency']) throw new Error(`The ${kind === 'boxes' ? 'box' : 'cosmetic'} "${identity}" needs the currency "${String(portable['currency'])}" in the target. Include it too.`);
+        if (values['achievementId'] === undefined && portable['achievement']) throw new Error(`The cosmetic "${identity}" needs the achievement "${String(portable['achievement'])}" in the target. Include it too.`);
 
         if (existing) {
           const [saved] = await tx.update(table).set({ ...values, updatedAt: new Date() } as never).where(eq(table.id, existing.id)).returning();
           if (kind === 'rules' && saved) await recordVersion(tx, saved as never, note, actor);
           updated += 1;
         } else {
-          const prefix = { currencies: 'cur', achievements: 'ach', levels: 'lvl', streaks: 'stk', segments: 'seg', leagues: 'lg', rules: 'rule', challenges: 'chl', boosts: 'bst', limits: 'lim', rewards: 'rwd' }[kind];
+          const prefix = { currencies: 'cur', achievements: 'ach', levels: 'lvl', streaks: 'stk', segments: 'seg', leagues: 'lg', rules: 'rule', challenges: 'chl', boosts: 'bst', limits: 'lim', rewards: 'rwd', cosmetics: 'cos', boxes: 'box' }[kind];
           const [saved] = await tx
             .insert(table)
             .values({ ...values, ...(kind === 'rewards' ? { stock } : {}), id: `${prefix}_${crypto.randomUUID()}`, projectId: targetId } as never)

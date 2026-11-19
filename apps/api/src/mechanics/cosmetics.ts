@@ -9,7 +9,7 @@ import { bad, firstIssue, keySchema, MechanicError, notFound, optionalText, opti
 
 export const COSMETIC_KINDS = ['title', 'frame', 'item'] as const;
 
-const cosmeticSchema = z.object({
+export const cosmeticSchema = z.object({
   key: keySchema,
   name: z.string().min(1).max(128),
   description: optionalText(2000),

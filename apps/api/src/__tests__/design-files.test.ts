@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { createDemoWorkspace, db, deleteAllDemos, member, organizations, projectMembers, projects, rewards, rules, runMigrations, users } from '@gami/database';
-import { eq } from 'drizzle-orm';
+import { achievements, cosmetics, createDemoWorkspace, currencies, db, deleteAllDemos, lootBoxes, member, organizations, projectMembers, projects, rewards, rules, runMigrations, users } from '@gami/database';
+import { eq, inArray } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
 import { checkDesign } from '../environments/design.js';
@@ -13,6 +13,7 @@ describe('design files', () => {
   const suffix = randomUUID().slice(0, 8);
   const targetOrgId = `org_design_${suffix}`;
   const targetProjectId = `prj_design_${suffix}`;
+  const shopProjectId = `prj_design_shop_${suffix}`;
 
   const signUp = async (label: string) => {
     const res = await app.inject({ method: 'POST', url: '/api/auth/sign-up/email', payload: { email: `${label}_${randomUUID()}@example.com`, password: 'Password123!', name: label } });
@@ -35,6 +36,7 @@ describe('design files', () => {
     // The target: an empty project in an ordinary organization.
     await db.insert(organizations).values({ id: targetOrgId, name: 'Design target', slug: `design-${suffix}` });
     await db.insert(projects).values({ id: targetProjectId, organizationId: targetOrgId, name: 'Target', slug: 'target' });
+    await db.insert(projects).values({ id: shopProjectId, organizationId: targetOrgId, name: 'Shop', slug: 'shop' });
     await db.insert(member).values({ id: `mem_design_${suffix}`, organizationId: targetOrgId, userId: owner.id, role: 'owner', createdAt: new Date() });
     const plain = await signUp('design_member');
     memberCookie = plain.cookie;
@@ -44,7 +46,11 @@ describe('design files', () => {
   });
 
   afterAll(async () => {
-    await db.delete(rewards).where(eq(rewards.projectId, targetProjectId));
+    // Currencies are kept while anything is priced in them, so what refers to one goes first.
+    const ours = [targetProjectId, shopProjectId];
+    await db.delete(lootBoxes).where(inArray(lootBoxes.projectId, ours));
+    await db.delete(cosmetics).where(inArray(cosmetics.projectId, ours));
+    await db.delete(rewards).where(inArray(rewards.projectId, ours));
     await db.delete(organizations).where(eq(organizations.id, targetOrgId));
     await deleteAllDemos();
     await db.delete(users).where(eq(users.name, 'design_member'));
@@ -109,6 +115,82 @@ describe('design files', () => {
     };
     const preview = await as(ownerCookie)('POST', `/api/projects/${targetProjectId}/design/preview`, { design });
     expect(preview.body.warnings[0]).toMatch(/"nowhere"/);
+  });
+
+  it('carries cosmetics and boxes, with their currency and badge pointing at the target', async () => {
+    const shop = {
+      format: 'gami.fied/design',
+      version: 1,
+      items: {
+        currencies: [{ key: 'coins', name: 'Coins', symbol: '🪙', enabled: true }],
+        achievements: [{ key: 'perfect_day', name: 'Perfect day', description: null, iconUrl: null, enabled: true, criteria: null, tiers: null, hidden: false }],
+        cosmetics: [
+          { key: 'early_bird', name: 'Early Bird', description: null, kind: 'title', imageUrl: null, currency: 'coins', cost: 40, achievement: null, enabled: true },
+          { key: 'golden_frame', name: 'Golden frame', description: null, kind: 'frame', imageUrl: null, currency: null, cost: null, achievement: 'perfect_day', enabled: true },
+        ],
+        boxes: [
+          {
+            key: 'daily_box',
+            name: 'Daily box',
+            description: null,
+            imageUrl: null,
+            kind: 'box',
+            currency: 'coins',
+            cost: 25,
+            guaranteeAfter: 5,
+            dailyLimit: 3,
+            items: [
+              { id: 'itm_coins', name: 'Coins back', weight: 70, rare: false, prizes: [{ type: 'currency', currency: 'coins', amount: 30 }] },
+              { id: 'itm_title', name: 'Rare title', weight: 5, rare: true, prizes: [{ type: 'cosmetic', cosmetic: 'early_bird' }] },
+            ],
+            enabled: true,
+          },
+        ],
+      },
+    };
+    const preview = await as(ownerCookie)('POST', `/api/projects/${shopProjectId}/design/preview`, { design: shop });
+    expect(preview.status).toBe(200);
+    expect(preview.body.warnings).toEqual([]);
+    expect(preview.body.data.filter((item: { kind: string }) => ['cosmetics', 'boxes'].includes(item.kind))).toHaveLength(3);
+
+    const imported = await as(ownerCookie)('POST', `/api/projects/${shopProjectId}/design`, { design: shop });
+    expect(imported.status).toBe(200);
+    expect(imported.body.created).toBe(5);
+
+    const [coins] = await db.select().from(currencies).where(eq(currencies.projectId, shopProjectId));
+    const [badge] = await db.select().from(achievements).where(eq(achievements.projectId, shopProjectId));
+    const saved = await db.select().from(cosmetics).where(eq(cosmetics.projectId, shopProjectId));
+    expect(saved.find((c) => c.key === 'early_bird')).toMatchObject({ currencyId: coins!.id, cost: 40, achievementId: null });
+    expect(saved.find((c) => c.key === 'golden_frame')).toMatchObject({ currencyId: null, achievementId: badge!.id });
+    const [box] = await db.select().from(lootBoxes).where(eq(lootBoxes.projectId, shopProjectId));
+    expect(box).toMatchObject({ key: 'daily_box', currencyId: coins!.id, cost: 25, dailyLimit: 3 });
+
+    // Exported again, it reads the same as the file, so a second import has nothing to do.
+    const { body: exported } = await as(ownerCookie)('GET', `/api/projects/${shopProjectId}/design`);
+    expect(exported.items.boxes[0]).toMatchObject({ key: 'daily_box', currency: 'coins' });
+    expect(exported.items.cosmetics.map((c: { key: string }) => c.key).sort()).toEqual(['early_bird', 'golden_frame']);
+    const again = await as(ownerCookie)('POST', `/api/projects/${shopProjectId}/design/preview`, { design: exported });
+    expect(again.body.summary.new).toBe(0);
+    expect(again.body.summary.changed).toBe(0);
+  });
+
+  it('refuses broken cosmetics and boxes, and warns about prizes nothing defines', async () => {
+    const half = checkDesign({ format: 'gami.fied/design', version: 1, items: { cosmetics: [{ key: 'cheap', name: 'Cheap', currency: 'coins' }] } });
+    expect(half.errors[0]).toMatch(/Cosmetic "cheap": a cosmetic for sale needs both a currency and a cost/);
+    const noRare = checkDesign({
+      format: 'gami.fied/design',
+      version: 1,
+      items: { boxes: [{ key: 'b', name: 'B', guaranteeAfter: 3, items: [{ name: 'XP', weight: 1, prizes: [{ type: 'xp', amount: 5 }] }] }] },
+    });
+    expect(noRare.errors[0]).toMatch(/Box "b": a guarantee needs at least one item marked rare/);
+
+    const orphan = {
+      format: 'gami.fied/design',
+      version: 1,
+      items: { boxes: [{ key: 'lonely', name: 'Lonely', items: [{ name: 'Hat', weight: 1, prizes: [{ type: 'cosmetic', cosmetic: 'no_such_hat' }] }] }] },
+    };
+    const preview = await as(ownerCookie)('POST', `/api/projects/${targetProjectId}/design/preview`, { design: orphan });
+    expect(preview.body.warnings).toEqual(['The box "lonely" uses the cosmetic "no_such_hat", which is in neither the file nor this project.']);
   });
 
   it('is for owners and admins only', async () => {

@@ -43,6 +43,8 @@ const KIND_LABEL: Record<string, string> = {
   boosts: 'Boosts',
   limits: 'Limits',
   rewards: 'Store rewards',
+  cosmetics: 'Cosmetics',
+  boxes: 'Mystery boxes and wheels',
 };
 
 const idOf = (item: Pick<Item, 'kind' | 'identity'>) => `${item.kind}:${item.identity}`;

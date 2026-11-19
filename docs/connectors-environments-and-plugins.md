@@ -28,10 +28,10 @@ Mark a project as **production**, **staging** or **development** in its settings
 
 Set **Promotes to** on a staging project, then open **Promote changes** to compare it with production. Promotion copies the game design:
 
-currencies, achievements, levels, streaks, segments, leagues, rules, challenges, boosts, limits and store rewards.
+currencies, achievements, levels, streaks, segments, leagues, rules, challenges, boosts, limits, store rewards, cosmetics, and mystery boxes and wheels.
 
 - Items are matched by key (by name for rules, boosts and limits, by number for levels).
-- References are fixed on the way: a limit on a rule points at the production rule, a reward uses the production currency, and an achievement action uses the production achievement.
+- References are fixed on the way: a limit on a rule points at the production rule, a reward, cosmetic or box uses the production currency, and an achievement action or a cosmetic unlocked by a badge uses the production achievement.
 - Only new and changed items are offered, and you choose which to copy. Everything chosen is copied in one transaction.
 - Promotion never deletes. Items only in production are left alone.
 - Each promoted rule gets a new version in production, so it can be rolled back.
@@ -40,9 +40,9 @@ currencies, achievements, levels, streaks, segments, leagues, rules, challenges,
 
 ### Design files
 
-A design file is a project's design saved as JSON: its currencies, achievements, levels, streaks, segments, leagues, rules, challenges, boosts, limits and store rewards, with project IDs replaced by keys. It never holds player data. Use one to copy a design to a project on another install, to keep a backup of your rules, or to keep the setup of the [live demo](./live-demo.md).
+A design file is a project's design saved as JSON: its currencies, achievements, levels, streaks, segments, leagues, rules, challenges, boosts, limits, store rewards, cosmetics, and mystery boxes and wheels, with project IDs replaced by keys. It never holds player data. Use one to copy a design to a project on another install, to keep a backup of your rules, or to keep the setup of the [live demo](./live-demo.md).
 
-On the **Promote changes** page, owners and admins can download the project's design or import a file. Importing shows what it would add and change first, and warns about rules that award an achievement neither the file nor the project has. Like promotion, it adds and updates, and never deletes.
+On the **Promote changes** page, owners and admins can download the project's design or import a file. Importing shows what it would add and change first, and warns about rules that award an achievement neither the file nor the project has, and about boxes and cosmetics that name a currency, achievement or cosmetic that neither has. Like promotion, it adds and updates, and never deletes.
 
 | Route | What it does |
 | :--- | :--- |

@@ -8,7 +8,7 @@
  *   POST /api/projects/:projectId/design          imports it: adds and updates, never deletes
  */
 import { validateChallengeInput } from '@gami/challenges';
-import { achievements, db } from '@gami/database';
+import { achievements, cosmetics, currencies, db } from '@gami/database';
 import { validateLevelDefinitions } from '@gami/progression';
 import { validateRuleForSave } from '@gami/rules';
 import { eq } from 'drizzle-orm';
@@ -16,6 +16,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { createAuditLog } from '../audit-logs/index.js';
 import { requireProjectAccess } from '../authorization/index.js';
+import { boxSchema } from '../mechanics/boxes.js';
+import { cosmeticSchema } from '../mechanics/cosmetics.js';
 import { actorOf } from '../rules/versions.js';
 import { applyDesign, DESIGN_FORMAT, diffDesign, exportDesign, PROMOTABLE_KINDS, type DesignDocument, type PromotableKind } from './promotion.js';
 
@@ -51,6 +53,8 @@ const IDENTITY_FIELD: Record<PromotableKind, string> = {
   boosts: 'name',
   limits: 'name',
   rewards: 'key',
+  cosmetics: 'key',
+  boxes: 'key',
 };
 
 export interface DesignCheck {
@@ -89,6 +93,17 @@ export function checkDesign(input: unknown): DesignCheck {
     const result = validateChallengeInput(challenge);
     if (!result.valid) errors.push(`Challenge "${String(challenge['key'])}": ${result.errors.join(' ')}`);
   }
+  for (const cosmetic of design.items.cosmetics ?? []) {
+    const result = cosmeticSchema.safeParse(cosmetic);
+    if (!result.success) errors.push(`Cosmetic "${String(cosmetic['key'])}": ${result.error.issues[0]?.message ?? 'not valid'}`);
+    else if (Boolean(result.data.currency) !== Boolean(result.data.cost)) errors.push(`Cosmetic "${result.data.key}": a cosmetic for sale needs both a currency and a cost.`);
+  }
+  for (const box of design.items.boxes ?? []) {
+    const result = boxSchema.safeParse(box);
+    if (!result.success) errors.push(`Box "${String(box['key'])}": ${result.error.issues[0]?.message ?? 'not valid'}`);
+    else if (result.data.cost > 0 && !result.data.currency) errors.push(`Box "${result.data.key}": choose the currency a try is paid in, or set the cost to 0.`);
+    else if (result.data.guaranteeAfter && !result.data.items.some((item) => item.rare)) errors.push(`Box "${result.data.key}": a guarantee needs at least one item marked rare.`);
+  }
   const levels = design.items.levels ?? [];
   if (levels.length) {
     const result = validateLevelDefinitions(levels as never);
@@ -105,6 +120,46 @@ async function missingAchievements(design: DesignDocument, projectId: string): P
     ((rule['actions'] as { type: string; params?: Record<string, unknown> }[] | undefined) ?? []).filter((a) => a.type === 'award_achievement').map((a) => String(a.params?.['achievementKey'] ?? ''))
   );
   return [...new Set(awarded.filter((key) => key && !inFile.has(key) && !inProject.has(key)))];
+}
+
+/**
+ * Currencies, achievements and cosmetics that a box's prizes or a cosmetic name, but neither the
+ * file nor the project has. A box with one of these would fail when a player opens it.
+ */
+async function missingPrizeReferences(design: DesignDocument, projectId: string): Promise<string[]> {
+  const boxes = design.items.boxes ?? [];
+  const cosmeticItems = design.items.cosmetics ?? [];
+  if (boxes.length === 0 && cosmeticItems.length === 0) return [];
+  const [projectCurrencies, projectAchievements, projectCosmetics] = await Promise.all([
+    db.select({ key: currencies.key }).from(currencies).where(eq(currencies.projectId, projectId)),
+    db.select({ key: achievements.key }).from(achievements).where(eq(achievements.projectId, projectId)),
+    db.select({ key: cosmetics.key }).from(cosmetics).where(eq(cosmetics.projectId, projectId)),
+  ]);
+  const known = (kind: 'currencies' | 'achievements' | 'cosmetics', inProject: { key: string }[]) =>
+    new Set([...(design.items[kind] ?? []).map((item) => String(item['key'])), ...inProject.map((row) => row.key)]);
+  const have = { currency: known('currencies', projectCurrencies), achievement: known('achievements', projectAchievements), cosmetic: known('cosmetics', projectCosmetics) };
+
+  const warnings = new Set<string>();
+  const check = (owner: string, type: keyof typeof have, key: unknown) => {
+    if (typeof key === 'string' && key && !have[type].has(key)) warnings.add(`${owner} uses the ${type} "${key}", which is in neither the file nor this project.`);
+  };
+  for (const box of boxes) {
+    const owner = `The box "${String(box['key'])}"`;
+    check(owner, 'currency', box['currency']);
+    for (const item of (box['items'] as { prizes?: Record<string, unknown>[] }[] | undefined) ?? []) {
+      for (const prize of item.prizes ?? []) {
+        if (prize['type'] === 'currency') check(owner, 'currency', prize['currency']);
+        if (prize['type'] === 'achievement') check(owner, 'achievement', prize['achievement']);
+        if (prize['type'] === 'cosmetic') check(owner, 'cosmetic', prize['cosmetic']);
+      }
+    }
+  }
+  for (const cosmetic of cosmeticItems) {
+    const owner = `The cosmetic "${String(cosmetic['key'])}"`;
+    check(owner, 'currency', cosmetic['currency']);
+    check(owner, 'achievement', cosmetic['achievement']);
+  }
+  return [...warnings];
 }
 
 async function requireAdmin(request: FastifyRequest, reply: FastifyReply, projectId: string) {
@@ -142,7 +197,7 @@ export async function designRoutes(fastify: FastifyInstance) {
       const { design, errors } = checkDesign(request.body?.design);
       if (!design) return reply.status(400).send({ error: 'Bad Request', message: errors[0], errors });
       const items = await diffDesign(design, request.params.projectId);
-      const missing = await missingAchievements(design, request.params.projectId);
+      const [missing, missingReferences] = await Promise.all([missingAchievements(design, request.params.projectId), missingPrizeReferences(design, request.params.projectId)]);
       return reply.send({
         project: design.project?.name ?? null,
         summary: {
@@ -152,7 +207,7 @@ export async function designRoutes(fastify: FastifyInstance) {
           // Importing never deletes, so these stay as they are.
           onlyInProject: items.filter((item) => item.status === 'only_in_target').length,
         },
-        warnings: missing.map((key) => `A rule awards the achievement "${key}", which is in neither the file nor this project.`),
+        warnings: [...missing.map((key) => `A rule awards the achievement "${key}", which is in neither the file nor this project.`), ...missingReferences],
         data: items,
       });
     }

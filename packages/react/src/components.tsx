@@ -189,7 +189,10 @@ export function Leaderboard({ period = 'all_time', limit = 10, className }: Lead
           {data?.me && !meVisible && (
             <li className="gami-board-row gami-me gami-pinned">
               <span className="gami-rank">{data.me.rank}</span>
-              <span className="gami-name">{data.me.name ?? 'You'} (you)</span>
+              <span className="gami-name">
+                {data.me.name ?? 'You'} (you)
+                {data.me.title && <span className="gami-pill gami-title">{data.me.title}</span>}
+              </span>
               <span className="gami-xp">{data.me.xp.toLocaleString()} XP</span>
             </li>
           )}

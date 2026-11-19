@@ -26,7 +26,7 @@ const itemSchema = z.object({
   prizes: prizesSchema,
 });
 
-const boxSchema = z.object({
+export const boxSchema = z.object({
   key: keySchema,
   name: z.string().min(1).max(128),
   description: optionalText(2000),
