@@ -121,6 +121,7 @@ export default defineConfig({
                 { label: 'React', slug: 'docs/quickstarts/react' },
               ],
             },
+            { label: 'Example app: habit tracker', slug: 'docs/example-habit-tracker' },
           ],
         },
         {

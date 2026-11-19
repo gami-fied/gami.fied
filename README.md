@@ -63,6 +63,9 @@ The ports are published on `127.0.0.1` only. To reach the dashboard from another
 
 ## Use it from your app
 
+> [!TIP]
+> Want to see a whole app first? The [habit tracker example](./examples/habit-tracker) is about 250 lines: an Express server and one page, with XP, coins, a streak, badges, a challenge, a mystery box, titles and a leaderboard. It starts with Gami.Fied in one `docker compose up`.
+
 **From your server**, send events and read progress:
 
 ```bash
@@ -170,7 +173,7 @@ Everything is at [gami.fied.cc/docs](https://gami.fied.cc/docs/), with search, a
 | :--- | :--- | :--- |
 | [Getting started](./docs/getting-started.md) | [Gamification mechanics](./docs/gamification-mechanics.md) | [Deployment and production](./docs/deployment-and-production.md) |
 | [Install with Docker](./docs/install/docker-compose.md) | [Economy and store](./docs/economy-and-store.md) | [Platform administration](./docs/platform-administration.md) |
-| [Quick starts](./docs/quickstarts/rest.md): REST, Node.js, Python, Next.js, React | [Boxes, passes, teams and journeys](./docs/boxes-passes-teams-and-journeys.md) | [Backups](./docs/backups.md) and [upgrading](./docs/install/upgrading.md) |
+| [Quick starts](./docs/quickstarts/rest.md): REST, Node.js, Python, Next.js, React, and an [example app](./docs/example-habit-tracker.md) | [Boxes, passes, teams and journeys](./docs/boxes-passes-teams-and-journeys.md) | [Backups](./docs/backups.md) and [upgrading](./docs/install/upgrading.md) |
 | [API reference](./docs/api-reference.md) | [Notifications and webhooks](./docs/notifications-and-integrations.md) | [Architecture](./docs/architecture.md) |
 | [TypeScript SDK](./docs/sdk.md) | [Translations](./docs/translations.md) | [Security](./docs/authentication-and-security.md) |
 

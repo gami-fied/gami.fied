@@ -9,6 +9,7 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 ### Fixed
 
 - Badges given by a rule, a challenge or a prize now appear in a player's achievement progress (`/v1/me/achievements/progress`), so `BadgeGrid` and `<gami-badge-grid>` show them. Before, only badges with automatic criteria appeared, and a player with only rule-given badges saw "No achievements yet".
+- The leaderboard component (`Leaderboard` and `<gami-leaderboard>`) shows a player's worn title on their own row when they are below the top places. Before, it showed only on rows in the top places.
 
 ### Security
 
@@ -17,6 +18,8 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ### Added
 
+- Design files and promotion between environments now carry cosmetics and mystery boxes and wheels, with their currency and unlocking achievement matched by key in the target project. The import preview warns about a box prize or cosmetic that names a currency, achievement or cosmetic neither the file nor the project has.
+- An example app, [`examples/habit-tracker`](./examples/habit-tracker): a habit tracker in about 250 lines, an Express server and one page with the web components. It shows events sent from the server, player tokens in the browser, idempotency keys, coins spent on a mystery box and titles, and a game design imported from `gami-design.json`. Its `docker-compose.yml` starts it with Gami.Fied. See [Example app: a habit tracker](./docs/example-habit-tracker.md).
 - `pnpm release:version <version>` sets the version in every place it is written. CI fails when they disagree, and a release stops if its tag, `package.json` or the changelog do not match.
 - The Release workflow publishes the npm packages through npm's trusted publishing, with provenance and no stored npm token, and copies the images to Docker Hub when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are set.
 - On a demo instance, a visitor who opens the demo page again while their demo is still live is offered **Continue your demo** first, with the time it has left, and can still start a new one. Before, every visit started a new demo and left the first one unreachable until it expired. `GET /api/demo` now includes the visitor's live demo as `current`.

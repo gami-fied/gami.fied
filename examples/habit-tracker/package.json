@@ -1,0 +1,19 @@
+{
+  "name": "gami-fied-habit-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small habit tracker that uses Gami.Fied for XP, streaks, badges and a leaderboard.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@gami.fied/sdk": "1.3.0",
+    "cookie-parser": "1.4.7",
+    "express": "5.1.0"
+  }
+}

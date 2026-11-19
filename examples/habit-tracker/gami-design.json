@@ -1,0 +1,450 @@
+{
+  "format": "gami.fied/design",
+  "version": 1,
+  "project": {
+    "name": "Habit Quest"
+  },
+  "items": {
+    "currencies": [
+      {
+        "key": "coins",
+        "name": "Coins",
+        "symbol": "🪙",
+        "expiresAfterDays": null,
+        "enabled": true
+      }
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "name": "Beginner",
+        "description": null,
+        "iconUrl": null,
+        "enabled": true,
+        "requiredXp": 0
+      },
+      {
+        "level": 2,
+        "name": "Regular",
+        "description": null,
+        "iconUrl": null,
+        "enabled": true,
+        "requiredXp": 100
+      },
+      {
+        "level": 3,
+        "name": "Committed",
+        "description": null,
+        "iconUrl": null,
+        "enabled": true,
+        "requiredXp": 300
+      },
+      {
+        "level": 4,
+        "name": "Unstoppable",
+        "description": null,
+        "iconUrl": null,
+        "enabled": true,
+        "requiredXp": 700
+      },
+      {
+        "level": 5,
+        "name": "Legend",
+        "description": null,
+        "iconUrl": null,
+        "enabled": true,
+        "requiredXp": 1500
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_habit",
+        "name": "First step",
+        "description": "Ticked off a first habit.",
+        "iconUrl": null,
+        "enabled": true,
+        "criteria": null,
+        "tiers": null,
+        "hidden": false
+      },
+      {
+        "key": "ten_habits",
+        "name": "Getting the hang of it",
+        "description": "Ticked off ten habits.",
+        "iconUrl": null,
+        "enabled": true,
+        "criteria": null,
+        "tiers": null,
+        "hidden": false
+      },
+      {
+        "key": "perfect_day",
+        "name": "Perfect day",
+        "description": "All five habits in one day.",
+        "iconUrl": null,
+        "enabled": true,
+        "criteria": null,
+        "tiers": null,
+        "hidden": false
+      },
+      {
+        "key": "week_streak",
+        "name": "Seven days strong",
+        "description": "Kept the streak for seven days.",
+        "iconUrl": null,
+        "enabled": true,
+        "criteria": null,
+        "tiers": null,
+        "hidden": false
+      },
+      {
+        "key": "fifty_habits",
+        "name": "Habit machine",
+        "description": "Ticked off fifty habits.",
+        "iconUrl": null,
+        "enabled": true,
+        "criteria": null,
+        "tiers": null,
+        "hidden": false
+      }
+    ],
+    "streaks": [
+      {
+        "key": "daily_habits",
+        "name": "Daily habits",
+        "description": "At least one habit every day.",
+        "triggerEvent": "habit_completed",
+        "cadence": "daily",
+        "timeZone": "UTC",
+        "freezeEvery": 7,
+        "maxFreezes": 1,
+        "enabled": true
+      }
+    ],
+    "rules": [
+      {
+        "name": "Habit reward",
+        "description": "10 XP and 5 coins for every habit.",
+        "trigger": "habit_completed",
+        "conditions": null,
+        "actions": [
+          {
+            "type": "award_xp",
+            "params": {
+              "amount": 10,
+              "reason": "Habit done"
+            }
+          },
+          {
+            "type": "award_currency",
+            "params": {
+              "currency": "coins",
+              "amount": 5
+            }
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "First habit badge",
+        "description": "Unlocks First step on the first habit.",
+        "trigger": "habit_completed",
+        "conditions": {
+          "all": [
+            {
+              "aggregate": {
+                "metric": "count",
+                "window": "all_time"
+              },
+              "operator": "greater_than_or_equal",
+              "value": 1
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "award_achievement",
+            "params": {
+              "achievementKey": "first_habit"
+            }
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Ten habits badge",
+        "description": "A badge for the tenth habit.",
+        "trigger": "habit_completed",
+        "conditions": {
+          "all": [
+            {
+              "aggregate": {
+                "metric": "count",
+                "window": "all_time"
+              },
+              "operator": "greater_than_or_equal",
+              "value": 10
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "award_achievement",
+            "params": {
+              "achievementKey": "ten_habits"
+            }
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Fifty habits badge",
+        "description": "A badge for the fiftieth habit.",
+        "trigger": "habit_completed",
+        "conditions": {
+          "all": [
+            {
+              "aggregate": {
+                "metric": "count",
+                "window": "all_time"
+              },
+              "operator": "greater_than_or_equal",
+              "value": 50
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "award_achievement",
+            "params": {
+              "achievementKey": "fifty_habits"
+            }
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Perfect day",
+        "description": "25 bonus XP, 15 coins and a badge for all five habits in one day (UTC).",
+        "trigger": "habit_completed",
+        "conditions": {
+          "all": [
+            {
+              "aggregate": {
+                "metric": "unique",
+                "field": "payload.habit",
+                "window": "calendar_day"
+              },
+              "operator": "equals",
+              "value": 5
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "award_xp",
+            "params": {
+              "amount": 25,
+              "reason": "Perfect day"
+            }
+          },
+          {
+            "type": "award_currency",
+            "params": {
+              "currency": "coins",
+              "amount": 15
+            }
+          },
+          {
+            "type": "award_achievement",
+            "params": {
+              "achievementKey": "perfect_day"
+            }
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Seven-day streak",
+        "description": "100 XP and a badge at seven days in a row.",
+        "trigger": "streak_updated",
+        "conditions": {
+          "all": [
+            {
+              "field": "payload.streak",
+              "operator": "equals",
+              "value": "daily_habits"
+            },
+            {
+              "field": "payload.current",
+              "operator": "equals",
+              "value": 7
+            }
+          ]
+        },
+        "actions": [
+          {
+            "type": "award_xp",
+            "params": {
+              "amount": 100,
+              "reason": "Seven days in a row"
+            }
+          },
+          {
+            "type": "award_achievement",
+            "params": {
+              "achievementKey": "week_streak"
+            }
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "challenges": [
+      {
+        "key": "weekly_fifteen",
+        "name": "15 habits this week",
+        "description": "Tick off fifteen habits before Monday for 50 bonus XP.",
+        "iconUrl": null,
+        "enabled": true,
+        "trigger": "habit_completed",
+        "type": "counter",
+        "filters": null,
+        "steps": null,
+        "recurrence": "weekly",
+        "target": 15,
+        "startAt": null,
+        "endAt": null,
+        "rewards": [
+          {
+            "type": "xp",
+            "amount": 50
+          }
+        ]
+      }
+    ],
+    "cosmetics": [
+      {
+        "key": "early_bird",
+        "name": "Early Bird",
+        "description": "For people who tick before breakfast.",
+        "kind": "title",
+        "imageUrl": null,
+        "currency": "coins",
+        "cost": 40,
+        "achievement": null,
+        "enabled": true
+      },
+      {
+        "key": "zen_master",
+        "name": "Zen Master",
+        "description": "Calm, steady, unstoppable.",
+        "kind": "title",
+        "imageUrl": null,
+        "currency": "coins",
+        "cost": 80,
+        "achievement": null,
+        "enabled": true
+      },
+      {
+        "key": "habit_hero",
+        "name": "Habit Hero",
+        "description": "The title everyone wants.",
+        "kind": "title",
+        "imageUrl": null,
+        "currency": "coins",
+        "cost": 150,
+        "achievement": null,
+        "enabled": true
+      },
+      {
+        "key": "lucky_star",
+        "name": "Lucky Star",
+        "description": "Only found in a mystery box.",
+        "kind": "title",
+        "imageUrl": null,
+        "currency": null,
+        "cost": null,
+        "achievement": null,
+        "enabled": true
+      },
+      {
+        "key": "golden_frame",
+        "name": "Golden frame",
+        "description": "Unlocked by a perfect day.",
+        "kind": "frame",
+        "imageUrl": null,
+        "currency": null,
+        "cost": null,
+        "achievement": "perfect_day",
+        "enabled": true
+      }
+    ],
+    "boxes": [
+      {
+        "key": "daily_box",
+        "name": "Mystery box",
+        "description": "Spend 20 coins for a surprise. Up to 3 a day.",
+        "imageUrl": null,
+        "kind": "box",
+        "currency": "coins",
+        "cost": 20,
+        "guaranteeAfter": 10,
+        "dailyLimit": 3,
+        "items": [
+          {
+            "id": "coins_back",
+            "name": "30 coins",
+            "weight": 45,
+            "rare": false,
+            "prizes": [
+              {
+                "type": "currency",
+                "currency": "coins",
+                "amount": 30
+              }
+            ]
+          },
+          {
+            "id": "xp_bonus",
+            "name": "25 bonus XP",
+            "weight": 35,
+            "rare": false,
+            "prizes": [
+              {
+                "type": "xp",
+                "amount": 25
+              }
+            ]
+          },
+          {
+            "id": "coin_jackpot",
+            "name": "60 coins",
+            "weight": 15,
+            "rare": false,
+            "prizes": [
+              {
+                "type": "currency",
+                "currency": "coins",
+                "amount": 60
+              }
+            ]
+          },
+          {
+            "id": "lucky_star",
+            "name": "Lucky Star title",
+            "weight": 5,
+            "rare": true,
+            "prizes": [
+              {
+                "type": "cosmetic",
+                "cosmetic": "lucky_star"
+              }
+            ]
+          }
+        ],
+        "enabled": true
+      }
+    ]
+  }
+}

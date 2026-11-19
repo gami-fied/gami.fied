@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Habit Quest</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Every Gami.Fied component as an HTML tag. Pin the version you tested with. -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/@gami.fied/elements@1.3.0/dist/gami-elements.js"
+      defer
+    ></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>🔥 Habit Quest</h1>
+      <p>Tick off your habits every day. Earn XP and coins, keep your streak, unlock badges.</p>
+    </header>
+
+    <main>
+      <section class="habits" aria-labelledby="today">
+        <div class="habits-head">
+          <h2 id="today">Today</h2>
+          <span id="coins" class="coins" title="Your coins" aria-live="polite">🪙 –</span>
+        </div>
+        <ul id="habit-list">
+          <li><button type="button" data-habit="water">💧 Drink water</button></li>
+          <li><button type="button" data-habit="read">📖 Read 10 pages</button></li>
+          <li><button type="button" data-habit="walk">🚶 Walk 20 minutes</button></li>
+          <li><button type="button" data-habit="meditate">🧘 Meditate</button></li>
+          <li><button type="button" data-habit="code">💻 Code something</button></li>
+        </ul>
+        <p class="hint">Each habit counts once a day, so ticking it twice does nothing.</p>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+
+      <!-- The game parts. Each one reads this player's data with the token from our server. -->
+      <section class="game" aria-label="Your progress">
+        <gami-level-progress></gami-level-progress>
+        <gami-streak-calendar streak="daily_habits" weeks="4"></gami-streak-calendar>
+        <gami-challenge-list></gami-challenge-list>
+        <div>
+          <h2>Spend your coins</h2>
+          <div class="shop">
+            <!-- Opening the box and buying a title need a token with write access. -->
+            <gami-mystery-box box="daily_box"></gami-mystery-box>
+            <gami-cosmetic-locker></gami-cosmetic-locker>
+          </div>
+        </div>
+        <div>
+          <h2>Badges</h2>
+          <gami-badge-grid show-locked></gami-badge-grid>
+        </div>
+        <div>
+          <h2>This week's leaderboard</h2>
+          <gami-leaderboard period="weekly" limit="10"></gami-leaderboard>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      A <a href="https://gami.fied.cc">Gami.Fied</a> example.
+      <a href="https://github.com/gami-fied/gami.fied/tree/master/examples/habit-tracker"
+        >See the code</a
+      >.
+    </footer>
+
+    <gami-toasts position="bottom-right"></gami-toasts>
+  </body>
+</html>
