@@ -19,7 +19,9 @@ const createRuleSchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(512).optional(),
   trigger: z.string().min(1).max(128),
-  conditions: z.record(z.string(), z.unknown()).optional(),
+  // `null` means no conditions: the rule runs on every event of its trigger. The dashboard sends
+  // it for a rule with no conditions, and on an update it clears the ones the rule had.
+  conditions: z.record(z.string(), z.unknown()).nullable().optional(),
   actions: z.array(z.record(z.string(), z.unknown())).min(1),
   enabled: z.boolean().default(true),
 });
@@ -90,7 +92,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
       try {
         validateRuleForSave({
           trigger: ruleData.trigger,
-          conditions: ruleData.conditions,
+          conditions: ruleData.conditions ?? undefined,
           actions: ruleData.actions,
         });
       } catch (err: unknown) {
@@ -203,7 +205,7 @@ export async function ruleRoutes(fastify: FastifyInstance) {
       try {
         validateRuleForSave({
           trigger: patch.trigger ?? existingRule.trigger,
-          conditions: patch.conditions ?? existingRule.conditions ?? undefined,
+          conditions: (patch.conditions !== undefined ? patch.conditions : existingRule.conditions) ?? undefined,
           actions: patch.actions ?? (existingRule.actions as unknown[]),
         });
       } catch (err: unknown) {

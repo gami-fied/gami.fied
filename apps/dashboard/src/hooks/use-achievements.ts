@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api-client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { hasCachedState, useCachedState } from './use-cached-state';
 
 export interface AchievementRecord {
@@ -56,7 +56,11 @@ export interface UserAchievementAward {
   awardedAt: string;
 }
 
-export function useAchievements(projectId: string | null) {
+/**
+ * `loadOnMount` fetches the list when the component mounts. Without it, the list holds only
+ * what another page left in the cache, so a component that only reads it must pass it.
+ */
+export function useAchievements(projectId: string | null, { loadOnMount = false }: { loadOnMount?: boolean } = {}) {
   const [achievements, setAchievements] = useCachedState<AchievementRecord[]>(`achievements:${projectId}`, []);
   const [summary, setSummary] = useCachedState<AchievementSummary | null>(`achievementSummary:${projectId}`, null);
   const [userAwards, setUserAwards] = useState<UserAchievementAward[]>([]);
@@ -86,6 +90,10 @@ export function useAchievements(projectId: string | null) {
       setLoading(false);
     }
   }, [projectId, setAchievements, setSummary]);
+
+  useEffect(() => {
+    if (loadOnMount) void fetchAchievements();
+  }, [loadOnMount, fetchAchievements]);
 
   const createAchievement = async (data: {
     key: string;

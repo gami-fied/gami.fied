@@ -251,6 +251,33 @@ describe('Engine regressions', () => {
       expect(res.statusCode).toBe(201);
       expect(JSON.parse(res.payload).warnings[0]).toContain(achievementKey);
     });
+
+    // The dashboard sends `conditions: null` for a rule with no conditions.
+    it('takes null conditions on create and on update, and null clears them', async () => {
+      const actions = [{ type: 'award_xp', params: { amount: 10 } }];
+      const created = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/rules`,
+        headers: { cookie },
+        payload: { name: 'No conditions', trigger: 'lesson_completed', conditions: null, actions },
+      });
+      expect(created.statusCode).toBe(201);
+      const { id } = JSON.parse(created.payload);
+
+      const withConditions = { field: 'payload.score', operator: 'greater_than', value: 50 };
+      const update = (conditions: unknown) =>
+        app.inject({
+          method: 'PATCH',
+          url: `/api/projects/${projectId}/rules/${id}`,
+          headers: { cookie },
+          payload: { name: 'No conditions', trigger: 'lesson_completed', conditions, actions },
+        });
+      expect((await update(withConditions)).statusCode).toBe(200);
+      const cleared = await update(null);
+      expect(cleared.statusCode).toBe(200);
+      const [row] = await db.select().from(rules).where(eq(rules.id, id));
+      expect(row?.conditions).toBeNull();
+    });
   });
 
   describe('manual XP adjustments', () => {

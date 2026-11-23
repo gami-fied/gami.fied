@@ -18,7 +18,7 @@ export interface VisualActionBuilderProps {
 }
 
 export function VisualActionBuilder({ projectId, actions, onChange }: VisualActionBuilderProps) {
-  const { achievements } = useAchievements(projectId);
+  const { achievements } = useAchievements(projectId, { loadOnMount: true });
   const [currencies, setCurrencies] = useState<BuilderCurrency[]>([]);
   const [pluginActions, setPluginActions] = useState<BuilderPluginAction[]>([]);
 

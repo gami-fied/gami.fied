@@ -10,6 +10,10 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 - Badges given by a rule, a challenge or a prize now appear in a player's achievement progress (`/v1/me/achievements/progress`), so `BadgeGrid` and `<gami-badge-grid>` show them. Before, only badges with automatic criteria appeared, and a player with only rule-given badges saw "No achievements yet".
 - The leaderboard component (`Leaderboard` and `<gami-leaderboard>`) shows a player's worn title on their own row when they are below the top places. Before, it showed only on rows in the top places.
+- A rule with no conditions can be saved from the dashboard. The rule routes now take `conditions: null`, which the dashboard sends for such a rule, and on an update `null` clears the rule's conditions. Before, creating or editing one answered "Invalid patch payload" or a similar 400.
+- In the dashboard, saving an edited rule now closes the editor. Before, it stayed open as "Create Rule" with the rule's details still filled in, and saving again made a copy of the rule.
+- The rule builder's "Award achievement" action lists the project's badges straight away. Before, it showed "No achievements yet" until the Achievements page had been opened in the same session. It also shows the chosen badge for a rule made through the API or a design file, which names the badge only by key.
+- Buttons in the bottom-right corner of the dashboard, such as Previous and Next on paged tables, can be clicked again. An empty area kept for notifications covered them, even when no notification was showing.
 
 ### Security
 

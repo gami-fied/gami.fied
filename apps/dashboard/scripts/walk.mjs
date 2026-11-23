@@ -134,6 +134,11 @@ async function setUp() {
 
   await send(`${base}/rules`, { method: 'POST', body: { name: 'Lesson reward', trigger: 'lesson_completed', actions: [{ type: 'award_xp', params: { amount: 50 } }] } });
   await send(`${base}/achievements`, { method: 'POST', body: { key: 'first_lesson', name: 'First lesson', description: 'Finished a lesson.' } });
+  // A rule that gives a badge, for checkRuleEditor().
+  await send(`${base}/rules`, {
+    method: 'POST',
+    body: { name: 'Badge for a lesson', trigger: 'lesson_completed', actions: [{ type: 'award_achievement', params: { achievementKey: 'first_lesson' } }] },
+  });
   for (const user of ['ada', 'grace', 'linus']) {
     await send(`${base}/events/test`, { method: 'POST', body: { event: 'lesson_completed', user_id: user, payload: { score: 90 } } });
   }
@@ -318,6 +323,53 @@ async function walk(browser, { label, pages, viewport, colorScheme, projectId, w
   return { problems, notes, count: pages.length + refused.length };
 }
 
+/**
+ * Clicks through the rule editor, in a fresh browser so no other page has filled the cache:
+ * - editing a rule that gives a badge shows that badge, not "No achievements yet" (DASH-21)
+ * - saving an edit closes the dialog, rather than leaving it open as "Create Rule" (DASH-20)
+ * - with no toasts showing, the toast area takes no clicks, so it can't cover buttons in the
+ *   bottom-right corner such as Previous and Next (DASH-22).
+ */
+async function checkRuleEditor(browser, { projectId, who }) {
+  const context = await browser.newContext({ viewport: { width: 1366, height: 800 }, baseURL: dashboard });
+  const { hostname } = new URL(dashboard);
+  await context.addCookies(
+    who.cookie.split('; ').map((pair) => {
+      const [name, ...value] = pair.split('=');
+      return { name, value: value.join('='), domain: hostname, path: '/' };
+    })
+  );
+  const page = await context.newPage();
+  const problems = [];
+  try {
+    await page.goto(`/dashboard/rules?project=${projectId}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+    const row = page.locator('tr', { hasText: 'Badge for a lesson' });
+    await row.getByTitle('Edit Rule').click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByText('First lesson').waitFor({ timeout: 10_000 }).catch(() => {});
+    if (await dialog.getByText(/No achievements yet/).isVisible()) {
+      problems.push('rule editor: "Award achievement" shows no badges until the Achievements page is opened');
+    }
+    await dialog.getByRole('button', { name: 'Update Rule' }).click();
+    const closed = await dialog.waitFor({ state: 'hidden', timeout: 10_000 }).then(() => true, () => false);
+    if (!closed) problems.push('rule editor: saving an edited rule leaves the dialog open');
+
+    // Wait for any toasts to leave, then see what takes a click in the bottom-right corner.
+    await page.waitForTimeout(7_000);
+    const cornerIsToastArea = await page.evaluate(() => {
+      const hit = document.elementFromPoint(window.innerWidth - 40, window.innerHeight - 40);
+      return Boolean(hit?.closest('.fixed.bottom-5.right-5'));
+    });
+    if (cornerIsToastArea) problems.push('toast area: with no toasts it still takes clicks in the bottom-right corner');
+  } catch (error) {
+    problems.push(`rule editor: the check could not finish (${error.message.split('\n')[0]})`);
+  } finally {
+    await context.close();
+  }
+  return problems;
+}
+
 async function main() {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
@@ -346,6 +398,9 @@ async function main() {
       visited += result.count;
       console.log(`${run.label}: ${result.count} pages, ${result.problems.length} problems`);
     }
+    const editorProblems = await checkRuleEditor(browser, { projectId, who: owner });
+    problems.push(...editorProblems);
+    console.log(`rule editor: ${editorProblems.length} problems`);
   } finally {
     await browser.close();
   }

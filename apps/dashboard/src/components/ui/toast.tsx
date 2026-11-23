@@ -204,11 +204,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   // Calculate dynamic container height when expanded on hover
   const containerHeight = isHovered ? Math.max(72, activeCount * CARD_EXPANDED_GAP) : 72;
 
+  // With no toasts the area takes no clicks, so it can't hide buttons in that corner,
+  // such as Previous and Next on paged tables. The last toast leaving also ends the hover,
+  // since the mouse may never send mouseleave once the area stops taking events.
+  useEffect(() => {
+    if (activeCount === 0) setIsHovered(false);
+  }, [activeCount]);
+
   return (
     <ToastContext.Provider value={{ toast: addToast, success, error, info, warning }}>
       {children}
       <div
-        className="fixed bottom-5 right-5 z-50 max-w-sm w-full pointer-events-auto px-4 sm:px-0"
+        className={clsx(
+          'fixed bottom-5 right-5 z-50 max-w-sm w-full px-4 sm:px-0',
+          activeCount > 0 ? 'pointer-events-auto' : 'pointer-events-none'
+        )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

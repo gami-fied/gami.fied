@@ -264,7 +264,8 @@ export function VisualActionBuilder({
                 {achievementOptions.length > 0 ? (
                   <Dropdown
                     options={achievementOptions}
-                    value={act.achievementId}
+                    // Rules made through the API or a design file name the badge only by key.
+                    value={act.achievementId || achievements.find((a) => a.key === act.achievementKey)?.id || ''}
                     onChange={(val) => {
                       const ach = achievements.find((a) => a.id === val);
                       if (ach) {

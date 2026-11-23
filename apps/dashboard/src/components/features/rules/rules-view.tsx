@@ -351,6 +351,28 @@ export function RulesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Empties the form, ready for a new rule. */
+  const resetForm = () => {
+    setName('');
+    setDescription('');
+    setTrigger('');
+    setMatchMode('all');
+    setVisualConditions([]);
+    setVisualActions([createActionObj('award_xp', 100)]);
+    setFormError(null);
+  };
+
+  /**
+   * Closes the rule dialog. The dialog is open while either a rule is being edited or a new one
+   * is being made, so every save, discard and cancel path must clear both, or the dialog stays
+   * open as "Create Rule" with the old rule's details and a second save makes a copy.
+   */
+  const closeEditor = () => {
+    setIsCreateOpen(false);
+    setEditingRule(null);
+    resetForm();
+  };
+
   const handleSaveRule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -389,7 +411,6 @@ export function RulesView() {
           conditions: conditionsObj as Record<string, unknown>,
           actions: actionsObj as Record<string, unknown>[],
         });
-        setEditingRule(null);
       } else {
         saved = await createRule({
           name,
@@ -398,8 +419,8 @@ export function RulesView() {
           conditions: conditionsObj as Record<string, unknown>,
           actions: actionsObj as Record<string, unknown>[],
         });
-        setIsCreateOpen(false);
       }
+      closeEditor();
       saved?.warnings?.forEach((warning) => toast.warning('Rule saved with a warning', warning));
     } catch (err: unknown) {
       setFormError((err as Error).message || 'Failed to save rule definition');
@@ -426,8 +447,7 @@ export function RulesView() {
       });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.message ?? 'The draft could not be saved.');
       toast.success('Draft saved', 'It is not live yet. Publish it when you are ready.');
-      setEditingRule(null);
-      setIsCreateOpen(false);
+      closeEditor();
       await fetchRules();
     } catch (err) {
       setFormError(err instanceof SyntaxError ? 'The JSON is not valid yet.' : (err as Error).message);
@@ -441,8 +461,7 @@ export function RulesView() {
     const res = await apiFetch(`/api/projects/${selectedProject.id}/rules/${editingRule.id}/draft`, { method: 'DELETE' });
     if (res.ok) {
       toast.success('Draft discarded.');
-      setEditingRule(null);
-      setIsCreateOpen(false);
+      closeEditor();
       await fetchRules();
     } else {
       toast.error('The draft could not be discarded.');
@@ -520,12 +539,7 @@ export function RulesView() {
                 variant="primary"
                 size="sm"
                 onClick={() => {
-                  setName('');
-                  setDescription('');
-                  setTrigger('');
-                  setMatchMode('all');
-                  setVisualConditions([]);
-                  setVisualActions([createActionObj('award_xp', 100)]);
+                  resetForm();
                   setEditingRule(null);
                   setIsCreateOpen(true);
                 }}
@@ -811,10 +825,7 @@ export function RulesView() {
       {/* Create / Edit Rule Modal */}
       <Dialog
         isOpen={isCreateOpen || !!editingRule}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setEditingRule(null);
-        }}
+        onClose={closeEditor}
         title={editingRule ? 'Edit Gamification Rule' : 'Create Visual Rule'}
         description="Configure IF event conditions match, THEN execute actions."
       >
@@ -1027,10 +1038,7 @@ export function RulesView() {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                setIsCreateOpen(false);
-                setEditingRule(null);
-              }}
+              onClick={closeEditor}
             >
               Cancel
             </Button>
