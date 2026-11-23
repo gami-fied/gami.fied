@@ -184,7 +184,7 @@ export function VisualConditionBuilder({
           <button
             type="button"
             onClick={() => onMatchModeChange('all')}
-            className={`px-3 py-1 text-xs font-semibold rounded-none transition ${
+            className={`px-3 py-1 text-xs font-semibold rounded-none transition-colors ${
               matchMode === 'all'
                 ? 'bg-brand-500 text-on-accent shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200'
@@ -195,7 +195,7 @@ export function VisualConditionBuilder({
           <button
             type="button"
             onClick={() => onMatchModeChange('any')}
-            className={`px-3 py-1 text-xs font-semibold rounded-none transition ${
+            className={`px-3 py-1 text-xs font-semibold rounded-none transition-colors ${
               matchMode === 'any'
                 ? 'bg-brand-500 text-on-accent shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200'

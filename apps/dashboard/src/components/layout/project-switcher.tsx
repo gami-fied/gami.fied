@@ -8,13 +8,13 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { Dialog } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { useSlugFromName } from '@/lib/slug';
 
 export function ProjectSwitcher() {
   const { selectedOrg, projects, selectedProject, setSelectedProject, createProject } =
     useDashboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
+  const { name, slug, setName, setSlug, reset: resetNameAndSlug } = useSlugFromName();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,8 +28,7 @@ export function ProjectSwitcher() {
 
     try {
       await createProject(selectedOrg.id, name, slug);
-      setName('');
-      setSlug('');
+      resetNameAndSlug();
       setIsModalOpen(false);
     } catch (err: unknown) {
       setError((err as Error).message || 'Failed to create project');
@@ -82,18 +81,14 @@ export function ProjectSwitcher() {
             label="Project Name *"
             placeholder="e.g. Mobile App Production"
             value={name}
-            onChange={(e) => {
-              const newName = e.target.value;
-              setName(newName);
-              setSlug(newName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
-            }}
+            onChange={(e) => setName(e.target.value)}
             required
           />
           <Input
             label="Project Slug *"
             placeholder="e.g. mobile-app-prod"
             value={slug}
-            onChange={(e) => setSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''))}
+            onChange={(e) => setSlug(e.target.value)}
             required
             helperText="Unique project slug within this organization."
           />

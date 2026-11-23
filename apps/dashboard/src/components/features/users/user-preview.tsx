@@ -56,7 +56,7 @@ export function UserPreview({ base }: { base: string }) {
         level or a badge, and reopen this tab to see the difference.
       </p>
       <GamiProvider key={token} endUserToken={token} baseUrl={baseUrl} live={false}>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           <PreviewCard title="Level">
             <LevelProgress />
           </PreviewCard>

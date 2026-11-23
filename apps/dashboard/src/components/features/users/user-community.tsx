@@ -55,7 +55,7 @@ export function UserCommunity({ base }: { base: string }) {
   }, [base]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid items-start gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-bold">Leagues this season</CardTitle>
@@ -136,7 +136,7 @@ export function UserCommunity({ base }: { base: string }) {
           {!feed && <Skeleton className="h-16 w-full" />}
           {feed && feed.length === 0 && <p className="text-sm text-zinc-400">Nothing yet.</p>}
           {feed && feed.length > 0 && (
-            <ul className="space-y-2">
+            <ul className="max-h-96 space-y-2 overflow-y-auto pr-1" tabIndex={0} aria-label="What they and their friends did lately">
               {feed.map((item, index) => (
                 <li key={index} className="text-xs">
                   <span className="font-semibold text-zinc-200">{item.name ?? 'Someone'}</span> <span className="text-zinc-300">{item.title.charAt(0).toLowerCase() + item.title.slice(1)}</span>

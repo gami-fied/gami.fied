@@ -76,23 +76,35 @@ export function Sidebar({
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
-      <div className="h-14 flex items-center justify-between px-4 border-b border-zinc-800/60 shrink-0">
-        <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-3 overflow-hidden">
-          <LogoMark size={28} className="shrink-0 border border-zinc-800" />
-          {!isCollapsed && (
-            <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap">
-              Gami.Fied
-            </span>
-          )}
-        </Link>
-        <button
-          onClick={onToggleCollapse}
-          className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-      </div>
+      {isCollapsed ? (
+        // The rail has room for the logo or a button, not both, so the logo is the expand
+        // button and turns into an arrow on hover or keyboard focus.
+        <div className="h-14 flex items-center justify-center border-b border-zinc-800/60 shrink-0">
+          <button
+            onClick={onToggleCollapse}
+            className="group relative grid place-items-center w-8 h-8 text-zinc-300 hover:bg-zinc-900 focus-visible:bg-zinc-900 transition-colors"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <LogoMark size={28} className="border border-zinc-800 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0" />
+            <ChevronRight className="absolute w-4 h-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+          </button>
+        </div>
+      ) : (
+        <div className="h-14 flex items-center justify-between px-4 border-b border-zinc-800/60 shrink-0">
+          <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-3 overflow-hidden">
+            <LogoMark size={28} className="shrink-0 border border-zinc-800" />
+            <span className="font-bold text-sm text-white tracking-tight whitespace-nowrap">Gami.Fied</span>
+          </Link>
+          <button
+            onClick={onToggleCollapse}
+            className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
+            aria-label="Collapse sidebar"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {showOrganizationSwitcher && (
         <div className="p-2 border-b border-zinc-800/60">

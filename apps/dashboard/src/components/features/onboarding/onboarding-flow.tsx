@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Building2, FolderGit2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { LogoMark } from '@gami/ui';
+import { useSlugFromName } from '@/lib/slug';
 
 export function OnboardingFlow() {
   const { organizations, selectedOrg, createOrganization, createProject } = useDashboard();
@@ -16,12 +17,10 @@ export function OnboardingFlow() {
   );
 
   // Org form state
-  const [orgName, setOrgName] = useState('');
-  const [orgSlug, setOrgSlug] = useState('');
+  const { name: orgName, slug: orgSlug, setName: setOrgName, setSlug: setOrgSlug } = useSlugFromName();
 
   // Project form state
-  const [projectName, setProjectName] = useState('');
-  const [projectSlug, setProjectSlug] = useState('');
+  const { name: projectName, slug: projectSlug, setName: setProjectName, setSlug: setProjectSlug } = useSlugFromName();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,11 +120,7 @@ export function OnboardingFlow() {
                     label="Organization Name"
                     placeholder="e.g. Acme Corp"
                     value={orgName}
-                    onChange={(e) => {
-                      setOrgName(e.target.value);
-                      if (!orgSlug)
-                        setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
-                    }}
+                    onChange={(e) => setOrgName(e.target.value)}
                     required
                   />
 
@@ -162,11 +157,7 @@ export function OnboardingFlow() {
                     label="Project Name"
                     placeholder="e.g. Production App"
                     value={projectName}
-                    onChange={(e) => {
-                      setProjectName(e.target.value);
-                      if (!projectSlug)
-                        setProjectSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
-                    }}
+                    onChange={(e) => setProjectName(e.target.value)}
                     required
                   />
 

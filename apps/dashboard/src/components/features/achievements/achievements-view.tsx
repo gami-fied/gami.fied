@@ -367,26 +367,22 @@ export function AchievementsView() {
                   )}
                 </CardContent>
 
-                <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center justify-between">
-                  <span className="text-xs font-mono text-zinc-400">{a.id}</span>
+                {/* The ID takes the free space and truncates. The buttons sit together on the
+                    right, in one group, so AdminOnly's fragment can't spread them out. */}
+                <div className="p-4 border-t border-zinc-800/60 bg-zinc-950/40 flex items-center gap-3">
+                  <span className="min-w-0 flex-1 truncate text-xs font-mono text-zinc-400" title={a.id}>
+                    {a.id}
+                  </span>
                   <AdminOnly>
-                    <button
-                      onClick={() => openEdit(a)}
-                      className="mr-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800"
-                    >
-                      <Edit2 className="h-3 w-3" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleToggleDisable(a)}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-none transition ${
-                        a.enabled
-                          ? 'bg-danger-950/40 text-danger-400 hover:bg-danger-900/60'
-                          : 'bg-success-950/40 text-success-400 hover:bg-success-900/60'
-                      }`}
-                    >
-                      {a.enabled ? 'Disable' : 'Enable'}
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(a)}>
+                        <Edit2 className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <Button size="sm" variant={a.enabled ? 'rose' : 'emerald'} onClick={() => handleToggleDisable(a)}>
+                        {a.enabled ? 'Disable' : 'Enable'}
+                      </Button>
+                    </div>
                   </AdminOnly>
                 </div>
               </Card>

@@ -360,7 +360,8 @@ export function UserDetailView({ userId }: { userId: string }) {
       </div>
 
       {tab === 'overview' && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        // items-start: each card keeps its own height instead of stretching to the taller one.
+        <div className="grid items-start gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-bold">Recent XP</CardTitle>

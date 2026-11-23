@@ -7,12 +7,12 @@ import { Dropdown } from '../ui/dropdown';
 import { Dialog } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { useSlugFromName } from '@/lib/slug';
 
 export function OrganizationSwitcher() {
   const { organizations, selectedOrg, setSelectedOrg, createOrganization } = useDashboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
+  const { name, slug, setName, setSlug, reset: resetNameAndSlug } = useSlugFromName();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,8 +23,7 @@ export function OrganizationSwitcher() {
 
     try {
       await createOrganization(name, slug);
-      setName('');
-      setSlug('');
+      resetNameAndSlug();
       setIsModalOpen(false);
     } catch (err: unknown) {
       setError((err as Error).message || 'Failed to create organization');
@@ -76,18 +75,14 @@ export function OrganizationSwitcher() {
             label="Organization Name *"
             placeholder="e.g. Acme Corporation"
             value={name}
-            onChange={(e) => {
-              const newName = e.target.value;
-              setName(newName);
-              setSlug(newName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
-            }}
+            onChange={(e) => setName(e.target.value)}
             required
           />
           <Input
             label="Organization Slug *"
             placeholder="e.g. acme-corp"
             value={slug}
-            onChange={(e) => setSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''))}
+            onChange={(e) => setSlug(e.target.value)}
             required
             helperText="Unique identifier used in URLs and API routing."
           />

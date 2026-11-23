@@ -14,6 +14,11 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - In the dashboard, saving an edited rule now closes the editor. Before, it stayed open as "Create Rule" with the rule's details still filled in, and saving again made a copy of the rule.
 - The rule builder's "Award achievement" action lists the project's badges straight away. Before, it showed "No achievements yet" until the Achievements page had been opened in the same session. It also shows the chosen badge for a rule made through the API or a design file, which names the badge only by key.
 - Buttons in the bottom-right corner of the dashboard, such as Previous and Next on paged tables, can be clicked again. An empty area kept for notifications covered them, even when no notification was showing.
+- In onboarding, the organization and project slugs follow the whole name as it is typed. Before, they kept only the first letter. All four slug fields (onboarding and the header's create dialogs) now make slugs the same way, and stop following the name once you type your own slug.
+- In the collapsed sidebar, the expand button no longer covers the logo. The logo is the expand button, and shows an arrow on hover or keyboard focus.
+- On a user's Overview, Wallet, Community and Player view tabs, cards keep their own height instead of stretching to match the card next to them. The timeline and the friends feed scroll inside a fixed height.
+- The analytics range buttons (24H, 7D and so on) no longer flash a white border or shift by a pixel when clicked.
+- On achievement cards, Edit and Disable sit together on the right, and a long ID is cut short instead of pushing them apart.
 
 ### Security
 

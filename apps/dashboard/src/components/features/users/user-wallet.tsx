@@ -159,7 +159,7 @@ export function UserWallet({ base }: { base: string }) {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex-row items-start justify-between gap-3">
             <div>

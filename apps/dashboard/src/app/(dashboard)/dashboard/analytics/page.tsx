@@ -217,10 +217,13 @@ export default function AnalyticsPage() {
               <button
                 key={p}
                 onClick={() => setRange(p)}
-                className={`px-3 py-1 text-xs font-semibold transition ${
+                aria-pressed={range === p}
+                // Every option has a border, transparent until selected, so choosing one neither
+                // animates a border in nor moves the text.
+                className={`px-3 py-1 text-xs font-semibold border transition-colors ${
                   range === p
-                    ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
-                    : 'text-zinc-400 hover:text-white'
+                    ? 'bg-brand-500/20 text-brand-400 border-brand-500/30'
+                    : 'border-transparent text-zinc-400 hover:text-white'
                 }`}
               >
                 {p.toUpperCase()}

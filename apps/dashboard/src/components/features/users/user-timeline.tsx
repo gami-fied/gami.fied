@@ -39,7 +39,8 @@ export function UserTimeline({ projectId, userId }: { projectId: string; userId:
       {failed && <p className="text-sm text-danger-300">The timeline couldn&apos;t load.</p>}
       {!failed && !entries && <Skeleton className="h-24 w-full" />}
       {entries?.length === 0 && <p className="text-sm text-zinc-400">Nothing yet.</p>}
-      <ol className="space-y-1.5">
+      {/* A fixed height with its own scroll, so a long history doesn't stretch the page. */}
+      <ol className="max-h-96 space-y-1.5 overflow-y-auto pr-1" tabIndex={0} aria-label="Timeline entries">
         {entries?.map((entry) => (
           <li key={`${entry.kind}-${entry.id}`} className="flex gap-3 text-sm">
             <span className="w-12 shrink-0 text-xs text-zinc-400">{KIND_LABELS[entry.kind]}</span>
