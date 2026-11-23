@@ -47,9 +47,6 @@ Each tick sends an `Idempotency-Key` made from the player, the habit and the day
 
 You need Docker. This starts Gami.Fied and the habit tracker together.
 
-> [!NOTE]
-> Importing the mystery box and titles from the design file needs Gami.Fied **1.3.1 or later**. On 1.3.0, the import adds everything else and skips those two, so create them on the **Mystery boxes** and **Cosmetics** pages instead, copying the values from `gami-design.json`.
-
 1. **Make a `.env`.** Copy `.env.example` to `.env`, and fill in the five Gami.Fied secrets with long random values, for example from `openssl rand -base64 32`.
 
 2. **Start everything.**
@@ -75,6 +72,9 @@ You need Docker. This starts Gami.Fied and the habit tracker together.
 ### Already running Gami.Fied?
 
 Skip Docker. Do step 3 on your own install, then:
+
+> [!NOTE]
+> The design file's mystery box and titles need Gami.Fied **1.3.1 or later**. Older installs import everything else and skip those two, so create them on the **Mystery boxes** and **Cosmetics** pages, copying the values from `gami-design.json`.
 
 ```bash
 npm install

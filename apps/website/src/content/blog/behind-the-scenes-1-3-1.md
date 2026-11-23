@@ -3,7 +3,7 @@ title: 'Gami.Fied 1.3.1: polish everywhere, and a real app to learn from'
 description: A complete example app, mystery boxes and titles in design files, a friendlier Developer Hub, a calmer playground, and more than a dozen dashboard fixes.
 date: 2026-11-23
 tags: [release, community]
-draft: true
+draft: false
 ---
 
 1.3.1 started as a tidy-up release. Then people started trying Gami.Fied, and told us what felt clunky. So this one is mostly polish: the small things you trip over in the first ten minutes. 🧹

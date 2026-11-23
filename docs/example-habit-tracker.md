@@ -11,7 +11,7 @@ It is about 250 lines: an Express server and one HTML page that uses the [web co
 - **Components draw the game parts.** `<gami-level-progress>`, `<gami-streak-calendar>`, `<gami-challenge-list>`, `<gami-mystery-box>`, `<gami-cosmetic-locker>`, `<gami-badge-grid>`, `<gami-leaderboard>` and `<gami-toasts>`, all updating live. Opening the box and buying a title happen inside the components.
 - **Earning and spending.** Habits pay coins, and the box and titles cost them. The page reads the balance with `GamiElements.client().me.wallets()`.
 - **Idempotency stops double counting.** Each tick sends a key made from the player, the habit and the day, so ticking twice counts once. See [Idempotency](./idempotency.md).
-- **The game lives in Gami.Fied, not in the code.** The levels, coins, rules, streak, badges, challenge, titles and mystery box come from a [design file](./connectors-environments-and-plugins.md#design-files), `gami-design.json`, so you change the game in the dashboard. Design files carry titles and boxes from Gami.Fied 1.3.1.
+- **The game lives in Gami.Fied, not in the code.** The levels, coins, rules, streak, badges, challenge, titles and mystery box come from a [design file](./connectors-environments-and-plugins.md#design-files), `gami-design.json`, so you change the game in the dashboard. Importing the titles and the mystery box needs Gami.Fied 1.3.1 or later.
 
 ## Run it
 
