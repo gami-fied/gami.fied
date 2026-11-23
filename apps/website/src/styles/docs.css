@@ -46,6 +46,16 @@
   --sl-color-hairline-shade: var(--color-border);
 }
 
+/* In light mode, the docs use the same warm paper background as the marketing pages (site.css). */
+:root[data-theme='light'] {
+  --sl-color-black: #f6f4ef;
+  --sl-color-bg-nav: #f6f4ef;
+  --sl-color-bg-sidebar: #f6f4ef;
+  --sl-color-hairline: #e6e2da;
+  --sl-color-hairline-light: #e6e2da;
+  --sl-color-hairline-shade: #d5d0c6;
+}
+
 /* The way back to the rest of the site, in the docs header (HeaderLinks.astro). */
 .docs-site-links {
   display: flex;

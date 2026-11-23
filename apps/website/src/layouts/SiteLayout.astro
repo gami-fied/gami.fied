@@ -52,7 +52,7 @@ const { footer = true, ...props } = Astro.props;
           }
           if (light) document.documentElement.dataset.theme = 'light';
           else delete document.documentElement.dataset.theme;
-          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#ffffff' : '#09090b');
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#f6f4ef' : '#09090b');
         };
         apply();
         document.addEventListener('astro:after-swap', apply);

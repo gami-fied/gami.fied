@@ -396,21 +396,24 @@ html[data-theme='light'] {
   --color-info-800: var(--light-info-200);
   --color-info-900: var(--light-info-100);
   --color-info-950: var(--light-info-50);
-  --color-bg: #ffffff;
-  --color-card: #fafafa;
-  --color-border: #e4e4e7;
+  /* "Warm paper": a warm off-white page with lighter cards on it, chosen on 23 November 2026
+     over pure white, which was too bright and left the cards nearly invisible. */
+  --color-bg: #f6f4ef;
+  --color-card: #fdfcfa;
+  --color-border: #e6e2da;
   --color-white: #09090b;
   --color-zinc-50: #09090b;
   --color-zinc-100: #18181b;
   --color-zinc-200: #27272a;
   --color-zinc-300: #3f3f46;
   --color-zinc-400: #52525b;
-  --color-zinc-500: #71717a;
+  /* Darker than zinc's #71717a, which is under 4.5:1 on the warm background. */
+  --color-zinc-500: #67676f;
   --color-zinc-600: #a1a1aa;
-  --color-zinc-700: #d4d4d8;
-  --color-zinc-800: #e4e4e7;
-  --color-zinc-900: #f4f4f5;
-  --color-zinc-950: #ffffff;
+  --color-zinc-700: #d5d0c6;
+  --color-zinc-800: #e6e2da;
+  --color-zinc-900: #fdfcfa;
+  --color-zinc-950: #f6f4ef;
 }
 
 html[data-theme='light'] body {
