@@ -392,8 +392,7 @@ export function StreaksView() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">How often</span>
-              <Dropdown
+              <Dropdown label="How often"
                 options={CADENCE_OPTIONS}
                 value={form.cadence}
                 onChange={(val) => setForm({ ...form, cadence: val as 'daily' | 'weekly' })}

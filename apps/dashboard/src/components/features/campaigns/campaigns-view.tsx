@@ -325,7 +325,7 @@ export function CampaignsView() {
           {kind === 'streak_reminder' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Streak</span>
+                <span className="mb-1.5 block text-[13px] font-medium text-zinc-300 tracking-tight">Streak</span>
                 {streaks.length === 0 ? (
                   <p className="text-xs text-warning-300">Create a streak first, on the Streaks page.</p>
                 ) : (
@@ -351,8 +351,7 @@ export function CampaignsView() {
           {kind === 'weekly_recap' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Day</span>
-                <Dropdown options={WEEKDAYS} value={String(config['weekday'] ?? 0)} onChange={(value) => setConfig({ ...config, weekday: Number(value) })} />
+                <Dropdown label="Day" options={WEEKDAYS} value={String(config['weekday'] ?? 0)} onChange={(value) => setConfig({ ...config, weekday: Number(value) })} />
               </div>
               <Input label="Hour (UTC)" type="number" min={0} max={23} value={String(config['hour'] ?? 9)} onChange={(e) => setNumber('hour', e.target.value)} />
             </div>
@@ -398,7 +397,7 @@ export function CampaignsView() {
           </div>
 
           <div>
-            <span className="mb-1 block text-xs font-semibold text-zinc-300">Preview with example values</span>
+            <span className="mb-1.5 block text-[13px] font-medium text-zinc-300 tracking-tight">Preview with example values</span>
             {previewError ? (
               <p className="text-xs text-warning-300">{previewError}</p>
             ) : preview ? (

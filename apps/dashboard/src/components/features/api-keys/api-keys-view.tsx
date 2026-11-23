@@ -343,7 +343,7 @@ export function ApiKeysView() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-[13px] font-medium text-zinc-300 tracking-tight">
                 Secret API Key for <span className="text-brand-400">{generatedKey.name}</span>
               </label>
               <div className="flex items-center gap-2">

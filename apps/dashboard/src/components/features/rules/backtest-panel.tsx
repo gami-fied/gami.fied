@@ -82,7 +82,7 @@ export function BacktestPanel({ projectId, getRule }: Props) {
           <div className="w-40">
             <Dropdown options={WINDOWS} value={days} onChange={setDays} />
           </div>
-          <Button type="button" variant="secondary" size="sm" onClick={() => void run()} isLoading={running}>
+          <Button type="button" variant="secondary" onClick={() => void run()} isLoading={running}>
             Run test
           </Button>
         </div>

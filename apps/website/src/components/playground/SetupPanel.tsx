@@ -61,7 +61,7 @@ export function SetupPanel({ setup, onChange }: Props) {
           }}
         >
           <Input aria-label="New achievement name" placeholder="New achievement" value={badgeName} onChange={(e) => setBadgeName(e.target.value)} />
-          <Button type="submit" variant="secondary" size="sm" aria-label="Add achievement">
+          <Button type="submit" variant="secondary" aria-label="Add achievement">
             <Plus className="h-4 w-4" />
           </Button>
         </form>
@@ -96,7 +96,7 @@ export function SetupPanel({ setup, onChange }: Props) {
           }}
         >
           <Input aria-label="New currency name" placeholder="New currency" value={currencyName} onChange={(e) => setCurrencyName(e.target.value)} />
-          <Button type="submit" variant="secondary" size="sm" aria-label="Add currency">
+          <Button type="submit" variant="secondary" aria-label="Add currency">
             <Plus className="h-4 w-4" />
           </Button>
         </form>

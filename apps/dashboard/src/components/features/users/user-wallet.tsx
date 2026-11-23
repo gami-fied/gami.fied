@@ -239,8 +239,7 @@ export function UserWallet({ base }: { base: string }) {
       <Dialog isOpen={adjustOpen} onClose={() => setAdjustOpen(false)} title="Give or remove points" description="Recorded in their history with your reason. Points given this way follow the currency's expiry.">
         <form onSubmit={adjust} className="space-y-4">
           <div>
-            <span className="mb-1 block text-xs font-semibold text-zinc-300">Currency</span>
-            <Dropdown options={options} value={currency} onChange={setCurrency} />
+            <Dropdown label="Currency" options={options} value={currency} onChange={setCurrency} />
           </div>
           <Input label="Amount *" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} helperText="Use a negative number to remove points." required />
           <Input label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Support goodwill" />

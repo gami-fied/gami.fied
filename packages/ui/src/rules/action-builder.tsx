@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '../button';
+import { Button, IconButton } from '../button';
 import { Input, Textarea } from '../input';
 import { Dropdown } from '../dropdown';
 import { Plus, Trash2, ArrowUp, ArrowDown, Zap, Award, Coins, Puzzle } from 'lucide-react';
@@ -162,32 +162,15 @@ export function VisualActionBuilder({
 
               {/* Reordering and Delete Controls */}
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={idx === 0}
-                  onClick={() => handleMoveAction(idx, 'up')}
-                  className="p-1.5 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed rounded transition"
-                  title="Move Up"
-                >
+                <IconButton label="Move up" disabled={idx === 0} onClick={() => handleMoveAction(idx, 'up')}>
                   <ArrowUp className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  disabled={idx === actions.length - 1}
-                  onClick={() => handleMoveAction(idx, 'down')}
-                  className="p-1.5 text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed rounded transition"
-                  title="Move Down"
-                >
+                </IconButton>
+                <IconButton label="Move down" disabled={idx === actions.length - 1} onClick={() => handleMoveAction(idx, 'down')}>
                   <ArrowDown className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAction(act.id)}
-                  className="p-1.5 text-zinc-400 hover:text-danger-400 hover:bg-danger-950/40 rounded transition ml-1"
-                  title="Remove Action"
-                >
+                </IconButton>
+                <IconButton tone="danger" label="Remove action" onClick={() => handleRemoveAction(act.id)}>
                   <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                </IconButton>
               </div>
             </div>
 

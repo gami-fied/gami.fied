@@ -5,6 +5,7 @@ import { TableSkeleton } from '@/components/ui/skeleton';
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '@/components/features/context/dashboard-context';
 import { Dropdown } from '@/components/ui/dropdown';
+import { Button, Input, SegmentedControl } from '@gami/ui';
 import {
   type LucideIcon,
   Download,
@@ -203,7 +204,7 @@ export default function AnalyticsPage() {
           </div>
 <button
             onClick={fetchAnalytics}
-            className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
+            className="grid h-9 w-9 place-items-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors"
             title="Refresh Analytics" aria-label="Refresh Analytics"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -212,45 +213,18 @@ export default function AnalyticsPage() {
         }
         toolbar={
           <>
-<div className="flex items-center bg-zinc-950 border border-zinc-800 p-1">
-            {(['24h', '7d', '30d', '90d', 'custom'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setRange(p)}
-                aria-pressed={range === p}
-                // Every option has a border, transparent until selected, so choosing one neither
-                // animates a border in nor moves the text.
-                className={`px-3 py-1 text-xs font-semibold border transition-colors ${
-                  range === p
-                    ? 'bg-brand-500/20 text-brand-400 border-brand-500/30'
-                    : 'border-transparent text-zinc-400 hover:text-white'
-                }`}
-              >
-                {p.toUpperCase()}
-              </button>
-            ))}
-          </div>
+<SegmentedControl
+            label="Time range"
+            value={range}
+            onChange={setRange}
+            options={(['24h', '7d', '30d', '90d', 'custom'] as const).map((p) => ({ value: p, label: p.toUpperCase() }))}
+          />
 {range === 'custom' && (
             <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-zinc-950 border border-zinc-800 text-xs text-white px-2 py-1 focus:border-brand-500"
-              />
+              <Input type="date" aria-label="From" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-40" />
               <span className="text-zinc-400 text-xs">-</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-zinc-950 border border-zinc-800 text-xs text-white px-2 py-1 focus:border-brand-500"
-              />
-              <button
-                onClick={fetchAnalytics}
-                className="px-2 py-1 bg-brand-500 text-black text-xs font-bold"
-              >
-                Apply
-              </button>
+              <Input type="date" aria-label="To" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-40" />
+              <Button onClick={fetchAnalytics}>Apply</Button>
             </div>
           )}
           </>

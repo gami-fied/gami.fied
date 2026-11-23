@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, ReactNode, useId } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { CONTROL_HEIGHT, CONTROL_TEXT, FIELD_LABEL_CLASS, type ControlSize } from './field';
 
 export type DropdownVariant = 'orange' | 'emerald' | 'cyan' | 'rose';
 
@@ -28,6 +29,8 @@ export interface DropdownProps {
   disabled?: boolean;
   theme?: DropdownVariant;
   variant?: DropdownVariant;
+  /** `md` (36 px, the default) or `sm` (32 px), to match the inputs and buttons beside it. */
+  size?: ControlSize;
 }
 
 const variantStyles: Record<
@@ -78,6 +81,7 @@ export function Dropdown({
   theme,
   variant,
   align = 'left',
+  size = 'md',
 }: DropdownProps) {
   const activeVariant: DropdownVariant = theme || variant || 'orange';
   const styles = variantStyles[activeVariant] || variantStyles.orange;
@@ -104,7 +108,7 @@ export function Dropdown({
       ref={containerRef}
     >
       {label && (
-        <span id={labelId} className="block text-xs font-medium text-zinc-300 mb-1.5">
+        <span id={labelId} className={clsx(FIELD_LABEL_CLASS, 'mb-1.5')}>
           {label}
         </span>
       )}
@@ -128,7 +132,9 @@ export function Dropdown({
         aria-expanded={isOpen}
         aria-label={label ?? placeholder}
         className={clsx(
-          'w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 text-xs font-medium rounded-none px-3 py-2 transition-colors aria-expanded:border-brand-500 disabled:opacity-50 disabled:cursor-not-allowed select-none'
+          'w-full flex items-center justify-between gap-2 bg-zinc-900 hover:bg-zinc-800/80 border border-zinc-800 text-zinc-100 font-medium rounded-none px-3 transition-colors aria-expanded:border-brand-500 disabled:opacity-50 disabled:cursor-not-allowed select-none',
+          CONTROL_HEIGHT[size],
+          CONTROL_TEXT[size]
         )}
       >
         <span className="truncate flex items-center gap-2">

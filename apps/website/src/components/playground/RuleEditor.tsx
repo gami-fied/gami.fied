@@ -124,7 +124,7 @@ export function RuleEditor({ rule, setup, onChange, onDelete }: Props) {
         />
         <div className="flex h-9 items-center gap-3">
           <Switch label="On" checked={rule.enabled} onChange={(e) => onChange({ ...rule, enabled: e.target.checked })} />
-          <Button type="button" variant="ghost" size="sm" onClick={onDelete} aria-label={`Delete ${rule.name}`}>
+          <Button type="button" variant="ghost" onClick={onDelete} aria-label={`Delete ${rule.name}`}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

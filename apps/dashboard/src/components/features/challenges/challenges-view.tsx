@@ -636,8 +636,7 @@ export function ChallengesView() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">Kind</span>
-              <Dropdown
+              <Dropdown label="Kind"
                 options={[
                   { value: 'counter', label: 'Count events', sublabel: 'For example, play 10 games' },
                   { value: 'steps', label: 'Steps in order', sublabel: 'For example, sign up, then add a photo, then post' },
@@ -648,8 +647,7 @@ export function ChallengesView() {
               />
             </div>
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">Repeats</span>
-              <Dropdown
+              <Dropdown label="Repeats"
                 options={[
                   { value: '', label: 'Never', sublabel: 'Finished once' },
                   { value: 'daily', label: 'Every day', sublabel: 'A new run each UTC day' },
@@ -682,7 +680,7 @@ export function ChallengesView() {
             </div>
           ) : (
             <div className="space-y-2">
-              <span className="block text-xs font-semibold text-zinc-300">Steps, in order</span>
+              <span className="block text-[13px] font-medium text-zinc-300 tracking-tight">Steps, in order</span>
               <p className="text-xs text-zinc-500">
                 A step only counts once the ones before it are done. Add a condition to a step to look at the event&apos;s
                 details.
@@ -693,7 +691,7 @@ export function ChallengesView() {
 
           {formData.type === 'counter' && (
             <div className="space-y-2">
-              <span className="block text-xs font-semibold text-zinc-300">Only count events where (optional)</span>
+              <span className="block text-[13px] font-medium text-zinc-300 tracking-tight">Only count events where (optional)</span>
               <ConditionRows
                 conditions={formData.conditions}
                 onChange={(conditions) => setFormData({ ...formData, conditions })}
@@ -722,7 +720,7 @@ export function ChallengesView() {
           </div>
 
           <div className="pt-2 border-t border-zinc-800 space-y-3">
-            <label className="text-xs font-semibold text-zinc-300">Completion Rewards</label>
+            <label className="block text-[13px] font-medium text-zinc-300 tracking-tight">Completion Rewards</label>
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Bonus XP Amount"

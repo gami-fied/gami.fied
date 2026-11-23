@@ -1,6 +1,7 @@
 import React, { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef, useId } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { CONTROL_HEIGHT, CONTROL_TEXT, Field, type ControlSize } from './field';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,6 +9,8 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   helperText?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  /** `md` (36 px, the default) or `sm` (32 px), to match the buttons and dropdowns beside it. */
+  controlSize?: ControlSize;
 }
 
 /** The rest of the props, without the key handler that the number guard already calls. */
@@ -19,7 +22,7 @@ function withoutKeyDown<T extends { onKeyDown?: unknown }>(props: T): Omit<T, 'o
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
-    { className, label, error, helperText, type = 'text', id, leftIcon, rightIcon, ...props },
+    { className, label, error, helperText, type = 'text', id, leftIcon, rightIcon, controlSize = 'md', ...props },
     ref
   ) => {
     // A generated ID, so two fields with the same label on one page never share one.
@@ -28,15 +31,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const messageId = error || helperText ? `${inputId}-message` : undefined;
 
     return (
-      <div className="space-y-1.5 w-full">
-        {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-[13px] font-medium text-zinc-300 tracking-tight"
-          >
-            {label}
-          </label>
-        )}
+      <Field label={label} htmlFor={inputId} helperText={helperText} error={error} messageId={messageId}>
         <div className="relative flex items-center w-full">
           {leftIcon && (
             <div className="absolute left-3.5 flex items-center pointer-events-none text-zinc-400">
@@ -49,10 +44,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={type}
             className={twMerge(
               clsx(
-                'w-full h-10 bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-400 shadow-none outline-none',
+                'w-full bg-zinc-900/70 border border-zinc-800 rounded-none px-3.5 py-0 text-zinc-100 placeholder:text-zinc-400 shadow-none outline-none',
                 'hover:border-zinc-700 hover:bg-zinc-900/90',
                 'focus:outline-none focus:border-brand-500 focus:bg-zinc-900 transition-colors duration-150',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:bg-zinc-900/70',
+                CONTROL_HEIGHT[controlSize],
+                CONTROL_TEXT[controlSize],
                 leftIcon && 'pl-10',
                 rightIcon && 'pr-10',
                 error && 'border-danger-500/80 focus:border-danger-500 hover:border-danger-500/80',
@@ -81,17 +78,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <div className="absolute right-3.5 flex items-center text-zinc-400">{rightIcon}</div>
           )}
         </div>
-        {error && (
-          <p id={messageId} className="text-xs text-danger-400 font-medium tracking-tight mt-1">
-            {error}
-          </p>
-        )}
-        {helperText && !error && (
-          <p id={messageId} className="text-xs text-zinc-400 tracking-tight mt-1">
-            {helperText}
-          </p>
-        )}
-      </div>
+      </Field>
     );
   }
 );
@@ -110,15 +97,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const messageId = error || helperText ? `${textareaId}-message` : undefined;
 
     return (
-      <div className="space-y-1.5 w-full">
-        {label && (
-          <label
-            htmlFor={textareaId}
-            className="block text-[13px] font-medium text-zinc-300 tracking-tight"
-          >
-            {label}
-          </label>
-        )}
+      <Field label={label} htmlFor={textareaId} helperText={helperText} error={error} messageId={messageId}>
         <textarea
           ref={ref}
           id={textareaId}
@@ -138,17 +117,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           )}
           {...props}
         />
-        {error && (
-          <p id={messageId} className="text-xs text-danger-400 font-medium tracking-tight mt-1">
-            {error}
-          </p>
-        )}
-        {helperText && !error && (
-          <p id={messageId} className="text-xs text-zinc-400 tracking-tight mt-1">
-            {helperText}
-          </p>
-        )}
-      </div>
+      </Field>
     );
   }
 );

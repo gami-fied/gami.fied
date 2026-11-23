@@ -338,8 +338,7 @@ export function LeaguesView() {
           </div>
           {!editing && (
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">Season length</span>
-              <Dropdown
+              <Dropdown label="Season length"
                 options={[
                   { value: 'weekly', label: 'A week', sublabel: 'Monday to Monday, UTC' },
                   { value: 'daily', label: 'A day', sublabel: 'Midnight to midnight, UTC' },

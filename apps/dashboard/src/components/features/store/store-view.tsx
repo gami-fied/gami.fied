@@ -527,12 +527,11 @@ export function StoreView() {
           <div className="grid gap-3 sm:grid-cols-2">
             {!editingReward ? (
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Paid in *</span>
-                <Dropdown options={currencyOptions} value={rCurrency} onChange={setRCurrency} />
+                <Dropdown label="Paid in *" options={currencyOptions} value={rCurrency} onChange={setRCurrency} />
               </div>
             ) : (
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Paid in</span>
+                <span className="mb-1.5 block text-[13px] font-medium text-zinc-300 tracking-tight">Paid in</span>
                 <p className="text-sm text-zinc-300">{editingReward.currencyName}</p>
               </div>
             )}
@@ -540,8 +539,7 @@ export function StoreView() {
           </div>
           {!editingReward && (
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">How it is delivered</span>
-              <Dropdown options={KIND_OPTIONS} value={rKind} onChange={(value) => setRKind(value as Reward['kind'])} />
+              <Dropdown label="How it is delivered" options={KIND_OPTIONS} value={rKind} onChange={(value) => setRKind(value as Reward['kind'])} />
             </div>
           )}
           {!editingReward && rKind === 'generated' && (

@@ -213,6 +213,54 @@ function browserPath() {
   return found;
 }
 
+/**
+ * Controls on one row that differ in height (DASH-29): a field (input, select or dropdown) and
+ * any other field or button beside it in the same flex or grid row. Runs in the page.
+ */
+function unevenRows() {
+  const FIELD = 'input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]), select, button[aria-haspopup="listbox"]';
+  const CONTROL = `${FIELD}, button`;
+  const shown = (element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.position !== 'absolute';
+  };
+  const nameOf = (element) =>
+    (element.getAttribute('aria-label') || element.getAttribute('placeholder') || element.innerText || element.tagName).trim().replace(/\s+/g, ' ').slice(0, 30);
+  const found = new Set();
+  for (const field of document.querySelectorAll(FIELD)) {
+    if (!shown(field)) continue;
+    // The nearest flex or grid container that holds another control.
+    let row = field.parentElement;
+    while (row && row !== document.body) {
+      const display = getComputedStyle(row).display;
+      if (/flex|grid/.test(display) && row.querySelectorAll(CONTROL).length > 1) break;
+      row = row.parentElement;
+    }
+    if (!row || row === document.body) continue;
+    const box = field.getBoundingClientRect();
+    const seen = new Set();
+    for (const control of row.querySelectorAll(CONTROL)) {
+      // A segmented control's buttons sit inside its frame, so the frame is what lines up.
+      const other = control.closest('[role="group"]') ?? control;
+      if (seen.has(other)) continue;
+      seen.add(other);
+      if (other === field || other.contains(field) || field.contains(other) || !shown(other)) continue;
+      // Controls inside an open menu or list are not part of the row.
+      if (other.closest('[role="listbox"], [role="menu"]')) continue;
+      const peer = other.getBoundingClientRect();
+      // On the same visual row: they overlap for most of the shorter one's height.
+      const overlap = Math.min(box.bottom, peer.bottom) - Math.max(box.top, peer.top);
+      if (overlap < Math.min(box.height, peer.height) * 0.6) continue;
+      if (Math.abs(box.height - peer.height) > 1) {
+        const pair = [`"${nameOf(field)}" ${Math.round(box.height)}px`, `"${nameOf(other)}" ${Math.round(peer.height)}px`].sort();
+        found.add(pair.join(' next to '));
+      }
+    }
+  }
+  return [...found];
+}
+
 /** What is wrong with the page as it stands, measured in the page itself. */
 async function inspect(page) {
   await page.addStyleTag({ content: 'nextjs-portal, [data-nextjs-toast], #__next-build-watcher { display: none !important; }' }).catch(() => {});
@@ -248,7 +296,8 @@ async function inspect(page) {
           : [],
     }));
   });
-  return { ...measured, violations };
+  const uneven = await page.evaluate(unevenRows);
+  return { ...measured, violations, uneven };
 }
 
 async function walk(browser, { label, pages, viewport, colorScheme, projectId, who, refused = [] }) {
@@ -304,6 +353,7 @@ async function walk(browser, { label, pages, viewport, colorScheme, projectId, w
     if (found.title === 'Gami.Fied Dashboard') problems.push(`${name}: the browser tab has no page title`);
     if (found.overflow > 1) problems.push(`${name}: scrolls sideways by ${found.overflow}px`);
     if (found.tiny > 0) problems.push(`${name}: ${found.tiny} pieces of text under 12px`);
+    for (const pair of found.uneven) problems.push(`${name}: controls on one row differ in height: ${pair}`);
     for (const violation of found.violations) {
       const line = `${name}: ${violation.impact} accessibility problem "${violation.help}" (${violation.id}, ${violation.nodes} places)`;
       if (FAILING_IMPACTS.includes(violation.impact)) problems.push(line);
@@ -328,7 +378,8 @@ async function walk(browser, { label, pages, viewport, colorScheme, projectId, w
  * - editing a rule that gives a badge shows that badge, not "No achievements yet" (DASH-21)
  * - saving an edit closes the dialog, rather than leaving it open as "Create Rule" (DASH-20)
  * - with no toasts showing, the toast area takes no clicks, so it can't cover buttons in the
- *   bottom-right corner such as Previous and Next (DASH-22).
+ *   bottom-right corner such as Previous and Next (DASH-22)
+ * - controls side by side in the rule dialog are the same height (DASH-29).
  */
 async function checkRuleEditor(browser, { projectId, who }) {
   const context = await browser.newContext({ viewport: { width: 1366, height: 800 }, baseURL: dashboard });
@@ -362,6 +413,14 @@ async function checkRuleEditor(browser, { projectId, who }) {
       return Boolean(hit?.closest('.fixed.bottom-5.right-5'));
     });
     if (cornerIsToastArea) problems.push('toast area: with no toasts it still takes clicks in the bottom-right corner');
+
+    // A new rule with one condition: the condition row puts a field next to dropdowns, and the
+    // test panel puts a dropdown next to a button (DASH-29). Cancelled, so nothing is saved.
+    await page.getByRole('button', { name: 'Create Rule' }).first().click();
+    await dialog.getByRole('button', { name: /Add Condition Filter/i }).click();
+    await page.waitForTimeout(300);
+    for (const pair of await page.evaluate(unevenRows)) problems.push(`rule editor: controls on one row differ in height: ${pair}`);
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
   } catch (error) {
     problems.push(`rule editor: the check could not finish (${error.message.split('\n')[0]})`);
   } finally {

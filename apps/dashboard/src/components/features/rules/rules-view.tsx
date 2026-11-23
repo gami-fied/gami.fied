@@ -975,7 +975,7 @@ export function RulesView() {
             <div className="space-y-1">
               <label
                 htmlFor="rules-view-conditions-json"
-                className="block text-xs font-semibold text-zinc-300"
+                className="block text-[13px] font-medium text-zinc-300 tracking-tight"
               >
                 Conditions JSON
               </label>
@@ -1000,7 +1000,7 @@ export function RulesView() {
             <div className="space-y-1">
               <label
                 htmlFor="rules-view-actions-json"
-                className="block text-xs font-semibold text-zinc-300"
+                className="block text-[13px] font-medium text-zinc-300 tracking-tight"
               >
                 Actions JSON
               </label>

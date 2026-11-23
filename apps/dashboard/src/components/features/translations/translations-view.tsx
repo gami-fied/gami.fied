@@ -188,8 +188,7 @@ export function TranslationsView() {
             <CardContent className="flex flex-wrap items-end gap-3 pt-6">
               {options.length > 0 && (
                 <div className="min-w-56">
-                  <span className="mb-1 block text-xs font-semibold text-zinc-300">Language</span>
-                  <Dropdown options={options} value={locale} onChange={setLocale} placeholder="Choose a language" />
+                  <Dropdown label="Language" options={options} value={locale} onChange={setLocale} placeholder="Choose a language" />
                 </div>
               )}
               {isAdminOrOwner && (
@@ -197,7 +196,7 @@ export function TranslationsView() {
                   <div className="w-40">
                     <Input label="Add a language" value={newLocale} onChange={(e) => setNewLocale(e.target.value)} placeholder="pt-BR" />
                   </div>
-                  <Button type="submit" variant="secondary" size="sm">
+                  <Button type="submit" variant="secondary">
                     <Plus className="h-4 w-4" />
                     Add
                   </Button>

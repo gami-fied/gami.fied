@@ -28,7 +28,7 @@ export function ThemeToggle() {
       onClick={toggle}
       title={label}
       aria-label={label}
-      className="p-2 text-zinc-400 hover:text-white transition"
+      className="grid h-9 w-9 place-items-center text-zinc-400 hover:text-white transition"
     >
       {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
     </button>

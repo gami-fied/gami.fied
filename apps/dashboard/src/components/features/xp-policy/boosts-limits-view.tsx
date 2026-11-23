@@ -490,13 +490,11 @@ export function BoostsLimitsView() {
           <Input label="Name *" value={lName} onChange={(e) => setLName(e.target.value)} placeholder="Daily XP cap" required />
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">Kind</span>
-              <Dropdown options={KIND_OPTIONS} value={lKind} onChange={(value) => setLKind(value as Limit['kind'])} />
+              <Dropdown label="Kind" options={KIND_OPTIONS} value={lKind} onChange={(value) => setLKind(value as Limit['kind'])} />
             </div>
             {lKind !== 'cooldown' && (
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Period</span>
-                <Dropdown options={PERIOD_OPTIONS} value={lPeriod} onChange={(value) => setLPeriod(value as 'day' | 'week' | 'month')} />
+                <Dropdown label="Period" options={PERIOD_OPTIONS} value={lPeriod} onChange={(value) => setLPeriod(value as 'day' | 'week' | 'month')} />
               </div>
             )}
           </div>
@@ -510,8 +508,7 @@ export function BoostsLimitsView() {
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">Applies to</span>
-              <Dropdown options={ruleOptions} value={lRule} onChange={setLRule} />
+              <Dropdown label="Applies to" options={ruleOptions} value={lRule} onChange={setLRule} />
             </div>
             <Input label="Or rules for event (optional)" value={lEvent} onChange={(e) => setLEvent(e.target.value)} placeholder="lesson_completed" />
           </div>

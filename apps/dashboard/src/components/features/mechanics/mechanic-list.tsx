@@ -239,5 +239,5 @@ export const numberOrNull = (text: string): number | null => (text.trim() === ''
 
 /** The label above a control that has none of its own. */
 export function FieldLabel({ children }: { children: ReactNode }) {
-  return <span className="mb-1 block text-xs font-semibold text-zinc-300">{children}</span>;
+  return <span className="mb-1.5 block text-[13px] font-medium text-zinc-300 tracking-tight">{children}</span>;
 }

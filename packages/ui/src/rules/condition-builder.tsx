@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button } from '../button';
+import { Button, IconButton } from '../button';
 import { Input, Textarea } from '../input';
 import { Dropdown } from '../dropdown';
 import { Checkbox } from '../checkbox';
@@ -224,14 +224,9 @@ export function VisualConditionBuilder({
                   <span className="text-xs font-bold text-zinc-400">
                     {idx === 0 ? 'IF' : matchMode.toUpperCase()} · EXPRESSION
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCondition(cond.id)}
-                    className="shrink-0 p-1.5 text-zinc-400 transition hover:bg-danger-950/40 hover:text-danger-400"
-                    title="Remove condition"
-                  >
+                  <IconButton size="sm" tone="danger" label="Remove condition" onClick={() => handleRemoveCondition(cond.id)}>
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </IconButton>
                 </div>
                 <Textarea
                   aria-label="Expression"
@@ -255,14 +250,9 @@ export function VisualConditionBuilder({
                   <span className="text-xs font-bold text-zinc-400">
                     {idx === 0 ? 'IF' : matchMode.toUpperCase()} · TOTAL OVER PAST EVENTS
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCondition(cond.id)}
-                    className="shrink-0 p-1.5 text-zinc-400 transition hover:bg-danger-950/40 hover:text-danger-400"
-                    title="Remove condition"
-                  >
+                  <IconButton size="sm" tone="danger" label="Remove condition" onClick={() => handleRemoveCondition(cond.id)}>
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </IconButton>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   <Dropdown
@@ -359,14 +349,9 @@ export function VisualConditionBuilder({
               )}
 
               {/* Delete Button */}
-              <button
-                type="button"
-                onClick={() => handleRemoveCondition(cond.id)}
-                className="p-2 text-zinc-400 hover:text-danger-400 hover:bg-danger-950/40 rounded-none transition shrink-0 self-center"
-                title="Remove Condition"
-              >
+              <IconButton tone="danger" label="Remove condition" className="self-center" onClick={() => handleRemoveCondition(cond.id)}>
                 <Trash2 className="w-4 h-4" />
-              </button>
+              </IconButton>
             </div>
           );
         })}

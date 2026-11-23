@@ -151,8 +151,7 @@ export function ReferralsView() {
               <form onSubmit={save} className="space-y-4">
                 <Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} label="Invites are on" disabled={!isAdminOrOwner} />
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-zinc-300">An invite counts</span>
-                  <Dropdown
+                  <Dropdown label="An invite counts"
                     options={[
                       { value: 'signup', label: 'As soon as they join', sublabel: 'When the code is used' },
                       { value: 'event', label: 'When they do something', sublabel: 'Such as a first purchase. Harder to game.' },
@@ -169,8 +168,7 @@ export function ReferralsView() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <span className="mb-1 block text-xs font-semibold text-zinc-300">Also give the inviter</span>
-                    <Dropdown options={[{ value: '', label: 'No currency' }, ...currencies]} value={currency} onChange={setCurrency} disabled={!isAdminOrOwner} />
+                    <Dropdown label="Also give the inviter" options={[{ value: '', label: 'No currency' }, ...currencies]} value={currency} onChange={setCurrency} disabled={!isAdminOrOwner} />
                   </div>
                   {currency && <Input label="Amount" type="number" min={0} value={currencyAmount} onChange={(e) => setCurrencyAmount(e.target.value)} disabled={!isAdminOrOwner} />}
                 </div>

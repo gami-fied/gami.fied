@@ -386,10 +386,9 @@ export function UsersView() {
       <Card>
         <CardContent className="pt-5 pb-5">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-52 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input
-                className="w-full pl-9 pr-4 py-2 bg-zinc-950/80 border border-zinc-800 rounded-none text-sm text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-brand-500 transition"
+            <div className="flex-1 min-w-52 max-w-md">
+              <Input
+                leftIcon={<Search className="w-4 h-4" />}
                 placeholder="Search by name or external ID..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}

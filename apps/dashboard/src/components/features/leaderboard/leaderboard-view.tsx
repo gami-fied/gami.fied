@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
 import { Dropdown } from '@/components/ui/dropdown';
+import { SegmentedControl } from '@gami/ui';
 import { useDashboard } from '../context/dashboard-context';
 import { useLeaderboard, useUserRank } from '@/hooks/use-leaderboard';
 import { LeaderboardPeriod } from '@gami/leaderboards';
@@ -126,21 +127,15 @@ export function LeaderboardView() {
         }
         toolbar={
           <>
-            <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-              {(['all_time', 'daily', 'weekly', 'monthly'] as LeaderboardPeriod[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePeriodChange(p)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-none capitalize transition ${
-                    period === p
-                      ? 'bg-brand-500 text-on-accent shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  {p.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              label="Period"
+              value={period}
+              onChange={handlePeriodChange}
+              options={(['all_time', 'daily', 'weekly', 'monthly'] as LeaderboardPeriod[]).map((p) => ({
+                value: p,
+                label: <span className="capitalize">{p.replace('_', ' ')}</span>,
+              }))}
+            />
             <div className="w-48">
               <Dropdown
                 options={[{ value: '', label: 'Everyone' }, ...segmentOptions]}

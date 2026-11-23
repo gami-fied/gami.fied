@@ -19,6 +19,8 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - On a user's Overview, Wallet, Community and Player view tabs, cards keep their own height instead of stretching to match the card next to them. The timeline and the friends feed scroll inside a fixed height.
 - The analytics range buttons (24H, 7D and so on) no longer flash a white border or shift by a pixel when clicked.
 - On achievement cards, Edit and Disable sit together on the right, and a long ID is cut short instead of pushing them apart.
+- Controls side by side in the dashboard are the same height. Inputs, dropdowns and buttons now come in two heights, 36 px by default and 32 px for small, so a field next to a dropdown or a button lines up. This covers the rule dialog (conditions, actions and the test panel), the top bar, and the toolbars on Analytics, Leaderboard, Users and Translations. Form labels share one size and spacing.
+- Scrollbars follow the theme in every browser. Before, Firefox showed its default scrollbar, and the light theme had a black track.
 
 ### Security
 

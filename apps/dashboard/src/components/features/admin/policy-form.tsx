@@ -164,8 +164,7 @@ export function PolicyForm({ organizationId }: { organizationId?: string }) {
 
         <Section icon={Globe2} title="Player tokens" description="End-user tokens used from browsers and apps." delay={0.15}>
           <div>
-            <span className="mb-1 block text-xs font-semibold text-zinc-300">Projects must list their allowed sites</span>
-            <Dropdown
+            <Dropdown label="Projects must list their allowed sites"
               options={[
                 ...(organizationId ? [{ value: '', label: `Use the default (${fallback?.requireAllowedOrigins ? 'required' : 'not required'})` }] : [{ value: '', label: 'Not required' }]),
                 { value: 'yes', label: 'Required', sublabel: 'Tokens stop working until a project lists its sites' },

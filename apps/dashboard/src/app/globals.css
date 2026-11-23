@@ -32,20 +32,29 @@
     font-family: var(--font-space-mono), 'Courier New', monospace;
   }
 
-  /* Custom scrollbar */
+  /* Scrollbars, from the theme's zinc tokens, which html.light swaps, so they suit both themes.
+     The standard properties cover Firefox and Chrome 121+, and are inherited by every scrolling
+     box (dialogs, dropdown lists, the sidebar, wide tables). The track is transparent, so it takes
+     the colour of whatever it scrolls. */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-zinc-700) transparent;
+  }
+
+  /* Older Safari and Chrome, which ignore scrollbar-color. Chrome 121+ uses the rules above. */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #09090b;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #27272a;
-    border-radius: 3px;
+    background: var(--color-zinc-700);
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f46;
+    background: var(--color-zinc-600);
   }
 }
 

@@ -103,7 +103,7 @@ export function PrizeEditor({ label, value, onChange, options, emptyText = 'No p
   return (
     <div>
       <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-zinc-300">{label}</span>
+        <span className="text-[13px] font-medium text-zinc-300 tracking-tight">{label}</span>
         <Button type="button" variant="ghost" size="sm" onClick={() => onChange([...value, { type: 'xp', amount: 50 }])} disabled={value.length >= 10}>
           <Plus className="h-3.5 w-3.5" />
           Add prize

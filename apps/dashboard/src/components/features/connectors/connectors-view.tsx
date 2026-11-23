@@ -227,8 +227,7 @@ export function ConnectorsView() {
         <form onSubmit={create} className="space-y-4">
           {formError && <div className="border border-danger-800/60 bg-danger-950/40 p-3 text-xs text-danger-300">{formError}</div>}
           <div>
-            <span className="mb-1 block text-xs font-semibold text-zinc-300">Service</span>
-            <Dropdown options={TYPES} value={type} onChange={(value) => setType(value as ConnectorType)} />
+            <Dropdown label="Service" options={TYPES} value={type} onChange={(value) => setType(value as ConnectorType)} />
           </div>
           <p className="text-xs text-zinc-400">{HOW[type]}</p>
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder={TYPES.find((item) => item.value === type)!.label} />
@@ -247,7 +246,7 @@ export function ConnectorsView() {
         {shown && (
           <div className="space-y-3">
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">URL</span>
+              <span className="mb-1.5 block text-[13px] font-medium text-zinc-300 tracking-tight">URL</span>
               <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-950 px-2 py-1.5">
                 <code className="min-w-0 flex-1 truncate text-xs text-zinc-300">{shown.url}</code>
                 <Button variant="ghost" size="sm" onClick={() => void copy(shown.url)} aria-label="Copy the URL"><Copy className="h-3.5 w-3.5" /></Button>
@@ -255,7 +254,7 @@ export function ConnectorsView() {
             </div>
             {shown.secret && (
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Secret</span>
+                <span className="mb-1.5 block text-[13px] font-medium text-zinc-300 tracking-tight">Secret</span>
                 <div className="flex items-center gap-2 border border-warning-800/60 bg-warning-950/30 px-2 py-1.5">
                   <code className="min-w-0 flex-1 break-all text-xs text-warning-200">{shown.secret}</code>
                   <Button variant="ghost" size="sm" onClick={() => void copy(shown.secret!)} aria-label="Copy the secret"><Copy className="h-3.5 w-3.5" /></Button>

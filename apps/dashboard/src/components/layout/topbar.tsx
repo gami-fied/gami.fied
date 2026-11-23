@@ -23,7 +23,7 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
     <header className="h-14 bg-zinc-950 border-b border-zinc-800/60 sticky top-0 z-20 px-3 sm:px-6 flex items-center gap-2 sm:gap-3">
       <button
         onClick={onMobileMenuToggle}
-        className="lg:hidden p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
+        className="lg:hidden grid h-9 w-9 place-items-center text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />
@@ -40,7 +40,7 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
         <button
           onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
           aria-label="Search"
-          className="flex items-center gap-2 p-2 sm:px-3 sm:py-1.5 text-xs text-zinc-400 sm:border border-zinc-800 hover:text-zinc-100 hover:border-zinc-700 transition-colors"
+          className="flex h-9 min-w-9 items-center justify-center gap-2 px-2.5 sm:px-3 text-xs text-zinc-400 sm:border border-zinc-800 hover:text-zinc-100 hover:border-zinc-700 transition-colors"
         >
           <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           <span className="hidden md:inline">Search</span>

@@ -49,7 +49,7 @@ export function ProjectAlerts() {
         title={label}
         aria-label={label}
         aria-expanded={open}
-        className="relative p-2 text-zinc-400 hover:text-white transition"
+        className="relative grid h-9 w-9 place-items-center text-zinc-400 hover:text-white transition"
       >
         <Bell className="w-4 h-4" />
         {alerts.length > 0 && (

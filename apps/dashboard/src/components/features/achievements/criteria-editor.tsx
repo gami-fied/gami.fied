@@ -168,13 +168,11 @@ export function CriteriaEditor({ value, onChange }: Props) {
         <>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <span className="mb-1 block text-xs font-semibold text-zinc-300">What to measure</span>
-              <Dropdown options={METRICS} value={value.metric} onChange={(val) => set({ metric: val as CriteriaMetric })} />
+              <Dropdown label="What to measure" options={METRICS} value={value.metric} onChange={(val) => set({ metric: val as CriteriaMetric })} />
             </div>
             {value.metric !== 'streak' && (
               <div>
-                <span className="mb-1 block text-xs font-semibold text-zinc-300">Over what period</span>
-                <Dropdown options={WINDOWS} value={value.window} onChange={(val) => set({ window: val as CriteriaWindow })} />
+                <Dropdown label="Over what period" options={WINDOWS} value={value.window} onChange={(val) => set({ window: val as CriteriaWindow })} />
               </div>
             )}
           </div>

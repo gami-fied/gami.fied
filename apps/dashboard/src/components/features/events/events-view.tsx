@@ -478,7 +478,7 @@ export function EventsView() {
           <div className="space-y-1">
             <label
               htmlFor="events-view-event-payload-json-object"
-              className="block text-xs font-semibold text-zinc-300"
+              className="block text-[13px] font-medium text-zinc-300 tracking-tight"
             >
               Event Payload (JSON Object)
             </label>
