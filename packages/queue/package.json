@@ -17,7 +17,7 @@
   "dependencies": {
     "@gami/config": "workspace:*",
     "@gami/database": "workspace:*",
-    "bullmq": "^6.7.6",
+    "bullmq": "^6.7.8",
     "drizzle-orm": "^0.45.4",
     "ioredis": "^6.0.0"
   },
@@ -25,6 +25,6 @@
     "@types/ioredis": "^5.0.0",
     "@types/node": "^26.6.6",
     "typescript": "^6.0.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   }
 }

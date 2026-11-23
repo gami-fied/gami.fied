@@ -37,18 +37,18 @@
     "@gami/progression": "workspace:*",
     "@gami/rules": "workspace:*",
     "@gami/ui": "workspace:*",
-    "@lucide/astro": "^1.73.0",
-    "@scalar/api-reference": "^1.78.1",
-    "@scalar/astro": "^0.4.37",
+    "@lucide/astro": "^1.77.0",
+    "@scalar/api-reference": "^1.82.1",
+    "@scalar/astro": "^0.4.40",
     "@shikijs/themes": "^4.6.0",
     "@tailwindcss/vite": "^4.3.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "astro": "^7.4.12",
+    "astro": "^7.4.13",
     "astro-og-canvas": "^0.13.3",
     "canvaskit-wasm": "^0.42.0",
     "gsap": "^3.15.1",
-    "lucide-react": "^1.73.0",
+    "lucide-react": "^1.77.0",
     "motion": "^14.14.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -62,7 +62,7 @@
     "lighthouse": "^13.6.0",
     "playwright-core": "^1.65.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.1.0",
-    "wrangler": "^4.162.0"
+    "vitest": "^5.1.1",
+    "wrangler": "^4.165.0"
   }
 }
