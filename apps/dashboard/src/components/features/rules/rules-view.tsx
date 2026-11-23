@@ -337,6 +337,24 @@ export function RulesView() {
     }
   };
 
+  // The achievement form links to /dashboard/rules?award=<key>, which opens a new rule that gives
+  // that badge. The picker finds it by key.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const badge = url.searchParams.get('award');
+    if (!badge) return;
+    url.searchParams.delete('award');
+    window.history.replaceState(null, '', url);
+    setEditingRule(null);
+    setName('');
+    setDescription('');
+    setTrigger('');
+    setVisualConditions([]);
+    setVisualActions([createActionObj('award_achievement', 0, '', badge)]);
+    setIsCreateOpen(true);
+    // Runs once, for the address the page was opened with.
+  }, []);
+
   // Links such as /dashboard/rules?trigger=streak_updated open a new rule with that event filled in.
   useEffect(() => {
     const linked = new URLSearchParams(window.location.search).get('trigger');

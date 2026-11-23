@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Dialog } from '@/components/ui/dialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { OPEN_SEARCH_EVENT } from '@/lib/navigation';
+import { DOCS } from '@/lib/starter-snippets';
 
 /** `g` then one of these keys goes to the page. Pages a member cannot open are left out for them. */
 const GO_TO: { key: string; name: string; href: string; adminOnly?: boolean }[] = [
@@ -97,6 +98,13 @@ export function KeyboardShortcuts() {
         </dt>
         <dd>Close a dialog</dd>
       </dl>
+      <p className="mt-4 border-t border-zinc-800 pt-3 text-sm text-zinc-400">
+        Guides and the API reference are in the{' '}
+        <a href={DOCS.home} target="_blank" rel="noreferrer" className="text-brand-400 hover:underline">
+          docs on the website
+        </a>
+        .
+      </p>
     </Dialog>
   );
 }

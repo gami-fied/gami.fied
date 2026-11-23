@@ -30,8 +30,7 @@ describe('navigation', () => {
     expect(isNavItemActive(item('Team'), '/dashboard/organization/data')).toBe(true);
   });
 
-  it('keeps Developer Hub and API Docs apart', () => {
-    expect(isNavItemActive(item('Developer Hub'), '/dashboard/developer/docs')).toBe(false);
-    expect(isNavItemActive(item('API Docs'), '/dashboard/developer/docs')).toBe(true);
+  it('has no API Docs page, since the docs moved to the website', () => {
+    expect(allItems.some((entry) => entry.href.startsWith('/dashboard/developer/docs'))).toBe(false);
   });
 });

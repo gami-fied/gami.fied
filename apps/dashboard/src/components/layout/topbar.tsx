@@ -40,11 +40,11 @@ export function Topbar({ onMobileMenuToggle }: TopbarProps) {
         <button
           onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
           aria-label="Search"
-          className="flex h-9 min-w-9 items-center justify-center gap-2 px-2.5 sm:px-3 text-xs text-zinc-400 sm:border border-zinc-800 hover:text-zinc-100 hover:border-zinc-700 transition-colors"
+          className="flex h-9 min-w-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-2.5 sm:px-3 text-xs text-zinc-400 sm:border border-zinc-800 hover:text-zinc-100 hover:border-zinc-700 transition-colors"
         >
           <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           <span className="hidden md:inline">Search</span>
-          <kbd className="hidden md:inline font-sans text-xs text-zinc-400 border border-zinc-800 px-1">
+          <kbd className="hidden md:inline whitespace-nowrap font-sans text-xs text-zinc-400 border border-zinc-800 px-1">
             {shortcut}
           </kbd>
         </button>

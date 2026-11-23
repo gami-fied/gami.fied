@@ -24,6 +24,8 @@ import {
 import { AdminOnly } from '@/components/ui/admin-only';
 import { PageHeader } from '@/components/ui/page-header';
 import { useOpenOnParam } from '@/hooks/use-open-on-param';
+import { useRules, type RuleRecord } from '@/hooks/use-rules';
+import Link from 'next/link';
 
 export function AchievementsView() {
   const { selectedProject } = useDashboard();
@@ -48,6 +50,7 @@ export function AchievementsView() {
   const [iconUrl, setIconUrl] = useState('');
   const [hidden, setHidden] = useState(false);
   const [criteria, setCriteria] = useState<CriteriaDraft>(EMPTY_CRITERIA);
+  const { rules } = useRules(selectedProject?.id || null);
   const [editing, setEditing] = useState<AchievementRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -457,7 +460,7 @@ export function AchievementsView() {
             <Switch checked={hidden} onChange={(e) => setHidden(e.target.checked)} aria-label="Secret badge" />
           </div>
 
-          <CriteriaEditor value={criteria} onChange={setCriteria} />
+          <CriteriaEditor value={criteria} onChange={setCriteria} givenBy={editing ? <GivenByRules rules={rules} badgeKey={editing.key} /> : <p className="text-xs text-zinc-400">Once it is saved, give it from a rule on the Rules page, or as a challenge reward. Editing it here then lists the rules that give it.</p>} />
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
@@ -469,6 +472,43 @@ export function AchievementsView() {
           </div>
         </form>
       </Dialog>
+    </div>
+  );
+}
+
+/** Gives an achievement, under the key it is saved with. Older rules saved it as `key`. */
+function givesBadge(action: Record<string, unknown>, badgeKey: string): boolean {
+  const params = (action['params'] ?? {}) as Record<string, unknown>;
+  return action['type'] === 'award_achievement' && (params['achievementKey'] ?? params['key']) === badgeKey;
+}
+
+/** The rules that give this badge, with a link to make another. */
+function GivenByRules({ rules, badgeKey }: { rules: RuleRecord[]; badgeKey: string }) {
+  const giving = rules.filter((rule) => rule.actions.some((action) => givesBadge(action, badgeKey)));
+  const newRule = `/dashboard/rules?award=${encodeURIComponent(badgeKey)}`;
+
+  return (
+    <div className="space-y-2 text-xs text-zinc-400">
+      {giving.length > 0 ? (
+        <>
+          <p>Given by {giving.length === 1 ? 'this rule' : `these ${giving.length} rules`}:</p>
+          <ul className="space-y-1">
+            {giving.map((rule) => (
+              <li key={rule.id}>
+                <Link className="text-brand-400 hover:underline" href={`/dashboard/rules?edit=${rule.id}`}>
+                  {rule.name}
+                </Link>
+                {!rule.enabled && <span className="ml-1.5 text-zinc-500">(off)</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p>No rule gives it yet. A challenge can also give it as a reward.</p>
+      )}
+      <Link className="inline-block text-brand-400 hover:underline" href={newRule}>
+        {giving.length > 0 ? 'Make another rule that gives it' : 'Make a rule that gives it'}
+      </Link>
     </div>
   );
 }

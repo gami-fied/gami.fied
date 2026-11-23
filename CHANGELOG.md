@@ -27,6 +27,11 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - The dashboard now sends a full Content-Security-Policy. Each page gets a fresh nonce, and only scripts carrying it, or loaded by one that does, can run. An injected script or inline event handler does nothing.
 - The Docker images no longer contain build tools the running app never uses: esbuild's binary in the API and worker images, and npm and corepack in all three. Image scanners had flagged a critical issue in esbuild's bundled Go runtime and several in npm's own dependencies.
 
+### Changed
+
+- The dashboard's API Docs page is gone. The website has the full reference and the guides, so Developer Hub now links to them, and its old address redirects to Developer Hub. Developer Hub shows what only this install knows: its API address, the project ID and the server version. It also has four starter snippets with that address filled in: send an event with curl, set up the SDK, make a player token, and show progress in React. A test sends the snippets' requests to a running API. The old SDK snippet left out `baseUrl`, so it only worked against `localhost`, and the old quick start offered a Python SDK that does not exist.
+- The achievement form asks how a badge is earned, "By a rule or challenge" or "By progress toward a target", with a line on what the player sees for each. A saved badge earned by a rule lists the rules that give it, with a link that opens a new rule giving it. In the rule builder, choosing a badge that is already earned by progress shows a warning, because the rule can give it before the player reaches the target.
+
 ### Added
 
 - Design files and promotion between environments now carry cosmetics and mystery boxes and wheels, with their currency and unlocking achievement matched by key in the target project. The import preview warns about a box prize or cosmetic that names a currency, achievement or cosmetic neither the file nor the project has.

@@ -1,9 +1,6 @@
-import { ApiDocsView } from '@/components/features/api-docs/api-docs-view';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  description: 'How to connect your app to the Gami.Fied API.',
-};
-
+// The API docs moved to the website, which Developer Hub links to. Old bookmarks land there.
 export default function ApiDocsPage() {
-  return <ApiDocsView />;
+  redirect('/dashboard/developer');
 }

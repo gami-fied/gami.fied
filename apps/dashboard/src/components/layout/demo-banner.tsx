@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Clock, Download, FileDown, Radio } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 import { useDashboard } from '../features/context/dashboard-context';
+import { DOCS_URL } from '@/lib/starter-snippets';
 
 function timeLeft(expiresAt: string, now: number): string {
   const minutes = Math.max(0, Math.round((new Date(expiresAt).getTime() - now) / 60_000));
@@ -78,7 +79,7 @@ export function DemoBanner() {
             </a>
           )}
           <a
-            href="https://gami.fied.cc/docs/install/docker-compose/"
+            href={`${DOCS_URL}/install/docker-compose/`}
             target="_blank"
             rel="noopener"
             className="inline-flex items-center gap-1.5 border border-brand-700/60 px-2.5 py-1 font-semibold text-brand-100 transition-colors hover:border-brand-500"

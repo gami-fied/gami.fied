@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button, IconButton } from '../button';
 import { Input, Textarea } from '../input';
 import { Dropdown } from '../dropdown';
+import { FIELD_LABEL_CLASS } from '../field';
 import { Plus, Trash2, ArrowUp, ArrowDown, Zap, Award, Coins, Puzzle } from 'lucide-react';
 
 export interface ActionDefinition {
@@ -39,6 +40,8 @@ export interface BuilderAchievement {
   key: string;
   name: string;
   description?: string | null;
+  /** The badge is earned by progress toward a target (it has criteria), not only from rules. */
+  automatic?: boolean;
 }
 
 export interface BuilderCurrency {
@@ -239,16 +242,16 @@ export function VisualActionBuilder({
               </div>
             )}
 
-            {act.type === 'award_achievement' && (
-              <div className="pt-1 border-t border-zinc-800/60">
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Achievement
-                </label>
+            {act.type === 'award_achievement' && (() => {
+              // Rules made through the API or a design file name the badge only by key.
+              const chosen = achievements.find((a) => a.id === act.achievementId) ?? achievements.find((a) => a.key === act.achievementKey);
+              return (
+              <div className="pt-1 border-t border-zinc-800/60 space-y-2">
+                <span className={FIELD_LABEL_CLASS}>Achievement</span>
                 {achievementOptions.length > 0 ? (
                   <Dropdown
                     options={achievementOptions}
-                    // Rules made through the API or a design file name the badge only by key.
-                    value={act.achievementId || achievements.find((a) => a.key === act.achievementKey)?.id || ''}
+                    value={chosen?.id ?? ''}
                     onChange={(val) => {
                       const ach = achievements.find((a) => a.id === val);
                       if (ach) {
@@ -264,8 +267,15 @@ export function VisualActionBuilder({
                     {noAchievementsHint}
                   </div>
                 )}
+                {chosen?.automatic && (
+                  <p className="p-3 bg-warning-950/30 border border-warning-800/40 text-warning-300 text-xs rounded-none">
+                    &ldquo;{chosen.name}&rdquo; is already earned automatically, by progress toward a target. This rule
+                    gives it straight away when it runs, so players can get it before they reach the target.
+                  </p>
+                )}
               </div>
-            )}
+              );
+            })()}
           </div>
         ))}
 

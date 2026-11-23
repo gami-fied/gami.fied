@@ -1,7 +1,8 @@
 'use client';
 
+import type React from 'react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/checkbox';
+import { Radio } from '@/components/ui/checkbox';
 import { Dropdown } from '@/components/ui/dropdown';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
@@ -142,9 +143,25 @@ export function describeCriteria(criteria: StoredCriteria | null): string | null
 interface Props {
   value: CriteriaDraft;
   onChange: (next: CriteriaDraft) => void;
+  /** Shown under "By a rule or challenge": which rules give this badge, and how to make one. */
+  givenBy?: React.ReactNode;
 }
 
-export function CriteriaEditor({ value, onChange }: Props) {
+/** The two ways a badge is earned, and what the player sees with each. */
+const EARNED_BY = [
+  {
+    automatic: false,
+    title: 'By a rule or challenge',
+    detail: 'A rule or a challenge gives it. Players see it once they have it, with no progress bar.',
+  },
+  {
+    automatic: true,
+    title: 'By progress toward a target',
+    detail: 'Gami.Fied measures something and gives it at a target. Players see a progress bar, and higher tiers can add bonus XP.',
+  },
+] as const;
+
+export function CriteriaEditor({ value, onChange, givenBy }: Props) {
   const set = (patch: Partial<CriteriaDraft>) => onChange({ ...value, ...patch });
   const setTier = (id: string, patch: Partial<TierDraft>) =>
     set({ tiers: value.tiers.map((tier) => (tier.id === id ? { ...tier, ...patch } : tier)) });
@@ -153,16 +170,27 @@ export function CriteriaEditor({ value, onChange }: Props) {
 
   return (
     <div className="space-y-4 border border-zinc-800 bg-zinc-950/60 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-zinc-100">Earn it automatically</div>
-          <p className="text-xs text-zinc-400">
-            Measure something about the user and give the badge at a target, with progress bars and optional higher
-            tiers. Leave it off to award the badge from a rule or a challenge.
-          </p>
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-sm font-semibold text-zinc-100">How is it earned?</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {EARNED_BY.map((option) => {
+            const chosen = value.automatic === option.automatic;
+            return (
+              <Radio
+                key={option.title}
+                name="earned-by"
+                checked={chosen}
+                onChange={() => set({ automatic: option.automatic })}
+                label={<span className="font-medium text-zinc-100">{option.title}</span>}
+                description={option.detail}
+                className={`border p-3 transition-colors ${chosen ? 'border-brand-500/60 bg-brand-500/10' : 'border-zinc-800 hover:border-zinc-700'}`}
+              />
+            );
+          })}
         </div>
-        <Switch checked={value.automatic} onChange={(e) => set({ automatic: e.target.checked })} aria-label="Earn it automatically" />
-      </div>
+      </fieldset>
+
+      {!value.automatic && givenBy}
 
       {value.automatic && (
         <>

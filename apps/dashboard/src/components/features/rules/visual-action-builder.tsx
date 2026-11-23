@@ -48,7 +48,7 @@ export function VisualActionBuilder({ projectId, actions, onChange }: VisualActi
     <SharedActionBuilder
       actions={actions}
       onChange={onChange}
-      achievements={achievements}
+      achievements={achievements.map((achievement) => ({ ...achievement, automatic: Boolean(achievement.criteria) }))}
       currencies={currencies}
       pluginActions={pluginActions}
       noAchievementsHint="No achievements yet for this project. Create one on the Achievements page first."
