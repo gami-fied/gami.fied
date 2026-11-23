@@ -154,6 +154,8 @@ export function RuleEditor({ rule, setup, onChange, onDelete }: Props) {
       {mode === 'visual' ? (
         <div className="space-y-4">
           <VisualConditionBuilder
+            variant="flat"
+            trigger={rule.definition.trigger}
             matchMode={matchMode}
             onMatchModeChange={(next) => {
               setMatchMode(next);
@@ -166,6 +168,7 @@ export function RuleEditor({ rule, setup, onChange, onDelete }: Props) {
             }}
           />
           <VisualActionBuilder
+            variant="flat"
             actions={actions}
             onChange={(next) => {
               setActions(next);
@@ -173,8 +176,8 @@ export function RuleEditor({ rule, setup, onChange, onDelete }: Props) {
             }}
             achievements={setup.achievements}
             currencies={setup.currencies}
-            noAchievementsHint="No achievements yet. Add one under What this setup can award."
-            noCurrenciesHint="No currencies yet. Add one under What this setup can award."
+            noAchievementsHint="No achievements yet. Add one under Badges, currencies and levels."
+            noCurrenciesHint="No currencies yet. Add one under Badges, currencies and levels."
           />
         </div>
       ) : (

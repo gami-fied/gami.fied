@@ -54,7 +54,7 @@ export function EventComposer({ presets, onSend }: Props) {
               type="button"
               onClick={() => usePreset(preset)}
               aria-pressed={preset.type === type && JSON.stringify(preset.payload, null, 2) === payload}
-              className="border border-zinc-800 bg-zinc-900/60 px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-50 aria-pressed:border-brand-500/70 aria-pressed:text-brand-200"
+              className="border border-zinc-800 bg-zinc-900/60 px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-50 aria-pressed:border-zinc-500 aria-pressed:bg-zinc-800 aria-pressed:text-zinc-50"
             >
               {preset.label}
             </button>
@@ -68,7 +68,7 @@ export function EventComposer({ presets, onSend }: Props) {
           <Dropdown options={WHEN_OPTIONS} value={when} onChange={(value) => setWhen(value as When)} align="right" />
         </div>
       </div>
-      <Textarea label="Payload" value={payload} onChange={(e) => setPayload(e.target.value)} rows={4} spellCheck={false} className="font-mono text-xs" />
+      <Textarea label="Payload" value={payload} onChange={(e) => setPayload(e.target.value)} rows={3} spellCheck={false} className="font-mono text-xs" />
       {error && (
         <p className="text-xs text-danger-300" role="alert">
           {error}

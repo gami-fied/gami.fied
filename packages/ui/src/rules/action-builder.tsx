@@ -68,6 +68,8 @@ export interface VisualActionBuilderProps {
   noAchievementsHint?: React.ReactNode;
   /** Shown when there are no currencies to pick from. */
   noCurrenciesHint?: React.ReactNode;
+  /** `card` (the default) frames the builder in its own box; `flat` drops the frame for a page that has one. */
+  variant?: 'card' | 'flat';
 }
 
 /**
@@ -82,6 +84,7 @@ export function VisualActionBuilder({
   pluginActions = [],
   noAchievementsHint = 'No achievements yet. Create one on the Achievements page first.',
   noCurrenciesHint = 'No currencies yet. Create one on the Store page first.',
+  variant = 'card',
 }: VisualActionBuilderProps) {
   const [paramText, setParamText] = useState<Record<string, string>>({});
 
@@ -126,15 +129,21 @@ export function VisualActionBuilder({
     icon: <Award className="w-3.5 h-3.5 text-info-400" />,
   }));
 
+  const flat = variant === 'flat';
+
   return (
-    <div className="space-y-4 bg-zinc-950/60 p-4 rounded-none border border-zinc-800">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-warning-400" />
-          <span className="text-xs font-semibold text-zinc-200">Rule Executed Actions</span>
-        </div>
+    <div className={flat ? 'space-y-3 border-t border-zinc-800 pt-4' : 'space-y-4 bg-zinc-950/60 p-4 rounded-none border border-zinc-800'}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {flat ? (
+          <span className={FIELD_LABEL_CLASS}>Then</span>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-warning-400" />
+            <span className="text-xs font-semibold text-zinc-200">Rule Executed Actions</span>
+          </div>
+        )}
         <span className="text-xs text-zinc-400 font-medium">
-          Executed in order when conditions match
+          {flat ? 'In order, when the conditions match' : 'Executed in order when conditions match'}
         </span>
       </div>
 
@@ -288,7 +297,7 @@ export function VisualActionBuilder({
 
       <Button
         type="button"
-        variant="secondary"
+        variant={flat ? 'outline' : 'secondary'}
         size="sm"
         onClick={handleAddAction}
         className="w-full"

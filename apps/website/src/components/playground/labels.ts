@@ -34,11 +34,12 @@ export function effectLabel(effect: Effect, setup: PlaygroundSetup): { text: str
 }
 
 export const TONES: Record<Tone, string> = {
-  xp: 'border-warning-800/70 bg-warning-950/40 text-warning-200',
-  level: 'border-brand-700/70 bg-brand-950/50 text-brand-200',
-  badge: 'border-info-800/70 bg-info-950/40 text-info-200',
-  currency: 'border-success-800/70 bg-success-950/40 text-success-200',
-  streak: 'border-brand-800/70 bg-brand-950/30 text-brand-200',
+  // Quiet tags: one grey frame, with the colour in the text, so orange stays for the main action.
+  xp: 'border-zinc-800 bg-zinc-900/60 text-warning-300',
+  level: 'border-zinc-800 bg-zinc-900/60 text-zinc-100',
+  badge: 'border-zinc-800 bg-zinc-900/60 text-info-300',
+  currency: 'border-zinc-800 bg-zinc-900/60 text-success-300',
+  streak: 'border-zinc-800 bg-zinc-900/60 text-zinc-200',
   muted: 'border-zinc-800 bg-zinc-900/60 text-zinc-400',
 };
 

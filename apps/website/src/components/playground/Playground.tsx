@@ -4,14 +4,14 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
-import { Award, Copy, Download, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react';
-import { Button } from '@gami/ui';
+import { Award, ChevronRight, Copy, Download, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { Button, SegmentedControl } from '@gami/ui';
 import { EVENTS, track } from '../../lib/analytics';
 import { eventId, SCENARIOS, scenarioById, type Scenario } from '../../lib/playground/scenarios';
 import { decodeState, encodeState, exportRules, MAX_LINK_LENGTH, type SharedState } from '../../lib/playground/share';
 import { simulate, type PlaygroundEvent, type PlaygroundRule, type PlaygroundSetup, type Simulation } from '../../lib/playground/simulate';
 import { EventComposer, type When } from './EventComposer';
-import { LastResult, PlayerCard, Timeline } from './Results';
+import { LastResult, PlayerCard, PlayerSummary, Timeline } from './Results';
 import { RuleEditor } from './RuleEditor';
 import { SetupPanel } from './SetupPanel';
 
@@ -52,6 +52,8 @@ export default function Playground() {
   const [showExport, setShowExport] = useState(false);
   // On a phone the two halves take turns, so sending an event and its result share one screen.
   const [phoneView, setPhoneView] = useState<'rules' | 'try'>('rules');
+  // The results column shows one of these at a time. Sending an event opens "What happened".
+  const [resultTab, setResultTab] = useState<'happened' | 'player' | 'timeline'>('happened');
   const noticeTimer = useRef<number | undefined>(undefined);
   // Set by sending an event, so the toast and the rule highlight answer that event, not a reload.
   const justSent = useRef(false);
@@ -123,6 +125,7 @@ export default function Playground() {
     const base = last || Date.now();
     const at = when === 'now' ? Date.now() : when === 'next_day' ? base + DAY : when === 'next_week' ? base + 7 * DAY : base + 60_000;
     justSent.current = true;
+    setResultTab('happened');
     setState((s) => ({ ...s, events: [...s.events, { id: eventId(), type, payload, occurredAt: new Date(at).toISOString() }] }));
     track(EVENTS.playgroundRun, { scenario: state.scenario ?? 'custom', type });
   };
@@ -174,7 +177,7 @@ export default function Playground() {
                 role="radio"
                 aria-checked={state.scenario === item.id}
                 onClick={() => replace(load(item))}
-                className="border border-zinc-800 bg-zinc-900/50 px-3.5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-50 aria-checked:border-brand-500 aria-checked:bg-brand-500/10 aria-checked:text-zinc-50"
+                className="border border-zinc-800 bg-zinc-900/50 px-3.5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-50 aria-checked:border-zinc-500 aria-checked:bg-zinc-800 aria-checked:text-zinc-50"
               >
                 {item.name}
               </button>
@@ -182,14 +185,14 @@ export default function Playground() {
           </div>
           <p className="mt-2 max-w-xl text-sm text-zinc-400">{scenario?.summary ?? 'Your own setup, from a shared link.'}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" size="sm" className="gap-2" onClick={() => scenario && replace(load(scenario))} disabled={!scenario}>
+        <div className="flex flex-wrap gap-1">
+          <Button type="button" variant="ghost" size="sm" onClick={() => scenario && replace(load(scenario))} disabled={!scenario}>
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Start over
           </Button>
-          <Button type="button" variant="secondary" size="sm" className="gap-2" onClick={() => setShowExport((v) => !v)} aria-expanded={showExport}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowExport((v) => !v)} aria-expanded={showExport}>
             <Download className="h-3.5 w-3.5" aria-hidden="true" /> Export rules
           </Button>
-          <Button type="button" size="sm" className="gap-2" onClick={() => void copyLink()}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => void copyLink()}>
             <Link2 className="h-3.5 w-3.5" aria-hidden="true" /> Copy link
           </Button>
         </div>
@@ -236,7 +239,7 @@ export default function Playground() {
             role="tab"
             aria-selected={phoneView === id}
             onClick={() => setPhoneView(id)}
-            className={`px-3 py-2 text-sm font-medium transition-colors ${phoneView === id ? 'bg-brand-500 text-on-accent' : 'text-zinc-300 hover:text-zinc-100'}`}
+            className={`px-3 py-2 text-sm font-medium transition-colors ${phoneView === id ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-300 hover:text-zinc-100'}`}
           >
             {label}
           </button>
@@ -250,7 +253,7 @@ export default function Playground() {
             title="Rules"
             id="rules-title"
             actions={
-              <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={addRule}>
+              <Button type="button" size="sm" onClick={addRule}>
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Add rule
               </Button>
             }
@@ -263,7 +266,7 @@ export default function Playground() {
                   role="tab"
                   aria-selected={rule.id === openRule}
                   onClick={() => setOpenRule(rule.id)}
-                  className={`border px-2.5 py-1.5 text-xs transition-colors aria-selected:border-brand-500 aria-selected:text-zinc-50 ${rule.enabled ? 'border-zinc-800 text-zinc-300 hover:border-zinc-600' : 'border-zinc-800 text-zinc-500 line-through'}`}
+                  className={`border px-2.5 py-1.5 text-xs transition-colors aria-selected:border-zinc-500 aria-selected:bg-zinc-800 aria-selected:text-zinc-50 ${rule.enabled ? 'border-zinc-800 text-zinc-300 hover:border-zinc-600' : 'border-zinc-800 text-zinc-500 line-through'}`}
                 >
                   {rule.name || 'Untitled rule'}
                 </button>
@@ -301,33 +304,59 @@ export default function Playground() {
               <p className="text-sm text-zinc-500">No rules. Add one to start.</p>
             )}
           </Panel>
-          <Panel title="What this setup can award" id="setup-title">
-            <SetupPanel setup={state.setup} onChange={setSetup} />
-          </Panel>
+          {/* Folded by default: it is what the rules give, not where people start. */}
+          <details className="group border border-zinc-800 bg-zinc-950/60">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-100 [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-90" aria-hidden="true" />
+              Badges, currencies and levels
+              <span className="font-normal text-zinc-400">
+                ({state.setup.achievements.length + state.setup.currencies.length + state.setup.streaks.length})
+              </span>
+            </summary>
+            <div className="border-t border-zinc-800 p-4">
+              <SetupPanel setup={state.setup} onChange={setSetup} />
+            </div>
+          </details>
         </div>
 
-        {/* Events and results */}
-        <div className={`min-w-0 space-y-6 ${phoneView === 'try' ? '' : 'max-xl:hidden'}`}>
+        {/* Events and results. On wide screens the column stays in view while the rules scroll, so a
+            changed rule's result shows without scrolling. */}
+        <div
+          className={`min-w-0 flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] ${phoneView === 'try' ? 'flex' : 'flex max-xl:hidden'}`}
+        >
           <Panel title="Send an event" id="send-title">
             <EventComposer key={`${state.scenario}:${version}`} presets={scenario?.presets ?? []} onSend={send} />
           </Panel>
-          <Panel title="What happened" id="result-title">
-            <LastResult steps={simulation.steps} setup={state.setup} />
-          </Panel>
-          <Panel title="The player" id="player-title">
-            <PlayerCard simulation={simulation} setup={state.setup} />
-          </Panel>
-          <Panel
-            title="Timeline"
-            id="timeline-title"
-            actions={
-              <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setState((s) => ({ ...s, events: [] }))} disabled={!state.events.length}>
-                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Clear events
-              </Button>
-            }
-          >
-            <Timeline simulation={simulation} setup={state.setup} onRemove={(id) => setState((s) => ({ ...s, events: s.events.filter((e) => e.id !== id) }))} />
-          </Panel>
+          <div className="border border-zinc-800 bg-zinc-950/60 px-4 py-3">
+            <PlayerSummary simulation={simulation} setup={state.setup} />
+          </div>
+          <section className="flex min-h-0 flex-col border border-zinc-800 bg-zinc-950/60 xl:flex-1" aria-label="Results">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-4 py-2.5">
+              <SegmentedControl
+                label="Results"
+                size="sm"
+                value={resultTab}
+                onChange={setResultTab}
+                options={[
+                  { value: 'happened', label: 'What happened' },
+                  { value: 'player', label: 'Player' },
+                  { value: 'timeline', label: `Timeline (${state.events.length})` },
+                ]}
+              />
+              {resultTab === 'timeline' && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setState((s) => ({ ...s, events: [] }))} disabled={!state.events.length}>
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Clear events
+                </Button>
+              )}
+            </div>
+            <div className="min-h-0 overflow-y-auto p-4" tabIndex={0} aria-label="Result details">
+              {resultTab === 'happened' && <LastResult steps={simulation.steps} setup={state.setup} />}
+              {resultTab === 'player' && <PlayerCard simulation={simulation} setup={state.setup} />}
+              {resultTab === 'timeline' && (
+                <Timeline simulation={simulation} setup={state.setup} onRemove={(id) => setState((s) => ({ ...s, events: s.events.filter((e) => e.id !== id) }))} />
+              )}
+            </div>
+          </section>
         </div>
       </div>
       {/* Badge unlocks, like the product's own toast. */}

@@ -984,6 +984,7 @@ export function RulesView() {
           {/* Condition Builder */}
           {editorMode === 'visual' ? (
             <VisualConditionBuilder
+              trigger={trigger}
               matchMode={matchMode}
               onMatchModeChange={setMatchMode}
               conditions={visualConditions}

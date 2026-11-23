@@ -29,6 +29,9 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 
 ### Changed
 
+- The website's playground is easier to read. On a wide screen, the send box, a short summary of the player and the results stay in view while the rules scroll, so a changed rule's result shows without scrolling, and what an event earned is listed first. The results show one view at a time: what happened, the player, or the timeline. The editor drops its boxes inside boxes, a rule with no conditions is one line until a condition is added, orange is kept for Add rule and Send event, and the badges, currencies and levels fold away.
+- In the dashboard's rule dialog, a rule with no conditions says it runs on every event of its trigger. Before, it named the match mode ("all") as the trigger.
+
 - The dashboard's API Docs page is gone. The website has the full reference and the guides, so Developer Hub now links to them, and its old address redirects to Developer Hub. Developer Hub shows what only this install knows: its API address, the project ID and the server version. It also has four starter snippets with that address filled in: send an event with curl, set up the SDK, make a player token, and show progress in React. A test sends the snippets' requests to a running API. The old SDK snippet left out `baseUrl`, so it only worked against `localhost`, and the old quick start offered a Python SDK that does not exist.
 - The achievement form asks how a badge is earned, "By a rule or challenge" or "By progress toward a target", with a line on what the player sees for each. A saved badge earned by a rule lists the rules that give it, with a link that opens a new rule giving it. In the rule builder, choosing a badge that is already earned by progress shows a warning, because the rule can give it before the player reaches the target.
 

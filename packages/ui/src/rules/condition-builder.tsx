@@ -5,6 +5,8 @@ import { Button, IconButton } from '../button';
 import { Input, Textarea } from '../input';
 import { Dropdown } from '../dropdown';
 import { Checkbox } from '../checkbox';
+import { FIELD_LABEL_CLASS } from '../field';
+import { SegmentedControl } from '../segmented-control';
 import { Plus, Trash2, Layers, Braces } from 'lucide-react';
 import {
   buildTotalCondition,
@@ -116,6 +118,14 @@ export interface VisualConditionBuilderProps {
   onMatchModeChange: (mode: 'all' | 'any') => void;
   conditions: VisualCondition[];
   onChange: (conditions: VisualCondition[]) => void;
+  /** The rule's trigger, for the line that says what a rule with no conditions does. */
+  trigger?: string;
+  /**
+   * `card` (the default) frames the builder in its own box, as in the dashboard's rule dialog.
+   * `flat` drops the frame for a page that already has one, such as the website's playground,
+   * and shows a rule with no conditions as one line until someone adds a condition.
+   */
+  variant?: 'card' | 'flat';
 }
 
 export function VisualConditionBuilder({
@@ -123,7 +133,13 @@ export function VisualConditionBuilder({
   onMatchModeChange,
   conditions,
   onChange,
+  trigger,
+  variant = 'card',
 }: VisualConditionBuilderProps) {
+  const flat = variant === 'flat';
+  const [adding, setAdding] = React.useState(false);
+  const showAddButtons = !flat || adding || conditions.length > 0;
+  const triggerName = trigger?.trim();
   const handleAddCondition = () => {
     const newCond: VisualCondition = {
       id: `cond_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -173,38 +189,31 @@ export function VisualConditionBuilder({
   };
 
   return (
-    <div className="space-y-4 bg-zinc-950/60 p-4 rounded-none border border-zinc-800">
-      {/* Match Mode Selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-brand-400" />
-          <span className="text-xs font-semibold text-zinc-200">Condition Match Rule</span>
+    <div className={flat ? 'space-y-3 border-t border-zinc-800 pt-4' : 'space-y-4 bg-zinc-950/60 p-4 rounded-none border border-zinc-800'}>
+      {/* Match Mode Selector. In the flat look it only appears once there is a choice to make. */}
+      {(!flat || conditions.length > 1) && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {flat ? (
+            <span className={FIELD_LABEL_CLASS}>Conditions</span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-brand-400" />
+              <span className="text-xs font-semibold text-zinc-200">Condition Match Rule</span>
+            </div>
+          )}
+          <SegmentedControl
+            label="How conditions combine"
+            size="sm"
+            value={matchMode}
+            onChange={onMatchModeChange}
+            options={[
+              { value: 'all', label: 'Match ALL (AND)' },
+              { value: 'any', label: 'Match ANY (OR)' },
+            ]}
+          />
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-none flex gap-1">
-          <button
-            type="button"
-            onClick={() => onMatchModeChange('all')}
-            className={`px-3 py-1 text-xs font-semibold rounded-none transition-colors ${
-              matchMode === 'all'
-                ? 'bg-brand-500 text-on-accent shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            Match ALL (AND)
-          </button>
-          <button
-            type="button"
-            onClick={() => onMatchModeChange('any')}
-            className={`px-3 py-1 text-xs font-semibold rounded-none transition-colors ${
-              matchMode === 'any'
-                ? 'bg-brand-500 text-on-accent shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            Match ANY (OR)
-          </button>
-        </div>
-      </div>
+      )}
+      {flat && conditions.length === 1 && <span className={FIELD_LABEL_CLASS}>Condition</span>}
 
       {/* Condition Rows */}
       <div className="space-y-3">
@@ -356,28 +365,43 @@ export function VisualConditionBuilder({
           );
         })}
 
-        {conditions.length === 0 && (
-          <div className="py-4 text-center text-xs text-zinc-400 border border-dashed border-zinc-800/80 rounded-none">
-            No conditions added. This rule will match all events with trigger &quot;{matchMode}
-            &quot;.
-          </div>
-        )}
+        {conditions.length === 0 &&
+          (flat ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400">
+              <span>
+                Runs on every {triggerName ? <code className="font-mono text-zinc-200">{triggerName}</code> : 'trigger'} event.
+              </span>
+              {!adding && (
+                <button type="button" className="inline-flex items-center gap-1 text-zinc-200 hover:text-white" onClick={() => setAdding(true)}>
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  Add condition
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="py-4 text-center text-xs text-zinc-400 border border-dashed border-zinc-800/80 rounded-none">
+              No conditions, so this rule runs on every{' '}
+              {triggerName ? <code className="font-mono text-zinc-300">{triggerName}</code> : 'trigger'} event.
+            </div>
+          ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <Button type="button" variant="secondary" size="sm" onClick={handleAddCondition}>
-          <Plus className="w-4 h-4" />
-          Add Condition Filter
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={handleAddTotal}>
-          <Plus className="w-4 h-4" />
-          Add total over time
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={handleAddLogic}>
-          <Braces className="w-4 h-4" />
-          Add expression
-        </Button>
-      </div>
+      {showAddButtons && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <Button type="button" variant={flat ? 'outline' : 'secondary'} size="sm" onClick={handleAddCondition}>
+            <Plus className="w-4 h-4" />
+            Add Condition Filter
+          </Button>
+          <Button type="button" variant={flat ? 'outline' : 'secondary'} size="sm" onClick={handleAddTotal}>
+            <Plus className="w-4 h-4" />
+            Add total over time
+          </Button>
+          <Button type="button" variant={flat ? 'outline' : 'secondary'} size="sm" onClick={handleAddLogic}>
+            <Braces className="w-4 h-4" />
+            Add expression
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

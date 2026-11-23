@@ -41,6 +41,7 @@ export function LastResult({ steps, setup }: { steps: Step[]; setup: PlaygroundS
             <span className="text-zinc-100">{step.event.type}</span>
             {step.emitted && <span className="text-zinc-500"> (current {String(step.event.payload['current'])})</span>}
           </p>
+          <EffectChips step={step} setup={setup} />
           {step.rules.length === 0 ? (
             <p className="text-xs text-zinc-500">No rules listen for this event.</p>
           ) : (
@@ -74,7 +75,6 @@ export function LastResult({ steps, setup }: { steps: Step[]; setup: PlaygroundS
               ))}
             </ul>
           )}
-          <EffectChips step={step} setup={setup} />
         </div>
       ))}
     </motion.div>
@@ -179,5 +179,41 @@ export function Timeline({ simulation, setup, onRemove }: { simulation: Simulati
       ))}
       </AnimatePresence>
     </ol>
+  );
+}
+
+/** The player in two lines, for the column that stays in view: level, XP bar, streak and newest badges. */
+export function PlayerSummary({ simulation, setup }: { simulation: Simulation; setup: PlaygroundSetup }) {
+  const { totals } = simulation;
+  const streak = Object.entries(totals.streaks)[0];
+  const newest = totals.badges.slice(-3).reverse().map((key) => setup.achievements.find((item) => item.key === key)?.name ?? key);
+  return (
+    <div className="space-y-2 text-xs" aria-label="The player">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-semibold text-zinc-50">
+          Level {totals.level} <span className="font-normal text-zinc-400">· {totals.levelName}</span>
+        </span>
+        <span className="font-mono text-zinc-400">{totals.xp} XP</span>
+      </div>
+      <div className="h-1.5 bg-zinc-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(totals.progressPercent)} aria-label="Progress to the next level">
+        <motion.div
+          className="h-full origin-left bg-brand-500"
+          initial={false}
+          animate={{ scaleX: Math.min(100, totals.progressPercent) / 100 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+        />
+      </div>
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-zinc-400">
+        {streak && (
+          <span>
+            {setup.streaks.find((s) => s.key === streak[0])?.name ?? streak[0]}: <span className="text-zinc-100">{streak[1].current} in a row</span>
+          </span>
+        )}
+        <span>
+          Badges: <span className="text-zinc-100">{newest.length ? newest.join(', ') : 'none yet'}</span>
+          {totals.badges.length > 3 ? ` and ${totals.badges.length - 3} more` : ''}
+        </span>
+      </p>
+    </div>
   );
 }
