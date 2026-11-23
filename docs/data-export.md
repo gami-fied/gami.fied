@@ -50,7 +50,7 @@ Every table in the database is on one of these two lists, and a test fails when 
   "manifest": {
     "organizationId": "org_123",
     "organizationName": "Acme Corp",
-    "appVersion": "1.3.0",
+    "appVersion": "1.3.1",
     "projectCount": 2,
     "userCount": 42,
     "rows": { "projects": 2, "endUsers": 42, "events": 1830 }

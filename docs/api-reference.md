@@ -1,6 +1,6 @@
 # API reference
 
-The full reference is in the dashboard under **Connect > API Docs**, with every parameter, body, response and error, and samples in cURL, JavaScript and Python. The same information is in [`openapi.json`](./openapi.json), which you can load into any OpenAPI tool. A running server also serves it at `GET /openapi.json`.
+Every route, parameter, body, response and error is in [`openapi.json`](./openapi.json), which you can load into any OpenAPI tool, or try in the [API explorer](https://gami.fied.cc/docs/api-explorer/). A running server also serves it at `GET /openapi.json`. In the dashboard, **Developer Hub** shows your install's API address and version, with starter snippets that have it filled in.
 
 This page covers the basics.
 

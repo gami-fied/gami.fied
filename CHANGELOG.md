@@ -4,7 +4,42 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 [Semantic Versioning](https://semver.org), and the public API is the `/v1` routes described in
 [`docs/openapi.json`](docs/openapi.json).
 
-## [Unreleased]
+## [1.3.1] - 2026-11-23
+
+Polish from the first people to try Gami.Fied: more than a dozen dashboard fixes, including a rule editor that saved copies and rules with no conditions that could not be saved at all. Design files now carry mystery boxes and cosmetics, Developer Hub replaces the dashboard's copy of the API docs, the achievement form asks how a badge is earned, and there is a complete example app. Nothing needs to change in your app, and there are no database migrations.
+
+### Run it
+
+```bash
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.3.1/docker-compose.yml
+curl -LO https://github.com/gami-fied/gami.fied/releases/download/v1.3.1/env.example
+cp env.example .env
+```
+
+Fill in `.env`, then run `docker compose up -d`. Images are published for `linux/amd64` and `linux/arm64`.
+
+### Packages
+
+- `@gami.fied/sdk` 1.3.1, with no changes to its API.
+- `@gami.fied/react` 1.3.1 and `@gami.fied/elements` 1.3.1: `BadgeGrid` now shows badges given by a rule, a challenge or a prize, and the leaderboard shows a worn title on the player's own row.
+
+### Added
+
+- Design files and promotion between environments now carry cosmetics and mystery boxes and wheels, with their currency and unlocking achievement matched by key in the target project. The import preview warns about a box prize or cosmetic that names a currency, achievement or cosmetic neither the file nor the project has.
+- An example app, [`examples/habit-tracker`](./examples/habit-tracker): a habit tracker in about 250 lines, an Express server and one page with the web components. It shows events sent from the server, player tokens in the browser, idempotency keys, coins spent on a mystery box and titles, and a game design imported from `gami-design.json`. Its `docker-compose.yml` starts it with Gami.Fied. See [Example app: a habit tracker](./docs/example-habit-tracker.md).
+- `pnpm release:version <version>` sets the version in every place it is written. CI fails when they disagree, and a release stops if its tag, `package.json` or the changelog do not match.
+- The Release workflow publishes the npm packages through npm's trusted publishing, with provenance and no stored npm token, and copies the images to Docker Hub when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are set.
+- On a demo instance, a visitor who opens the demo page again while their demo is still live is offered **Continue your demo** first, with the time it has left, and can still start a new one. Before, every visit started a new demo and left the first one unreachable until it expired. `GET /api/demo` now includes the visitor's live demo as `current`.
+- `CONTRIBUTING.md`, `SECURITY.md`, a code of conduct, and issue and pull request templates.
+- Weekly dependency updates, CodeQL analysis, `pnpm audit` in CI, and a scan of each image that fails the build on a fixable critical vulnerability.
+
+### Changed
+
+- The website's playground is easier to read. On a wide screen, the send box, a short summary of the player and the results stay in view while the rules scroll, so a changed rule's result shows without scrolling, and what an event earned is listed first. The results show one view at a time: what happened, the player, or the timeline. The editor drops its boxes inside boxes, a rule with no conditions is one line until a condition is added, orange is kept for Add rule and Send event, and the badges, currencies and levels fold away.
+- In the dashboard's rule dialog, a rule with no conditions says it runs on every event of its trigger. Before, it named the match mode ("all") as the trigger.
+
+- The dashboard's API Docs page is gone. The website has the full reference and the guides, so Developer Hub now links to them, and its old address redirects to Developer Hub. Developer Hub shows what only this install knows: its API address, the project ID and the server version. It also has four starter snippets with that address filled in: send an event with curl, set up the SDK, make a player token, and show progress in React. A test sends the snippets' requests to a running API. The old SDK snippet left out `baseUrl`, so it only worked against `localhost`, and the old quick start offered a Python SDK that does not exist.
+- The achievement form asks how a badge is earned, "By a rule or challenge" or "By progress toward a target", with a line on what the player sees for each. A saved badge earned by a rule lists the rules that give it, with a link that opens a new rule giving it. In the rule builder, choosing a badge that is already earned by progress shows a warning, because the rule can give it before the player reaches the target.
 
 ### Fixed
 
@@ -19,7 +54,7 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - On a user's Overview, Wallet, Community and Player view tabs, cards keep their own height instead of stretching to match the card next to them. The timeline and the friends feed scroll inside a fixed height.
 - The analytics range buttons (24H, 7D and so on) no longer flash a white border or shift by a pixel when clicked.
 - On achievement cards, Edit and Disable sit together on the right, and a long ID is cut short instead of pushing them apart.
-- Controls side by side in the dashboard are the same height. Inputs, dropdowns and buttons now come in two heights, 36 px by default and 32 px for small, so a field next to a dropdown or a button lines up. This covers the rule dialog (conditions, actions and the test panel), the top bar, and the toolbars on Analytics, Leaderboard, Users and Translations. Form labels share one size and spacing.
+- Controls side by side in the dashboard are the same height. Inputs, dropdowns and buttons now come in two heights, 36 px by default and 32 px for small, so a field next to a dropdown or a button lines up. This covers the rule dialog (conditions, actions and the test panel), the top bar, the toolbars on Analytics, Leaderboard, Users and Translations, and the search on the admin Audit Logs page. Form labels share one size and spacing.
 - Scrollbars follow the theme in every browser. Before, Firefox showed its default scrollbar, and the light theme had a black track.
 
 ### Security
@@ -27,23 +62,12 @@ All notable changes to Gami.Fied are recorded here. Versions follow
 - The dashboard now sends a full Content-Security-Policy. Each page gets a fresh nonce, and only scripts carrying it, or loaded by one that does, can run. An injected script or inline event handler does nothing.
 - The Docker images no longer contain build tools the running app never uses: esbuild's binary in the API and worker images, and npm and corepack in all three. Image scanners had flagged a critical issue in esbuild's bundled Go runtime and several in npm's own dependencies.
 
-### Changed
+### Upgrading from 1.3.0
 
-- The website's playground is easier to read. On a wide screen, the send box, a short summary of the player and the results stay in view while the rules scroll, so a changed rule's result shows without scrolling, and what an event earned is listed first. The results show one view at a time: what happened, the player, or the timeline. The editor drops its boxes inside boxes, a rule with no conditions is one line until a condition is added, orange is kept for Add rule and Send event, and the badges, currencies and levels fold away.
-- In the dashboard's rule dialog, a rule with no conditions says it runs on every event of its trigger. Before, it named the match mode ("all") as the trigger.
+Change the image tags to `1.3.1` (or set `GAMI_VERSION=1.3.1`) and run `docker compose up -d`. There are no database migrations and no new settings.
 
-- The dashboard's API Docs page is gone. The website has the full reference and the guides, so Developer Hub now links to them, and its old address redirects to Developer Hub. Developer Hub shows what only this install knows: its API address, the project ID and the server version. It also has four starter snippets with that address filled in: send an event with curl, set up the SDK, make a player token, and show progress in React. A test sends the snippets' requests to a running API. The old SDK snippet left out `baseUrl`, so it only worked against `localhost`, and the old quick start offered a Python SDK that does not exist.
-- The achievement form asks how a badge is earned, "By a rule or challenge" or "By progress toward a target", with a line on what the player sees for each. A saved badge earned by a rule lists the rules that give it, with a link that opens a new rule giving it. In the rule builder, choosing a badge that is already earned by progress shows a warning, because the rule can give it before the player reaches the target.
-
-### Added
-
-- Design files and promotion between environments now carry cosmetics and mystery boxes and wheels, with their currency and unlocking achievement matched by key in the target project. The import preview warns about a box prize or cosmetic that names a currency, achievement or cosmetic neither the file nor the project has.
-- An example app, [`examples/habit-tracker`](./examples/habit-tracker): a habit tracker in about 250 lines, an Express server and one page with the web components. It shows events sent from the server, player tokens in the browser, idempotency keys, coins spent on a mystery box and titles, and a game design imported from `gami-design.json`. Its `docker-compose.yml` starts it with Gami.Fied. See [Example app: a habit tracker](./docs/example-habit-tracker.md).
-- `pnpm release:version <version>` sets the version in every place it is written. CI fails when they disagree, and a release stops if its tag, `package.json` or the changelog do not match.
-- The Release workflow publishes the npm packages through npm's trusted publishing, with provenance and no stored npm token, and copies the images to Docker Hub when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are set.
-- On a demo instance, a visitor who opens the demo page again while their demo is still live is offered **Continue your demo** first, with the time it has left, and can still start a new one. Before, every visit started a new demo and left the first one unreachable until it expired. `GET /api/demo` now includes the visitor's live demo as `current`.
-- `CONTRIBUTING.md`, `SECURITY.md`, a code of conduct, and issue and pull request templates.
-- Weekly dependency updates, CodeQL analysis, `pnpm audit` in CI, and a scan of each image that fails the build on a fixable critical vulnerability.
+- The dashboard's **API Docs** page is gone. Its old address, `/dashboard/developer/docs`, now opens Developer Hub, which links to the reference on the website.
+- The rule routes now take `conditions: null`. On an update, `null` removes a rule's conditions. Sending no `conditions` field still leaves them as they were.
 
 ## [1.3.0] - 2026-11-15
 
@@ -350,6 +374,7 @@ Second release candidate. Added prebuilt Docker images, the release workflow, an
 
 First release candidate.
 
+[1.3.1]: https://github.com/gami-fied/gami.fied/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/gami-fied/gami.fied/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/gami-fied/gami.fied/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/gami-fied/gami.fied/compare/v1.0.0...v1.1.0

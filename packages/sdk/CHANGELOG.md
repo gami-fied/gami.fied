@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+No changes to the SDK. Released with Gami.Fied 1.3.1 so the versions stay together.
+
 ## 1.3.0
 
 For Gami.Fied 1.3.0. Upgrade the server first: several calls below use routes that only 1.3.0 has.

@@ -1,6 +1,6 @@
 {
   "name": "@gami.fied/react",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "React components and hooks for Gami.Fied: progress bars, badges, streaks, leaderboards and live toasts.",
   "keywords": ["gamification", "react", "xp", "achievements", "leaderboard", "streaks", "badges"],
   "license": "MIT",

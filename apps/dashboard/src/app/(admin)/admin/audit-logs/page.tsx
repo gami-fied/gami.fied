@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
 import { ShieldAlert, AlertTriangle, Info, Search } from 'lucide-react';
 import { Dropdown } from '@/components/ui/dropdown';
+import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 
 interface AuditRecord {
@@ -85,14 +86,12 @@ export default function AdminAuditLogsPage() {
             className="w-44"
           />
 
-          <div className="relative w-full sm:w-56">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
-            <input
-              type="text"
+          <div className="w-full sm:w-56">
+            <Input
+              leftIcon={<Search className="w-4 h-4" />}
               placeholder="Search logs..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 px-3 py-1.5 pl-9 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-danger-500"
             />
           </div>
         </div>

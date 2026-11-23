@@ -2,7 +2,7 @@
 
 Your app sends events to Gami.Fied. Rules decide what each event earns, and rewards are recorded in the background.
 
-For every field and response, see the API Docs page in the dashboard, or [`openapi.json`](./openapi.json).
+For every field and response, see the [API reference](./api-reference.md) and [`openapi.json`](./openapi.json).
 
 ---
 
@@ -143,7 +143,7 @@ An achievement has a unique key, a name, and an optional description and icon. I
 
 ### Earning itself
 
-An achievement can also measure something and be earned on its own, with a progress bar for the player and no rule to write. Turn on "Earn it automatically" when you create or edit it:
+An achievement can also measure something and be earned on its own, with a progress bar for the player and no rule to write. In the achievement form, under **How is it earned?**, choose **By progress toward a target**. The other choice, **By a rule or challenge**, lists the rules that give the badge. The fields:
 
 | Setting | Meaning |
 | :--- | :--- |
@@ -156,7 +156,7 @@ An achievement can also measure something and be earned on its own, with a progr
 
 Reaching the target grants the achievement, with its usual notification and webhook. Each higher tier sends another `achievement.unlocked` webhook and notification, with `tier` and `tierName` in the webhook data, and gives its bonus XP once. Tiers only go up, so repeating an event never rewards twice. Rolling windows can fall again, so the best reading is kept.
 
-`GET /v1/users/:userId/achievements/progress` returns every achievement that measures itself, including secret ones marked `hidden`. For a player's own screen use `GET /v1/me/achievements/progress`, which leaves secret ones out until they are earned.
+`GET /v1/users/:userId/achievements/progress` returns every achievement, including secret ones marked `hidden`. One given by a rule or challenge has no progress to show, so it appears as earned or locked, measuring "Given by a rule or challenge". For a player's own screen use `GET /v1/me/achievements/progress`, which leaves secret ones out until they are earned.
 
 ---
 
