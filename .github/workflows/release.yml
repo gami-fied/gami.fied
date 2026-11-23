@@ -152,7 +152,9 @@ jobs:
               continue
             fi
             (cd "packages/${dir}" && pnpm pack --pack-destination ../../packs)
-            npm publish "packs/$(echo "${name}" | sed 's#^@##; s#/#-#')-${version}.tgz" --access public --tag "$dist_tag"
+            # The leading ./ matters: without it npm reads "packs/<file>.tgz" as a GitHub repository
+            # (owner/name) and tries to clone it.
+            npm publish "./packs/$(echo "${name}" | sed 's#^@##; s#/#-#')-${version}.tgz" --access public --tag "$dist_tag"
           done
 
   docker-hub:
