@@ -23,6 +23,7 @@ const stars = await githubStars();
           <li>
             <a
               href={link.href}
+              data-nav-link
               aria-current={isCurrent(link.href) ? 'page' : undefined}
               class="px-3 py-2 text-zinc-400 transition-colors duration-150 hover:text-zinc-100 aria-[current=page]:text-zinc-100"
             >
@@ -65,12 +66,16 @@ const stars = await githubStars();
     </div>
   </nav>
 
-  <div id="mobile-menu" class="hidden border-t border-zinc-800 bg-zinc-950 lg:hidden" data-menu>
+  <div
+    id="mobile-menu"
+    class="absolute inset-x-0 top-full hidden max-h-[calc(100dvh-4rem)] overflow-y-auto border-y border-zinc-800 bg-zinc-950 shadow-[0_24px_48px_-24px_rgb(0_0_0/0.6)] lg:hidden"
+    data-menu
+  >
     <ul class="mx-auto flex max-w-6xl flex-col px-4 py-3">
       {
         NAV.map((link) => (
           <li>
-            <a href={link.href} class="block px-2 py-3 text-base text-zinc-200" aria-current={isCurrent(link.href) ? 'page' : undefined}>
+            <a href={link.href} data-nav-link class="block px-2 py-3 text-base text-zinc-200 aria-[current=page]:text-brand-400" aria-current={isCurrent(link.href) ? 'page' : undefined}>
               {link.label}
             </a>
           </li>
@@ -97,11 +102,30 @@ const stars = await githubStars();
   };
 
   document.addEventListener('click', (event) => {
-    const toggle = (event.target as Element | null)?.closest('[data-menu-toggle]');
+    const target = event.target as Element | null;
+    const toggle = target?.closest('[data-menu-toggle]');
     if (toggle) setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    // The menu floats over the page, so a tap outside it closes it.
+    else if (!target?.closest('[data-menu]')) setOpen(false);
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') setOpen(false);
   });
-  document.addEventListener('astro:after-swap', () => setOpen(false));
+
+  // The header is kept between pages (transition:persist), so the link marked as the current page
+  // when it was first drawn would stay marked. Mark it again from the address after each page change.
+  const markCurrent = () => {
+    const path = window.location.pathname;
+    for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-nav-link]')) {
+      const href = link.getAttribute('href') ?? '';
+      const current = href === '/' ? path === '/' : path.startsWith(href);
+      if (current) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    }
+  };
+  document.addEventListener('astro:page-load', markCurrent);
+  document.addEventListener('astro:after-swap', () => {
+    setOpen(false);
+    markCurrent();
+  });
 </script>
